@@ -10,7 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const AIGeneratedVideoMetadataInputSchema = z.object({
   videoSummary: z.string().optional().describe('A summary or transcript of the video content.'),

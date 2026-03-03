@@ -16,7 +16,7 @@ service cloud.firestore {
 
     // --- Public Content (Always Readable) ---
     // We allow anyone to read videos, channels, speakers, and Quran content
-    // to ensure a smooth discovery experience.
+    // to ensure a smooth discovery experience across the app.
     
     match /videos/{videoId} {
       allow read: if true;
