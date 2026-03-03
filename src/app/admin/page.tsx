@@ -4,17 +4,51 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, deleteDoc, updateDoc, setDoc, addDoc } from 'firebase/firestore';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ShieldCheck, ShieldAlert, Youtube, Video, Book, Trash2, Edit3, Plus, Loader2 } from 'lucide-react';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { 
+  ShieldCheck, 
+  ShieldAlert, 
+  Youtube, 
+  Video, 
+  Book, 
+  Trash2, 
+  Edit3, 
+  Plus, 
+  Loader2, 
+  LayoutDashboard,
+  Settings,
+  LogOut,
+  ChevronRight
+} from 'lucide-react';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { 
+  Sidebar, 
+  SidebarContent, 
+  SidebarFooter, 
+  SidebarHeader, 
+  SidebarMenu, 
+  SidebarMenuItem, 
+  SidebarMenuButton, 
+  SidebarProvider, 
+  SidebarInset,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent
+} from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+
+type AdminTab = 'channels' | 'videos' | 'quran' | 'settings';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const db = useFirestore();
+  const [activeTab, setActiveTab] = useState<AdminTab>('channels');
 
   // Admin Check
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
@@ -32,7 +66,7 @@ export default function AdminPanel() {
 
   if (isUserLoading || isAdminLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
         <p className="text-muted-foreground">Verifying administrative access...</p>
       </div>
@@ -59,47 +93,155 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 pb-32">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-headline font-bold flex items-center gap-3">
-            <ShieldCheck className="text-accent" />
-            Admin Dashboard
-          </h1>
-          <p className="text-muted-foreground text-sm">Welcome, {user.email}. Manage global application state.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">Audit Logs</Button>
-          <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>View Site</Button>
-        </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <Sidebar className="border-r border-border bg-card">
+          <SidebarHeader className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                <ShieldCheck className="text-white w-6 h-6" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-headline font-bold text-lg leading-none">Admin Hub</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Management</span>
+              </div>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Main Menu</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab('channels')}
+                      isActive={activeTab === 'channels'}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                        activeTab === 'channels' ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Youtube className="w-5 h-5" />
+                      <span>Channels</span>
+                      {activeTab === 'channels' && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab('videos')}
+                      isActive={activeTab === 'videos'}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                        activeTab === 'videos' ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Video className="w-5 h-5" />
+                      <span>Video Catalog</span>
+                      {activeTab === 'videos' && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab('quran')}
+                      isActive={activeTab === 'quran'}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                        activeTab === 'quran' ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Book className="w-5 h-5" />
+                      <span>Quran Content</span>
+                      {activeTab === 'quran' && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup className="mt-auto">
+              <SidebarGroupLabel className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">System</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab('settings')}
+                      isActive={activeTab === 'settings'}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                        activeTab === 'settings' ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Settings className="w-5 h-5" />
+                      <span>Settings</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+          <SidebarFooter className="p-4 border-t border-border">
+            <div className="flex items-center gap-3 px-2 py-3 bg-secondary/50 rounded-xl mb-4">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
+                {user.email?.[0].toUpperCase()}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold truncate">{user.email}</span>
+                <span className="text-[10px] text-muted-foreground">Admin</span>
+              </div>
+            </div>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => signOut(auth)}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </SidebarFooter>
+        </Sidebar>
+
+        <SidebarInset className="flex-1 overflow-auto bg-background/50 backdrop-blur-sm">
+          <header className="h-16 border-b border-border flex items-center justify-between px-8 bg-card/50 sticky top-0 z-10 backdrop-blur-md">
+             <div className="flex items-center gap-2">
+               <LayoutDashboard className="w-4 h-4 text-primary" />
+               <h2 className="font-headline font-bold text-lg">
+                 {activeTab === 'channels' && 'YouTube Channels'}
+                 {activeTab === 'videos' && 'Video Catalog'}
+                 {activeTab === 'quran' && 'Quranic Metadata'}
+                 {activeTab === 'settings' && 'System Settings'}
+               </h2>
+             </div>
+             <div className="flex items-center gap-4">
+               <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>View Live Site</Button>
+               {activeTab !== 'settings' && (
+                 <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
+                   <Plus className="w-4 h-4 mr-2" />
+                   Add New
+                 </Button>
+               )}
+             </div>
+          </header>
+
+          <main className="p-8">
+            {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
+            {activeTab === 'videos' && <VideoManagement videos={videos || []} />}
+            {activeTab === 'quran' && <QuranManagement surahs={surahs || []} />}
+            {activeTab === 'settings' && (
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle>System Settings</CardTitle>
+                  <CardDescription>Configure global application parameters.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-12 text-center text-muted-foreground">
+                  <Settings className="w-12 h-12 mx-auto opacity-10 mb-4" />
+                  <p>System settings are currently managed via Cloud Config.</p>
+                </CardContent>
+              </Card>
+            )}
+          </main>
+        </SidebarInset>
       </div>
-
-      <Tabs defaultValue="channels" className="w-full">
-        <TabsList className="bg-secondary p-1 h-12 mb-6">
-          <TabsTrigger value="channels" className="px-6 rounded-lg">
-            <Youtube className="w-4 h-4 mr-2" /> Channels
-          </TabsTrigger>
-          <TabsTrigger value="videos" className="px-6 rounded-lg">
-            <Video className="w-4 h-4 mr-2" /> Videos
-          </TabsTrigger>
-          <TabsTrigger value="quran" className="px-6 rounded-lg">
-            <Book className="w-4 h-4 mr-2" /> Quran
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="channels">
-          <ChannelManagement channels={channels || []} />
-        </TabsContent>
-
-        <TabsContent value="videos">
-          <VideoManagement videos={videos || []} />
-        </TabsContent>
-
-        <TabsContent value="quran">
-          <QuranManagement surahs={surahs || []} />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </SidebarProvider>
   );
 }
 
@@ -112,21 +254,12 @@ function ChannelManagement({ channels }: { channels: any[] }) {
   };
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>YouTube Channels</CardTitle>
-          <CardDescription>Manage verified creators and linked channels.</CardDescription>
-        </div>
-        <Button size="sm" className="bg-accent text-accent-foreground font-bold">
-          <Plus className="w-4 h-4 mr-2" /> Add Channel
-        </Button>
-      </CardHeader>
-      <CardContent>
+    <Card className="bg-card border-border shadow-sm">
+      <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-secondary/30">
             <TableRow>
-              <TableHead>Channel Title</TableHead>
+              <TableHead className="py-4">Channel Title</TableHead>
               <TableHead>Subscribers</TableHead>
               <TableHead>Videos</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -134,18 +267,34 @@ function ChannelManagement({ channels }: { channels: any[] }) {
           </TableHeader>
           <TableBody>
             {channels.map((channel) => (
-              <TableRow key={channel.id}>
-                <TableCell className="font-medium">{channel.title}</TableCell>
+              <TableRow key={channel.id} className="hover:bg-secondary/20 transition-colors">
+                <TableCell className="font-medium py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                      <Youtube className="w-4 h-4 text-red-500" />
+                    </div>
+                    {channel.title}
+                  </div>
+                </TableCell>
                 <TableCell>{channel.subscribersCount?.toLocaleString() || '0'}</TableCell>
                 <TableCell>{channel.videoCount || '0'}</TableCell>
-                <TableCell className="text-right flex justify-end gap-2">
-                  <Button variant="ghost" size="icon"><Edit3 className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(channel.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(channel.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
+            {channels.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
+                  No channels found in the database.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
@@ -162,18 +311,12 @@ function VideoManagement({ videos }: { videos: any[] }) {
   };
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Video Catalog</CardTitle>
-          <CardDescription>Curate and manage trending or featured videos.</CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <Card className="bg-card border-border shadow-sm">
+      <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-secondary/30">
             <TableRow>
-              <TableHead>Title</TableHead>
+              <TableHead className="py-4">Title</TableHead>
               <TableHead>Trending</TableHead>
               <TableHead>Uploader UID</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -181,18 +324,36 @@ function VideoManagement({ videos }: { videos: any[] }) {
           </TableHeader>
           <TableBody>
             {videos.map((video) => (
-              <TableRow key={video.id}>
-                <TableCell className="font-medium line-clamp-1 max-w-[300px]">{video.title}</TableCell>
-                <TableCell>{video.isTrending ? '✅' : '❌'}</TableCell>
-                <TableCell className="text-xs font-mono">{video.uploadedByUserId}</TableCell>
-                <TableCell className="text-right flex justify-end gap-2">
-                  <Button variant="ghost" size="icon"><Edit3 className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(video.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+              <TableRow key={video.id} className="hover:bg-secondary/20 transition-colors">
+                <TableCell className="font-medium py-4">
+                  <div className="line-clamp-1 max-w-[400px]">{video.title}</div>
+                </TableCell>
+                <TableCell>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                    video.isTrending ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground"
+                  )}>
+                    {video.isTrending ? 'Trending' : 'Standard'}
+                  </span>
+                </TableCell>
+                <TableCell className="text-[10px] font-mono opacity-50">{video.uploadedByUserId}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(video.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
+            {videos.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
+                  No videos found in the database.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
@@ -209,38 +370,42 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
   };
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Quranic Metadata</CardTitle>
-          <CardDescription>Manage chapters and featured verses.</CardDescription>
-        </div>
-        <Button size="sm" variant="outline">Import All Surahs</Button>
-      </CardHeader>
-      <CardContent>
+    <Card className="bg-card border-border shadow-sm">
+      <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-secondary/30">
             <TableRow>
-              <TableHead>Number</TableHead>
+              <TableHead className="py-4 w-16">No.</TableHead>
               <TableHead>Name (En)</TableHead>
               <TableHead>Name (Ar)</TableHead>
+              <TableHead>Revelation</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {surahs.sort((a,b) => a.number - b.number).map((surah) => (
-              <TableRow key={surah.id}>
-                <TableCell>{surah.number}</TableCell>
-                <TableCell className="font-medium">{surah.nameEnglish}</TableCell>
-                <TableCell className="font-arabic text-primary">{surah.nameArabic}</TableCell>
-                <TableCell className="text-right flex justify-end gap-2">
-                  <Button variant="ghost" size="icon"><Edit3 className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(surah.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+              <TableRow key={surah.id} className="hover:bg-secondary/20 transition-colors">
+                <TableCell className="py-4 font-bold text-muted-foreground">{surah.number}</TableCell>
+                <TableCell className="font-bold">{surah.nameEnglish}</TableCell>
+                <TableCell className="font-arabic text-primary text-lg">{surah.nameArabic}</TableCell>
+                <TableCell className="text-xs uppercase font-medium">{surah.revelationPlace}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(surah.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
+            {surahs.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
+                  No Quranic data records found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
