@@ -547,6 +547,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isFetched, setIsFetched] = useState(false);
   const [ytInput, setYtInput] = useState('');
   
   const [title, setTitle] = useState('');
@@ -593,6 +594,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
         setChannelId(matchingChannel.id);
       }
 
+      setIsFetched(true);
       toast({ title: "Metadata Fetched", description: "Video details populated." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Fetch Error", description: error.message });
@@ -602,9 +604,8 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   };
 
   const handleSave = () => {
-    // Selection of Channel and Speaker is mandatory
     if (!user || !title || !channelId || selectedSpeakerIds.length === 0) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Title, Channel, and at least one Speaker are mandatory." });
+      toast({ variant: "destructive", title: "Missing Fields", description: "Title, Channel, and at least one Scholar are mandatory." });
       return;
     }
     const id = Math.random().toString(36).substring(7);
@@ -622,7 +623,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
 
   const resetForm = () => {
     setTitle(''); setDescription(''); setChannelId(''); setThumbnailUrl(''); setVideoUrl(''); 
-    setSelectedSpeakerIds([]); setViewCount(0); setLikeCount(0); setYtInput('');
+    setSelectedSpeakerIds([]); setViewCount(0); setLikeCount(0); setYtInput(''); setIsFetched(false);
   };
 
   return (
@@ -659,95 +660,101 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
               <p className="text-[10px] text-muted-foreground">Fetch titles, descriptions, and thumbnails automatically.</p>
             </div>
 
-            {thumbnailUrl && (
-              <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-secondary/30">
-                <Image src={thumbnailUrl} alt="Thumbnail preview" fill className="object-cover" />
-              </div>
-            )}
+            {isFetched && (
+              <>
+                {thumbnailUrl && (
+                  <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-secondary/30">
+                    <Image src={thumbnailUrl} alt="Thumbnail preview" fill className="object-cover" />
+                  </div>
+                )}
 
-            <Separator />
+                <Separator />
 
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
-                <Input 
-                  placeholder="Enter title" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)} 
-                  disabled={loading}
-                />
-              </div>
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
+                    <Input 
+                      placeholder="Enter title" 
+                      value={title} 
+                      onChange={(e) => setTitle(e.target.value)} 
+                      disabled={loading}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
-                <Select value={channelId} onValueChange={setChannelId} disabled={loading}>
-                  <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
+                    <Select value={channelId} onValueChange={setChannelId} disabled={loading}>
+                      <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>View Count</Label>
-                  <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Like Count</Label>
-                  <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Video URL</Label>
-                <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} disabled={loading} />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Thumbnail URL</Label>
-                <Input placeholder="https://..." value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} disabled={loading} />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
-                <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto border border-border">
-                  {speakers.map(s => (
-                    <div key={s.id} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`add-vid-s-${s.id}`} 
-                        checked={selectedSpeakerIds.includes(s.id)} 
-                        disabled={loading}
-                        onCheckedChange={(checked) => {
-                          setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
-                        }} 
-                      />
-                      <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs cursor-pointer">{s.name}</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>View Count</Label>
+                      <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} />
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="space-y-2">
+                      <Label>Like Count</Label>
+                      <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} />
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea 
-                  placeholder="Video description..." 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)} 
-                  className="min-h-[150px]"
-                  disabled={loading}
-                />
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    <Label>Video URL</Label>
+                    <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} disabled={loading} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Thumbnail URL</Label>
+                    <Input placeholder="https://..." value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} disabled={loading} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
+                    <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto border border-border">
+                      {speakers.map(s => (
+                        <div key={s.id} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`add-vid-s-${s.id}`} 
+                            checked={selectedSpeakerIds.includes(s.id)} 
+                            disabled={loading}
+                            onCheckedChange={(checked) => {
+                              setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
+                            }} 
+                          />
+                          <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs cursor-pointer">{s.name}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea 
+                      placeholder="Video description..." 
+                      value={description} 
+                      onChange={(e) => setDescription(e.target.value)} 
+                      className="min-h-[150px]"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </ScrollArea>
 
         <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancel</Button>
-          <Button onClick={handleSave} className="bg-primary" disabled={loading}>
-            {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
-            Save Video
-          </Button>
+          {isFetched && (
+            <Button onClick={handleSave} className="bg-primary" disabled={loading}>
+              {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
+              Save Video
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
