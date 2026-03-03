@@ -22,6 +22,11 @@ export function Navbar() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
 
+  // Hide Navbar on admin routes to prevent overlapping with admin-specific headers
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   // Admin Check for conditional rendering
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData } = useDoc(adminRef);
