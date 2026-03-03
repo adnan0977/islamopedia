@@ -67,7 +67,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -602,8 +602,9 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   };
 
   const handleSave = () => {
-    if (!user || !title || !channelId) {
-      toast({ variant: "destructive", title: "Error", description: "Required fields missing." });
+    // Selection of Channel and Speaker is mandatory
+    if (!user || !title || !channelId || selectedSpeakerIds.length === 0) {
+      toast({ variant: "destructive", title: "Missing Fields", description: "Title, Channel, and at least one Speaker are mandatory." });
       return;
     }
     const id = Math.random().toString(36).substring(7);
@@ -668,7 +669,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
 
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label>Video Title</Label>
+                <Label className="flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
                 <Input 
                   placeholder="Enter title" 
                   value={title} 
@@ -678,10 +679,12 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
               </div>
 
               <div className="space-y-2">
-                <Label>Channel</Label>
+                <Label className="flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
                 <Select value={channelId} onValueChange={setChannelId} disabled={loading}>
                   <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
-                  <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                  <SelectContent className="max-h-[300px]">
+                    {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -707,8 +710,8 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
               </div>
 
               <div className="space-y-2">
-                <Label>Speakers</Label>
-                <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto">
+                <Label className="flex items-center gap-1">Speakers <span className="text-destructive">*</span></Label>
+                <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto border border-border">
                   {speakers.map(s => (
                     <div key={s.id} className="flex items-center space-x-2">
                       <Checkbox 
@@ -719,7 +722,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                           setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
                         }} 
                       />
-                      <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs">{s.name}</Label>
+                      <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs cursor-pointer">{s.name}</Label>
                     </div>
                   ))}
                 </div>
@@ -739,7 +742,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           </div>
         </ScrollArea>
 
-        <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
+        <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancel</Button>
           <Button onClick={handleSave} className="bg-primary" disabled={loading}>
             {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
@@ -782,8 +785,8 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Add Speaker</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 p-6">
-          <div className="grid gap-4">
+        <ScrollArea className="flex-1">
+          <div className="grid gap-4 p-6">
             <div className="space-y-2">
               <Label>Full Name</Label>
               <Input placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -798,7 +801,7 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
             </div>
           </div>
         </ScrollArea>
-        <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
+        <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleSave}>Save Speaker</Button>
         </DialogFooter>
@@ -832,8 +835,8 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Edit Speaker</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 p-6">
-          <div className="grid gap-4">
+        <ScrollArea className="flex-1">
+          <div className="grid gap-4 p-6">
             <div className="space-y-2">
               <Label>Name</Label>
               <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -848,7 +851,7 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
             </div>
           </div>
         </ScrollArea>
-        <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
+        <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleUpdate}>Update</Button>
         </DialogFooter>
@@ -905,6 +908,10 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>(video.speakerIds || []);
 
   const handleUpdate = () => {
+    if (!title || !channelId || selectedSpeakerIds.length === 0) {
+      toast({ variant: "destructive", title: "Missing Fields", description: "Title, Channel, and at least one Speaker are mandatory." });
+      return;
+    }
     updateDocumentNonBlocking(doc(db, 'videos', video.id), {
       title, description, channelId, isTrending, speakerIds: selectedSpeakerIds, 
       viewCount: Number(viewCount), likeCount: Number(likeCount),
@@ -931,14 +938,14 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
               </div>
             )}
             <div className="space-y-2">
-              <Label>Video Title</Label>
+              <Label className="flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Channel</Label>
+              <Label className="flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
               <Select value={channelId} onValueChange={setChannelId}>
                 <SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
-                <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                <SelectContent className="max-h-[300px]">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -952,14 +959,14 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Speakers</Label>
-              <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto">
+              <Label className="flex items-center gap-1">Speakers <span className="text-destructive">*</span></Label>
+              <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto border border-border">
                 {speakers.map(s => (
                   <div key={s.id} className="flex items-center space-x-2">
                     <Checkbox id={`edit-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
                       setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
                     }} />
-                    <Label htmlFor={`edit-s-${s.id}`} className="text-xs">{s.name}</Label>
+                    <Label htmlFor={`edit-s-${s.id}`} className="text-xs cursor-pointer">{s.name}</Label>
                   </div>
                 ))}
               </div>
@@ -974,7 +981,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
             </div>
           </div>
         </ScrollArea>
-        <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
+        <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleUpdate}>Update Video</Button>
         </DialogFooter>
