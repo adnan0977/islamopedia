@@ -710,7 +710,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-1">Speakers <span className="text-destructive">*</span></Label>
+                <Label className="flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
                 <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto border border-border">
                   {speakers.map(s => (
                     <div key={s.id} className="flex items-center space-x-2">
@@ -768,7 +768,7 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
     setDocumentNonBlocking(doc(db, 'speakers', id), {
       id, name, bio, profileImageUrl: imageUrl || 'https://picsum.photos/seed/speaker/200', createdAt: new Date().toISOString()
     }, { merge: true });
-    toast({ title: "Speaker Added" });
+    toast({ title: "Scholar Added" });
     setOpen(false);
     setName(''); setBio(''); setImageUrl('');
   };
@@ -778,12 +778,12 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
       <DialogTrigger asChild>
         <Button size="sm" className={btnClass}>
           <Plus className="w-4 h-4" />
-          Add Speaker
+          Add Scholar
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh]">
         <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle>Add Speaker</DialogTitle>
+          <DialogTitle>Add Scholar</DialogTitle>
         </DialogHeader>
         <ScrollArea className="flex-1">
           <div className="grid gap-4 p-6">
@@ -803,7 +803,7 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
         </ScrollArea>
         <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save Speaker</Button>
+          <Button onClick={handleSave}>Save Scholar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -822,7 +822,7 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
     updateDocumentNonBlocking(doc(db, 'speakers', speaker.id), {
       name, bio, profileImageUrl: imageUrl
     });
-    toast({ title: "Speaker Updated" });
+    toast({ title: "Scholar Updated" });
     setOpen(false);
   };
 
@@ -833,7 +833,7 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
       </DialogTrigger>
       <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh]">
         <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle>Edit Speaker</DialogTitle>
+          <DialogTitle>Edit Scholar</DialogTitle>
         </DialogHeader>
         <ScrollArea className="flex-1">
           <div className="grid gap-4 p-6">
@@ -909,7 +909,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
 
   const handleUpdate = () => {
     if (!title || !channelId || selectedSpeakerIds.length === 0) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Title, Channel, and at least one Speaker are mandatory." });
+      toast({ variant: "destructive", title: "Missing Fields", description: "Title, Channel, and at least one Scholar are mandatory." });
       return;
     }
     updateDocumentNonBlocking(doc(db, 'videos', video.id), {
@@ -959,7 +959,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1">Speakers <span className="text-destructive">*</span></Label>
+              <Label className="flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
               <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto border border-border">
                 {speakers.map(s => (
                   <div key={s.id} className="flex items-center space-x-2">
@@ -1108,7 +1108,11 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
     <Card className="bg-card">
       <Table>
         <TableHeader className="bg-secondary/30">
-          <TableRow><TableHead>Name</TableHead><TableHead>Bio</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+          <TableRow>
+            <TableHead>Scholar</TableHead>
+            <TableHead>Bio</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
           {speakers.map((s) => (
