@@ -20,8 +20,8 @@ export function Navbar() {
   return (
     <>
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden">
-        <div className="flex justify-around items-center h-16">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
+        <div className="flex justify-around items-center h-16 px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -30,25 +30,26 @@ export function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "flex flex-col items-center justify-center w-full h-full space-y-1 transition-all duration-200 relative",
+                  isActive ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className="w-6 h-6" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                {isActive && <div className="absolute -top-1 w-8 h-1 bg-primary rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />}
+                <Icon className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
+                <span className="text-[9px] font-bold uppercase tracking-tight">{item.label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
 
-      {/* Desktop Sidebar (Optional, for now just a top bar for demo) */}
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-md border-b border-border px-6 h-16 items-center justify-between">
-        <Link href="/" className="text-xl font-bold text-primary flex items-center space-x-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+      {/* Desktop Top Nav */}
+      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-md border-b border-border px-8 h-16 items-center justify-between shadow-sm">
+        <Link href="/" className="text-xl font-bold text-primary flex items-center space-x-2 group">
+          <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center group-hover:rotate-6 transition-transform shadow-lg shadow-primary/20">
              <PlusSquare className="text-white w-5 h-5" />
           </div>
-          <span className="font-headline tracking-tight">VlogNest</span>
+          <span className="font-headline tracking-tight text-2xl">VlogNest</span>
         </Link>
         <div className="flex items-center space-x-8">
           {navItems.map((item) => {
@@ -59,8 +60,8 @@ export function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center space-x-2 text-sm font-medium transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "flex items-center space-x-2 text-sm font-semibold transition-all hover:translate-y-[-1px]",
+                  isActive ? "text-primary border-b-2 border-primary pb-1" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -70,7 +71,7 @@ export function Navbar() {
           })}
         </div>
         <div className="flex items-center space-x-4">
-          <button className="bg-primary text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-primary/90 transition-all">
+          <button className="bg-primary text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all">
             Connect YouTube
           </button>
         </div>
