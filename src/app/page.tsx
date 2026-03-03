@@ -13,6 +13,7 @@ import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const db = useFirestore();
@@ -24,7 +25,7 @@ export default function Home() {
   const trendingQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     where('isTrending', '==', true),
-    limit(6)
+    limit(4)
   ), [db]);
   const { data: trendingVideos, isLoading: isTrendingLoading } = useCollection(trendingQuery);
 
@@ -84,7 +85,7 @@ export default function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-12">
-          {/* Trending Now */}
+          {/* Trending Now - Large Cards */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-headline font-bold flex items-center gap-2">
@@ -100,7 +101,7 @@ export default function Home() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {trendingVideos?.map((video) => (
-                  <VideoCard key={video.id} video={video} />
+                  <VideoCard key={video.id} video={video} size="large" />
                 ))}
                 {(!trendingVideos || trendingVideos.length === 0) && (
                   <p className="text-sm text-muted-foreground italic col-span-2 text-center py-10 bg-secondary/20 rounded-2xl border border-dashed border-border">No trending content at the moment.</p>
@@ -134,7 +135,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Latest Videos */}
+          {/* Latest Videos - Smaller Cards */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-headline font-bold flex items-center gap-2">
@@ -148,9 +149,9 @@ export default function Home() {
             {isLatestLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {latestVideos?.map((video) => (
-                  <VideoCard key={video.id} video={video} />
+                  <VideoCard key={video.id} video={video} size="small" />
                 ))}
               </div>
             )}
@@ -235,9 +236,14 @@ export default function Home() {
   );
 }
 
-function VideoCard({ video }: { video: any }) {
+function VideoCard({ video, size = 'large' }: { video: any, size?: 'small' | 'large' }) {
+  const isSmall = size === 'small';
+  
   return (
-    <Card className="overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/10">
+    <Card className={cn(
+      "overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/10",
+      isSmall ? "rounded-xl" : "rounded-2xl"
+    )}>
       <Link href={video.externalUrl} target="_blank">
         <div className="relative aspect-video">
           <Image 
@@ -247,24 +253,37 @@ function VideoCard({ video }: { video: any }) {
             className="object-cover group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all shadow-2xl">
-              <Play className="text-white fill-white ml-1 w-5 h-5" />
+            <div className={cn(
+              "bg-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all shadow-2xl",
+              isSmall ? "w-8 h-8" : "w-12 h-12"
+            )}>
+              <Play className={cn("text-white fill-white ml-0.5", isSmall ? "w-3.5 h-3.5" : "w-5 h-5 ml-1")} />
             </div>
           </div>
-          {video.isTrending && (
+          {video.isTrending && !isSmall && (
             <div className="absolute top-3 left-3">
               <Badge className="bg-accent text-accent-foreground font-black text-[10px] tracking-tighter px-2">TRENDING</Badge>
             </div>
           )}
         </div>
-        <CardHeader className="p-5">
-          <CardTitle className="text-base font-bold leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
+        <CardHeader className={cn(isSmall ? "p-3" : "p-5")}>
+          <CardTitle className={cn(
+            "font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors",
+            isSmall ? "text-xs min-h-[2rem]" : "text-base min-h-[2.5rem]"
+          )}>
             {video.title}
           </CardTitle>
-          <div className="flex items-center text-[10px] text-muted-foreground font-bold uppercase tracking-wider space-x-2 mt-4 pt-4 border-t border-border/30">
+          <div className={cn(
+            "flex items-center text-[10px] text-muted-foreground font-bold uppercase tracking-wider space-x-2 pt-2 border-t border-border/30",
+            isSmall ? "mt-2" : "mt-4"
+          )}>
             <span>{video.viewCount?.toLocaleString() || 0} views</span>
-            <span className="text-primary opacity-50">•</span>
-            <span>{new Date(video.publishedAt).toLocaleDateString()}</span>
+            {!isSmall && (
+              <>
+                <span className="text-primary opacity-50">•</span>
+                <span>{new Date(video.publishedAt).toLocaleDateString()}</span>
+              </>
+            )}
           </div>
         </CardHeader>
       </Link>
