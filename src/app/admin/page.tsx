@@ -885,10 +885,21 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
   const { toast } = useToast();
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this channel?')) {
-      const channelRef = doc(db, 'channels', id);
-      deleteDocumentNonBlocking(channelRef);
-      toast({ title: "Delete Initiated", description: "The channel record is being removed." });
+    if (typeof window !== 'undefined' && window.confirm('Are you sure you want to delete this channel? All associated metadata will be removed.')) {
+      try {
+        const channelRef = doc(db, 'channels', id);
+        deleteDocumentNonBlocking(channelRef);
+        toast({ 
+          title: "Delete Initiated", 
+          description: "The channel record is being removed from the system.",
+        });
+      } catch (e: any) {
+        toast({ 
+          variant: "destructive",
+          title: "Error", 
+          description: "Failed to delete the channel record.",
+        });
+      }
     }
   };
 
@@ -931,7 +942,12 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <EditChannelDialog channel={channel} />
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(channel.id)}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive hover:bg-destructive/10" 
+                      onClick={() => handleDelete(channel.id)}
+                    >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -957,10 +973,14 @@ function VideoManagement({ videos }: { videos: any[] }) {
   const { toast } = useToast();
 
   const handleDelete = (id: string) => {
-    if (confirm('Delete this video?')) {
-      const videoRef = doc(db, 'videos', id);
-      deleteDocumentNonBlocking(videoRef);
-      toast({ title: "Delete Initiated", description: "Video metadata is being removed." });
+    if (typeof window !== 'undefined' && window.confirm('Delete this video metadata permanently?')) {
+      try {
+        const videoRef = doc(db, 'videos', id);
+        deleteDocumentNonBlocking(videoRef);
+        toast({ title: "Delete Initiated", description: "Video metadata is being removed." });
+      } catch (e: any) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to initiate video deletion." });
+      }
     }
   };
 
@@ -1024,10 +1044,14 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
   const { toast } = useToast();
 
   const handleDelete = (id: string) => {
-    if (confirm('Delete Surah record?')) {
-      const surahRef = doc(db, 'quran_surahs', id);
-      deleteDocumentNonBlocking(surahRef);
-      toast({ title: "Delete Initiated", description: "Quranic record is being removed." });
+    if (typeof window !== 'undefined' && window.confirm('Delete Surah record? This cannot be undone.')) {
+      try {
+        const surahRef = doc(db, 'quran_surahs', id);
+        deleteDocumentNonBlocking(surahRef);
+        toast({ title: "Delete Initiated", description: "Quranic record is being removed." });
+      } catch (e: any) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to remove Quranic metadata." });
+      }
     }
   };
 
