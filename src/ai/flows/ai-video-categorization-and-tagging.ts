@@ -31,6 +31,7 @@ export async function aiVideoCategorizationAndTagging(
 
 const prompt = ai.definePrompt({
   name: 'categorizeVideoPrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: AiVideoCategorizationAndTaggingInputSchema},
   output: {schema: AiVideoCategorizationAndTaggingOutputSchema},
   prompt: `You are an expert video content analyst. Your task is to suggest relevant categories and tags for a video based on its title, description, and any provided keywords.

@@ -30,6 +30,7 @@ export async function generateVideoMetadata(
 
 const aiGeneratedVideoMetadataPrompt = ai.definePrompt({
   name: 'aiGeneratedVideoMetadataPrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: AIGeneratedVideoMetadataInputSchema },
   output: { schema: AIGeneratedVideoMetadataOutputSchema },
   prompt: `You are an expert YouTube content strategist specializing in creating engaging and discoverable video titles and descriptions. Your goal is to help content creators optimize their videos for maximum views and engagement.
