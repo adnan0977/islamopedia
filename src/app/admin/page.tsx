@@ -334,7 +334,6 @@ export default function AdminPanel() {
 }
 
 function DashboardOverview({ channels, videos }: { channels: any[], videos: any[] }) {
-  // Monthly data
   const uploadData = [
     { month: "Jan", uploads: 12 },
     { month: "Feb", uploads: 19 },
@@ -361,7 +360,6 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
 
   return (
     <div className="space-y-8">
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-card border-border shadow-sm">
           <CardContent className="p-6 flex items-center gap-4">
@@ -409,7 +407,6 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
         </Card>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
         <Card className="bg-card border-border shadow-sm xl:col-span-2">
           <CardHeader>
@@ -509,12 +506,13 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [channelId, setChannelId] = useState('');
+  const [channelInput, setChannelInput] = useState('');
   const [fetchedData, setFetchedData] = useState<any | null>(null);
 
   const fetchChannelDetails = async () => {
-    if (!channelId) {
-      toast({ variant: "destructive", title: "Missing ID", description: "Please enter a Channel ID." });
+    let input = channelInput.trim();
+    if (!input) {
+      toast({ variant: "destructive", title: "Missing ID/Handle", description: "Please enter a Channel ID, Handle, or URL." });
       return;
     }
 
@@ -532,13 +530,30 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     }
 
     try {
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${apiKey}`
-      );
+      let baseUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&key=${apiKey}`;
+      let finalUrl = baseUrl;
+
+      // Intelligent Parsing
+      if (input.includes('youtube.com/channel/')) {
+        const id = input.split('youtube.com/channel/')[1].split('/')[0].split('?')[0];
+        finalUrl += `&id=${id}`;
+      } else if (input.includes('youtube.com/@')) {
+        const handle = '@' + input.split('youtube.com/@')[1].split('/')[0].split('?')[0];
+        finalUrl += `&forHandle=${handle}`;
+      } else if (input.startsWith('@')) {
+        finalUrl += `&forHandle=${input}`;
+      } else if (input.startsWith('UC') && input.length === 24) {
+        finalUrl += `&id=${input}`;
+      } else {
+        // Fallback: try handle first, then ID if it fails
+        finalUrl += `&forHandle=@${input.replace(/^@/, '')}`;
+      }
+
+      const response = await fetch(finalUrl);
       const data = await response.json();
 
       if (!data.items || data.items.length === 0) {
-        throw new Error("Channel not found. Check the ID.");
+        throw new Error("Channel not found. Ensure the ID or Handle is correct.");
       }
 
       const item = data.items[0];
@@ -581,7 +596,7 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       });
       onOpenChange(false);
       setFetchedData(null);
-      setChannelId('');
+      setChannelInput('');
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save Error", description: error.message });
     } finally {
@@ -592,7 +607,7 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   return (
     <Dialog open={open} onOpenChange={(val) => {
       onOpenChange(val);
-      if(!val) { setFetchedData(null); setChannelId(''); }
+      if(!val) { setFetchedData(null); setChannelInput(''); }
     }}>
       <DialogTrigger asChild>
         <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
@@ -604,18 +619,18 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
           <DialogHeader>
             <DialogTitle>Add YouTube Channel</DialogTitle>
             <DialogDescription>
-              Enter the YouTube Channel ID to automatically fetch metadata.
+              Enter a Channel ID, Handle (@name), or YouTube URL to fetch metadata.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="channelId">Channel ID</Label>
+              <Label htmlFor="channelInput">Channel ID / Handle / URL</Label>
               <div className="flex gap-2">
                 <Input 
-                  id="channelId" 
-                  placeholder="UC..." 
-                  value={channelId}
-                  onChange={(e) => setChannelId(e.target.value)}
+                  id="channelInput" 
+                  placeholder="e.g. @AJ.Official or UC..." 
+                  value={channelInput}
+                  onChange={(e) => setChannelInput(e.target.value)}
                   className="bg-secondary border-none" 
                 />
                 <Button onClick={fetchChannelDetails} disabled={loading} size="icon" variant="secondary">
