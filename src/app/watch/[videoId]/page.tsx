@@ -5,9 +5,11 @@
  * this dynamic route is no longer used but must be valid for the build.
  */
 export function generateStaticParams() {
-  return [{ videoId: 'placeholder' }];
+  // We provide a dummy param to satisfy the build process for output: export
+  return [{ videoId: 'initial' }];
 }
 
 export default function Page() {
+  // This page is a fallback. Real navigation goes to /watch?v=...
   return null;
 }

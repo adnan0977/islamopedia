@@ -6,9 +6,10 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Calendar, Eye, ThumbsUp, Youtube } from 'lucide-react';
+import { ArrowLeft, Loader2, Calendar, Eye, ThumbsUp, Youtube, Share2, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 
 export default function WatchPage() {
@@ -18,6 +19,7 @@ export default function WatchPage() {
   const db = useFirestore();
   const [origin, setOrigin] = useState('');
 
+  // Capture the current origin on mount to satisfy YouTube's domain restrictions
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setOrigin(window.location.origin);
@@ -34,7 +36,7 @@ export default function WatchPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium">Loading video player...</p>
+        <p className="text-muted-foreground font-medium animate-pulse">Initializing video player...</p>
       </div>
     );
   }
@@ -47,9 +49,9 @@ export default function WatchPage() {
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">Video Not Found</h1>
-          <p className="text-muted-foreground">The video you are looking for doesn't exist or has been removed.</p>
+          <p className="text-muted-foreground max-w-xs">The video you are looking for doesn't exist or has been removed from our catalog.</p>
         </div>
-        <Button onClick={() => router.push('/')} variant="secondary">
+        <Button onClick={() => router.push('/')} variant="secondary" className="rounded-full px-8">
           Go Back Home
         </Button>
       </div>
@@ -65,50 +67,61 @@ export default function WatchPage() {
   };
 
   const embedId = getEmbedId(video);
-  // Add origin and enablejsapi to fix domain restriction issues
-  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&enablejsapi=1${origin ? `&origin=${origin}` : ''}`;
+  // Important: origin and enablejsapi parameters help resolve domain restriction issues
+  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&enablejsapi=1&showinfo=0&modestbranding=1${origin ? `&origin=${origin}` : ''}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border h-16 flex items-center px-4 md:px-8 shrink-0">
-        <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-full gap-2">
+      {/* Top Header Navigation */}
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border h-16 flex items-center justify-between px-4 md:px-8 shrink-0">
+        <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-full gap-2 hover:bg-secondary">
           <ArrowLeft className="w-4 h-4" />
-          <span className="hidden md:inline">Back</span>
+          <span className="hidden md:inline font-bold">Back</span>
         </Button>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="hidden sm:flex border-primary/20 text-primary uppercase text-[10px] font-black tracking-widest px-3">
+            In-App Player
+          </Badge>
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Share2 className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
-      <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
+      <main className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+        {/* Video Player Section */}
         <div className="flex-1 bg-black flex flex-col items-center justify-center relative group">
-          <div className="w-full h-full max-h-[80vh] md:max-h-full relative aspect-video">
+          <div className="w-full h-full max-h-[80vh] lg:max-h-full relative aspect-video bg-secondary/10 flex items-center justify-center">
             <iframe
               src={embedUrl}
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className="absolute inset-0 w-full h-full border-0"
+              className="absolute inset-0 w-full h-full border-0 shadow-2xl"
             />
           </div>
         </div>
 
-        <div className="w-full md:w-[400px] border-l border-border bg-card/30 flex flex-col overflow-hidden shrink-0">
+        {/* Info Sidebar */}
+        <div className="w-full lg:w-[400px] border-l border-border bg-card/30 flex flex-col overflow-hidden shrink-0">
           <ScrollArea className="flex-1">
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-8">
               <div className="space-y-4">
-                <h1 className="text-xl md:text-2xl font-headline font-bold leading-tight">
+                <h1 className="text-xl md:text-2xl font-headline font-bold leading-tight tracking-tight">
                   {video.title}
                 </h1>
                 
-                <div className="flex flex-wrap gap-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <Eye className="w-4 h-4 text-primary" />
-                    {video.viewCount?.toLocaleString() || 0} Views
+                <div className="flex flex-wrap gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <div className="flex items-center gap-2 bg-secondary/40 px-3 py-1.5 rounded-full">
+                    <Eye className="w-3.5 h-3.5 text-primary" />
+                    {video.viewCount?.toLocaleString() || 0}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <ThumbsUp className="w-4 h-4 text-accent" />
-                    {video.likeCount?.toLocaleString() || 0} Likes
+                  <div className="flex items-center gap-2 bg-secondary/40 px-3 py-1.5 rounded-full">
+                    <ThumbsUp className="w-3.5 h-3.5 text-accent" />
+                    {video.likeCount?.toLocaleString() || 0}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4" />
+                  <div className="flex items-center gap-2 bg-secondary/40 px-3 py-1.5 rounded-full">
+                    <Calendar className="w-3.5 h-3.5" />
                     {new Date(video.publishedAt).toLocaleDateString()}
                   </div>
                 </div>
@@ -117,26 +130,40 @@ export default function WatchPage() {
               <Separator className="bg-border/50" />
 
               {channel && (
-                <div className="flex items-center gap-4 p-4 bg-secondary/20 rounded-2xl border border-border/50">
-                  <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-border">
-                    <Image src={channel.thumbnailUrl} alt={channel.title} width={48} height={48} className="object-cover" />
+                <div className="flex items-center gap-4 p-5 bg-secondary/20 rounded-3xl border border-border/50 hover:bg-secondary/30 transition-colors cursor-pointer group">
+                  <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-border group-hover:border-primary transition-all shadow-md">
+                    <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold truncate">{channel.title}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    <p className="font-bold truncate text-lg">{channel.title}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black flex items-center gap-2">
+                      <Youtube className="w-3 h-3 text-red-500" />
                       {(channel.subscribersCount / 1000).toFixed(1)}K Subscribers
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="space-y-3">
-                <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Description</p>
-                <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                  {video.description || 'No description available for this video.'}
-                </p>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <Info className="w-4 h-4" />
+                  <p className="text-[10px] uppercase font-black tracking-widest">About this video</p>
+                </div>
+                <div className="bg-secondary/10 p-5 rounded-3xl border border-border/30">
+                  <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap italic">
+                    {video.description || 'No detailed description available for this content.'}
+                  </p>
+                </div>
               </div>
+              
+              {video.isTrending && (
+                <Badge className="bg-primary/20 text-primary border-primary/30 w-full py-3 rounded-2xl flex justify-center gap-2">
+                  🔥 Trending Topic
+                </Badge>
+              )}
             </div>
+            {/* Added bottom padding for mobile safety area */}
+            <div className="h-20 lg:hidden" />
           </ScrollArea>
         </div>
       </main>
