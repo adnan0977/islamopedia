@@ -11,7 +11,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     function isAdmin() {
-      // Check if a document exists in the roles_admin collection for the current user
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
@@ -38,43 +37,42 @@ service cloud.firestore {
       }
     }
 
-    // YouTube Channels - Publicly readable
+    // Content Collections - Globally Readable
+    // Using 'read' to cover both 'get' and 'list' explicitly for clarity
     match /channels/{channelId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    // YouTube Videos - Publicly readable
     match /videos/{videoId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if (isSignedIn() && request.resource.data.uploadedByUserId == request.auth.uid) || isAdmin();
       allow update, delete: if (isSignedIn() && (resource.data.uploadedByUserId == request.auth.uid || isAdmin()));
     }
 
-    // Speakers/Scholars - Publicly readable
     match /speakers/{speakerId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Global Metadata - Publicly readable
     match /categories/{categoryId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
     match /tags/{tagId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Quran Content - Publicly readable
     match /quran_surahs/{surahId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
       
       match /ayats/{ayahId} {
-        allow get, list: if true;
-        allow create, update, delete: if isAdmin();
+        allow read: if true;
+        allow write: if isAdmin();
       }
     }
   }

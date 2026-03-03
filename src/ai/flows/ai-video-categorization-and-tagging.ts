@@ -9,7 +9,6 @@
  */
 
 import {ai} from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
 const AiVideoCategorizationAndTaggingInputSchema = z.object({
@@ -33,7 +32,7 @@ export async function aiVideoCategorizationAndTagging(
 
 const prompt = ai.definePrompt({
   name: 'categorizeVideoPrompt',
-  model: googleAI.model('gemini-1.5-flash'),
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: AiVideoCategorizationAndTaggingInputSchema},
   output: {schema: AiVideoCategorizationAndTaggingOutputSchema},
   prompt: `You are an expert video content analyst. Your task is to suggest relevant categories and tags for a video based on its title, description, and any provided keywords.

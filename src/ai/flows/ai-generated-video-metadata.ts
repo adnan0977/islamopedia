@@ -9,7 +9,6 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'genkit';
 
 const AIGeneratedVideoMetadataInputSchema = z.object({
@@ -32,7 +31,7 @@ export async function generateVideoMetadata(
 
 const aiGeneratedVideoMetadataPrompt = ai.definePrompt({
   name: 'aiGeneratedVideoMetadataPrompt',
-  model: googleAI.model('gemini-1.5-flash'),
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: AIGeneratedVideoMetadataInputSchema },
   output: { schema: AIGeneratedVideoMetadataOutputSchema },
   prompt: `You are an expert YouTube content strategist specializing in creating engaging and discoverable video titles and descriptions. Your goal is to help content creators optimize their videos for maximum views and engagement.
