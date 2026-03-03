@@ -199,7 +199,7 @@ export default function Home() {
                 dailyAyats.ayats.map((ayat, i) => (
                   <Card key={i} className="bg-secondary/40 border-border/50 shadow-sm overflow-hidden hover:translate-y-[-4px] transition-all duration-300">
                     <CardHeader className="p-5 pb-0">
-                      <Badge variant="outline" className="w-fit text-accent border-accent/30 text-[10px] font-bold">
+                      <Badge variant="outline" className="w-fit h-fit text-accent border-accent/30 text-[10px] font-bold">
                         SURAH {ayat.surahNumber} : AYAT {ayat.ayatNumber}
                       </Badge>
                     </CardHeader>
@@ -240,7 +240,7 @@ function VideoCard({ video, size = 'large' }: { video: any, size?: 'small' | 'la
       "overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/10",
       isSmall ? "rounded-xl" : "rounded-2xl"
     )}>
-      <Link href={`/watch/${video.id}`}>
+      <Link href={`/watch?v=${video.id}`}>
         <div className="relative aspect-video">
           <Image 
             src={video.thumbnailUrl} 
