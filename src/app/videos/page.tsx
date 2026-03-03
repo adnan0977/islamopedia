@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -10,6 +11,7 @@ import { Play, Filter, Loader2, ArrowLeft, Video as VideoIcon } from 'lucide-rea
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function VideosPage() {
   const searchParams = useSearchParams();
@@ -83,7 +85,7 @@ export default function VideosPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {videos?.map((video) => (
             <Card key={video.id} className="overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/10">
-              <Link href={video.externalUrl} target="_blank">
+              <Link href={`/watch/${video.id}`}>
                 <div className="relative aspect-video">
                   <Image 
                     src={video.thumbnailUrl} 

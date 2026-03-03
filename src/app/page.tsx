@@ -240,7 +240,7 @@ function VideoCard({ video, size = 'large' }: { video: any, size?: 'small' | 'la
       "overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/10",
       isSmall ? "rounded-xl" : "rounded-2xl"
     )}>
-      <Link href={video.externalUrl} target="_blank">
+      <Link href={`/watch/${video.id}`}>
         <div className="relative aspect-video">
           <Image 
             src={video.thumbnailUrl} 
