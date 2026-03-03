@@ -26,7 +26,8 @@ import {
   Eye,
   PieChart as PieChartIcon,
   Search,
-  Mic2
+  Mic2,
+  ExternalLink
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -183,6 +184,8 @@ export default function AdminPanel() {
     );
   }
 
+  const commonBtnClass = "bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2";
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -251,9 +254,9 @@ export default function AdminPanel() {
              </h2>
              <div className="flex items-center gap-3">
                <div className="flex gap-2">
-                 <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />
-                 <AddVideoDialog channels={channels || []} speakers={speakers || []} />
-                 <AddSpeakerDialog />
+                 <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} btnClass={commonBtnClass} />
+                 <AddVideoDialog channels={channels || []} speakers={speakers || []} btnClass={commonBtnClass} />
+                 <AddSpeakerDialog btnClass={commonBtnClass} />
                </div>
                <Separator orientation="vertical" className="h-8 mx-2" />
                <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>Live Site</Button>
@@ -358,7 +361,7 @@ function StatCard({ icon: Icon, label, value, color, bgColor }: any) {
   );
 }
 
-function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onOpenChange: (open: boolean) => void, btnClass?: string }) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -479,7 +482,7 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); }
     }}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2">
+        <Button size="sm" className={btnClass}>
           <Plus className="w-4 h-4" />
           Add Channel
         </Button>
@@ -533,7 +536,7 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   );
 }
 
-function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any[] }) {
+function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], speakers: any[], btnClass?: string }) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -565,7 +568,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2">
+        <Button size="sm" className={btnClass}>
           <Plus className="w-4 h-4" />
           Add Video
         </Button>
@@ -604,7 +607,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
   );
 }
 
-function AddSpeakerDialog() {
+function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -626,7 +629,7 @@ function AddSpeakerDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2">
+        <Button size="sm" className={btnClass}>
           <Plus className="w-4 h-4" />
           Add Speaker
         </Button>
@@ -841,7 +844,15 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
                     {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="truncate max-w-[250px] font-bold">{video.title}</span>
+                    <a 
+                      href={video.externalUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="truncate max-w-[250px] font-bold hover:text-primary transition-colors flex items-center gap-1"
+                    >
+                      {video.title}
+                      <ExternalLink className="w-3 h-3 opacity-50" />
+                    </a>
                     <span className="text-[10px] text-muted-foreground uppercase">{video.id}</span>
                   </div>
                 </div>
