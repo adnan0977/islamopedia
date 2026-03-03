@@ -27,7 +27,9 @@ import {
   Search,
   Mic2,
   ExternalLink,
-  ThumbsUp
+  ThumbsUp,
+  SearchCode,
+  Wand2
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -184,7 +186,7 @@ export default function AdminPanel() {
     );
   }
 
-  const commonBtnClass = "bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2 px-6 h-10 rounded-xl transition-all shadow-md active:scale-95";
+  const commonBtnClass = "bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2 px-6 h-10 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap";
 
   return (
     <SidebarProvider>
@@ -542,6 +544,9 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   const db = useFirestore();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [ytInput, setYtInput] = useState('');
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [channelId, setChannelId] = useState('');
@@ -550,6 +555,50 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   const [viewCount, setViewCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
+
+  const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+
+  const extractVideoId = (input: string) => {
+    if (input.includes('v=')) return input.split('v=')[1].split('&')[0];
+    if (input.includes('youtu.be/')) return input.split('youtu.be/')[1].split('?')[0];
+    if (input.includes('embed/')) return input.split('embed/')[1].split('?')[0];
+    return input.trim();
+  };
+
+  const handleFetchMetadata = async () => {
+    const videoId = extractVideoId(ytInput);
+    if (!videoId) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${apiKey}`);
+      const data = await response.json();
+      
+      if (!data.items || data.items.length === 0) {
+        throw new Error("Video not found.");
+      }
+
+      const video = data.items[0];
+      setTitle(video.snippet.title);
+      setDescription(video.snippet.description);
+      setThumbnailUrl(video.snippet.thumbnails.high?.url || video.snippet.thumbnails.default?.url);
+      setVideoUrl(`https://www.youtube.com/watch?v=${videoId}`);
+      setViewCount(Number(video.statistics.viewCount || 0));
+      setLikeCount(Number(video.statistics.likeCount || 0));
+      
+      // Try to auto-match channel if it exists in our list
+      const matchingChannel = channels.find(c => c.id === video.snippet.channelId);
+      if (matchingChannel) {
+        setChannelId(matchingChannel.id);
+      }
+
+      toast({ title: "Metadata Fetched", description: "Video details populated." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Fetch Error", description: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = () => {
     if (!user || !title || !channelId) {
@@ -566,11 +615,16 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
     }, { merge: true });
     toast({ title: "Video Added" });
     setOpen(false);
-    setTitle(''); setDescription(''); setChannelId(''); setThumbnailUrl(''); setVideoUrl(''); setSelectedSpeakerIds([]); setViewCount(0); setLikeCount(0);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setTitle(''); setDescription(''); setChannelId(''); setThumbnailUrl(''); setVideoUrl(''); 
+    setSelectedSpeakerIds([]); setViewCount(0); setLikeCount(0); setYtInput('');
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) resetForm(); }}>
       <DialogTrigger asChild>
         <Button size="sm" className={btnClass}>
           <Plus className="w-4 h-4" />
@@ -578,43 +632,87 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-card sm:max-w-[600px]">
-        <DialogHeader><DialogTitle>Manual Video Add</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-4">
-          <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Select value={channelId} onValueChange={setChannelId}>
-            <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
-            <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
-          </Select>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>View Count</Label>
-              <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Like Count</Label>
-              <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} />
-            </div>
-          </div>
-          <Input placeholder="Thumbnail URL" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} />
-          <Input placeholder="Video URL" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
+        <DialogHeader><DialogTitle>Add New Video</DialogTitle></DialogHeader>
+        
+        <div className="grid gap-6 py-4">
           <div className="space-y-2">
-            <Label>Speakers</Label>
-            <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto">
-              {speakers.map(s => (
-                <div key={s.id} className="flex items-center space-x-2">
-                  <Checkbox id={`add-vid-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
-                    setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
-                  }} />
-                  <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs">{s.name}</Label>
-                </div>
-              ))}
+            <Label className="text-primary font-bold flex items-center gap-2">
+              <SearchCode className="w-4 h-4" /> Quick Fetch from YouTube
+            </Label>
+            <div className="flex gap-2">
+              <Input 
+                placeholder="YouTube URL or Video ID" 
+                value={ytInput} 
+                onChange={(e) => setYtInput(e.target.value)} 
+                className="bg-secondary/50"
+              />
+              <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary">
+                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
+              </Button>
             </div>
           </div>
-          <Textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+
+          <Separator />
+
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label>Video Title</Label>
+              <Input placeholder="Enter title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Channel</Label>
+              <Select value={channelId} onValueChange={setChannelId}>
+                <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
+                <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>View Count</Label>
+                <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Like Count</Label>
+                <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Video URL</Label>
+              <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Thumbnail URL</Label>
+              <Input placeholder="https://..." value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Speakers</Label>
+              <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto">
+                {speakers.map(s => (
+                  <div key={s.id} className="flex items-center space-x-2">
+                    <Checkbox id={`add-vid-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
+                      setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
+                    }} />
+                    <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs">{s.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea placeholder="Video description..." value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
+          </div>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={handleSave} className="bg-primary">Save Video</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
