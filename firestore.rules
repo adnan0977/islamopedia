@@ -1,136 +1,68 @@
-/**
- * VlogNest Firestore Security Rules
- * 
- * Core Philosophy:
- * This ruleset implements a hybrid security model combining strict user-ownership with a 
- * role-based administrative layer (DBAC). Access is primarily determined by path-based 
- * authorization for user-specific data and ownership-field validation for shared 
- * collections like videos. Administrative privileges are granted via a dedicated 
- * collection check, allowing global management of content.
- * 
- * Data Structure:
- * - /users/{userId}: Private user profiles and settings.
- * - /users/{userId}/custom_index: AI-generated personalized content feeds.
- * - /channels, /videos: Global video content catalogs.
- * - /quran_surahs, /categories, /tags: Reference and religious content.
- * - /roles_admin: A control collection where document existence grants admin rights.
- * 
- * Key Security Decisions:
- * - Public Read Access: Reference content (Quran), Videos, Channels, Categories, and Tags 
- *   are publicly readable to support unauthenticated browsing and discovery features.
- * - Ownership Denormalization: The 'YouTubeVideo' entity includes 'uploadedByUserId' to 
- *   enable fast, non-recursive authorization for creators.
- * - Administrative Override: Users whose UID exists in the 'roles_admin' collection 
- *   are granted broad permissions to manage videos, channels, and religious content.
- * - Private Data: User profiles and custom indexes are strictly private to the owner.
- */
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- Helper Functions ---
-
-    /** @description Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
-
-    /** @description Checks if the authenticated user's UID matches the provided userId. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    /** @description Checks if the user is an administrator based on the roles_admin collection. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
-
-    /** @description Validates ownership for an existing document about to be updated or deleted. */
     function isExistingOwner(ownerId) {
       return isSignedIn() && resource != null && (resource.data[ownerId] == request.auth.uid || isAdmin());
     }
-
-    /** @description Validates ownership for a user-scoped path (e.g., /users/{userId}). */
     function isExistingPathOwner(userId) {
       return resource != null && (isOwner(userId) || isAdmin());
     }
 
     // --- Collection Rules ---
-
-    /**
-     * @description Administrative role management. Determines global admin privileges.
-     */
     match /roles_admin/{adminId} {
       allow get: if isOwner(adminId);
       allow list: if false;
-      allow create, update, delete: if false; // Managed by system/Cloud Functions
+      allow create, update, delete: if false;
     }
-
-    /**
-     * @description User profiles containing personal settings and Namaz location.
-     */
     match /users/{userId} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
       allow update, delete: if isExistingPathOwner(userId);
     }
-
-    /**
-     * @description AI-generated personalized content indexes for specific users.
-     */
     match /users/{userId}/custom_index/{indexId} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isExistingPathOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingPathOwner(userId);
     }
-
-    /**
-     * @description YouTube Channel metadata. Publicly readable.
-     */
     match /channels/{channelId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
-
-    /**
-     * @description YouTube Video metadata including AI insights. Publicly readable.
-     */
     match /videos/{videoId} {
       allow get, list: if true;
       allow create: if (isSignedIn() && request.resource.data.uploadedByUserId == request.auth.uid) || isAdmin();
       allow update: if (isExistingOwner('uploadedByUserId') && request.resource.data.uploadedByUserId == resource.data.uploadedByUserId) || isAdmin();
       allow delete: if isExistingOwner('uploadedByUserId') || isAdmin();
     }
-
-    /**
-     * @description Global categories for classifying videos. Publicly readable.
-     */
+    match /speakers/{speakerId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
     match /categories/{categoryId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
-
-    /**
-     * @description Global tags for video searchability. Publicly readable.
-     */
     match /tags/{tagId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
-
-    /**
-     * @description Metadata for Quranic Surahs. Publicly readable.
-     */
     match /quran_surahs/{surahId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
-
-    /**
-     * @description Detailed Quranic Ayats (verses). Publicly readable.
-     */
     match /quran_surahs/{surahId}/ayats/{ayahId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();

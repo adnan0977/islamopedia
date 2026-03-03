@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -148,6 +149,13 @@
           "type": "string",
           "description": "Reference to the UserProfile who uploaded or imported this video into VlogNest. (Relationship: UserProfile 1:N YouTubeVideo)"
         },
+        "speakerIds": {
+          "type": "array",
+          "description": "References to Speaker entities associated with this video. (Relationship: Speaker N:N YouTubeVideo)",
+          "items": {
+            "type": "string"
+          }
+        },
         "viewCount": {
           "type": "number",
           "description": "The number of views the video has."
@@ -206,6 +214,35 @@
         "duration",
         "publishedAt",
         "channelId"
+      ]
+    },
+    "Speaker": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Speaker",
+      "type": "object",
+      "description": "Represents a speaker or reciter associated with videos.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Speaker entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the speaker."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A brief biography of the speaker."
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL of the speaker's profile image.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name"
       ]
     },
     "Category": {
@@ -448,6 +485,16 @@
         }
       },
       {
+        "path": "/speakers/{speakerId}",
+        "definition": {
+          "entityName": "Speaker",
+          "schema": {
+            "$ref": "#/backend/entities/Speaker"
+          },
+          "description": "Stores information about speakers or reciters. Publicly readable, admin writable."
+        }
+      },
+      {
         "path": "/categories/{categoryId}",
         "definition": {
           "entityName": "Category",
@@ -498,6 +545,6 @@
         }
       }
     ],
-    "reasoning": "The proposed Firestore structure prioritizes security, scalability, and debuggability by strictly adhering to the core design principles, particularly Authorization Independence and Structural Segregation. \n\n**Authorization Independence (CRITICAL):**\nThis is achieved primarily through: \n1.  **Denormalization in YouTubeVideo:** Each `YouTubeVideo` document explicitly includes an `uploadedByUserId` field. This allows security rules to directly verify ownership for write operations (`request.auth.uid == resource.data.uploadedByUserId`) without needing to perform `get()` operations on parent `YouTubeChannel` or `UserProfile` documents. This enables atomic writes and simplifies rule logic, making it robust against transactional complexities.\n2.  **Path-Based Ownership:** For user-specific data like `UserProfile` (`/users/{userId}`) and `UserCustomIndex` (`/users/{userId}/custom_index`), authorization is inherently tied to the document path. Rules can simply check `request.auth.uid == userId` (where `userId` is the path wildcard). The `userId` field within the `UserCustomIndex` document will also be validated to match the path parameter, ensuring consistency.\n3.  **Admin Roles (DBAC):** Administrative privileges are managed using a dedicated top-level collection, `/roles_admin/{adminId}`. An admin's role is determined by the *existence* of a document with their UID as the ID (`adminId`). This allows security rules to check `exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))` without traversing complex hierarchies, fulfilling the 'Existence over Content' principle and ensuring authorization independence for global roles.\n\n**Structural Segregation for QAPs (Query as per rules):**\nCollections are designed with a homogeneous security posture, enabling secure `list` operations (QAPs) without relying on rules as filters: \n1.  **Public/Global Content:** Entities like `YouTubeChannel`, `Category`, `Tag`, `QuranSurah`, and `QuranAyah` are placed in top-level collections (`/channels`, `/categories`, `/tags`, `/quran_surahs`). These collections are generally publicly readable (or readable by all authenticated users) and writable only by administrators. This allows for efficient and secure listing for general browsing without complex rule-based filtering on content.\n2.  **User-Owned/Private Content:** `UserProfile` and `UserCustomIndex` are strictly segmented under `/users/{userId}`, enforcing ownership and preventing unauthorized listing or access.\n3.  **YouTubeVideo Specifics:** The `/videos` collection is designed for broad read access (e.g., for trending videos) while maintaining strict write control. The `isTrending` field allows simple and secure queries for trending content. For a user's 'My Channel Video Feed', the application queries `videos` where `uploadedByUserId == request.auth.uid`. The security rule for `/videos/{videoId}` enforces that a user can only write to a video if `resource.data.uploadedByUserId == request.auth.uid` or if they are an admin. This ensures that any list query by a regular user for their own videos is implicitly secured by the `uploadedByUserId` field, as they cannot modify or delete others' videos.\n\n**Consistent Access Modeling:**\n*   **Private Data:** `/users/{userId}` and `/users/{userId}/custom_index` follow path-based ownership.\n*   **Hierarchical for Nested Data:** `/quran_surahs/{surahId}/ayats/{ayahId}` organizes Quranic verses under their respective Surahs.\n*   **Global Roles (DBAC):** `/roles_admin/{adminId}` for administrative access control."
+    "reasoning": "The structure maintains strict Authorization Independence and Structural Segregation. Speakers are top-level and public, while video ownership remains verified via denormalized owner IDs."
   }
 }

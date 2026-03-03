@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -29,7 +30,9 @@ import {
   Search,
   Check,
   X,
-  AlertTriangle
+  AlertTriangle,
+  UserVoice,
+  Mic2
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -69,6 +72,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -92,8 +96,9 @@ import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
-type AdminTab = 'dashboard' | 'channels' | 'videos' | 'quran' | 'settings';
+type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran' | 'settings';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
@@ -114,6 +119,9 @@ export default function AdminPanel() {
 
   const videosRef = useMemoFirebase(() => (user && adminData ? collection(db, 'videos') : null), [db, user, adminData]);
   const { data: videos } = useCollection(videosRef);
+
+  const speakersRef = useMemoFirebase(() => (user && adminData ? collection(db, 'speakers') : null), [db, user, adminData]);
+  const { data: speakers } = useCollection(speakersRef);
 
   const surahsRef = useMemoFirebase(() => (user && adminData ? collection(db, 'quran_surahs') : null), [db, user, adminData]);
   const { data: surahs } = useCollection(surahsRef);
@@ -233,7 +241,6 @@ export default function AdminPanel() {
                     >
                       <LayoutDashboard className="w-5 h-5" />
                       <span>Dashboard</span>
-                      {activeTab === 'dashboard' && <ChevronRight className="w-4 h-4 ml-auto" />}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
@@ -247,7 +254,6 @@ export default function AdminPanel() {
                     >
                       <Youtube className="w-5 h-5" />
                       <span>Channels</span>
-                      {activeTab === 'channels' && <ChevronRight className="w-4 h-4 ml-auto" />}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
@@ -261,7 +267,19 @@ export default function AdminPanel() {
                     >
                       <VideoIcon className="w-5 h-5" />
                       <span>Video Catalog</span>
-                      {activeTab === 'videos' && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab('speakers')}
+                      isActive={activeTab === 'speakers'}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                        activeTab === 'speakers' ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Mic2 className="w-5 h-5" />
+                      <span>Speakers</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
@@ -275,7 +293,6 @@ export default function AdminPanel() {
                     >
                       <Book className="w-5 h-5" />
                       <span>Quran Content</span>
-                      {activeTab === 'quran' && <ChevronRight className="w-4 h-4 ml-auto" />}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -327,17 +344,18 @@ export default function AdminPanel() {
         <SidebarInset className="flex-1 overflow-auto bg-background/50 backdrop-blur-sm">
           <header className="h-16 border-b border-border flex items-center justify-between px-8 bg-card/50 sticky top-0 z-10 backdrop-blur-md">
              <div className="flex items-center gap-2">
-               <LayoutDashboard className="w-4 h-4 text-primary" />
                <h2 className="font-headline font-bold text-lg">
                  {activeTab === 'dashboard' && 'Admin Overview'}
                  {activeTab === 'channels' && 'YouTube Channels'}
                  {activeTab === 'videos' && 'Video Catalog'}
+                 {activeTab === 'speakers' && 'Speakers'}
                  {activeTab === 'quran' && 'Quranic Metadata'}
                  {activeTab === 'settings' && 'System Settings'}
                </h2>
              </div>
              <div className="flex items-center gap-4">
                {activeTab === 'channels' && <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />}
+               {activeTab === 'speakers' && <AddSpeakerDialog />}
                <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>View Live Site</Button>
              </div>
           </header>
@@ -345,7 +363,8 @@ export default function AdminPanel() {
           <main className="p-8">
             {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} />}
             {activeTab === 'channels' && <ChannelManagement channels={channels || []} isAddOpen={isAddChannelOpen} setIsAddOpen={setIsAddChannelOpen} />}
-            {activeTab === 'videos' && <VideoManagement videos={videos || []} />}
+            {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
+            {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
             {activeTab === 'quran' && <QuranManagement surahs={surahs || []} />}
             {activeTab === 'settings' && (
               <Card className="bg-card border-border">
@@ -505,31 +524,6 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-card border-border shadow-sm xl:col-span-3">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="w-4 h-4 text-green-500" />
-              Channel Reach
-            </CardTitle>
-            <CardDescription>Subscribers by top channels</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              <ChartContainer config={{ subs: { label: "Subscribers", color: "hsl(var(--primary))" } }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={subData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
-                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="subs" fill="var(--color-subs)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
@@ -552,18 +546,9 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
 
   const fetchChannelDetails = async () => {
     let input = channelInput.trim();
-    if (!input) {
-      toast({ variant: "destructive", title: "Missing ID/Handle", description: "Please enter a Channel ID, Handle, or URL." });
-      return;
-    }
+    if (!input) return;
 
     setLoading(true);
-    if (!apiKey) {
-      toast({ variant: "destructive", title: "API Key Missing", description: "Please set NEXT_PUBLIC_YOUTUBE_API_KEY." });
-      setLoading(false);
-      return;
-    }
-
     try {
       let baseUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&key=${apiKey}`;
       let finalUrl = baseUrl;
@@ -610,9 +595,7 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     try {
       const channelData = { ...fetchedData, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       setDocumentNonBlocking(doc(db, 'channels', fetchedData.id), channelData, { merge: true });
-      toast({ title: "Channel Saved", description: `${fetchedData.title} added. Fetching videos...` });
-      
-      // Fetch videos after saving channel
+      toast({ title: "Channel Saved", description: `${fetchedData.title} added.` });
       await fetchChannelVideos(fetchedData.id);
       setView('videos');
     } catch (error: any) {
@@ -628,10 +611,8 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     try {
       let url = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=12&type=video`;
       if (token) url += `&pageToken=${token}`;
-      
       const res = await fetch(url);
       const data = await res.json();
-      
       if (isMore) {
         setChannelVideos(prev => [...prev, ...(data.items || [])]);
       } else {
@@ -649,47 +630,28 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     if (!user) return;
     const vidId = video.id.videoId;
     setImportingVideoIds(prev => new Set(prev).add(vidId));
-
     const videoData = {
       id: vidId,
       title: video.snippet.title,
       description: video.snippet.description,
       thumbnailUrl: video.snippet.thumbnails.high?.url || video.snippet.thumbnails.default?.url,
       externalUrl: `https://www.youtube.com/watch?v=${vidId}`,
-      duration: 'PT0S', // Placeholder, search API doesn't return duration
+      duration: 'PT0S',
       publishedAt: video.snippet.publishedAt,
       channelId: fetchedData.id,
       uploadedByUserId: user.uid,
       viewCount: 0,
-      likeCount: 0,
-      commentCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
-    try {
-      setDocumentNonBlocking(doc(db, 'videos', vidId), videoData, { merge: true });
-      toast({ title: "Video Imported", description: video.snippet.title });
-    } catch (e) {
-      setImportingVideoIds(prev => {
-        const next = new Set(prev);
-        next.delete(vidId);
-        return next;
-      });
-    }
+    setDocumentNonBlocking(doc(db, 'videos', vidId), videoData, { merge: true });
+    toast({ title: "Video Imported", description: video.snippet.title });
   };
 
   return (
     <Dialog open={open} onOpenChange={(val) => {
       onOpenChange(val);
-      if(!val) { 
-        setFetchedData(null); 
-        setChannelInput(''); 
-        setView('search'); 
-        setChannelVideos([]); 
-        setNextPageToken(null);
-        setImportingVideoIds(new Set()); 
-      }
+      if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); }
     }}>
       <DialogTrigger asChild>
         <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
@@ -699,21 +661,15 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       </DialogTrigger>
       <DialogContent className={cn("bg-card border-border transition-all duration-300", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[425px]")}>
           <DialogHeader>
-            <DialogTitle>{view === 'search' ? 'Add YouTube Channel' : `Import Videos from ${fetchedData?.title}`}</DialogTitle>
-            <DialogDescription>
-              {view === 'search' 
-                ? 'Enter a Channel ID, Handle (@name), or YouTube URL.' 
-                : 'Select videos to add to your platform library.'}
-            </DialogDescription>
+            <DialogTitle>{view === 'search' ? 'Add YouTube Channel' : `Import Videos`}</DialogTitle>
           </DialogHeader>
 
           {view === 'search' ? (
             <div className="grid gap-6 py-4">
               <div className="space-y-2">
-                <Label htmlFor="channelInput">Channel ID / Handle / URL</Label>
+                <Label>Channel ID / Handle / URL</Label>
                 <div className="flex gap-2">
                   <Input 
-                    id="channelInput" 
                     placeholder="e.g. @AJ.Official" 
                     value={channelInput}
                     onChange={(e) => setChannelInput(e.target.value)}
@@ -724,7 +680,6 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                   </Button>
                 </div>
               </div>
-
               {fetchedData && (
                 <Card className="bg-secondary/30 border-none">
                   <CardContent className="pt-6 flex items-center gap-4">
@@ -733,15 +688,12 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                     </div>
                     <div className="flex flex-col min-w-0">
                       <p className="font-bold text-sm truncate">{fetchedData.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {Number(fetchedData.subscribersCount).toLocaleString()} Subscribers
-                      </p>
+                      <p className="text-xs text-muted-foreground">{fetchedData.subscribersCount.toLocaleString()} Subs</p>
                     </div>
                   </CardContent>
                 </Card>
               )}
               <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
                 Confirm & Save Channel
               </Button>
             </div>
@@ -757,15 +709,14 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                           <Image src={video.snippet.thumbnails.medium.url} alt={video.snippet.title} fill className="object-cover" />
                         </div>
                         <CardContent className="p-2 space-y-2">
-                          <p className="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]">{video.snippet.title}</p>
+                          <p className="text-[10px] font-bold line-clamp-2">{video.snippet.title}</p>
                           <Button 
                             variant={isImported ? "secondary" : "default"} 
                             size="sm" 
-                            className="w-full h-7 text-[10px] font-bold"
+                            className="w-full h-7 text-[10px]"
                             onClick={() => importVideo(video)}
                             disabled={isImported}
                           >
-                            {isImported ? <Check className="w-3 h-3 mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
                             {isImported ? 'Imported' : 'Import'}
                           </Button>
                         </CardContent>
@@ -775,21 +726,14 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                 </div>
                 {nextPageToken && (
                   <div className="py-6 flex justify-center">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)}
-                      disabled={loadingMore}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore}>
                       {loadingMore ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                      Load More Videos
+                      Load More
                     </Button>
                   </div>
                 )}
               </ScrollArea>
-              <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">
-                Done & Close
-              </Button>
+              <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">Close</Button>
             </div>
           )}
       </DialogContent>
@@ -797,105 +741,140 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   );
 }
 
-function EditChannelDialog({ channel }: { channel: any }) {
+function AddSpeakerDialog() {
   const db = useFirestore();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState(channel.title);
-  const [description, setDescription] = useState(channel.description || '');
-  const [subscribersCount, setSubscribersCount] = useState(channel.subscribersCount);
+  const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
 
-  const handleUpdate = () => {
-    updateDocumentNonBlocking(doc(db, 'channels', channel.id), {
-      title,
-      description,
-      subscribersCount: Number(subscribersCount),
-      updatedAt: new Date().toISOString()
-    });
-    toast({ title: "Channel Updated", description: "Changes have been saved successfully." });
+  const handleSave = () => {
+    if (!name) return;
+    const id = name.toLowerCase().replace(/\s+/g, '-');
+    setDocumentNonBlocking(doc(db, 'speakers', id), {
+      id,
+      name,
+      bio,
+      profileImageUrl: imageUrl || 'https://picsum.photos/seed/speaker/200',
+      createdAt: new Date().toISOString()
+    }, { merge: true });
+    toast({ title: "Speaker Added", description: `${name} has been added.` });
     setOpen(false);
+    setName(''); setBio(''); setImageUrl('');
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary">
-          <Edit3 className="w-4 h-4" />
+        <Button size="sm" className="bg-primary font-bold">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Speaker
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-card border-border sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Channel</DialogTitle>
-          <DialogDescription>Update the information for this curated channel.</DialogDescription>
+          <DialogTitle>Add New Speaker</DialogTitle>
+          <DialogDescription>Create a profile for a scholar or reciter.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Channel Title</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="bg-secondary border-none" />
+            <Label>Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" className="bg-secondary border-none" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="subs">Subscribers</Label>
-            <Input id="subs" type="number" value={subscribersCount} onChange={(e) => setSubscribersCount(Number(e.target.value))} className="bg-secondary border-none" />
+            <Label>Bio</Label>
+            <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Short biography..." className="bg-secondary border-none" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="desc">Description</Label>
-            <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} className="bg-secondary border-none" />
+            <Label>Profile Image URL</Label>
+            <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="bg-secondary border-none" />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleUpdate}>Save Changes</Button>
+          <Button onClick={handleSave}>Save Speaker</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function EditVideoDialog({ video }: { video: any }) {
+function EditVideoDialog({ video, channels, speakers }: { video: any, channels: any[], speakers: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(video.title);
   const [description, setDescription] = useState(video.description || '');
+  const [channelId, setChannelId] = useState(video.channelId || '');
   const [isTrending, setIsTrending] = useState(video.isTrending || false);
+  const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>(video.speakerIds || []);
 
   const handleUpdate = () => {
     updateDocumentNonBlocking(doc(db, 'videos', video.id), {
       title,
       description,
+      channelId,
       isTrending,
+      speakerIds: selectedSpeakerIds,
       updatedAt: new Date().toISOString()
     });
-    toast({ title: "Video Updated", description: "Video metadata saved successfully." });
+    toast({ title: "Video Updated" });
     setOpen(false);
+  };
+
+  const toggleSpeaker = (id: string) => {
+    setSelectedSpeakerIds(prev => 
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary">
-          <Edit3 className="w-4 h-4" />
-        </Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border sm:max-w-[500px]">
+      <DialogContent className="bg-card border-border sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit Video Details</DialogTitle>
-          <DialogDescription>Modify video information and visibility status.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="vtitle">Video Title</Label>
-            <Input id="vtitle" value={title} onChange={(e) => setTitle(e.target.value)} className="bg-secondary border-none" />
+            <Label>Video Title</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-secondary border-none" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="vdesc">Description</Label>
-            <Textarea id="vdesc" value={description} onChange={(e) => setDescription(e.target.value)} className="bg-secondary border-none min-h-[100px]" />
+            <Label>Channel</Label>
+            <Select value={channelId} onValueChange={setChannelId}>
+              <SelectTrigger className="bg-secondary border-none">
+                <SelectValue placeholder="Select Channel" />
+              </SelectTrigger>
+              <SelectContent>
+                {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Speakers</Label>
+            <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto">
+              {speakers.map(s => (
+                <div key={s.id} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`speaker-${s.id}`} 
+                    checked={selectedSpeakerIds.includes(s.id)} 
+                    onCheckedChange={() => toggleSpeaker(s.id)}
+                  />
+                  <Label htmlFor={`speaker-${s.id}`} className="text-xs">{s.name}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="bg-secondary border-none min-h-[100px]" />
           </div>
           <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl">
-            <div className="space-y-0.5">
-              <Label className="text-sm">Trending Status</Label>
-              <p className="text-[10px] text-muted-foreground">Highlight this video in the trending section.</p>
-            </div>
+            <Label>Trending Status</Label>
             <Switch checked={isTrending} onCheckedChange={setIsTrending} />
           </div>
         </div>
@@ -908,111 +887,45 @@ function EditVideoDialog({ video }: { video: any }) {
   );
 }
 
-function DeleteConfirmDialog({ onConfirm, title, description }: { onConfirm: () => void, title?: string, description?: string }) {
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
-          <Trash2 className="w-4 h-4" />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent className="bg-card border-border">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
-            {title || "Are you absolutely sure?"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {description || "This action cannot be undone. This will permanently delete the record from our servers."}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Delete Record
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
 function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: any[], isAddOpen: boolean, setIsAddOpen: (o: boolean) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
-
   const handleDelete = (id: string) => {
-    try {
-      const channelRef = doc(db, 'channels', id);
-      deleteDocumentNonBlocking(channelRef);
-      toast({ 
-        title: "Delete Initiated", 
-        description: "The channel record is being removed from the system.",
-      });
-    } catch (e: any) {
-      toast({ 
-        variant: "destructive",
-        title: "Error", 
-        description: "Failed to initiate deletion.",
-      });
-    }
+    deleteDocumentNonBlocking(doc(db, 'channels', id));
+    toast({ title: "Deleted", description: "Channel removed." });
   };
 
   return (
-    <Card className="bg-card border-border shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>YouTube Channels</CardTitle>
-          <CardDescription>Manage the list of curated channels for the platform.</CardDescription>
-        </div>
-        <AddChannelDialog open={isAddOpen} onOpenChange={setIsAddOpen} />
-      </CardHeader>
+    <Card className="bg-card border-border">
       <CardContent className="p-0">
         <Table>
           <TableHeader className="bg-secondary/30">
             <TableRow>
-              <TableHead className="py-4">Channel Title</TableHead>
+              <TableHead className="py-4">Channel</TableHead>
               <TableHead>Subscribers</TableHead>
-              <TableHead>Videos</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {channels.map((channel) => (
-              <TableRow key={channel.id} className="hover:bg-secondary/20 transition-colors">
-                <TableCell className="font-medium py-4">
+              <TableRow key={channel.id}>
+                <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden relative">
-                      {channel.thumbnailUrl ? (
-                        <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />
-                      ) : (
-                        <Youtube className="w-4 h-4 text-red-500" />
-                      )}
+                    <div className="w-8 h-8 rounded-lg overflow-hidden relative">
+                      {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                     </div>
                     {channel.title}
                   </div>
                 </TableCell>
-                <TableCell>{channel.subscribersCount?.toLocaleString() || '0'}</TableCell>
-                <TableCell>{channel.videoCount || '0'}</TableCell>
+                <TableCell>{channel.subscribersCount?.toLocaleString()}</TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <EditChannelDialog channel={channel} />
-                    <DeleteConfirmDialog 
-                      onConfirm={() => handleDelete(channel.id)} 
-                      title={`Delete ${channel.title}?`}
-                      description="This will remove the channel and all its metadata from your platform. You can re-add it later by its ID."
-                    />
-                  </div>
+                   <AlertDialog>
+                     <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                     <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Channel?</AlertDialogTitle><AlertDialogDescription>This removes the channel and its metadata.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(channel.id)} className="bg-destructive">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                   </AlertDialog>
                 </TableCell>
               </TableRow>
             ))}
-            {channels.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
-                  No channels found in the database.
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </CardContent>
@@ -1020,69 +933,87 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
   );
 }
 
-function VideoManagement({ videos }: { videos: any[] }) {
+function VideoManagement({ videos, channels, speakers }: { videos: any[], channels: any[], speakers: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
-
   const handleDelete = (id: string) => {
-    try {
-      const videoRef = doc(db, 'videos', id);
-      deleteDocumentNonBlocking(videoRef);
-      toast({ title: "Delete Initiated", description: "Video metadata is being removed." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to initiate video deletion." });
-    }
+    deleteDocumentNonBlocking(doc(db, 'videos', id));
+    toast({ title: "Deleted" });
   };
 
   return (
-    <Card className="bg-card border-border shadow-sm">
-      <CardHeader>
-        <CardTitle>Video Catalog</CardTitle>
-        <CardDescription>Moderate and manage all video metadata across the platform.</CardDescription>
-      </CardHeader>
+    <Card className="bg-card border-border">
       <CardContent className="p-0">
         <Table>
           <TableHeader className="bg-secondary/30">
             <TableRow>
               <TableHead className="py-4">Title</TableHead>
-              <TableHead>Trending</TableHead>
-              <TableHead>Uploader UID</TableHead>
+              <TableHead>Channel</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {videos.map((video) => (
-              <TableRow key={video.id} className="hover:bg-secondary/20 transition-colors">
-                <TableCell className="font-medium py-4">
-                  <div className="line-clamp-1 max-w-[400px]">{video.title}</div>
-                </TableCell>
-                <TableCell>
-                  <span className={cn(
-                    "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                    video.isTrending ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground"
-                  )}>
-                    {video.isTrending ? 'Trending' : 'Standard'}
-                  </span>
-                </TableCell>
-                <TableCell className="text-[10px] font-mono opacity-50">{video.uploadedByUserId}</TableCell>
+              <TableRow key={video.id}>
+                <TableCell className="font-medium line-clamp-1 max-w-[300px]">{video.title}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{channels.find(c => c.id === video.channelId)?.title || 'Unknown'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <EditVideoDialog video={video} />
-                    <DeleteConfirmDialog 
-                      onConfirm={() => handleDelete(video.id)} 
-                      title="Delete Video Metadata?"
-                    />
+                    <EditVideoDialog video={video} channels={channels} speakers={speakers} />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Video?</AlertDialogTitle><AlertDialogDescription>Remove this video record from database.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(video.id)} className="bg-destructive">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </TableCell>
               </TableRow>
             ))}
-            {videos.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
-                  No videos found in the database.
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SpeakerManagement({ speakers }: { speakers: any[] }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const handleDelete = (id: string) => {
+    deleteDocumentNonBlocking(doc(db, 'speakers', id));
+    toast({ title: "Deleted", description: "Speaker removed." });
+  };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader className="bg-secondary/30">
+            <TableRow>
+              <TableHead className="py-4">Name</TableHead>
+              <TableHead>Bio</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {speakers.map((speaker) => (
+              <TableRow key={speaker.id}>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full overflow-hidden relative">
+                      <Image src={speaker.profileImageUrl} alt={speaker.name} fill className="object-cover" />
+                    </div>
+                    {speaker.name}
+                  </div>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground line-clamp-1 max-w-[400px]">{speaker.bio}</TableCell>
+                <TableCell className="text-right">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Speaker?</AlertDialogTitle><AlertDialogDescription>This removes the speaker profile.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(speaker.id)} className="bg-destructive">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                  </AlertDialog>
                 </TableCell>
               </TableRow>
-            )}
+            ))}
           </TableBody>
         </Table>
       </CardContent>
@@ -1093,59 +1024,35 @@ function VideoManagement({ videos }: { videos: any[] }) {
 function QuranManagement({ surahs }: { surahs: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
-
   const handleDelete = (id: string) => {
-    try {
-      const surahRef = doc(db, 'quran_surahs', id);
-      deleteDocumentNonBlocking(surahRef);
-      toast({ title: "Delete Initiated", description: "Quranic record is being removed." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to remove Quranic metadata." });
-    }
+    deleteDocumentNonBlocking(doc(db, 'quran_surahs', id));
+    toast({ title: "Deleted" });
   };
 
   return (
-    <Card className="bg-card border-border shadow-sm">
-      <CardHeader>
-        <CardTitle>Quranic Metadata</CardTitle>
-        <CardDescription>Manage Surah and Ayat information for the spiritual feed.</CardDescription>
-      </CardHeader>
+    <Card className="bg-card border-border">
       <CardContent className="p-0">
         <Table>
           <TableHeader className="bg-secondary/30">
             <TableRow>
-              <TableHead className="py-4 w-16">No.</TableHead>
-              <TableHead>Name (En)</TableHead>
-              <TableHead>Name (Ar)</TableHead>
-              <TableHead>Revelation</TableHead>
+              <TableHead className="py-4">No.</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {surahs.sort((a,b) => a.number - b.number).map((surah) => (
-              <TableRow key={surah.id} className="hover:bg-secondary/20 transition-colors">
-                <TableCell className="py-4 font-bold text-muted-foreground">{surah.number}</TableCell>
+              <TableRow key={surah.id}>
+                <TableCell className="font-bold">{surah.number}</TableCell>
                 <TableCell className="font-bold">{surah.nameEnglish}</TableCell>
-                <TableCell className="font-arabic text-primary text-lg">{surah.nameArabic}</TableCell>
-                <TableCell className="text-xs uppercase font-medium">{surah.revelationPlace}</TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
-                    <DeleteConfirmDialog 
-                      onConfirm={() => handleDelete(surah.id)} 
-                      title={`Remove Surah ${surah.nameEnglish}?`}
-                    />
-                  </div>
+                   <AlertDialog>
+                     <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                     <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Remove Surah?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(surah.id)} className="bg-destructive">Remove</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                   </AlertDialog>
                 </TableCell>
               </TableRow>
             ))}
-            {surahs.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
-                  No Quranic data records found.
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </CardContent>
