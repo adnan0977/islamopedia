@@ -21,7 +21,9 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Copy,
+  CheckCircle2
 } from 'lucide-react';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -41,6 +43,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 type AdminTab = 'channels' | 'videos' | 'quran' | 'settings';
 
@@ -48,7 +51,9 @@ export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<AdminTab>('channels');
+  const [copied, setCopied] = useState(false);
 
   // Admin Check
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
@@ -64,6 +69,18 @@ export default function AdminPanel() {
   const surahsRef = useMemoFirebase(() => collection(db, 'quran_surahs'), [db]);
   const { data: surahs } = useCollection(surahsRef);
 
+  const copyUid = () => {
+    if (user?.uid) {
+      navigator.clipboard.writeText(user.uid);
+      setCopied(true);
+      toast({
+        title: "UID Copied",
+        description: "Your User ID has been copied to your clipboard.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   if (isUserLoading || isAdminLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
@@ -75,19 +92,46 @@ export default function AdminPanel() {
 
   if (!user || !adminData) {
     return (
-      <div className="max-w-md mx-auto py-20 px-4 text-center space-y-6">
+      <div className="max-w-md mx-auto py-20 px-4 text-center space-y-8">
         <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
           <ShieldAlert className="w-10 h-10 text-destructive" />
         </div>
-        <h1 className="text-3xl font-headline font-bold">Access Denied</h1>
-        <p className="text-muted-foreground">
-          You do not have administrative privileges. Please contact the system administrator to grant your UID ({user?.uid || 'N/A'}) access in the 'roles_admin' collection.
-        </p>
-        {!user && (
-          <Button onClick={() => window.location.href = '/login'} className="w-full">
-            Login as Admin
+        <div className="space-y-2">
+          <h1 className="text-3xl font-headline font-bold">Access Denied</h1>
+          <p className="text-muted-foreground text-sm">
+            You do not have administrative privileges. To grant <b>{user?.email}</b> access, copy the UID below and add it to the <code className="bg-secondary px-1 rounded text-primary">roles_admin</code> collection in your Firebase Console.
+          </p>
+        </div>
+
+        <div className="bg-secondary/50 p-4 rounded-2xl border border-border flex items-center justify-between gap-4 group">
+           <div className="flex flex-col items-start min-w-0">
+             <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Your User UID</span>
+             <code className="text-xs font-mono truncate w-full text-left">{user?.uid || 'N/A'}</code>
+           </div>
+           <Button 
+            variant="secondary" 
+            size="sm" 
+            className="shrink-0"
+            onClick={copyUid}
+          >
+            {copied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
           </Button>
-        )}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {!user ? (
+            <Button onClick={() => window.location.href = '/login'} className="w-full h-12 font-bold">
+              Login as Admin
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => signOut(auth)} className="w-full h-12 font-bold text-destructive hover:bg-destructive/10">
+              Sign Out
+            </Button>
+          )}
+          <Button variant="ghost" onClick={() => window.location.href = '/'} className="w-full">
+            Return to Home
+          </Button>
+        </div>
       </div>
     );
   }
