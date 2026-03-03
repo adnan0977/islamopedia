@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -10,7 +11,7 @@ import {
   ShieldCheck, 
   ShieldAlert, 
   Youtube, 
-  Video, 
+  Video as VideoIcon, 
   Book, 
   Trash2, 
   Edit3, 
@@ -27,9 +28,10 @@ import {
   Eye,
   PieChart as PieChartIcon,
   Search,
-  Check
+  Check,
+  X
 } from 'lucide-react';
-import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
   Sidebar, 
   SidebarContent, 
@@ -55,6 +57,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -76,6 +79,8 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'quran' | 'settings';
 
@@ -226,7 +231,7 @@ export default function AdminPanel() {
                         activeTab === 'videos' ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:bg-secondary"
                       )}
                     >
-                      <Video className="w-5 h-5" />
+                      <VideoIcon className="w-5 h-5" />
                       <span>Video Catalog</span>
                       {activeTab === 'videos' && <ChevronRight className="w-4 h-4 ml-auto" />}
                     </SidebarMenuButton>
@@ -375,7 +380,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
         <Card className="bg-card border-border shadow-sm">
           <CardContent className="p-6 flex items-center gap-4">
             <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
-              <Video className="text-accent w-6 h-6" />
+              <VideoIcon className="text-accent w-6 h-6" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-bold uppercase">Videos</p>
@@ -696,7 +701,7 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                 <Card className="bg-secondary/30 border-none">
                   <CardContent className="pt-6 flex items-center gap-4">
                     <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-primary">
-                      <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />
+                      {fetchedData.thumbnailUrl && <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />}
                     </div>
                     <div className="flex flex-col min-w-0">
                       <p className="font-bold text-sm truncate">{fetchedData.title}</p>
@@ -764,11 +769,125 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   );
 }
 
+function EditChannelDialog({ channel }: { channel: any }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(channel.title);
+  const [description, setDescription] = useState(channel.description || '');
+  const [subscribersCount, setSubscribersCount] = useState(channel.subscribersCount);
+
+  const handleUpdate = () => {
+    updateDocumentNonBlocking(doc(db, 'channels', channel.id), {
+      title,
+      description,
+      subscribersCount: Number(subscribersCount),
+      updatedAt: new Date().toISOString()
+    });
+    toast({ title: "Channel Updated", description: "Changes have been saved successfully." });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="hover:text-primary">
+          <Edit3 className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-card border-border sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Channel</DialogTitle>
+          <DialogDescription>Update the information for this curated channel.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Channel Title</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="bg-secondary border-none" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="subs">Subscribers</Label>
+            <Input id="subs" type="number" value={subscribersCount} onChange={(e) => setSubscribersCount(Number(e.target.value))} className="bg-secondary border-none" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="desc">Description</Label>
+            <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} className="bg-secondary border-none" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleUpdate}>Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditVideoDialog({ video }: { video: any }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(video.title);
+  const [description, setDescription] = useState(video.description || '');
+  const [isTrending, setIsTrending] = useState(video.isTrending || false);
+
+  const handleUpdate = () => {
+    updateDocumentNonBlocking(doc(db, 'videos', video.id), {
+      title,
+      description,
+      isTrending,
+      updatedAt: new Date().toISOString()
+    });
+    toast({ title: "Video Updated", description: "Video metadata saved successfully." });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="hover:text-primary">
+          <Edit3 className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-card border-border sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Edit Video Details</DialogTitle>
+          <DialogDescription>Modify video information and visibility status.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="vtitle">Video Title</Label>
+            <Input id="vtitle" value={title} onChange={(e) => setTitle(e.target.value)} className="bg-secondary border-none" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="vdesc">Description</Label>
+            <Textarea id="vdesc" value={description} onChange={(e) => setDescription(e.target.value)} className="bg-secondary border-none min-h-[100px]" />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl">
+            <div className="space-y-0.5">
+              <Label className="text-sm">Trending Status</Label>
+              <p className="text-[10px] text-muted-foreground">Highlight this video in the trending section.</p>
+            </div>
+            <Switch checked={isTrending} onCheckedChange={setIsTrending} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleUpdate}>Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: any[], isAddOpen: boolean, setIsAddOpen: (o: boolean) => void }) {
   const db = useFirestore();
+  const { toast } = useToast();
+
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this channel?')) {
       deleteDocumentNonBlocking(doc(db, 'channels', id));
+      toast({ title: "Channel Deleted", description: "The channel record has been removed." });
     }
   };
 
@@ -810,7 +929,7 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
                 <TableCell>{channel.videoCount || '0'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
+                    <EditChannelDialog channel={channel} />
                     <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(channel.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -834,9 +953,12 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
 
 function VideoManagement({ videos }: { videos: any[] }) {
   const db = useFirestore();
+  const { toast } = useToast();
+
   const handleDelete = (id: string) => {
     if (confirm('Delete this video?')) {
       deleteDocumentNonBlocking(doc(db, 'videos', id));
+      toast({ title: "Video Removed", description: "Video metadata has been deleted." });
     }
   };
 
@@ -873,7 +995,7 @@ function VideoManagement({ videos }: { videos: any[] }) {
                 <TableCell className="text-[10px] font-mono opacity-50">{video.uploadedByUserId}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
+                    <EditVideoDialog video={video} />
                     <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(video.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
