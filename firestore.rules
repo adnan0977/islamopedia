@@ -14,9 +14,6 @@ service cloud.firestore {
       // Check if a document exists in the roles_admin collection for the current user
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
-    function isExistingOwner(ownerField) {
-      return isSignedIn() && resource != null && (resource.data[ownerField] == request.auth.uid || isAdmin());
-    }
 
     // --- Collection Rules ---
     
@@ -24,7 +21,7 @@ service cloud.firestore {
     match /roles_admin/{adminId} {
       allow get: if isOwner(adminId);
       allow list: if isAdmin();
-      allow create, update, delete: if false; // Managed via console or Cloud Functions
+      allow create, update, delete: if false; 
     }
 
     // User profiles - private to each user
@@ -47,12 +44,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // YouTube Videos - Publicly readable, owner/admin writable
+    // YouTube Videos - Publicly readable
     match /videos/{videoId} {
       allow get, list: if true;
       allow create: if (isSignedIn() && request.resource.data.uploadedByUserId == request.auth.uid) || isAdmin();
-      allow update: if (isExistingOwner('uploadedByUserId')) || isAdmin();
-      allow delete: if isExistingOwner('uploadedByUserId') || isAdmin();
+      allow update, delete: if (isSignedIn() && (resource.data.uploadedByUserId == request.auth.uid || isAdmin()));
     }
 
     // Speakers/Scholars - Publicly readable
