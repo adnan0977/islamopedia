@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -28,7 +27,9 @@ import {
   Eye,
   PieChart as PieChartIcon,
   RefreshCw,
-  Search
+  Search,
+  Check,
+  ArrowRight
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -76,6 +77,7 @@ import {
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import Image from 'next/image';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'quran' | 'settings';
 
@@ -503,11 +505,17 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
 }
 
 function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+  const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [channelInput, setChannelInput] = useState('');
   const [fetchedData, setFetchedData] = useState<any | null>(null);
+  const [view, setView] = useState<'search' | 'videos'>('search');
+  const [channelVideos, setChannelVideos] = useState<any[]>([]);
+  const [importingVideoIds, setImportingVideoIds] = useState<Set<string>>(new Set());
+
+  const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 
   const fetchChannelDetails = async () => {
     let input = channelInput.trim();
@@ -517,14 +525,8 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     }
 
     setLoading(true);
-    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
-
     if (!apiKey) {
-      toast({ 
-        variant: "destructive", 
-        title: "API Key Missing", 
-        description: "Please set NEXT_PUBLIC_YOUTUBE_API_KEY in your .env file." 
-      });
+      toast({ variant: "destructive", title: "API Key Missing", description: "Please set NEXT_PUBLIC_YOUTUBE_API_KEY." });
       setLoading(false);
       return;
     }
@@ -533,7 +535,6 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       let baseUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&key=${apiKey}`;
       let finalUrl = baseUrl;
 
-      // Intelligent Parsing
       if (input.includes('youtube.com/channel/')) {
         const id = input.split('youtube.com/channel/')[1].split('/')[0].split('?')[0];
         finalUrl += `&id=${id}`;
@@ -545,19 +546,15 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       } else if (input.startsWith('UC') && input.length === 24) {
         finalUrl += `&id=${input}`;
       } else {
-        // Fallback: try handle first, then ID if it fails
         finalUrl += `&forHandle=@${input.replace(/^@/, '')}`;
       }
 
       const response = await fetch(finalUrl);
       const data = await response.json();
-
-      if (!data.items || data.items.length === 0) {
-        throw new Error("Channel not found. Ensure the ID or Handle is correct.");
-      }
+      if (!data.items || data.items.length === 0) throw new Error("Channel not found.");
 
       const item = data.items[0];
-      const channelInfo = {
+      setFetchedData({
         id: item.id,
         title: item.snippet.title,
         description: item.snippet.description,
@@ -566,37 +563,25 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
         subscribersCount: Number(item.statistics.subscriberCount),
         videoCount: Number(item.statistics.videoCount),
         viewCount: Number(item.statistics.viewCount),
-      };
-
-      setFetchedData(channelInfo);
-      toast({ title: "Channel Found", description: `Fetched details for ${channelInfo.title}` });
+      });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Fetch Error", description: error.message });
-      setFetchedData(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const saveChannel = () => {
+  const saveChannel = async () => {
     if (!fetchedData) return;
-    
     setLoading(true);
-    const channelData = {
-      ...fetchedData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
     try {
+      const channelData = { ...fetchedData, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       setDocumentNonBlocking(doc(db, 'channels', fetchedData.id), channelData, { merge: true });
-      toast({
-        title: "Channel Saved",
-        description: `${fetchedData.title} has been successfully added to your database.`,
-      });
-      onOpenChange(false);
-      setFetchedData(null);
-      setChannelInput('');
+      toast({ title: "Channel Saved", description: `${fetchedData.title} added. Fetching videos...` });
+      
+      // Fetch videos after saving channel
+      await fetchChannelVideos(fetchedData.id);
+      setView('videos');
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save Error", description: error.message });
     } finally {
@@ -604,10 +589,55 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     }
   };
 
+  const fetchChannelVideos = async (channelId: string) => {
+    try {
+      const url = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=12&type=video`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setChannelVideos(data.items || []);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Video Fetch Error", description: "Could not load videos." });
+    }
+  };
+
+  const importVideo = (video: any) => {
+    if (!user) return;
+    const vidId = video.id.videoId;
+    setImportingVideoIds(prev => new Set(prev).add(vidId));
+
+    const videoData = {
+      id: vidId,
+      title: video.snippet.title,
+      description: video.snippet.description,
+      thumbnailUrl: video.snippet.thumbnails.high?.url || video.snippet.thumbnails.default?.url,
+      externalUrl: `https://www.youtube.com/watch?v=${vidId}`,
+      duration: 'PT0S', // Placeholder, search API doesn't return duration
+      publishedAt: video.snippet.publishedAt,
+      channelId: fetchedData.id,
+      uploadedByUserId: user.uid,
+      viewCount: 0,
+      likeCount: 0,
+      commentCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      setDocumentNonBlocking(doc(db, 'videos', vidId), videoData, { merge: true });
+      toast({ title: "Video Imported", description: video.snippet.title });
+    } catch (e) {
+      setImportingVideoIds(prev => {
+        const next = new Set(prev);
+        next.delete(vidId);
+        return next;
+      });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(val) => {
       onOpenChange(val);
-      if(!val) { setFetchedData(null); setChannelInput(''); }
+      if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setImportingVideoIds(new Set()); }
     }}>
       <DialogTrigger asChild>
         <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
@@ -615,57 +645,88 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
           Add Channel
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-card border-border">
+      <DialogContent className={cn("bg-card border-border transition-all duration-300", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[425px]")}>
           <DialogHeader>
-            <DialogTitle>Add YouTube Channel</DialogTitle>
+            <DialogTitle>{view === 'search' ? 'Add YouTube Channel' : `Import Videos from ${fetchedData?.title}`}</DialogTitle>
             <DialogDescription>
-              Enter a Channel ID, Handle (@name), or YouTube URL to fetch metadata.
+              {view === 'search' 
+                ? 'Enter a Channel ID, Handle (@name), or YouTube URL.' 
+                : 'Select videos to add to your platform library.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="channelInput">Channel ID / Handle / URL</Label>
-              <div className="flex gap-2">
-                <Input 
-                  id="channelInput" 
-                  placeholder="e.g. @AJ.Official or UC..." 
-                  value={channelInput}
-                  onChange={(e) => setChannelInput(e.target.value)}
-                  className="bg-secondary border-none" 
-                />
-                <Button onClick={fetchChannelDetails} disabled={loading} size="icon" variant="secondary">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
 
-            {fetchedData && (
-              <Card className="bg-secondary/30 border-none">
-                <CardContent className="pt-6 flex items-center gap-4">
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-primary">
-                    <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <p className="font-bold text-sm truncate">{fetchedData.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {Number(fetchedData.subscribersCount).toLocaleString()} Subscribers
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{fetchedData.description}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-          <DialogFooter>
-            <Button 
-              onClick={saveChannel} 
-              disabled={loading || !fetchedData} 
-              className="w-full"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-              {fetchedData ? 'Confirm & Save' : 'Fetch Details First'}
-            </Button>
-          </DialogFooter>
+          {view === 'search' ? (
+            <div className="grid gap-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="channelInput">Channel ID / Handle / URL</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    id="channelInput" 
+                    placeholder="e.g. @AJ.Official" 
+                    value={channelInput}
+                    onChange={(e) => setChannelInput(e.target.value)}
+                    className="bg-secondary border-none" 
+                  />
+                  <Button onClick={fetchChannelDetails} disabled={loading} size="icon" variant="secondary">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              {fetchedData && (
+                <Card className="bg-secondary/30 border-none">
+                  <CardContent className="pt-6 flex items-center gap-4">
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-primary">
+                      <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <p className="font-bold text-sm truncate">{fetchedData.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {Number(fetchedData.subscribersCount).toLocaleString()} Subscribers
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+                Confirm & Save Channel
+              </Button>
+            </div>
+          ) : (
+            <div className="py-4 space-y-4">
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {channelVideos.map((video) => {
+                    const isImported = importingVideoIds.has(video.id.videoId);
+                    return (
+                      <Card key={video.id.videoId} className="overflow-hidden bg-secondary/20 border-border group relative">
+                        <div className="aspect-video relative">
+                          <Image src={video.snippet.thumbnails.medium.url} alt={video.snippet.title} fill className="object-cover" />
+                        </div>
+                        <CardContent className="p-2 space-y-2">
+                          <p className="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]">{video.snippet.title}</p>
+                          <Button 
+                            variant={isImported ? "secondary" : "default"} 
+                            size="sm" 
+                            className="w-full h-7 text-[10px] font-bold"
+                            onClick={() => importVideo(video)}
+                            disabled={isImported}
+                          >
+                            {isImported ? <Check className="w-3 h-3 mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
+                            {isImported ? 'Imported' : 'Import'}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+              <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">
+                Done & Close
+              </Button>
+            </div>
+          )}
       </DialogContent>
     </Dialog>
   );
@@ -703,9 +764,9 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
               <TableRow key={channel.id} className="hover:bg-secondary/20 transition-colors">
                 <TableCell className="font-medium py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden">
+                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden relative">
                       {channel.thumbnailUrl ? (
-                        <Image src={channel.thumbnailUrl} alt={channel.title} width={32} height={32} />
+                        <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />
                       ) : (
                         <Youtube className="w-4 h-4 text-red-500" />
                       )}
