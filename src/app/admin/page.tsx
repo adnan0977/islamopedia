@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -91,7 +92,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 
-type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran' | 'settings';
+type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
@@ -106,17 +107,19 @@ export default function AdminPanel() {
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData, isLoading: isAdminLoading } = useDoc(adminRef);
 
-  // Collections
-  const channelsRef = useMemoFirebase(() => (user && adminData ? collection(db, 'channels') : null), [db, user, adminData]);
+  // Collections - Only query if user is verified admin to avoid permission errors
+  const isVerifiedAdmin = !!adminData;
+
+  const channelsRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'channels') : null), [db, isVerifiedAdmin]);
   const { data: channels } = useCollection(channelsRef);
 
-  const videosRef = useMemoFirebase(() => (user && adminData ? collection(db, 'videos') : null), [db, user, adminData]);
+  const videosRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'videos') : null), [db, isVerifiedAdmin]);
   const { data: videos } = useCollection(videosRef);
 
-  const speakersRef = useMemoFirebase(() => (user && adminData ? collection(db, 'speakers') : null), [db, user, adminData]);
+  const speakersRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'speakers') : null), [db, isVerifiedAdmin]);
   const { data: speakers } = useCollection(speakersRef);
 
-  const surahsRef = useMemoFirebase(() => (user && adminData ? collection(db, 'quran_surahs') : null), [db, user, adminData]);
+  const surahsRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'quran_surahs') : null), [db, isVerifiedAdmin]);
   const { data: surahs } = useCollection(surahsRef);
 
   const copyUid = () => {
@@ -153,7 +156,7 @@ export default function AdminPanel() {
     );
   }
 
-  if (!user || !adminData) {
+  if (!user || !isVerifiedAdmin) {
     return (
       <div className="max-w-md mx-auto py-20 px-4 text-center space-y-8 bg-background min-h-screen">
         <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
@@ -162,7 +165,7 @@ export default function AdminPanel() {
         <div className="space-y-2">
           <h1 className="text-3xl font-headline font-bold">Access Denied</h1>
           <p className="text-muted-foreground text-sm">
-            Administrative access required. To grant access, copy your UID below and add it to the <code className="bg-secondary px-1 rounded text-primary">roles_admin</code> collection.
+            Administrative access required. To grant access, copy your UID below and add it as a document in the <code className="bg-secondary px-1 rounded text-primary">roles_admin</code> collection in Firestore.
           </p>
         </div>
 
@@ -210,7 +213,7 @@ export default function AdminPanel() {
                     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                     { id: 'channels', label: 'Channels', icon: Youtube },
                     { id: 'videos', label: 'Video Catalog', icon: VideoIcon },
-                    { id: 'speakers', label: 'Speakers', icon: Mic2 },
+                    { id: 'speakers', label: 'Scholars', icon: Mic2 },
                     { id: 'quran', label: 'Quran Content', icon: Book },
                   ].map((item) => (
                     <SidebarMenuItem key={item.id}>
@@ -249,7 +252,7 @@ export default function AdminPanel() {
                {activeTab === 'dashboard' && 'Admin Overview'}
                {activeTab === 'channels' && 'YouTube Channels'}
                {activeTab === 'videos' && 'Video Catalog'}
-               {activeTab === 'speakers' && 'Speakers'}
+               {activeTab === 'speakers' && 'Scholar Management'}
                {activeTab === 'quran' && 'Quranic Metadata'}
              </h2>
              <div className="flex items-center gap-4">
@@ -287,10 +290,10 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
   ];
 
   const categoryData = [
-    { name: "Vlogs", value: 400, fill: "hsl(var(--primary))" },
+    { name: "Recitations", value: 400, fill: "hsl(var(--primary))" },
     { name: "Islamic", value: 300, fill: "hsl(var(--accent))" },
-    { name: "Tech", value: 200, fill: "hsl(var(--chart-3))" },
-    { name: "Travel", value: 100, fill: "hsl(var(--chart-4))" },
+    { name: "Lectures", value: 200, fill: "hsl(var(--chart-3))" },
+    { name: "Vlogs", value: 100, fill: "hsl(var(--chart-4))" },
   ];
 
   const totalSubs = channels.reduce((acc, curr) => acc + (curr.subscribersCount || 0), 0);
@@ -326,7 +329,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
         </Card>
 
         <Card className="bg-card border-border shadow-sm">
-          <CardHeader><CardTitle className="text-lg">Category Mix</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Category Distribution</CardTitle></CardHeader>
           <CardContent>
             <div className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
