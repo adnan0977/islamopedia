@@ -332,16 +332,17 @@ export default function AdminPanel() {
                </h2>
              </div>
              <div className="flex items-center gap-4">
+               {/* Global Add buttons available on all tabs as requested */}
+               <AddVideoDialog channels={channels || []} speakers={speakers || []} />
+               <AddSpeakerDialog />
                {activeTab === 'channels' && <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />}
-               {activeTab === 'videos' && <AddVideoDialog channels={channels || []} speakers={speakers || []} />}
-               {activeTab === 'speakers' && <AddSpeakerDialog />}
                <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>View Live Site</Button>
              </div>
           </header>
 
           <main className="p-8">
             {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} />}
-            {activeTab === 'channels' && <ChannelManagement channels={channels || []} isAddOpen={isAddChannelOpen} setIsAddOpen={setIsAddChannelOpen} />}
+            {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
             {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
             {activeTab === 'quran' && <QuranManagement surahs={surahs || []} />}
@@ -714,7 +715,10 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
 
   const handleSave = () => {
-    if (!user || !title || !channelId) return;
+    if (!user || !title || !channelId) {
+      toast({ variant: "destructive", title: "Error", description: "Title and Channel are required." });
+      return;
+    }
     const id = Math.random().toString(36).substring(7);
     const videoData = {
       id,
@@ -745,7 +749,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-accent text-accent-foreground font-bold">
+        <Button size="sm" variant="secondary" className="font-bold">
           <Plus className="w-4 h-4 mr-2" />
           Add Video
         </Button>
@@ -819,7 +823,10 @@ function AddSpeakerDialog() {
   const [imageUrl, setImageUrl] = useState('');
 
   const handleSave = () => {
-    if (!name) return;
+    if (!name) {
+      toast({ variant: "destructive", title: "Error", description: "Name is required." });
+      return;
+    }
     const id = name.toLowerCase().replace(/\s+/g, '-');
     setDocumentNonBlocking(doc(db, 'speakers', id), {
       id,
@@ -836,8 +843,8 @@ function AddSpeakerDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-primary font-bold">
-          <Plus className="w-4 h-4 mr-2" />
+        <Button size="sm" variant="secondary" className="font-bold">
+          <Mic2 className="w-4 h-4 mr-2" />
           Add Speaker
         </Button>
       </DialogTrigger>
