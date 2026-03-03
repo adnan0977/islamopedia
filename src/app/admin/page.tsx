@@ -373,12 +373,17 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
   const [channelVideos, setChannelVideos] = useState<any[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [importingVideoIds, setImportingVideoIds] = useState<Set<string>>(new Set());
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 
   const fetchChannelDetails = async () => {
     let input = channelInput.trim();
-    if (!input) return;
+    if (!input) {
+      setErrors({ channel: "Please enter a channel handle or URL." });
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       let baseUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&key=${apiKey}`;
@@ -480,7 +485,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
   return (
     <Dialog open={open} onOpenChange={(val) => {
       onOpenChange(val);
-      if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); }
+      if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); setErrors({}); }
     }}>
       <DialogTrigger asChild>
         <Button size="sm" className={btnClass}>
@@ -498,9 +503,18 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                 <div className="space-y-2">
                   <Label>Channel Handle / URL</Label>
                   <div className="flex gap-2">
-                    <Input placeholder="@handle" value={channelInput} onChange={(e) => setChannelInput(e.target.value)} />
+                    <Input 
+                      placeholder="@handle" 
+                      value={channelInput} 
+                      onChange={(e) => {
+                        setChannelInput(e.target.value);
+                        if (errors.channel) setErrors({});
+                      }} 
+                      className={errors.channel ? "border-destructive" : ""}
+                    />
                     <Button onClick={fetchChannelDetails} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Search />}</Button>
                   </div>
+                  {errors.channel && <p className="text-destructive text-[10px] font-medium">{errors.channel}</p>}
                 </div>
                 {fetchedData && (
                   <div className="p-4 bg-secondary/50 rounded-xl flex items-center gap-4">
@@ -558,6 +572,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   const [viewCount, setViewCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 
@@ -570,8 +585,11 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
 
   const handleFetchMetadata = async () => {
     const videoId = extractVideoId(ytInput);
-    if (!videoId) return;
-
+    if (!videoId) {
+      setErrors({ ytInput: "Please enter a valid YouTube URL or Video ID." });
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${apiKey}`);
@@ -604,10 +622,18 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   };
 
   const handleSave = () => {
-    if (!user || !title || !channelId || selectedSpeakerIds.length === 0) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Title, Channel, and at least one Scholar are mandatory." });
+    const newErrors: Record<string, string> = {};
+    if (!title.trim()) newErrors.title = "Please provide a video title.";
+    if (!channelId) newErrors.channelId = "Please select a channel.";
+    if (selectedSpeakerIds.length === 0) newErrors.speakers = "Please select at least one scholar.";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
+
+    if (!user) return;
+
     const id = Math.random().toString(36).substring(7);
     setDocumentNonBlocking(doc(db, 'videos', id), {
       id, title, description, channelId, thumbnailUrl: thumbnailUrl || 'https://picsum.photos/seed/vid/600/400',
@@ -616,6 +642,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
       viewCount: Number(viewCount), likeCount: Number(likeCount),
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
     }, { merge: true });
+    
     toast({ title: "Video Added" });
     setOpen(false);
     resetForm();
@@ -624,6 +651,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   const resetForm = () => {
     setTitle(''); setDescription(''); setChannelId(''); setThumbnailUrl(''); setVideoUrl(''); 
     setSelectedSpeakerIds([]); setViewCount(0); setLikeCount(0); setYtInput(''); setIsFetched(false);
+    setErrors({});
   };
 
   return (
@@ -649,15 +677,19 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                 <Input 
                   placeholder="YouTube URL or Video ID" 
                   value={ytInput} 
-                  onChange={(e) => setYtInput(e.target.value)} 
-                  className="bg-secondary/50"
+                  onChange={(e) => {
+                    setYtInput(e.target.value);
+                    if (errors.ytInput) setErrors({});
+                  }} 
+                  className={cn("bg-secondary/50", errors.ytInput && "border-destructive")}
                   disabled={loading}
                 />
                 <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary">
                   {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
                 </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground">Fetch titles, descriptions, and thumbnails automatically.</p>
+              {errors.ytInput && <p className="text-destructive text-[10px] font-medium">{errors.ytInput}</p>}
+              {!isFetched && <p className="text-[10px] text-muted-foreground">Fetch titles, descriptions, and thumbnails automatically.</p>}
             </div>
 
             {isFetched && (
@@ -676,19 +708,32 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                     <Input 
                       placeholder="Enter title" 
                       value={title} 
-                      onChange={(e) => setTitle(e.target.value)} 
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
+                      }} 
                       disabled={loading}
+                      className={errors.title ? "border-destructive" : ""}
                     />
+                    {errors.title && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.title}</p>}
                   </div>
 
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
-                    <Select value={channelId} onValueChange={setChannelId} disabled={loading}>
-                      <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
+                    <Select 
+                      value={channelId} 
+                      onValueChange={(val) => {
+                        setChannelId(val);
+                        if (errors.channelId) setErrors(prev => ({ ...prev, channelId: "" }));
+                      }} 
+                      disabled={loading}
+                    >
+                      <SelectTrigger className={errors.channelId ? "border-destructive" : ""}><SelectValue placeholder="Select Channel" /></SelectTrigger>
                       <SelectContent className="max-h-[300px]">
                         {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    {errors.channelId && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.channelId}</p>}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -703,18 +748,11 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Video URL</Label>
-                    <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Thumbnail URL</Label>
-                    <Input placeholder="https://..." value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
                     <Label className="flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
-                    <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto border border-border">
+                    <div className={cn(
+                      "grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto border",
+                      errors.speakers ? "border-destructive" : "border-border"
+                    )}>
                       {speakers.map(s => (
                         <div key={s.id} className="flex items-center space-x-2">
                           <Checkbox 
@@ -722,13 +760,23 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                             checked={selectedSpeakerIds.includes(s.id)} 
                             disabled={loading}
                             onCheckedChange={(checked) => {
-                              setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
+                              setSelectedSpeakerIds(prev => {
+                                const next = checked ? [...prev, s.id] : prev.filter(x => x !== s.id);
+                                if (errors.speakers && next.length > 0) setErrors(prevErr => ({ ...prevErr, speakers: "" }));
+                                return next;
+                              });
                             }} 
                           />
                           <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs cursor-pointer">{s.name}</Label>
                         </div>
                       ))}
                     </div>
+                    {errors.speakers && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.speakers}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Video URL</Label>
+                    <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} disabled={loading} />
                   </div>
 
                   <div className="space-y-2">
@@ -768,20 +816,24 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSave = () => {
-    if (!name) return;
+    if (!name.trim()) {
+      setErrors({ name: "Scholar name is required." });
+      return;
+    }
     const id = name.toLowerCase().replace(/\s+/g, '-');
     setDocumentNonBlocking(doc(db, 'speakers', id), {
       id, name, bio, profileImageUrl: imageUrl || 'https://picsum.photos/seed/speaker/200', createdAt: new Date().toISOString()
     }, { merge: true });
     toast({ title: "Scholar Added" });
     setOpen(false);
-    setName(''); setBio(''); setImageUrl('');
+    setName(''); setBio(''); setImageUrl(''); setErrors({});
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) setErrors({}); }}>
       <DialogTrigger asChild>
         <Button size="sm" className={btnClass}>
           <Plus className="w-4 h-4" />
@@ -795,8 +847,17 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
         <ScrollArea className="flex-1">
           <div className="grid gap-4 p-6">
             <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Label>Full Name <span className="text-destructive">*</span></Label>
+              <Input 
+                placeholder="Full Name" 
+                value={name} 
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors({});
+                }} 
+                className={errors.name ? "border-destructive" : ""}
+              />
+              {errors.name && <p className="text-destructive text-[10px] font-medium">{errors.name}</p>}
             </div>
             <div className="space-y-2">
               <Label>Bio</Label>
@@ -824,8 +885,13 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
   const [name, setName] = useState(speaker.name);
   const [bio, setBio] = useState(speaker.bio || '');
   const [imageUrl, setImageUrl] = useState(speaker.profileImageUrl || '');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleUpdate = () => {
+    if (!name.trim()) {
+      setErrors({ name: "Scholar name is required." });
+      return;
+    }
     updateDocumentNonBlocking(doc(db, 'speakers', speaker.id), {
       name, bio, profileImageUrl: imageUrl
     });
@@ -845,8 +911,17 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
         <ScrollArea className="flex-1">
           <div className="grid gap-4 p-6">
             <div className="space-y-2">
-              <Label>Name</Label>
-              <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Label>Name <span className="text-destructive">*</span></Label>
+              <Input 
+                placeholder="Name" 
+                value={name} 
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors({});
+                }} 
+                className={errors.name ? "border-destructive" : ""}
+              />
+              {errors.name && <p className="text-destructive text-[10px] font-medium">{errors.name}</p>}
             </div>
             <div className="space-y-2">
               <Label>Bio</Label>
@@ -873,8 +948,13 @@ function EditChannelDialog({ channel }: { channel: any }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(channel.title);
   const [subs, setSubs] = useState(channel.subscribersCount || 0);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleUpdate = () => {
+    if (!title.trim()) {
+      setErrors({ title: "Channel title is required." });
+      return;
+    }
     updateDocumentNonBlocking(doc(db, 'channels', channel.id), {
       title, subscribersCount: Number(subs), updatedAt: new Date().toISOString()
     });
@@ -890,8 +970,22 @@ function EditChannelDialog({ channel }: { channel: any }) {
       <DialogContent className="bg-card">
         <DialogHeader><DialogTitle>Edit Channel</DialogTitle></DialogHeader>
         <div className="grid gap-4 py-4">
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} />
+          <div className="space-y-2">
+            <Label>Title <span className="text-destructive">*</span></Label>
+            <Input 
+              value={title} 
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (errors.title) setErrors({});
+              }} 
+              className={errors.title ? "border-destructive" : ""}
+            />
+            {errors.title && <p className="text-destructive text-[10px] font-medium">{errors.title}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label>Subscribers</Label>
+            <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -913,12 +1007,19 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   const [likeCount, setLikeCount] = useState(video.likeCount || 0);
   const [isTrending, setIsTrending] = useState(video.isTrending || false);
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>(video.speakerIds || []);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleUpdate = () => {
-    if (!title || !channelId || selectedSpeakerIds.length === 0) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Title, Channel, and at least one Scholar are mandatory." });
+    const newErrors: Record<string, string> = {};
+    if (!title.trim()) newErrors.title = "Please provide a video title.";
+    if (!channelId) newErrors.channelId = "Please select a channel.";
+    if (selectedSpeakerIds.length === 0) newErrors.speakers = "Please select at least one scholar.";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
+
     updateDocumentNonBlocking(doc(db, 'videos', video.id), {
       title, description, channelId, isTrending, speakerIds: selectedSpeakerIds, 
       viewCount: Number(viewCount), likeCount: Number(likeCount),
@@ -946,14 +1047,29 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
             )}
             <div className="space-y-2">
               <Label className="flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Input 
+                value={title} 
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
+                }} 
+                className={errors.title ? "border-destructive" : ""}
+              />
+              {errors.title && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.title}</p>}
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
-              <Select value={channelId} onValueChange={setChannelId}>
-                <SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
+              <Select 
+                value={channelId} 
+                onValueChange={(val) => {
+                  setChannelId(val);
+                  if (errors.channelId) setErrors(prev => ({ ...prev, channelId: "" }));
+                }}
+              >
+                <SelectTrigger className={errors.channelId ? "border-destructive" : ""}><SelectValue placeholder="Channel" /></SelectTrigger>
                 <SelectContent className="max-h-[300px]">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
               </Select>
+              {errors.channelId && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.channelId}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -967,16 +1083,24 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
-              <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto border border-border">
+              <div className={cn(
+                "grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto border",
+                errors.speakers ? "border-destructive" : "border-border"
+              )}>
                 {speakers.map(s => (
                   <div key={s.id} className="flex items-center space-x-2">
                     <Checkbox id={`edit-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
-                      setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
+                      setSelectedSpeakerIds(prev => {
+                        const next = checked ? [...prev, s.id] : prev.filter(x => x !== s.id);
+                        if (errors.speakers && next.length > 0) setErrors(prevErr => ({ ...prevErr, speakers: "" }));
+                        return next;
+                      });
                     }} />
                     <Label htmlFor={`edit-s-${s.id}`} className="text-xs cursor-pointer">{s.name}</Label>
                   </div>
                 ))}
               </div>
+              {errors.speakers && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.speakers}</p>}
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
