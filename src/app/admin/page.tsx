@@ -24,7 +24,8 @@ import {
   CheckCircle2,
   TrendingUp,
   Users,
-  Eye
+  Eye,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -63,13 +64,12 @@ import {
   CartesianGrid, 
   XAxis, 
   YAxis, 
-  Tooltip, 
   ResponsiveContainer,
   Line,
   LineChart,
-  Cell,
   Pie,
-  PieChart
+  PieChart,
+  Cell
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
@@ -301,15 +301,12 @@ export default function AdminPanel() {
              </div>
              <div className="flex items-center gap-4">
                <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>View Live Site</Button>
-               {activeTab === 'channels' && (
-                 <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />
-               )}
              </div>
           </header>
 
           <main className="p-8">
             {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} />}
-            {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
+            {activeTab === 'channels' && <ChannelManagement channels={channels || []} isAddOpen={isAddChannelOpen} setIsAddOpen={setIsAddChannelOpen} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} />}
             {activeTab === 'quran' && <QuranManagement surahs={surahs || []} />}
             {activeTab === 'settings' && (
@@ -332,7 +329,7 @@ export default function AdminPanel() {
 }
 
 function DashboardOverview({ channels, videos }: { channels: any[], videos: any[] }) {
-  // Mock monthly data for charts
+  // Monthly data
   const uploadData = [
     { month: "Jan", uploads: 12 },
     { month: "Feb", uploads: 19 },
@@ -346,6 +343,13 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
     name: c.title.split(' ')[0],
     subs: c.subscribersCount || 0
   })).sort((a,b) => b.subs - a.subs).slice(0, 5);
+
+  const categoryData = [
+    { name: "Vlogs", value: 400, fill: "hsl(var(--primary))" },
+    { name: "Islamic", value: 300, fill: "hsl(var(--accent))" },
+    { name: "Tech", value: 200, fill: "hsl(var(--chart-3))" },
+    { name: "Travel", value: 100, fill: "hsl(var(--chart-4))" },
+  ];
 
   const totalSubs = channels.reduce((acc, curr) => acc + (curr.subscribersCount || 0), 0);
   const totalViews = channels.reduce((acc, curr) => acc + (curr.viewCount || 0), 0);
@@ -401,8 +405,8 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="bg-card border-border shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+        <Card className="bg-card border-border shadow-sm xl:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" />
@@ -430,14 +434,54 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
         <Card className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="w-4 h-4 text-accent" />
+              <PieChartIcon className="w-4 h-4 text-accent" />
+              Category Mix
+            </CardTitle>
+            <CardDescription>Distribution of content types</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center">
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap justify-center gap-4 mt-4">
+               {categoryData.map(c => (
+                 <div key={c.name} className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.fill }} />
+                   <span className="text-xs font-medium text-muted-foreground">{c.name}</span>
+                 </div>
+               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-sm xl:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="w-4 h-4 text-green-500" />
               Channel Reach
             </CardTitle>
             <CardDescription>Subscribers by top channels</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
-              <ChartContainer config={{ subs: { label: "Subscribers", color: "hsl(var(--accent))" } }}>
+              <ChartContainer config={{ subs: { label: "Subscribers", color: "hsl(var(--primary))" } }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={subData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
@@ -570,7 +614,7 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   );
 }
 
-function ChannelManagement({ channels }: { channels: any[] }) {
+function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: any[], isAddOpen: boolean, setIsAddOpen: (o: boolean) => void }) {
   const db = useFirestore();
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this channel?')) {
@@ -580,6 +624,13 @@ function ChannelManagement({ channels }: { channels: any[] }) {
 
   return (
     <Card className="bg-card border-border shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>YouTube Channels</CardTitle>
+          <CardDescription>Manage the list of curated channels for the platform.</CardDescription>
+        </div>
+        <AddChannelDialog open={isAddOpen} onOpenChange={setIsAddOpen} />
+      </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader className="bg-secondary/30">
@@ -637,6 +688,10 @@ function VideoManagement({ videos }: { videos: any[] }) {
 
   return (
     <Card className="bg-card border-border shadow-sm">
+      <CardHeader>
+        <CardTitle>Video Catalog</CardTitle>
+        <CardDescription>Moderate and manage all video metadata across the platform.</CardDescription>
+      </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader className="bg-secondary/30">
@@ -696,6 +751,10 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
 
   return (
     <Card className="bg-card border-border shadow-sm">
+      <CardHeader>
+        <CardTitle>Quranic Metadata</CardTitle>
+        <CardDescription>Manage Surah and Ayat information for the spiritual feed.</CardDescription>
+      </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader className="bg-secondary/30">
