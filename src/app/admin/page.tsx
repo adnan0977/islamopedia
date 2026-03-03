@@ -119,6 +119,19 @@ export default function AdminPanel() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      window.location.href = '/';
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Sign Out Error",
+        description: error.message || "Failed to sign out properly.",
+      });
+    }
+  };
+
   if (isUserLoading || isAdminLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
@@ -162,7 +175,11 @@ export default function AdminPanel() {
               Login as Admin
             </Button>
           ) : (
-            <Button variant="outline" onClick={() => signOut(auth)} className="w-full h-12 font-bold text-destructive hover:bg-destructive/10">
+            <Button 
+              variant="outline" 
+              onClick={handleSignOut} 
+              className="w-full h-12 font-bold text-destructive hover:bg-destructive/10"
+            >
               Sign Out
             </Button>
           )}
@@ -288,7 +305,7 @@ export default function AdminPanel() {
             <Button 
               variant="ghost" 
               className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => signOut(auth)}
+              onClick={handleSignOut}
             >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
