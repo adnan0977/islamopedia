@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,7 +21,10 @@ import {
   LogOut,
   ChevronRight,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  TrendingUp,
+  Users,
+  Eye
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -54,15 +57,30 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  Bar, 
+  BarChart, 
+  CartesianGrid, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  ResponsiveContainer,
+  Line,
+  LineChart,
+  Cell,
+  Pie,
+  PieChart
+} from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
-type AdminTab = 'channels' | 'videos' | 'quran' | 'settings';
+type AdminTab = 'dashboard' | 'channels' | 'videos' | 'quran' | 'settings';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<AdminTab>('channels');
+  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [copied, setCopied] = useState(false);
   const [isAddChannelOpen, setIsAddChannelOpen] = useState(false);
 
@@ -169,6 +187,20 @@ export default function AdminPanel() {
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton 
+                      onClick={() => setActiveTab('dashboard')}
+                      isActive={activeTab === 'dashboard'}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                        activeTab === 'dashboard' ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <LayoutDashboard className="w-5 h-5" />
+                      <span>Dashboard</span>
+                      {activeTab === 'dashboard' && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
                       onClick={() => setActiveTab('channels')}
                       isActive={activeTab === 'channels'}
                       className={cn(
@@ -260,6 +292,7 @@ export default function AdminPanel() {
              <div className="flex items-center gap-2">
                <LayoutDashboard className="w-4 h-4 text-primary" />
                <h2 className="font-headline font-bold text-lg">
+                 {activeTab === 'dashboard' && 'Admin Overview'}
                  {activeTab === 'channels' && 'YouTube Channels'}
                  {activeTab === 'videos' && 'Video Catalog'}
                  {activeTab === 'quran' && 'Quranic Metadata'}
@@ -271,22 +304,11 @@ export default function AdminPanel() {
                {activeTab === 'channels' && (
                  <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />
                )}
-               {activeTab === 'videos' && (
-                 <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
-                   <Plus className="w-4 h-4 mr-2" />
-                   Add Video
-                 </Button>
-               )}
-               {activeTab === 'quran' && (
-                 <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
-                   <Plus className="w-4 h-4 mr-2" />
-                   Add Surah
-                 </Button>
-               )}
              </div>
           </header>
 
           <main className="p-8">
+            {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} />}
             {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} />}
             {activeTab === 'quran' && <QuranManagement surahs={surahs || []} />}
@@ -306,6 +328,131 @@ export default function AdminPanel() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+function DashboardOverview({ channels, videos }: { channels: any[], videos: any[] }) {
+  // Mock monthly data for charts
+  const uploadData = [
+    { month: "Jan", uploads: 12 },
+    { month: "Feb", uploads: 19 },
+    { month: "Mar", uploads: 15 },
+    { month: "Apr", uploads: 22 },
+    { month: "May", uploads: 30 },
+    { month: "Jun", uploads: 25 },
+  ];
+
+  const subData = channels.map(c => ({
+    name: c.title.split(' ')[0],
+    subs: c.subscribersCount || 0
+  })).sort((a,b) => b.subs - a.subs).slice(0, 5);
+
+  const totalSubs = channels.reduce((acc, curr) => acc + (curr.subscribersCount || 0), 0);
+  const totalViews = channels.reduce((acc, curr) => acc + (curr.viewCount || 0), 0);
+
+  return (
+    <div className="space-y-8">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-card border-border shadow-sm">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+              <Youtube className="text-primary w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-bold uppercase">Channels</p>
+              <p className="text-2xl font-bold">{channels.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border shadow-sm">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
+              <Video className="text-accent w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-bold uppercase">Videos</p>
+              <p className="text-2xl font-bold">{videos.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border shadow-sm">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
+              <Users className="text-green-500 w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-bold uppercase">Total Subs</p>
+              <p className="text-2xl font-bold">{(totalSubs / 1000000).toFixed(1)}M</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border shadow-sm">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
+              <Eye className="text-red-500 w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-bold uppercase">Total Views</p>
+              <p className="text-2xl font-bold">{(totalViews / 1000000).toFixed(1)}M</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              Content Growth
+            </CardTitle>
+            <CardDescription>Video uploads over the last 6 months</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ChartContainer config={{ uploads: { label: "Uploads", color: "hsl(var(--primary))" } }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={uploadData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="uploads" stroke="var(--color-uploads)" strokeWidth={3} dot={{ fill: "var(--color-uploads)", strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="w-4 h-4 text-accent" />
+              Channel Reach
+            </CardTitle>
+            <CardDescription>Subscribers by top channels</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ChartContainer config={{ subs: { label: "Subscribers", color: "hsl(var(--accent))" } }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={subData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="subs" fill="var(--color-subs)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
