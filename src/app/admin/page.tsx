@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -27,7 +26,8 @@ import {
   PieChart as PieChartIcon,
   Search,
   Mic2,
-  ExternalLink
+  ExternalLink,
+  ThumbsUp
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -184,7 +184,7 @@ export default function AdminPanel() {
     );
   }
 
-  const commonBtnClass = "bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2";
+  const commonBtnClass = "bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2 px-6 h-10 rounded-xl transition-all shadow-md active:scale-95";
 
   return (
     <SidebarProvider>
@@ -244,22 +244,22 @@ export default function AdminPanel() {
         </Sidebar>
 
         <SidebarInset className="flex-1 overflow-auto bg-background/50">
-          <header className="h-16 border-b border-border flex items-center justify-between px-8 bg-card/50 sticky top-0 z-10 backdrop-blur-md">
-             <h2 className="font-headline font-bold text-xl">
+          <header className="h-20 border-b border-border flex items-center justify-between px-8 bg-card/50 sticky top-0 z-10 backdrop-blur-md">
+             <h2 className="font-headline font-bold text-2xl">
                {activeTab === 'dashboard' && 'Admin Overview'}
                {activeTab === 'channels' && 'YouTube Channels'}
                {activeTab === 'videos' && 'Video Catalog'}
                {activeTab === 'speakers' && 'Speakers'}
                {activeTab === 'quran' && 'Quranic Metadata'}
              </h2>
-             <div className="flex items-center gap-3">
+             <div className="flex items-center gap-4">
                <div className="flex gap-2">
                  <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} btnClass={commonBtnClass} />
                  <AddVideoDialog channels={channels || []} speakers={speakers || []} btnClass={commonBtnClass} />
                  <AddSpeakerDialog btnClass={commonBtnClass} />
                </div>
                <Separator orientation="vertical" className="h-8 mx-2" />
-               <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>Live Site</Button>
+               <Button variant="outline" size="sm" className="rounded-xl px-4" onClick={() => window.location.href = '/'}>Live Site</Button>
              </div>
           </header>
 
@@ -469,6 +469,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
       channelId: fetchedData.id,
       uploadedByUserId: user.uid,
       viewCount: 0,
+      likeCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -546,6 +547,8 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   const [channelId, setChannelId] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [viewCount, setViewCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(0);
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
 
   const handleSave = () => {
@@ -558,11 +561,12 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
       id, title, description, channelId, thumbnailUrl: thumbnailUrl || 'https://picsum.photos/seed/vid/600/400',
       externalUrl: videoUrl, duration: 'PT0S', publishedAt: new Date().toISOString(),
       uploadedByUserId: user.uid, speakerIds: selectedSpeakerIds,
+      viewCount: Number(viewCount), likeCount: Number(likeCount),
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
     }, { merge: true });
     toast({ title: "Video Added" });
     setOpen(false);
-    setTitle(''); setDescription(''); setChannelId(''); setThumbnailUrl(''); setVideoUrl(''); setSelectedSpeakerIds([]);
+    setTitle(''); setDescription(''); setChannelId(''); setThumbnailUrl(''); setVideoUrl(''); setSelectedSpeakerIds([]); setViewCount(0); setLikeCount(0);
   };
 
   return (
@@ -581,6 +585,16 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
             <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
             <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
           </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>View Count</Label>
+              <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Like Count</Label>
+              <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} />
+            </div>
+          </div>
           <Input placeholder="Thumbnail URL" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} />
           <Input placeholder="Video URL" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
           <div className="space-y-2">
@@ -729,12 +743,16 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   const [title, setTitle] = useState(video.title);
   const [description, setDescription] = useState(video.description || '');
   const [channelId, setChannelId] = useState(video.channelId || '');
+  const [viewCount, setViewCount] = useState(video.viewCount || 0);
+  const [likeCount, setLikeCount] = useState(video.likeCount || 0);
   const [isTrending, setIsTrending] = useState(video.isTrending || false);
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>(video.speakerIds || []);
 
   const handleUpdate = () => {
     updateDocumentNonBlocking(doc(db, 'videos', video.id), {
-      title, description, channelId, isTrending, speakerIds: selectedSpeakerIds, updatedAt: new Date().toISOString()
+      title, description, channelId, isTrending, speakerIds: selectedSpeakerIds, 
+      viewCount: Number(viewCount), likeCount: Number(likeCount),
+      updatedAt: new Date().toISOString()
     });
     toast({ title: "Video Updated" });
     setOpen(false);
@@ -753,6 +771,16 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
             <SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
             <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
           </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Views</Label>
+              <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Likes</Label>
+              <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} />
+            </div>
+          </div>
           <div className="space-y-2">
             <Label>Speakers</Label>
             <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto">
@@ -832,6 +860,8 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
           <TableRow>
             <TableHead>Video</TableHead>
             <TableHead>Channel</TableHead>
+            <TableHead>Views</TableHead>
+            <TableHead>Likes</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -860,6 +890,18 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
               <TableCell className="text-xs text-muted-foreground">
                 {channels.find(c => c.id === video.channelId)?.title || 'Unknown'}
               </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1.5 text-xs font-medium">
+                  <Eye className="w-3 h-3 text-muted-foreground" />
+                  {video.viewCount?.toLocaleString() || 0}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1.5 text-xs font-medium">
+                  <ThumbsUp className="w-3 h-3 text-muted-foreground" />
+                  {video.likeCount?.toLocaleString() || 0}
+                </div>
+              </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
                   <EditVideoDialog video={video} channels={channels} speakers={speakers} />
@@ -885,7 +927,7 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
     <Card className="bg-card">
       <Table>
         <TableHeader className="bg-secondary/30">
-          <TableRow><TableHead>Name</TableHead><TableHead>Bio</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+          <TableRow><TableHead>Name</TableHead><TableHead>Bio</TableHead><TableHead className="text-right">Actions</TableHead></TableHeader>
         </TableHeader>
         <TableBody>
           {speakers.map((s) => (
