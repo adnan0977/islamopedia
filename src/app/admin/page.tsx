@@ -493,8 +493,8 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); }
     }}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-primary font-bold">
-          <Plus className="w-4 h-4 mr-2" />
+        <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2">
+          <Plus className="w-4 h-4" />
           Add Channel
         </Button>
       </DialogTrigger>
@@ -579,7 +579,10 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="secondary" className="font-bold"><Plus className="w-4 h-4 mr-2" />Add Video</Button>
+        <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Add Video
+        </Button>
       </DialogTrigger>
       <DialogContent className="bg-card sm:max-w-[600px]">
         <DialogHeader><DialogTitle>Manual Video Add</DialogTitle></DialogHeader>
@@ -637,7 +640,10 @@ function AddSpeakerDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="secondary" className="font-bold"><Mic2 className="w-4 h-4 mr-2" />Add Speaker</Button>
+        <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Add Speaker
+        </Button>
       </DialogTrigger>
       <DialogContent className="bg-card">
         <DialogHeader><DialogTitle>Add Speaker</DialogTitle></DialogHeader>
