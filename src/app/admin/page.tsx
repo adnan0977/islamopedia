@@ -25,7 +25,9 @@ import {
   TrendingUp,
   Users,
   Eye,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -53,7 +55,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -73,6 +74,7 @@ import {
   Tooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import Image from 'next/image';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'quran' | 'settings';
 
@@ -506,64 +508,91 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [channelId, setChannelId] = useState('');
+  const [fetchedData, setFetchedData] = useState<any | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const fetchChannelDetails = async () => {
+    if (!channelId) {
+      toast({ variant: "destructive", title: "Missing ID", description: "Please enter a Channel ID." });
+      return;
+    }
+
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
-    
-    const id = formData.get('id') as string;
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-    const thumbnailUrl = formData.get('thumbnailUrl') as string;
-    const externalUrl = formData.get('externalUrl') as string;
-    const subscribersCount = Number(formData.get('subscribersCount'));
-    const videoCount = Number(formData.get('videoCount'));
-    const viewCount = Number(formData.get('viewCount'));
+    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 
-    if (!id || !title || !thumbnailUrl || !externalUrl) {
-      toast({
-        variant: "destructive",
-        title: "Missing Fields",
-        description: "Please fill in all required fields.",
+    if (!apiKey) {
+      toast({ 
+        variant: "destructive", 
+        title: "API Key Missing", 
+        description: "Please set NEXT_PUBLIC_YOUTUBE_API_KEY in your .env file." 
       });
       setLoading(false);
       return;
     }
 
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${apiKey}`
+      );
+      const data = await response.json();
+
+      if (!data.items || data.items.length === 0) {
+        throw new Error("Channel not found. Check the ID.");
+      }
+
+      const item = data.items[0];
+      const channelInfo = {
+        id: item.id,
+        title: item.snippet.title,
+        description: item.snippet.description,
+        thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+        externalUrl: `https://youtube.com/channel/${item.id}`,
+        subscribersCount: Number(item.statistics.subscriberCount),
+        videoCount: Number(item.statistics.videoCount),
+        viewCount: Number(item.statistics.viewCount),
+      };
+
+      setFetchedData(channelInfo);
+      toast({ title: "Channel Found", description: `Fetched details for ${channelInfo.title}` });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Fetch Error", description: error.message });
+      setFetchedData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveChannel = () => {
+    if (!fetchedData) return;
+    
+    setLoading(true);
     const channelData = {
-      id,
-      title,
-      description,
-      thumbnailUrl,
-      externalUrl,
-      subscribersCount,
-      videoCount,
-      viewCount,
+      ...fetchedData,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     try {
-      setDocumentNonBlocking(doc(db, 'channels', id), channelData, { merge: true });
+      setDocumentNonBlocking(doc(db, 'channels', fetchedData.id), channelData, { merge: true });
       toast({
-        title: "Channel Added",
-        description: `${title} has been successfully added.`,
+        title: "Channel Saved",
+        description: `${fetchedData.title} has been successfully added to your database.`,
       });
       onOpenChange(false);
+      setFetchedData(null);
+      setChannelId('');
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to add channel.",
-      });
+      toast({ variant: "destructive", title: "Save Error", description: error.message });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => {
+      onOpenChange(val);
+      if(!val) { setFetchedData(null); setChannelId(''); }
+    }}>
       <DialogTrigger asChild>
         <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
           <Plus className="w-4 h-4 mr-2" />
@@ -571,46 +600,56 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">
-        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add YouTube Channel</DialogTitle>
             <DialogDescription>
-              Enter the details of the YouTube channel to add it to the platform.
+              Enter the YouTube Channel ID to automatically fetch metadata.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="id" className="text-right">ID *</Label>
-              <Input id="id" name="id" placeholder="UC..." className="col-span-3 bg-secondary border-none" required />
+          <div className="grid gap-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="channelId">Channel ID</Label>
+              <div className="flex gap-2">
+                <Input 
+                  id="channelId" 
+                  placeholder="UC..." 
+                  value={channelId}
+                  onChange={(e) => setChannelId(e.target.value)}
+                  className="bg-secondary border-none" 
+                />
+                <Button onClick={fetchChannelDetails} disabled={loading} size="icon" variant="secondary">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                </Button>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Title *</Label>
-              <Input id="title" name="title" className="col-span-3 bg-secondary border-none" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">About</Label>
-              <Textarea id="description" name="description" className="col-span-3 bg-secondary border-none" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="thumbnailUrl" className="text-right">Thumb URL *</Label>
-              <Input id="thumbnailUrl" name="thumbnailUrl" className="col-span-3 bg-secondary border-none" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="externalUrl" className="text-right">YT Link *</Label>
-              <Input id="externalUrl" name="externalUrl" placeholder="https://youtube.com/..." className="col-span-3 bg-secondary border-none" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="subscribersCount" className="text-right">Subs</Label>
-              <Input id="subscribersCount" name="subscribersCount" type="number" className="col-span-3 bg-secondary border-none" />
-            </div>
+
+            {fetchedData && (
+              <Card className="bg-secondary/30 border-none">
+                <CardContent className="pt-6 flex items-center gap-4">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-primary">
+                    <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <p className="font-bold text-sm truncate">{fetchedData.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {Number(fetchedData.subscribersCount).toLocaleString()} Subscribers
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{fetchedData.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-              Save Channel
+            <Button 
+              onClick={saveChannel} 
+              disabled={loading || !fetchedData} 
+              className="w-full"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              {fetchedData ? 'Confirm & Save' : 'Fetch Details First'}
             </Button>
           </DialogFooter>
-        </form>
       </DialogContent>
     </Dialog>
   );
@@ -648,8 +687,12 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
               <TableRow key={channel.id} className="hover:bg-secondary/20 transition-colors">
                 <TableCell className="font-medium py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-                      <Youtube className="w-4 h-4 text-red-500" />
+                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden">
+                      {channel.thumbnailUrl ? (
+                        <Image src={channel.thumbnailUrl} alt={channel.title} width={32} height={32} />
+                      ) : (
+                        <Youtube className="w-4 h-4 text-red-500" />
+                      )}
                     </div>
                     {channel.title}
                   </div>
