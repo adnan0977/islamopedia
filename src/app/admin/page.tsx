@@ -73,13 +73,19 @@ import {
   Pie,
   PieChart,
   Cell,
-  Tooltip
+  Tooltip as RechartsTooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'quran' | 'settings';
 
@@ -479,7 +485,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <RechartsTooltip />
                 </PieChart>
               </ResponsiveContainer>
             </div>
