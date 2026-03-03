@@ -16,14 +16,13 @@
  * - /roles_admin: A control collection where document existence grants admin rights.
  * 
  * Key Security Decisions:
+ * - Public Read Access: Reference content (Quran), Videos, Channels, Categories, and Tags 
+ *   are publicly readable to support unauthenticated browsing and discovery features.
  * - Ownership Denormalization: The 'YouTubeVideo' entity includes 'uploadedByUserId' to 
  *   enable fast, non-recursive authorization for creators.
  * - Administrative Override: Users whose UID exists in the 'roles_admin' collection 
  *   are granted broad permissions to manage videos, channels, and religious content.
- * - Public vs. Private: Religious content (Quran) is publicly readable to allow 
- *   unauthenticated access, while user profiles and custom indexes are strictly private.
- * - Structural Segregation: User-specific data is nested under the /users/ path to 
- *   ensure clean list operations that never leak data between users.
+ * - Private Data: User profiles and custom indexes are strictly private to the owner.
  */
 
 rules_version = '2';
@@ -61,10 +60,6 @@ service cloud.firestore {
 
     /**
      * @description Administrative role management. Determines global admin privileges.
-     * @path /roles_admin/{adminId}
-     * @allow (get) request.auth.uid == adminId (to verify own status)
-     * @deny (list) Denied to prevent admin discovery.
-     * @principle DBAC (Database-Based Access Control) via existence.
      */
     match /roles_admin/{adminId} {
       allow get: if isOwner(adminId);
@@ -74,10 +69,6 @@ service cloud.firestore {
 
     /**
      * @description User profiles containing personal settings and Namaz location.
-     * @path /users/{userId}
-     * @allow (create) request.auth.uid == userId
-     * @deny (update) If user attempts to modify another user's profile.
-     * @principle Path-based ownership for private user data.
      */
     match /users/{userId} {
       allow get, list: if isOwner(userId) || isAdmin();
@@ -87,10 +78,6 @@ service cloud.firestore {
 
     /**
      * @description AI-generated personalized content indexes for specific users.
-     * @path /users/{userId}/custom_index/{indexId}
-     * @allow (create) User matches path and provides matching userId in data.
-     * @deny (update) Attempting to change the userId relationship.
-     * @principle Relational integrity and path-based ownership.
      */
     match /users/{userId}/custom_index/{indexId} {
       allow get, list: if isOwner(userId) || isAdmin();
@@ -100,61 +87,41 @@ service cloud.firestore {
     }
 
     /**
-     * @description YouTube Channel metadata.
-     * @path /channels/{channelId}
-     * @allow (list) All authenticated users.
-     * @deny (create) Non-admin users attempting to add channels.
-     * @principle Public read with admin-only writes.
+     * @description YouTube Channel metadata. Publicly readable.
      */
     match /channels/{channelId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description YouTube Video metadata including AI insights.
-     * @path /videos/{videoId}
-     * @allow (update) Original uploader or admin.
-     * @deny (create) Mismatched uploadedByUserId in request body.
-     * @principle Field-based ownership (uploadedByUserId) for content creators.
+     * @description YouTube Video metadata including AI insights. Publicly readable.
      */
     match /videos/{videoId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow create: if (isSignedIn() && request.resource.data.uploadedByUserId == request.auth.uid) || isAdmin();
       allow update: if (isExistingOwner('uploadedByUserId') && request.resource.data.uploadedByUserId == resource.data.uploadedByUserId) || isAdmin();
       allow delete: if isExistingOwner('uploadedByUserId') || isAdmin();
     }
 
     /**
-     * @description Global categories for classifying videos.
-     * @path /categories/{categoryId}
-     * @allow (get) All authenticated users.
-     * @deny (delete) Regular users.
-     * @principle Admin-controlled taxonomy.
+     * @description Global categories for classifying videos. Publicly readable.
      */
     match /categories/{categoryId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Global tags for video searchability.
-     * @path /tags/{tagId}
-     * @allow (list) All authenticated users.
-     * @deny (create) Non-admin users.
-     * @principle Admin-controlled taxonomy.
+     * @description Global tags for video searchability. Publicly readable.
      */
     match /tags/{tagId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Metadata for Quranic Surahs.
-     * @path /quran_surahs/{surahId}
-     * @allow (get) Publicly accessible (unauthenticated).
-     * @deny (write) Any non-admin user.
-     * @principle Publicly accessible religious content.
+     * @description Metadata for Quranic Surahs. Publicly readable.
      */
     match /quran_surahs/{surahId} {
       allow get, list: if true;
@@ -162,11 +129,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Detailed Quranic Ayats (verses).
-     * @path /quran_surahs/{surahId}/ayats/{ayahId}
-     * @allow (get) Publicly accessible.
-     * @deny (update) Regular users.
-     * @principle Publicly accessible religious content with hierarchical nesting.
+     * @description Detailed Quranic Ayats (verses). Publicly readable.
      */
     match /quran_surahs/{surahId}/ayats/{ayahId} {
       allow get, list: if true;

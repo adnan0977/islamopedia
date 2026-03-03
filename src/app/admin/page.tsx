@@ -1,12 +1,10 @@
-
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, deleteDoc, updateDoc, setDoc, addDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   ShieldCheck, 
@@ -59,14 +57,14 @@ export default function AdminPanel() {
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData, isLoading: isAdminLoading } = useDoc(adminRef);
 
-  // Collections
-  const channelsRef = useMemoFirebase(() => collection(db, 'channels'), [db]);
+  // Collections - Only fetch if user is authorized to manage them
+  const channelsRef = useMemoFirebase(() => (user && adminData ? collection(db, 'channels') : null), [db, user, adminData]);
   const { data: channels } = useCollection(channelsRef);
 
-  const videosRef = useMemoFirebase(() => collection(db, 'videos'), [db]);
+  const videosRef = useMemoFirebase(() => (user && adminData ? collection(db, 'videos') : null), [db, user, adminData]);
   const { data: videos } = useCollection(videosRef);
 
-  const surahsRef = useMemoFirebase(() => collection(db, 'quran_surahs'), [db]);
+  const surahsRef = useMemoFirebase(() => (user && adminData ? collection(db, 'quran_surahs') : null), [db, user, adminData]);
   const { data: surahs } = useCollection(surahsRef);
 
   const copyUid = () => {
