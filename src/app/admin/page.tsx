@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,7 +23,7 @@ import {
   Copy,
   CheckCircle2
 } from 'lucide-react';
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
   Sidebar, 
   SidebarContent, 
@@ -38,6 +38,18 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent
 } from '@/components/ui/sidebar';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -52,12 +64,13 @@ export default function AdminPanel() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<AdminTab>('channels');
   const [copied, setCopied] = useState(false);
+  const [isAddChannelOpen, setIsAddChannelOpen] = useState(false);
 
   // Admin Check
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData, isLoading: isAdminLoading } = useDoc(adminRef);
 
-  // Collections - Only fetch if user is authorized to manage them
+  // Collections
   const channelsRef = useMemoFirebase(() => (user && adminData ? collection(db, 'channels') : null), [db, user, adminData]);
   const { data: channels } = useCollection(channelsRef);
 
@@ -255,10 +268,19 @@ export default function AdminPanel() {
              </div>
              <div className="flex items-center gap-4">
                <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>View Live Site</Button>
-               {activeTab !== 'settings' && (
+               {activeTab === 'channels' && (
+                 <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />
+               )}
+               {activeTab === 'videos' && (
                  <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
                    <Plus className="w-4 h-4 mr-2" />
-                   Add New
+                   Add Video
+                 </Button>
+               )}
+               {activeTab === 'quran' && (
+                 <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
+                   <Plus className="w-4 h-4 mr-2" />
+                   Add Surah
                  </Button>
                )}
              </div>
@@ -284,6 +306,120 @@ export default function AdminPanel() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
+    
+    const id = formData.get('id') as string;
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const thumbnailUrl = formData.get('thumbnailUrl') as string;
+    const externalUrl = formData.get('externalUrl') as string;
+    const subscribersCount = Number(formData.get('subscribersCount'));
+    const videoCount = Number(formData.get('videoCount'));
+    const viewCount = Number(formData.get('viewCount'));
+
+    if (!id || !title || !thumbnailUrl || !externalUrl) {
+      toast({
+        variant: "destructive",
+        title: "Missing Fields",
+        description: "Please fill in all required fields.",
+      });
+      setLoading(false);
+      return;
+    }
+
+    const channelData = {
+      id,
+      title,
+      description,
+      thumbnailUrl,
+      externalUrl,
+      subscribersCount,
+      videoCount,
+      viewCount,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      setDocumentNonBlocking(doc(db, 'channels', id), channelData, { merge: true });
+      toast({
+        title: "Channel Added",
+        description: `${title} has been successfully added.`,
+      });
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to add channel.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Channel
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Add YouTube Channel</DialogTitle>
+            <DialogDescription>
+              Enter the details of the YouTube channel to add it to the platform.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="id" className="text-right">ID *</Label>
+              <Input id="id" name="id" placeholder="UC..." className="col-span-3 bg-secondary border-none" required />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="title" className="text-right">Title *</Label>
+              <Input id="title" name="title" className="col-span-3 bg-secondary border-none" required />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">About</Label>
+              <Textarea id="description" name="description" className="col-span-3 bg-secondary border-none" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="thumbnailUrl" className="text-right">Thumb URL *</Label>
+              <Input id="thumbnailUrl" name="thumbnailUrl" className="col-span-3 bg-secondary border-none" required />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="externalUrl" className="text-right">YT Link *</Label>
+              <Input id="externalUrl" name="externalUrl" placeholder="https://youtube.com/..." className="col-span-3 bg-secondary border-none" required />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="subscribersCount" className="text-right">Subs</Label>
+              <Input id="subscribersCount" name="subscribersCount" type="number" className="col-span-3 bg-secondary border-none" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+              Save Channel
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
