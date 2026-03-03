@@ -1,3 +1,40 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-vlog",
+      "description": "Professional vlogger recording content",
+      "imageUrl": "https://images.unsplash.com/photo-1553028826-1e7ae9200212?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx2bG9nZ2VyJTIwcmVjb3JkaW5nfGVufDB8fHx8MTc3MjU2Mjg0OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vlogger recording"
+    },
+    {
+      "id": "trending-1",
+      "description": "City lights at night",
+      "imageUrl": "https://images.unsplash.com/photo-1505811210036-052144988918?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwbmlnaHR8ZW58MHx8fHwxNzcyNTM3NDgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city night"
+    },
+    {
+      "id": "trending-2",
+      "description": "Tech gadgets on desk",
+      "imageUrl": "https://images.unsplash.com/photo-1498049794561-7780e7231661?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx0ZWNoJTIwZ2FkZ2V0c3xlbnwwfHx8fDE3NzI0NDU1NjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tech gadgets"
+    },
+    {
+      "id": "trending-3",
+      "description": "Cooking a healthy meal",
+      "imageUrl": "https://images.unsplash.com/photo-1681889870636-3f58e5288e03?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y29va2luZyUyMGZvb2R8ZW58MHx8fHwxNzcyNTAxNTkwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cooking food"
+    },
+    {
+      "id": "quran-bg",
+      "description": "Islamic patterns background",
+      "imageUrl": "https://images.unsplash.com/photo-1592615278448-c3c39a5647b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxpc2xhbWljJTIwcGF0dGVybnxlbnwwfHx8fDE3NzI1NjI4NDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "islamic pattern"
+    },
+    {
+      "id": "avatar-user",
+      "description": "User profile avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx1c2VyJTIwcHJvZmlsZXxlbnwwfHx8fDE3NzI0Njg3NjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "user profile"
+    }
+  ]
 }

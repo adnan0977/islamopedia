@@ -1,1 +1,6 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/ai-generated-video-metadata.ts';
+import '@/ai/flows/ai-video-categorization-and-tagging.ts';
+import '@/ai/flows/ai-todays-ayats.ts';
