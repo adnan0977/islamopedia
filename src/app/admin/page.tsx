@@ -28,7 +28,8 @@ import {
   PieChart as PieChartIcon,
   Search,
   Check,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -54,6 +55,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -80,12 +92,6 @@ import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'quran' | 'settings';
 
@@ -902,26 +908,53 @@ function EditVideoDialog({ video }: { video: any }) {
   );
 }
 
+function DeleteConfirmDialog({ onConfirm, title, description }: { onConfirm: () => void, title?: string, description?: string }) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="bg-card border-border">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+            {title || "Are you absolutely sure?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {description || "This action cannot be undone. This will permanently delete the record from our servers."}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Delete Record
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: any[], isAddOpen: boolean, setIsAddOpen: (o: boolean) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
 
   const handleDelete = (id: string) => {
-    if (typeof window !== 'undefined' && window.confirm('Are you sure you want to delete this channel? All associated metadata will be removed.')) {
-      try {
-        const channelRef = doc(db, 'channels', id);
-        deleteDocumentNonBlocking(channelRef);
-        toast({ 
-          title: "Delete Initiated", 
-          description: "The channel record is being removed from the system.",
-        });
-      } catch (e: any) {
-        toast({ 
-          variant: "destructive",
-          title: "Error", 
-          description: "Failed to delete the channel record.",
-        });
-      }
+    try {
+      const channelRef = doc(db, 'channels', id);
+      deleteDocumentNonBlocking(channelRef);
+      toast({ 
+        title: "Delete Initiated", 
+        description: "The channel record is being removed from the system.",
+      });
+    } catch (e: any) {
+      toast({ 
+        variant: "destructive",
+        title: "Error", 
+        description: "Failed to initiate deletion.",
+      });
     }
   };
 
@@ -964,14 +997,11 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <EditChannelDialog channel={channel} />
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-destructive hover:bg-destructive/10" 
-                      onClick={() => handleDelete(channel.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DeleteConfirmDialog 
+                      onConfirm={() => handleDelete(channel.id)} 
+                      title={`Delete ${channel.title}?`}
+                      description="This will remove the channel and all its metadata from your platform. You can re-add it later by its ID."
+                    />
                   </div>
                 </TableCell>
               </TableRow>
@@ -995,14 +1025,12 @@ function VideoManagement({ videos }: { videos: any[] }) {
   const { toast } = useToast();
 
   const handleDelete = (id: string) => {
-    if (typeof window !== 'undefined' && window.confirm('Delete this video metadata permanently?')) {
-      try {
-        const videoRef = doc(db, 'videos', id);
-        deleteDocumentNonBlocking(videoRef);
-        toast({ title: "Delete Initiated", description: "Video metadata is being removed." });
-      } catch (e: any) {
-        toast({ variant: "destructive", title: "Error", description: "Failed to initiate video deletion." });
-      }
+    try {
+      const videoRef = doc(db, 'videos', id);
+      deleteDocumentNonBlocking(videoRef);
+      toast({ title: "Delete Initiated", description: "Video metadata is being removed." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to initiate video deletion." });
     }
   };
 
@@ -1040,9 +1068,10 @@ function VideoManagement({ videos }: { videos: any[] }) {
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <EditVideoDialog video={video} />
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(video.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DeleteConfirmDialog 
+                      onConfirm={() => handleDelete(video.id)} 
+                      title="Delete Video Metadata?"
+                    />
                   </div>
                 </TableCell>
               </TableRow>
@@ -1066,14 +1095,12 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
   const { toast } = useToast();
 
   const handleDelete = (id: string) => {
-    if (typeof window !== 'undefined' && window.confirm('Delete Surah record? This cannot be undone.')) {
-      try {
-        const surahRef = doc(db, 'quran_surahs', id);
-        deleteDocumentNonBlocking(surahRef);
-        toast({ title: "Delete Initiated", description: "Quranic record is being removed." });
-      } catch (e: any) {
-        toast({ variant: "destructive", title: "Error", description: "Failed to remove Quranic metadata." });
-      }
+    try {
+      const surahRef = doc(db, 'quran_surahs', id);
+      deleteDocumentNonBlocking(surahRef);
+      toast({ title: "Delete Initiated", description: "Quranic record is being removed." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to remove Quranic metadata." });
     }
   };
 
@@ -1104,9 +1131,10 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(surah.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DeleteConfirmDialog 
+                      onConfirm={() => handleDelete(surah.id)} 
+                      title={`Remove Surah ${surah.nameEnglish}?`}
+                    />
                   </div>
                 </TableCell>
               </TableRow>
