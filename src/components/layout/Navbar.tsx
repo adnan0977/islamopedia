@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Compass, PlusSquare, BookOpen, User, ShieldAlert, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 
-const navItems = [
+const baseNavItems = [
   { label: 'Home', icon: Home, href: '/' },
   { label: 'Discover', icon: Compass, href: '/discover' },
-  { label: 'Upload', icon: PlusSquare, href: '/upload' },
+  { label: 'Upload', icon: PlusSquare, href: '/upload', adminOnly: true },
   { label: 'Quran', icon: BookOpen, href: '/quran' },
   { label: 'Channel', icon: User, href: '/channel' },
 ];
@@ -19,13 +20,21 @@ const navItems = [
 export function Navbar() {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
+  const db = useFirestore();
+
+  // Admin Check for conditional rendering
+  const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
+  const { data: adminData } = useDoc(adminRef);
+  const isAdmin = !!adminData;
+
+  const filteredNavItems = baseNavItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <>
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
         <div className="flex justify-around items-center h-16 px-2">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
@@ -65,7 +74,7 @@ export function Navbar() {
           <span className="font-headline tracking-tight text-2xl">VlogNest</span>
         </Link>
         <div className="flex items-center space-x-8">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
