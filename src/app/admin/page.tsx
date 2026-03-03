@@ -658,6 +658,12 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
               <p className="text-[10px] text-muted-foreground">Fetch titles, descriptions, and thumbnails automatically.</p>
             </div>
 
+            {thumbnailUrl && (
+              <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-secondary/30">
+                <Image src={thumbnailUrl} alt="Thumbnail preview" fill className="object-cover" />
+              </div>
+            )}
+
             <Separator />
 
             <div className="grid gap-4">
@@ -919,6 +925,11 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
         </DialogHeader>
         <ScrollArea className="flex-1">
           <div className="p-6 space-y-4">
+            {video.thumbnailUrl && (
+              <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-secondary/30 mb-4">
+                <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Video Title</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
