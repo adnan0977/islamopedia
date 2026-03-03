@@ -927,7 +927,11 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
     <Card className="bg-card">
       <Table>
         <TableHeader className="bg-secondary/30">
-          <TableRow><TableHead>Name</TableHead><TableHead>Bio</TableHead><TableHead className="text-right">Actions</TableHead></TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Bio</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
           {speakers.map((s) => (
