@@ -26,10 +26,8 @@ import {
   Users,
   Eye,
   PieChart as PieChartIcon,
-  RefreshCw,
   Search,
-  Check,
-  ArrowRight
+  Check
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -509,10 +507,12 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [channelInput, setChannelInput] = useState('');
   const [fetchedData, setFetchedData] = useState<any | null>(null);
   const [view, setView] = useState<'search' | 'videos'>('search');
   const [channelVideos, setChannelVideos] = useState<any[]>([]);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [importingVideoIds, setImportingVideoIds] = useState<Set<string>>(new Set());
 
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
@@ -589,14 +589,26 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     }
   };
 
-  const fetchChannelVideos = async (channelId: string) => {
+  const fetchChannelVideos = async (channelId: string, token?: string) => {
+    const isMore = !!token;
+    if (isMore) setLoadingMore(true);
     try {
-      const url = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=12&type=video`;
+      let url = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=12&type=video`;
+      if (token) url += `&pageToken=${token}`;
+      
       const res = await fetch(url);
       const data = await res.json();
-      setChannelVideos(data.items || []);
+      
+      if (isMore) {
+        setChannelVideos(prev => [...prev, ...(data.items || [])]);
+      } else {
+        setChannelVideos(data.items || []);
+      }
+      setNextPageToken(data.nextPageToken || null);
     } catch (e) {
       toast({ variant: "destructive", title: "Video Fetch Error", description: "Could not load videos." });
+    } finally {
+      if (isMore) setLoadingMore(false);
     }
   };
 
@@ -637,7 +649,14 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   return (
     <Dialog open={open} onOpenChange={(val) => {
       onOpenChange(val);
-      if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setImportingVideoIds(new Set()); }
+      if(!val) { 
+        setFetchedData(null); 
+        setChannelInput(''); 
+        setView('search'); 
+        setChannelVideos([]); 
+        setNextPageToken(null);
+        setImportingVideoIds(new Set()); 
+      }
     }}>
       <DialogTrigger asChild>
         <Button size="sm" className="bg-primary hover:bg-primary/90 font-bold">
@@ -695,7 +714,7 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
             </div>
           ) : (
             <div className="py-4 space-y-4">
-              <ScrollArea className="h-[400px] pr-4">
+              <ScrollArea className="h-[450px] pr-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {channelVideos.map((video) => {
                     const isImported = importingVideoIds.has(video.id.videoId);
@@ -721,6 +740,19 @@ function AddChannelDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                     );
                   })}
                 </div>
+                {nextPageToken && (
+                  <div className="py-6 flex justify-center">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                      Load More Videos
+                    </Button>
+                  </div>
+                )}
               </ScrollArea>
               <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">
                 Done & Close
