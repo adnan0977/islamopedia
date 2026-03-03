@@ -5,7 +5,7 @@
  * this dynamic route is no longer used but must be valid for the build.
  */
 export function generateStaticParams() {
-  return [];
+  return [{ videoId: 'placeholder' }];
 }
 
 export default function Page() {

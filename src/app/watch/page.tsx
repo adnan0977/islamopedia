@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -16,6 +16,13 @@ export default function WatchPage() {
   const videoId = searchParams.get('v');
   const router = useRouter();
   const db = useFirestore();
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin);
+    }
+  }, []);
 
   const videoRef = useMemoFirebase(() => (videoId ? doc(db, 'videos', videoId) : null), [db, videoId]);
   const { data: video, isLoading } = useDoc(videoRef);
@@ -49,9 +56,8 @@ export default function WatchPage() {
     );
   }
 
-  // Extract YouTube ID reliably from externalUrl if it wasn't just the ID
   const getEmbedId = (video: any) => {
-    if (video.id.length === 11) return video.id; // Usually video ID is 11 chars
+    if (video.id.length === 11) return video.id;
     const url = video.externalUrl || '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
@@ -59,10 +65,11 @@ export default function WatchPage() {
   };
 
   const embedId = getEmbedId(video);
+  // Add origin and enablejsapi to fix domain restriction issues
+  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&enablejsapi=1${origin ? `&origin=${origin}` : ''}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border h-16 flex items-center px-4 md:px-8 shrink-0">
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-full gap-2">
           <ArrowLeft className="w-4 h-4" />
@@ -71,11 +78,10 @@ export default function WatchPage() {
       </div>
 
       <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
-        {/* Player Section */}
         <div className="flex-1 bg-black flex flex-col items-center justify-center relative group">
           <div className="w-full h-full max-h-[80vh] md:max-h-full relative aspect-video">
             <iframe
-              src={`https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0`}
+              src={embedUrl}
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -84,7 +90,6 @@ export default function WatchPage() {
           </div>
         </div>
 
-        {/* Sidebar Info Section */}
         <div className="w-full md:w-[400px] border-l border-border bg-card/30 flex flex-col overflow-hidden shrink-0">
           <ScrollArea className="flex-1">
             <div className="p-6 space-y-6">
