@@ -586,7 +586,6 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
       setViewCount(Number(video.statistics.viewCount || 0));
       setLikeCount(Number(video.statistics.likeCount || 0));
       
-      // Try to auto-match channel if it exists in our list
       const matchingChannel = channels.find(c => c.id === video.snippet.channelId);
       if (matchingChannel) {
         setChannelId(matchingChannel.id);
@@ -631,88 +630,113 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           Add Video
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card sm:max-w-[600px]">
-        <DialogHeader><DialogTitle>Add New Video</DialogTitle></DialogHeader>
+      <DialogContent className="bg-card sm:max-w-[600px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle>Add New Video</DialogTitle>
+        </DialogHeader>
         
-        <div className="grid gap-6 py-4">
-          <div className="space-y-2">
-            <Label className="text-primary font-bold flex items-center gap-2">
-              <SearchCode className="w-4 h-4" /> Quick Fetch from YouTube
-            </Label>
-            <div className="flex gap-2">
-              <Input 
-                placeholder="YouTube URL or Video ID" 
-                value={ytInput} 
-                onChange={(e) => setYtInput(e.target.value)} 
-                className="bg-secondary/50"
-              />
-              <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary">
-                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
-              </Button>
+        <ScrollArea className="flex-1 px-6">
+          <div className="py-6 space-y-6">
+            <div className="space-y-4">
+              <Label className="text-primary font-bold flex items-center gap-2">
+                <SearchCode className="w-4 h-4" /> Quick Fetch from YouTube
+              </Label>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="YouTube URL or Video ID" 
+                  value={ytInput} 
+                  onChange={(e) => setYtInput(e.target.value)} 
+                  className="bg-secondary/50"
+                  disabled={loading}
+                />
+                <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary">
+                  {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Fetch titles, descriptions, and thumbnails automatically.</p>
+            </div>
+
+            <Separator />
+
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label>Video Title</Label>
+                <Input 
+                  placeholder="Enter title" 
+                  value={title} 
+                  onChange={(e) => setTitle(e.target.value)} 
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Channel</Label>
+                <Select value={channelId} onValueChange={setChannelId} disabled={loading}>
+                  <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
+                  <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>View Count</Label>
+                  <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Like Count</Label>
+                  <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Video URL</Label>
+                <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} disabled={loading} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Thumbnail URL</Label>
+                <Input placeholder="https://..." value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} disabled={loading} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Speakers</Label>
+                <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto">
+                  {speakers.map(s => (
+                    <div key={s.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`add-vid-s-${s.id}`} 
+                        checked={selectedSpeakerIds.includes(s.id)} 
+                        disabled={loading}
+                        onCheckedChange={(checked) => {
+                          setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
+                        }} 
+                      />
+                      <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs">{s.name}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea 
+                  placeholder="Video description..." 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  className="min-h-[150px]"
+                  disabled={loading}
+                />
+              </div>
             </div>
           </div>
+        </ScrollArea>
 
-          <Separator />
-
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <Label>Video Title</Label>
-              <Input placeholder="Enter title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Channel</Label>
-              <Select value={channelId} onValueChange={setChannelId}>
-                <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
-                <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>View Count</Label>
-                <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Like Count</Label>
-                <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Video URL</Label>
-              <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Thumbnail URL</Label>
-              <Input placeholder="https://..." value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Speakers</Label>
-              <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto">
-                {speakers.map(s => (
-                  <div key={s.id} className="flex items-center space-x-2">
-                    <Checkbox id={`add-vid-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
-                      setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
-                    }} />
-                    <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs">{s.name}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea placeholder="Video description..." value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave} className="bg-primary">Save Video</Button>
+        <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancel</Button>
+          <Button onClick={handleSave} className="bg-primary" disabled={loading}>
+            {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
+            Save Video
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
