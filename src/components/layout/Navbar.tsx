@@ -3,8 +3,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, PlusSquare, BookOpen, User } from 'lucide-react';
+import { Home, Compass, PlusSquare, BookOpen, User, ShieldAlert, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
+import { Button } from '@/components/ui/button';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -16,6 +18,7 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const { user, isUserLoading } = useUser();
 
   return (
     <>
@@ -40,6 +43,16 @@ export function Navbar() {
               </Link>
             );
           })}
+          <Link
+            href="/admin"
+            className={cn(
+              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-all duration-200 relative",
+              pathname === '/admin' ? "text-accent scale-110" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <ShieldAlert className="w-5 h-5" />
+            <span className="text-[9px] font-bold uppercase tracking-tight">Admin</span>
+          </Link>
         </div>
       </nav>
 
@@ -69,11 +82,33 @@ export function Navbar() {
               </Link>
             );
           })}
+          <Link
+            href="/admin"
+            className={cn(
+              "flex items-center space-x-2 text-sm font-semibold transition-all hover:translate-y-[-1px]",
+              pathname === '/admin' ? "text-accent border-b-2 border-accent pb-1" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>Admin</span>
+          </Link>
         </div>
         <div className="flex items-center space-x-4">
-          <button className="bg-primary text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all">
-            Connect YouTube
-          </button>
+          {!isUserLoading && user ? (
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-muted-foreground hidden lg:inline-block">{user.email}</span>
+              <Button variant="outline" size="sm" onClick={() => window.location.href = '/channel'}>
+                My Channel
+              </Button>
+            </div>
+          ) : (
+            <Link href="/login">
+              <Button className="bg-primary text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2">
+                <LogIn className="w-4 h-4" />
+                Login
+              </Button>
+            </Link>
+          )}
         </div>
       </nav>
       {/* Spacer for Desktop top bar */}
