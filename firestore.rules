@@ -14,9 +14,9 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // --- Public Content (Always Readable) ---
-    // We allow anyone to read videos, channels, speakers, and Quran content
-    // to ensure a smooth discovery experience across the app.
+    // --- Public Content (Open Read Access) ---
+    // These collections are readable by anyone to support the discovery feed,
+    // trending videos, and the Quran/prayer features.
     
     match /videos/{videoId} {
       allow read: if true;
