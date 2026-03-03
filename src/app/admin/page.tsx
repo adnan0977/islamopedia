@@ -493,8 +493,8 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
           Add Channel
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn("bg-card overflow-hidden flex flex-col max-h-[90vh] p-0", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[425px]")}>
-          <DialogHeader className="px-6 py-4 border-b">
+      <DialogContent className={cn("bg-card overflow-hidden flex flex-col max-h-[90vh] p-0 border-border", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[425px]")}>
+          <DialogHeader className="px-6 py-4 border-b border-border bg-secondary/10">
             <DialogTitle>{view === 'search' ? 'Add Channel' : `Import Videos`}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0">
@@ -502,38 +502,55 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
               {view === 'search' ? (
                 <div className="grid gap-6 p-6">
                   <div className="space-y-2">
-                    <Label>Channel Handle / URL</Label>
+                    <Label className="text-xs font-bold uppercase text-muted-foreground">Channel Handle / URL</Label>
                     <div className="flex gap-2">
                       <Input 
-                        placeholder="@handle" 
+                        placeholder="@handle or URL" 
                         value={channelInput} 
                         onChange={(e) => {
                           setChannelInput(e.target.value);
                           if (errors.channel) setErrors({});
                         }} 
-                        className={errors.channel ? "border-destructive" : ""}
+                        className={cn("bg-secondary/50", errors.channel && "border-destructive")}
                       />
-                      <Button onClick={fetchChannelDetails} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Search />}</Button>
+                      <Button onClick={fetchChannelDetails} disabled={loading} variant="secondary">
+                        {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
+                      </Button>
                     </div>
-                    {errors.channel && <p className="text-destructive text-[10px] font-medium">{errors.channel}</p>}
+                    {errors.channel && <p className="text-destructive text-[10px] font-medium mt-1">{errors.channel}</p>}
                   </div>
                   {fetchedData && (
-                    <div className="p-4 bg-secondary/50 rounded-xl flex items-center gap-4">
-                      <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} width={48} height={48} className="rounded-full" />
-                      <p className="font-bold">{fetchedData.title}</p>
+                    <div className="p-4 bg-secondary/50 rounded-xl flex items-center gap-4 border border-border/50 animate-in fade-in slide-in-from-bottom-2">
+                      <div className="w-12 h-12 rounded-full overflow-hidden relative border border-border">
+                        <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm">{fetchedData.title}</p>
+                        <p className="text-xs text-muted-foreground">{(fetchedData.subscribersCount / 1000).toFixed(1)}K Subscribers</p>
+                      </div>
                     </div>
                   )}
-                  <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full">Save Channel</Button>
+                  <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full h-11 font-bold">
+                    Save & Import Videos
+                  </Button>
                 </div>
               ) : (
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {channelVideos.map((v) => (
-                      <Card key={v.id.videoId} className="overflow-hidden bg-secondary/20">
-                        <div className="aspect-video relative"><Image src={v.snippet.thumbnails.medium.url} alt={v.snippet.title} fill className="object-cover" /></div>
+                      <Card key={v.id.videoId} className="overflow-hidden bg-secondary/20 border-border/50">
+                        <div className="aspect-video relative">
+                          <Image src={v.snippet.thumbnails.medium.url} alt={v.snippet.title} fill className="object-cover" />
+                        </div>
                         <CardContent className="p-2 space-y-2">
-                          <p className="text-[10px] font-bold line-clamp-2">{v.snippet.title}</p>
-                          <Button size="sm" className="w-full h-7 text-[10px]" onClick={() => importVideo(v)} disabled={importingVideoIds.has(v.id.videoId)}>
+                          <p className="text-[10px] font-bold line-clamp-2 leading-tight h-8">{v.snippet.title}</p>
+                          <Button 
+                            size="sm" 
+                            variant={importingVideoIds.has(v.id.videoId) ? "secondary" : "default"}
+                            className="w-full h-7 text-[10px] font-bold" 
+                            onClick={() => importVideo(v)} 
+                            disabled={importingVideoIds.has(v.id.videoId)}
+                          >
                             {importingVideoIds.has(v.id.videoId) ? 'Imported' : 'Import'}
                           </Button>
                         </CardContent>
@@ -542,15 +559,18 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                   </div>
                   {nextPageToken && (
                     <div className="py-4 flex justify-center">
-                      <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore}>Load More</Button>
+                      <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore}>
+                        {loadingMore ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
+                        Load More
+                      </Button>
                     </div>
                   )}
                 </div>
               )}
             </ScrollArea>
           </div>
-          <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
-            <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">Close</Button>
+          <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
+            <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full h-11 font-bold">Close</Button>
           </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -636,7 +656,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
 
     if (!user) return;
 
-    const id = Math.random().toString(36).substring(7);
+    const id = extractVideoId(videoUrl) || Math.random().toString(36).substring(7);
     setDocumentNonBlocking(doc(db, 'videos', id), {
       id, title, description, channelId, thumbnailUrl: thumbnailUrl || 'https://picsum.photos/seed/vid/600/400',
       externalUrl: videoUrl, duration: 'PT0S', publishedAt: new Date().toISOString(),
@@ -664,8 +684,8 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           Add Video
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card sm:max-w-[600px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="px-6 py-4 border-b">
+      <DialogContent className="bg-card sm:max-w-[600px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-border">
+        <DialogHeader className="px-6 py-4 border-b border-border bg-secondary/10">
           <DialogTitle>Add New Video</DialogTitle>
         </DialogHeader>
         
@@ -673,10 +693,14 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           <ScrollArea className="h-full">
             <div className="p-6 space-y-6">
               {!isFetched ? (
-                <div className="space-y-4">
-                  <Label className="text-primary font-bold flex items-center gap-2">
-                    <SearchCode className="w-4 h-4" /> Quick Fetch from YouTube
-                  </Label>
+                <div className="space-y-4 py-4">
+                  <div className="text-center space-y-2 mb-6">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                      <SearchCode className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="font-bold">Fetch YouTube Metadata</h3>
+                    <p className="text-xs text-muted-foreground max-w-[300px] mx-auto">Enter a video URL or ID to automatically populate the title, description, and stats.</p>
+                  </div>
                   <div className="flex gap-2">
                     <Input 
                       placeholder="YouTube URL or Video ID" 
@@ -685,29 +709,27 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                         setYtInput(e.target.value);
                         if (errors.ytInput) setErrors({});
                       }} 
-                      className={cn("bg-secondary/50", errors.ytInput && "border-destructive")}
+                      className={cn("bg-secondary/50 h-11", errors.ytInput && "border-destructive")}
                       disabled={loading}
                     />
-                    <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary">
-                      {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
+                    <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary" className="h-11 px-6">
+                      {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                      {loading ? '' : 'Fetch'}
                     </Button>
                   </div>
-                  {errors.ytInput && <p className="text-destructive text-[10px] font-medium">{errors.ytInput}</p>}
-                  <p className="text-[10px] text-muted-foreground">Fetch titles, descriptions, and thumbnails automatically before continuing.</p>
+                  {errors.ytInput && <p className="text-destructive text-[10px] font-medium text-center">{errors.ytInput}</p>}
                 </div>
               ) : (
-                <>
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   {thumbnailUrl && (
-                    <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-secondary/30">
+                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-inner bg-secondary/30">
                       <Image src={thumbnailUrl} alt="Thumbnail preview" fill className="object-cover" />
                     </div>
                   )}
 
-                  <Separator />
-
-                  <div className="grid gap-4">
+                  <div className="grid gap-5">
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
+                      <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
                       <Input 
                         placeholder="Enter title" 
                         value={title} 
@@ -716,13 +738,13 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                           if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
                         }} 
                         disabled={loading}
-                        className={errors.title ? "border-destructive" : ""}
+                        className={cn("bg-secondary/50", errors.title && "border-destructive")}
                       />
-                      {errors.title && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.title}</p>}
+                      {errors.title && <p className="text-destructive text-[10px] font-medium">{errors.title}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
+                      <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
                       <Select 
                         value={channelId} 
                         onValueChange={(val) => {
@@ -731,33 +753,35 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                         }} 
                         disabled={loading}
                       >
-                        <SelectTrigger className={errors.channelId ? "border-destructive" : ""}><SelectValue placeholder="Select Channel" /></SelectTrigger>
+                        <SelectTrigger className={cn("bg-secondary/50", errors.channelId && "border-destructive")}>
+                          <SelectValue placeholder="Select Channel" />
+                        </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
                           {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      {errors.channelId && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.channelId}</p>}
+                      {errors.channelId && <p className="text-destructive text-[10px] font-medium">{errors.channelId}</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>View Count</Label>
-                        <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} />
+                        <Label className="text-xs font-bold uppercase text-muted-foreground">View Count</Label>
+                        <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} className="bg-secondary/50" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Like Count</Label>
-                        <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} />
+                        <Label className="text-xs font-bold uppercase text-muted-foreground">Like Count</Label>
+                        <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} className="bg-secondary/50" />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
+                      <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
                       <div className={cn(
-                        "grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto border",
+                        "grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[120px] overflow-auto border transition-colors",
                         errors.speakers ? "border-destructive" : "border-border"
                       )}>
                         {speakers.map(s => (
-                          <div key={s.id} className="flex items-center space-x-2">
+                          <div key={s.id} className="flex items-center space-x-2 p-1 hover:bg-secondary/50 rounded-lg transition-colors">
                             <Checkbox 
                               id={`add-vid-s-${s.id}`} 
                               checked={selectedSpeakerIds.includes(s.id)} 
@@ -770,39 +794,39 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                                 });
                               }} 
                             />
-                            <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs cursor-pointer">{s.name}</Label>
+                            <Label htmlFor={`add-vid-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1">{s.name}</Label>
                           </div>
                         ))}
                       </div>
-                      {errors.speakers && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.speakers}</p>}
+                      {errors.speakers && <p className="text-destructive text-[10px] font-medium">{errors.speakers}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Video URL</Label>
-                      <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} disabled={loading} />
+                      <Label className="text-xs font-bold uppercase text-muted-foreground">Video URL</Label>
+                      <Input placeholder="https://youtube.com/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} disabled={loading} className="bg-secondary/50" />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Description</Label>
+                      <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
                       <Textarea 
                         placeholder="Video description..." 
                         value={description} 
                         onChange={(e) => setDescription(e.target.value)} 
-                        className="min-h-[150px]"
+                        className="min-h-[150px] bg-secondary/50"
                         disabled={loading}
                       />
                     </div>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </ScrollArea>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancel</Button>
+        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="font-bold">Cancel</Button>
           {isFetched && (
-            <Button onClick={handleSave} className="bg-primary" disabled={loading}>
+            <Button onClick={handleSave} className="bg-primary font-bold px-8" disabled={loading}>
               {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
               Save Video
             </Button>
@@ -844,15 +868,15 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
           Add Scholar
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh] p-0">
-        <DialogHeader className="px-6 py-4 border-b">
+      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh] p-0 border-border">
+        <DialogHeader className="px-6 py-4 border-b border-border bg-secondary/10">
           <DialogTitle>Add Scholar</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full">
-            <div className="grid gap-4 p-6">
+            <div className="grid gap-5 p-6">
               <div className="space-y-2">
-                <Label>Full Name <span className="text-destructive">*</span></Label>
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Full Name <span className="text-destructive">*</span></Label>
                 <Input 
                   placeholder="Full Name" 
                   value={name} 
@@ -860,24 +884,24 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
                     setName(e.target.value);
                     if (errors.name) setErrors({});
                   }} 
-                  className={errors.name ? "border-destructive" : ""}
+                  className={cn("bg-secondary/50", errors.name && "border-destructive")}
                 />
-                {errors.name && <p className="text-destructive text-[10px] font-medium">{errors.name}</p>}
+                {errors.name && <p className="text-destructive text-[10px] font-medium mt-1">{errors.name}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Bio</Label>
-                <Textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value)} />
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Bio</Label>
+                <Textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[120px] bg-secondary/50" />
               </div>
               <div className="space-y-2">
-                <Label>Image URL</Label>
-                <Input placeholder="Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Image URL</Label>
+                <Input placeholder="Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-secondary/50" />
               </div>
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save Scholar</Button>
+        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">Cancel</Button>
+          <Button onClick={handleSave} className="font-bold">Save Scholar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -908,17 +932,17 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh] p-0">
-        <DialogHeader className="px-6 py-4 border-b">
+      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh] p-0 border-border">
+        <DialogHeader className="px-6 py-4 border-b border-border bg-secondary/10">
           <DialogTitle>Edit Scholar</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full">
-            <div className="grid gap-4 p-6">
+            <div className="grid gap-5 p-6">
               <div className="space-y-2">
-                <Label>Name <span className="text-destructive">*</span></Label>
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Name <span className="text-destructive">*</span></Label>
                 <Input 
                   placeholder="Name" 
                   value={name} 
@@ -926,24 +950,24 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
                     setName(e.target.value);
                     if (errors.name) setErrors({});
                   }} 
-                  className={errors.name ? "border-destructive" : ""}
+                  className={cn("bg-secondary/50", errors.name && "border-destructive")}
                 />
-                {errors.name && <p className="text-destructive text-[10px] font-medium">{errors.name}</p>}
+                {errors.name && <p className="text-destructive text-[10px] font-medium mt-1">{errors.name}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Bio</Label>
-                <Textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value)} />
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Bio</Label>
+                <Textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[120px] bg-secondary/50" />
               </div>
               <div className="space-y-2">
-                <Label>Image URL</Label>
-                <Input placeholder="Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Image URL</Label>
+                <Input placeholder="Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-secondary/50" />
               </div>
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleUpdate}>Update</Button>
+        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-bold">Update Scholar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -973,35 +997,35 @@ function EditChannelDialog({ channel }: { channel: any }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card flex flex-col p-0 overflow-hidden max-h-[90vh]">
-        <DialogHeader className="p-6 border-b"><DialogTitle>Edit Channel</DialogTitle></DialogHeader>
+      <DialogContent className="bg-card flex flex-col p-0 overflow-hidden max-h-[90vh] border-border">
+        <DialogHeader className="px-6 py-4 border-b border-border bg-secondary/10"><DialogTitle>Edit Channel</DialogTitle></DialogHeader>
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full">
-            <div className="grid gap-4 p-6">
+            <div className="grid gap-5 p-6">
               <div className="space-y-2">
-                <Label>Title <span className="text-destructive">*</span></Label>
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Title <span className="text-destructive">*</span></Label>
                 <Input 
                   value={title} 
                   onChange={(e) => {
                     setTitle(e.target.value);
                     if (errors.title) setErrors({});
                   }} 
-                  className={errors.title ? "border-destructive" : ""}
+                  className={cn("bg-secondary/50", errors.title && "border-destructive")}
                 />
-                {errors.title && <p className="text-destructive text-[10px] font-medium">{errors.title}</p>}
+                {errors.title && <p className="text-destructive text-[10px] font-medium mt-1">{errors.title}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Subscribers</Label>
-                <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} />
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Subscribers</Label>
+                <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} className="bg-secondary/50" />
               </div>
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="p-6 border-t bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleUpdate}>Update</Button>
+        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-bold">Update Channel</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1044,91 +1068,98 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card sm:max-w-[600px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="px-6 py-4 border-b">
+      <DialogContent className="bg-card sm:max-w-[600px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-border">
+        <DialogHeader className="px-6 py-4 border-b border-border bg-secondary/10">
           <DialogTitle>Edit Video</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full">
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-6">
               {video.thumbnailUrl && (
-                <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-secondary/30 mb-4">
+                <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-inner bg-secondary/30">
                   <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />
                 </div>
               )}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
-                <Input 
-                  value={title} 
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
-                  }} 
-                  className={errors.title ? "border-destructive" : ""}
-                />
-                {errors.title && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.title}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
-                <Select 
-                  value={channelId} 
-                  onValueChange={(val) => {
-                    setChannelId(val);
-                    if (errors.channelId) setErrors(prev => ({ ...prev, channelId: "" }));
-                  }}
-                >
-                  <SelectTrigger className={errors.channelId ? "border-destructive" : ""}><SelectValue placeholder="Channel" /></SelectTrigger>
-                  <SelectContent className="max-h-[300px]">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
-                </Select>
-                {errors.channelId && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.channelId}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-5">
                 <div className="space-y-2">
-                  <Label>Views</Label>
-                  <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} />
+                  <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">Video Title <span className="text-destructive">*</span></Label>
+                  <Input 
+                    value={title} 
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
+                    }} 
+                    className={cn("bg-secondary/50", errors.title && "border-destructive")}
+                  />
+                  {errors.title && <p className="text-destructive text-[10px] font-medium">{errors.title}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Likes</Label>
-                  <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} />
+                  <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">Channel <span className="text-destructive">*</span></Label>
+                  <Select 
+                    value={channelId} 
+                    onValueChange={(val) => {
+                      setChannelId(val);
+                      if (errors.channelId) setErrors(prev => ({ ...prev, channelId: "" }));
+                    }}
+                  >
+                    <SelectTrigger className={cn("bg-secondary/50", errors.channelId && "border-destructive")}>
+                      <SelectValue placeholder="Channel" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                  </Select>
+                  {errors.channelId && <p className="text-destructive text-[10px] font-medium">{errors.channelId}</p>}
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
-                <div className={cn(
-                  "grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto border",
-                  errors.speakers ? "border-destructive" : "border-border"
-                )}>
-                  {speakers.map(s => (
-                    <div key={s.id} className="flex items-center space-x-2">
-                      <Checkbox id={`edit-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
-                        setSelectedSpeakerIds(prev => {
-                          const next = checked ? [...prev, s.id] : prev.filter(x => x !== s.id);
-                          if (errors.speakers && next.length > 0) setErrors(prevErr => ({ ...prevErr, speakers: "" }));
-                          return next;
-                        });
-                      }} />
-                      <Label htmlFor={`edit-s-${s.id}`} className="text-xs cursor-pointer">{s.name}</Label>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground">Views</Label>
+                    <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} className="bg-secondary/50" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground">Likes</Label>
+                    <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} className="bg-secondary/50" />
+                  </div>
                 </div>
-                {errors.speakers && <p className="text-destructive text-[10px] mt-1 font-medium">{errors.speakers}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[150px]" />
-              </div>
-              <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl">
-                <Label>Trending Content</Label>
-                <Switch checked={isTrending} onCheckedChange={setIsTrending} />
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">Scholars <span className="text-destructive">*</span></Label>
+                  <div className={cn(
+                    "grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto border transition-colors",
+                    errors.speakers ? "border-destructive" : "border-border"
+                  )}>
+                    {speakers.map(s => (
+                      <div key={s.id} className="flex items-center space-x-2 p-1 hover:bg-secondary/50 rounded-lg transition-colors">
+                        <Checkbox id={`edit-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
+                          setSelectedSpeakerIds(prev => {
+                            const next = checked ? [...prev, s.id] : prev.filter(x => x !== s.id);
+                            if (errors.speakers && next.length > 0) setErrors(prevErr => ({ ...prevErr, speakers: "" }));
+                            return next;
+                          });
+                        }} />
+                        <Label htmlFor={`edit-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1">{s.name}</Label>
+                      </div>
+                    ))}
+                  </div>
+                  {errors.speakers && <p className="text-destructive text-[10px] font-medium">{errors.speakers}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
+                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[150px] bg-secondary/50" />
+                </div>
+                <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-2xl border border-border/50">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-bold">Trending Content</Label>
+                    <p className="text-[10px] text-muted-foreground">Feature this video in the trending section.</p>
+                  </div>
+                  <Switch checked={isTrending} onCheckedChange={setIsTrending} />
+                </div>
               </div>
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleUpdate}>Update Video</Button>
+        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-bold px-8">Update Video</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1143,21 +1174,29 @@ function ChannelManagement({ channels }: { channels: any[] }) {
     toast({ title: "Removed", description: "Channel removed." });
   };
   return (
-    <Card className="bg-card">
+    <Card className="bg-card border-border overflow-hidden">
       <Table>
         <TableHeader className="bg-secondary/30">
-          <TableRow><TableHead>Channel</TableHead><TableHead>Subs</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+          <TableRow>
+            <TableHead className="w-[300px]">Channel</TableHead>
+            <TableHead>Subscribers</TableHead>
+            <TableHead>Videos</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
           {channels.map((channel) => (
-            <TableRow key={channel.id}>
+            <TableRow key={channel.id} className="hover:bg-secondary/20 transition-colors">
               <TableCell className="font-medium">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden relative border border-border shrink-0">{channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}</div>
+                  <div className="w-10 h-10 rounded-lg overflow-hidden relative border border-border shrink-0">
+                    {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
+                  </div>
                   <span className="font-bold truncate max-w-[200px]">{channel.title}</span>
                 </div>
               </TableCell>
-              <TableCell>{channel.subscribersCount?.toLocaleString()}</TableCell>
+              <TableCell className="text-muted-foreground">{channel.subscribersCount?.toLocaleString() || 0}</TableCell>
+              <TableCell className="text-muted-foreground">{channel.videoCount?.toLocaleString() || 0}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
                   <EditChannelDialog channel={channel} />
@@ -1180,11 +1219,11 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
     toast({ title: "Removed" });
   };
   return (
-    <Card className="bg-card">
+    <Card className="bg-card border-border overflow-hidden">
       <Table>
         <TableHeader className="bg-secondary/30">
           <TableRow>
-            <TableHead>Video</TableHead>
+            <TableHead className="w-[400px]">Video</TableHead>
             <TableHead>Channel</TableHead>
             <TableHead>Views</TableHead>
             <TableHead>Likes</TableHead>
@@ -1193,7 +1232,7 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
         </TableHeader>
         <TableBody>
           {videos.map((video) => (
-            <TableRow key={video.id}>
+            <TableRow key={video.id} className="hover:bg-secondary/20 transition-colors">
               <TableCell className="font-medium">
                 <div className="flex items-center gap-3">
                   <div className="w-20 h-12 rounded-lg overflow-hidden relative shrink-0 border border-border bg-secondary/30">
@@ -1250,25 +1289,27 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
     toast({ title: "Removed" });
   };
   return (
-    <Card className="bg-card">
+    <Card className="bg-card border-border overflow-hidden">
       <Table>
         <TableHeader className="bg-secondary/30">
           <TableRow>
             <TableHead>Scholar</TableHead>
-            <TableHead>Bio</TableHead>
+            <TableHead className="w-[500px]">Bio</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {speakers.map((s) => (
-            <TableRow key={s.id}>
+            <TableRow key={s.id} className="hover:bg-secondary/20 transition-colors">
               <TableCell className="font-medium">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden relative border border-border shrink-0"><Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" /></div>
+                  <div className="w-10 h-10 rounded-full overflow-hidden relative border border-border shrink-0">
+                    <Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" />
+                  </div>
                   <span className="font-bold">{s.name}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-xs text-muted-foreground max-w-[400px] truncate">{s.bio}</TableCell>
+              <TableCell className="text-xs text-muted-foreground truncate max-w-[500px]">{s.bio}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
                   <EditSpeakerDialog speaker={s} />
@@ -1286,12 +1327,12 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
 function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={(e) => { e.preventDefault(); onConfirm(); }} className="bg-destructive">Delete</AlertDialogAction>
+      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+      <AlertDialogContent className="bg-card border-border">
+        <AlertDialogHeader><AlertDialogTitle className="text-xl">Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">This action cannot be undone. This will permanently remove the record from our database.</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter className="mt-6">
+          <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={(e) => { e.preventDefault(); onConfirm(); }} className="bg-destructive font-bold text-white hover:bg-destructive/90">Delete Record</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -1306,16 +1347,24 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
     toast({ title: "Removed" });
   };
   return (
-    <Card className="bg-card">
+    <Card className="bg-card border-border overflow-hidden">
       <Table>
         <TableHeader className="bg-secondary/30">
-          <TableRow><TableHead>No.</TableHead><TableHead>Name</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+          <TableRow>
+            <TableHead className="w-20">No.</TableHead>
+            <TableHead>English Name</TableHead>
+            <TableHead>Arabic Name</TableHead>
+            <TableHead>Ayahs</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
           {surahs.sort((a,b) => a.number - b.number).map((surah) => (
-            <TableRow key={surah.id}>
-              <TableCell className="font-bold">{surah.number}</TableCell>
+            <TableRow key={surah.id} className="hover:bg-secondary/20 transition-colors">
+              <TableCell className="font-bold text-primary">{surah.number}</TableCell>
               <TableCell className="font-bold">{surah.nameEnglish}</TableCell>
+              <TableCell className="font-arabic text-xl text-primary">{surah.nameArabic}</TableCell>
+              <TableCell className="text-muted-foreground">{surah.numberOfAyahs}</TableCell>
               <TableCell className="text-right">
                  <DeleteConfirm onConfirm={() => handleDelete(surah.id)} />
               </TableCell>
