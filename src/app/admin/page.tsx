@@ -20,10 +20,8 @@ import {
   LogOut,
   Copy,
   CheckCircle2,
-  TrendingUp,
   Users,
   Eye,
-  PieChart as PieChartIcon,
   Search,
   Mic2,
   ExternalLink,
@@ -490,28 +488,30 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
           Add Channel
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn("bg-card", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[425px]")}>
-          <DialogHeader><DialogTitle>{view === 'search' ? 'Add Channel' : `Import Videos`}</DialogTitle></DialogHeader>
-          {view === 'search' ? (
-            <div className="grid gap-6 py-4">
-              <div className="space-y-2">
-                <Label>Channel Handle / URL</Label>
-                <div className="flex gap-2">
-                  <Input placeholder="@handle" value={channelInput} onChange={(e) => setChannelInput(e.target.value)} />
-                  <Button onClick={fetchChannelDetails} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Search />}</Button>
+      <DialogContent className={cn("bg-card overflow-hidden flex flex-col max-h-[90vh]", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[425px]")}>
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle>{view === 'search' ? 'Add Channel' : `Import Videos`}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1">
+            {view === 'search' ? (
+              <div className="grid gap-6 p-6">
+                <div className="space-y-2">
+                  <Label>Channel Handle / URL</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="@handle" value={channelInput} onChange={(e) => setChannelInput(e.target.value)} />
+                    <Button onClick={fetchChannelDetails} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Search />}</Button>
+                  </div>
                 </div>
+                {fetchedData && (
+                  <div className="p-4 bg-secondary/50 rounded-xl flex items-center gap-4">
+                    <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} width={48} height={48} className="rounded-full" />
+                    <p className="font-bold">{fetchedData.title}</p>
+                  </div>
+                )}
+                <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full">Save Channel</Button>
               </div>
-              {fetchedData && (
-                <div className="p-4 bg-secondary/50 rounded-xl flex items-center gap-4">
-                  <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} width={48} height={48} className="rounded-full" />
-                  <p className="font-bold">{fetchedData.title}</p>
-                </div>
-              )}
-              <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full">Save Channel</Button>
-            </div>
-          ) : (
-            <div className="py-4 space-y-4">
-              <ScrollArea className="h-[450px] pr-4">
+            ) : (
+              <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {channelVideos.map((v) => (
                     <Card key={v.id.videoId} className="overflow-hidden bg-secondary/20">
@@ -530,10 +530,12 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                     <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore}>Load More</Button>
                   </div>
                 )}
-              </ScrollArea>
-              <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">Close</Button>
-            </div>
-          )}
+              </div>
+            )}
+          </ScrollArea>
+          <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
+            <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">Close</Button>
+          </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -635,8 +637,8 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           <DialogTitle>Add New Video</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 px-6">
-          <div className="py-6 space-y-6">
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-6">
             <div className="space-y-4">
               <Label className="text-primary font-bold flex items-center gap-2">
                 <SearchCode className="w-4 h-4" /> Quick Fetch from YouTube
@@ -770,16 +772,29 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
           Add Speaker
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card">
-        <DialogHeader><DialogTitle>Add Speaker</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-4">
-          <Input placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value)} />
-          <Input placeholder="Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-        </div>
-        <DialogFooter>
+      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle>Add Speaker</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="flex-1 p-6">
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Bio</Label>
+              <Textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Image URL</Label>
+              <Input placeholder="Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            </div>
+          </div>
+        </ScrollArea>
+        <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={handleSave}>Save Speaker</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -807,14 +822,27 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card">
-        <DialogHeader><DialogTitle>Edit Speaker</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-4">
-          <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value)} />
-          <Input placeholder="Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-        </div>
-        <DialogFooter>
+      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle>Edit Speaker</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="flex-1 p-6">
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Bio</Label>
+              <Textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Image URL</Label>
+              <Input placeholder="Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            </div>
+          </div>
+        </ScrollArea>
+        <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleUpdate}>Update</Button>
         </DialogFooter>
@@ -885,46 +913,59 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card sm:max-w-[600px]">
-        <DialogHeader><DialogTitle>Edit Video</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-4">
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Select value={channelId} onValueChange={setChannelId}>
-            <SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
-            <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
-          </Select>
-          <div className="grid grid-cols-2 gap-4">
+      <DialogContent className="bg-card sm:max-w-[600px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle>Edit Video</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-4">
             <div className="space-y-2">
-              <Label>Views</Label>
-              <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} />
+              <Label>Video Title</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Likes</Label>
-              <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} />
+              <Label>Channel</Label>
+              <Select value={channelId} onValueChange={setChannelId}>
+                <SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
+                <SelectContent>{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Views</Label>
+                <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Likes</Label>
+                <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Speakers</Label>
+              <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto">
+                {speakers.map(s => (
+                  <div key={s.id} className="flex items-center space-x-2">
+                    <Checkbox id={`edit-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
+                      setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
+                    }} />
+                    <Label htmlFor={`edit-s-${s.id}`} className="text-xs">{s.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[150px]" />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl">
+              <Label>Trending Content</Label>
+              <Switch checked={isTrending} onCheckedChange={setIsTrending} />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Speakers</Label>
-            <div className="grid grid-cols-2 gap-2 p-3 bg-secondary/30 rounded-xl max-h-[150px] overflow-auto">
-              {speakers.map(s => (
-                <div key={s.id} className="flex items-center space-x-2">
-                  <Checkbox id={`s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
-                    setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
-                  }} />
-                  <Label htmlFor={`s-${s.id}`} className="text-xs">{s.name}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[100px]" />
-          <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl">
-            <Label>Trending</Label>
-            <Switch checked={isTrending} onCheckedChange={setIsTrending} />
-          </div>
-        </div>
-        <DialogFooter>
+        </ScrollArea>
+        <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleUpdate}>Update</Button>
+          <Button onClick={handleUpdate}>Update Video</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1049,11 +1090,7 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
     <Card className="bg-card">
       <Table>
         <TableHeader className="bg-secondary/30">
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Bio</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
+          <TableRow><TableHead>Name</TableHead><TableHead>Bio</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
         </TableHeader>
         <TableBody>
           {speakers.map((s) => (
