@@ -886,8 +886,9 @@ function ChannelManagement({ channels, isAddOpen, setIsAddOpen }: { channels: an
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this channel?')) {
-      deleteDocumentNonBlocking(doc(db, 'channels', id));
-      toast({ title: "Channel Deleted", description: "The channel record has been removed." });
+      const channelRef = doc(db, 'channels', id);
+      deleteDocumentNonBlocking(channelRef);
+      toast({ title: "Delete Initiated", description: "The channel record is being removed." });
     }
   };
 
@@ -957,8 +958,9 @@ function VideoManagement({ videos }: { videos: any[] }) {
 
   const handleDelete = (id: string) => {
     if (confirm('Delete this video?')) {
-      deleteDocumentNonBlocking(doc(db, 'videos', id));
-      toast({ title: "Video Removed", description: "Video metadata has been deleted." });
+      const videoRef = doc(db, 'videos', id);
+      deleteDocumentNonBlocking(videoRef);
+      toast({ title: "Delete Initiated", description: "Video metadata is being removed." });
     }
   };
 
@@ -1019,9 +1021,13 @@ function VideoManagement({ videos }: { videos: any[] }) {
 
 function QuranManagement({ surahs }: { surahs: any[] }) {
   const db = useFirestore();
+  const { toast } = useToast();
+
   const handleDelete = (id: string) => {
     if (confirm('Delete Surah record?')) {
-      deleteDocumentNonBlocking(doc(db, 'quran_surahs', id));
+      const surahRef = doc(db, 'quran_surahs', id);
+      deleteDocumentNonBlocking(surahRef);
+      toast({ title: "Delete Initiated", description: "Quranic record is being removed." });
     }
   };
 
