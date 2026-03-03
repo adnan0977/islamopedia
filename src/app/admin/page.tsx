@@ -69,7 +69,8 @@ import {
   LineChart,
   Pie,
   PieChart,
-  Cell
+  Cell,
+  Tooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
@@ -300,6 +301,7 @@ export default function AdminPanel() {
                </h2>
              </div>
              <div className="flex items-center gap-4">
+               {activeTab === 'channels' && <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />}
                <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>View Live Site</Button>
              </div>
           </header>
