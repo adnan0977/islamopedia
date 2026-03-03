@@ -493,7 +493,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
           Add Channel
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn("bg-card overflow-hidden flex flex-col max-h-[90vh]", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[425px]")}>
+      <DialogContent className={cn("bg-card overflow-hidden flex flex-col max-h-[90vh] p-0", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[425px]")}>
           <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle>{view === 'search' ? 'Add Channel' : `Import Videos`}</DialogTitle>
           </DialogHeader>
@@ -547,7 +547,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
               </div>
             )}
           </ScrollArea>
-          <DialogFooter className="px-6 py-4 border-t bg-secondary/10">
+          <DialogFooter className="px-6 py-4 border-t bg-secondary/10 shrink-0">
             <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">Close</Button>
           </DialogFooter>
       </DialogContent>
@@ -840,7 +840,7 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
           Add Scholar
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh]">
+      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh] p-0">
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Add Scholar</DialogTitle>
         </DialogHeader>
@@ -904,7 +904,7 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh]">
+      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh] p-0">
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Edit Scholar</DialogTitle>
         </DialogHeader>
@@ -967,27 +967,29 @@ function EditChannelDialog({ channel }: { channel: any }) {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card">
-        <DialogHeader><DialogTitle>Edit Channel</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <Label>Title <span className="text-destructive">*</span></Label>
-            <Input 
-              value={title} 
-              onChange={(e) => {
-                setTitle(e.target.value);
-                if (errors.title) setErrors({});
-              }} 
-              className={errors.title ? "border-destructive" : ""}
-            />
-            {errors.title && <p className="text-destructive text-[10px] font-medium">{errors.title}</p>}
+      <DialogContent className="bg-card flex flex-col p-0 overflow-hidden max-h-[90vh]">
+        <DialogHeader className="p-6 border-b"><DialogTitle>Edit Channel</DialogTitle></DialogHeader>
+        <ScrollArea className="flex-1">
+          <div className="grid gap-4 p-6">
+            <div className="space-y-2">
+              <Label>Title <span className="text-destructive">*</span></Label>
+              <Input 
+                value={title} 
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (errors.title) setErrors({});
+                }} 
+                className={errors.title ? "border-destructive" : ""}
+              />
+              {errors.title && <p className="text-destructive text-[10px] font-medium">{errors.title}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>Subscribers</Label>
+              <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Subscribers</Label>
-            <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} />
-          </div>
-        </div>
-        <DialogFooter>
+        </ScrollArea>
+        <DialogFooter className="p-6 border-t bg-secondary/10 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleUpdate}>Update</Button>
         </DialogFooter>
