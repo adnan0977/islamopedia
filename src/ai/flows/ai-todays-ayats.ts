@@ -75,6 +75,9 @@ const aiTodaysAyatsFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await aiTodaysAyatsPrompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('Failed to generate today\'s ayats.');
+    }
+    return output;
   }
 );

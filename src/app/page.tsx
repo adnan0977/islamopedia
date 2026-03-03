@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -7,18 +8,17 @@ import { aiTodaysAyats, type AiTodaysAyatsOutput } from '@/ai/flows/ai-todays-ay
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Play, Heart, TrendingUp, MapPin, BookOpen, Loader2, Sparkles, ChevronRight, Users, Youtube } from 'lucide-react';
+import { Play, BookOpen, Loader2, Sparkles, ChevronRight, Users, Youtube, TrendingUp, MapPin } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export default function Home() {
   const db = useFirestore();
   const [dailyAyats, setDailyAyats] = useState<AiTodaysAyatsOutput | null>(null);
   const [prayerTimes, setPrayerTimes] = useState<any>(null);
-  const [location, setLocation] = useState({ city: 'London', country: 'UK' });
+  const [location] = useState({ city: 'London', country: 'UK' });
 
   // Firestore Queries
   const trendingQuery = useMemoFirebase(() => query(
@@ -30,7 +30,7 @@ export default function Home() {
 
   const latestQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
-    orderBy('createdAt', 'desc'),
+    orderBy('publishedAt', 'desc'),
     limit(6)
   ), [db]);
   const { data: latestVideos, isLoading: isLatestLoading } = useCollection(latestQuery);
@@ -84,7 +84,7 @@ export default function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-12">
-          {/* Trending Now - Large Cards */}
+          {/* Trending Now */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-headline font-bold flex items-center gap-2">
@@ -102,9 +102,6 @@ export default function Home() {
                 {trendingVideos?.map((video) => (
                   <VideoCard key={video.id} video={video} size="large" />
                 ))}
-                {(!trendingVideos || trendingVideos.length === 0) && (
-                  <p className="text-sm text-muted-foreground italic col-span-2 text-center py-10 bg-secondary/20 rounded-2xl border border-dashed border-border">No trending content at the moment.</p>
-                )}
               </div>
             )}
           </section>
@@ -120,7 +117,7 @@ export default function Home() {
             <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
               {speakers?.map((speaker) => (
                 <Link key={speaker.id} href={`/videos?speakerId=${speaker.id}`} className="flex flex-col items-center space-y-3 shrink-0 group">
-                  <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all p-1 ring-4 ring-secondary/50 group-hover:ring-primary/20 shadow-lg">
+                  <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all p-1 ring-4 ring-secondary/50 group-hover:ring-primary/20 shadow-lg">
                     <Image 
                       src={speaker.profileImageUrl || 'https://picsum.photos/seed/speaker/200'} 
                       alt={speaker.name} 
@@ -134,7 +131,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Latest Videos - Smaller Cards */}
+          {/* Latest Videos */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-headline font-bold flex items-center gap-2">
@@ -167,7 +164,7 @@ export default function Home() {
             <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
               {channels?.map((channel) => (
                 <Link key={channel.id} href={`/videos?channelId=${channel.id}`} className="flex flex-col items-center space-y-3 shrink-0 group">
-                  <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-border group-hover:border-primary transition-all shadow-md">
+                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-border group-hover:border-primary transition-all shadow-md">
                     <Image 
                       src={channel.thumbnailUrl} 
                       alt={channel.title} 
@@ -259,11 +256,6 @@ function VideoCard({ video, size = 'large' }: { video: any, size?: 'small' | 'la
               <Play className={cn("text-white fill-white ml-0.5", isSmall ? "w-3.5 h-3.5" : "w-5 h-5 ml-1")} />
             </div>
           </div>
-          {video.isTrending && !isSmall && (
-            <div className="absolute top-3 left-3">
-              <Badge className="bg-accent text-accent-foreground font-black text-[10px] tracking-tighter px-2">TRENDING</Badge>
-            </div>
-          )}
         </div>
         <CardHeader className={cn(isSmall ? "p-3" : "p-5")}>
           <CardTitle className={cn(
@@ -277,12 +269,6 @@ function VideoCard({ video, size = 'large' }: { video: any, size?: 'small' | 'la
             isSmall ? "mt-2" : "mt-4"
           )}>
             <span>{video.viewCount?.toLocaleString() || 0} views</span>
-            {!isSmall && (
-              <>
-                <span className="text-primary opacity-50">•</span>
-                <span>{new Date(video.publishedAt).toLocaleDateString()}</span>
-              </>
-            )}
           </div>
         </CardHeader>
       </Link>
