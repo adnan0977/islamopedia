@@ -1,5 +1,5 @@
 
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { FirebaseClientProvider } from '@/firebase';
@@ -8,6 +8,14 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'VlogNest - Professional Video Management & Reflection',
   description: 'Manage your YouTube channel and stay connected with spiritual content.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -22,7 +30,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground min-h-screen pb-20 md:pb-0 md:pl-0">
+      <body className="font-body antialiased bg-background text-foreground min-h-screen pb-20 md:pb-0 md:pl-0 overflow-x-hidden">
         <FirebaseClientProvider>
           <div className="flex flex-col min-h-screen">
             <main className="flex-grow">
