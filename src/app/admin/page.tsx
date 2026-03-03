@@ -88,6 +88,7 @@ import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran' | 'settings';
 
@@ -248,37 +249,22 @@ export default function AdminPanel() {
                {activeTab === 'speakers' && 'Speakers'}
                {activeTab === 'quran' && 'Quranic Metadata'}
              </h2>
-             <div className="flex items-center gap-4">
+             <div className="flex items-center gap-3">
+               <div className="flex gap-2">
+                 <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />
+                 <AddVideoDialog channels={channels || []} speakers={speakers || []} />
+                 <AddSpeakerDialog />
+               </div>
+               <Separator orientation="vertical" className="h-8 mx-2" />
                <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>Live Site</Button>
              </div>
           </header>
 
           <main className="p-8 pb-20">
             {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} />}
-            {activeTab === 'channels' && (
-              <div className="space-y-6">
-                <div className="flex justify-end">
-                   <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />
-                </div>
-                <ChannelManagement channels={channels || []} />
-              </div>
-            )}
-            {activeTab === 'videos' && (
-              <div className="space-y-6">
-                <div className="flex justify-end">
-                   <AddVideoDialog channels={channels || []} speakers={speakers || []} />
-                </div>
-                <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />
-              </div>
-            )}
-            {activeTab === 'speakers' && (
-              <div className="space-y-6">
-                <div className="flex justify-end">
-                   <AddSpeakerDialog />
-                </div>
-                <SpeakerManagement speakers={speakers || []} />
-              </div>
-            )}
+            {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
+            {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
+            {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
             {activeTab === 'quran' && <QuranManagement surahs={surahs || []} />}
           </main>
         </SidebarInset>
@@ -810,8 +796,8 @@ function ChannelManagement({ channels }: { channels: any[] }) {
             <TableRow key={channel.id}>
               <TableCell className="font-medium">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg overflow-hidden relative">{channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}</div>
-                  {channel.title}
+                  <div className="w-10 h-10 rounded-lg overflow-hidden relative border border-border shrink-0">{channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}</div>
+                  <span className="font-bold truncate max-w-[200px]">{channel.title}</span>
                 </div>
               </TableCell>
               <TableCell>{channel.subscribersCount?.toLocaleString()}</TableCell>
@@ -840,13 +826,29 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
     <Card className="bg-card">
       <Table>
         <TableHeader className="bg-secondary/30">
-          <TableRow><TableHead>Title</TableHead><TableHead>Channel</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+          <TableRow>
+            <TableHead>Video</TableHead>
+            <TableHead>Channel</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
           {videos.map((video) => (
             <TableRow key={video.id}>
-              <TableCell className="font-medium max-w-[300px] truncate">{video.title}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{channels.find(c => c.id === video.channelId)?.title || 'Unknown'}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-12 rounded-lg overflow-hidden relative shrink-0 border border-border bg-secondary/30">
+                    {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate max-w-[250px] font-bold">{video.title}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase">{video.id}</span>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                {channels.find(c => c.id === video.channelId)?.title || 'Unknown'}
+              </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
                   <EditVideoDialog video={video} channels={channels} speakers={speakers} />
@@ -879,8 +881,8 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
             <TableRow key={s.id}>
               <TableCell className="font-medium">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden relative"><Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" /></div>
-                  {s.name}
+                  <div className="w-10 h-10 rounded-full overflow-hidden relative border border-border shrink-0"><Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" /></div>
+                  <span className="font-bold">{s.name}</span>
                 </div>
               </TableCell>
               <TableCell className="text-xs text-muted-foreground max-w-[400px] truncate">{s.bio}</TableCell>
