@@ -34,9 +34,10 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 h-20 items-center shadow-2xl">
+      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 h-20 shadow-2xl">
         <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between h-full">
-          <Link href="/" className="flex items-center gap-3 group">
+          {/* Logo Section */}
+          <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center group-hover:rotate-6 transition-all shadow-lg shadow-primary/20">
                <Sparkles className="text-white w-5 h-5" />
             </div>
@@ -48,7 +49,8 @@ export function Navbar() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-1 bg-secondary/40 p-1 rounded-2xl border border-border/40">
+          {/* Nav Items Section */}
+          <div className="flex items-center gap-1 bg-secondary/40 p-1 rounded-2xl border border-border/40 absolute left-1/2 -translate-x-1/2">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -73,22 +75,24 @@ export function Navbar() {
             })}
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* User Section */}
+          <div className="flex items-center gap-4 shrink-0">
             {isAdmin && (
               <Link href="/admin">
-                <Button variant="outline" size="sm" className="hidden lg:flex rounded-xl gap-2 font-bold border-accent/20 text-accent hover:bg-accent/10">
+                <Button variant="outline" size="sm" className="hidden lg:flex rounded-xl gap-2 font-bold border-accent/20 text-accent hover:bg-accent/10 h-10 px-4">
                   <ShieldCheck className="w-4 h-4" />
                   Admin
                 </Button>
               </Link>
             )}
             {!isUserLoading && user ? (
-              <Link href="/channel" className="flex items-center gap-3 bg-secondary/50 p-1.5 pr-4 rounded-xl border border-border/60 hover:border-primary/40 transition-all">
+              <Link href="/channel" className="flex items-center gap-3 bg-secondary/50 p-1.5 pr-4 rounded-xl border border-border/60 hover:border-primary/40 transition-all h-11">
                 <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
                   <User className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="text-[10px] font-bold truncate max-w-[100px]">{user.email?.split('@')[0]}</span>
+                  <span className="text-[10px] font-bold truncate max-w-[80px] leading-tight">{user.email?.split('@')[0]}</span>
+                  <span className="text-[8px] text-muted-foreground uppercase tracking-tighter">Creator</span>
                 </div>
               </Link>
             ) : (
@@ -102,6 +106,7 @@ export function Navbar() {
         </div>
       </nav>
 
+      {/* Mobile Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/50 md:hidden safe-area-bottom">
         <div className="flex justify-around items-center h-16">
           {filteredNavItems.map((item) => {
