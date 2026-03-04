@@ -5,31 +5,31 @@
 
 @layer base {
   :root {
-    --background: 200 9% 14%;
+    --background: 200 9% 10%;
     --foreground: 0 0% 98%;
-    --card: 200 9% 16%;
+    --card: 200 9% 12%;
     --card-foreground: 0 0% 98%;
-    --popover: 200 9% 14%;
+    --popover: 200 9% 10%;
     --popover-foreground: 0 0% 98%;
     --primary: 221 100% 66%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 200 9% 20%;
+    --secondary: 200 9% 16%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 200 9% 25%;
-    --muted-foreground: 200 5% 70%;
+    --muted: 200 9% 20%;
+    --muted-foreground: 200 5% 65%;
     --accent: 45 100% 63%;
-    --accent-foreground: 200 9% 14%;
+    --accent-foreground: 200 9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 200 9% 22%;
-    --input: 200 9% 22%;
+    --border: 200 9% 18%;
+    --input: 200 9% 18%;
     --ring: 221 100% 66%;
     --chart-1: 221 100% 66%;
     --chart-2: 45 100% 63%;
     --chart-3: 160 60% 45%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --radius: 0.75rem;
+    --radius: 1rem;
   }
 }
 
@@ -54,4 +54,18 @@
   opacity: 1;
   transform: translateY(0);
   transition: opacity 300ms, transform 300ms;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
 }
