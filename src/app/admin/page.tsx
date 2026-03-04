@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -30,9 +29,9 @@ import {
   SearchCode,
   Wand2,
   Check,
-  CloudDownload,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Info
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -66,7 +65,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -100,6 +98,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran';
 
@@ -266,7 +265,7 @@ export default function AdminPanel() {
 
           <main className="p-8 pb-32">
             {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} />}
-            {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
+            {activeTab === 'channels' && <ChannelManagement channels={channels || []} existingVideos={videos || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
             {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
             {activeTab === 'quran' && <QuranManagement surahs={surahs || []} />}
@@ -287,13 +286,6 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
     { month: "Jun", uploads: 25 },
   ];
 
-  const categoryData = [
-    { name: "Recitations", value: 400, fill: "hsl(var(--primary))" },
-    { name: "Islamic", value: 300, fill: "hsl(var(--muted-foreground))" },
-    { name: "Lectures", value: 200, fill: "hsl(var(--secondary))" },
-    { name: "Vlogs", value: 100, fill: "hsl(var(--muted))" },
-  ];
-
   const totalSubs = channels.reduce((acc, curr) => acc + (curr.subscribersCount || 0), 0);
   const totalViews = channels.reduce((acc, curr) => acc + (curr.viewCount || 0), 0);
 
@@ -307,11 +299,11 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-        <Card className="bg-zinc-950 border-zinc-800 shadow-sm xl:col-span-2 rounded-2xl overflow-hidden">
-          <CardHeader><CardTitle className="text-lg font-bold">Content Growth</CardTitle></CardHeader>
+        <Card className="bg-zinc-950 border-zinc-800 shadow-sm xl:col-span-3 rounded-2xl overflow-hidden">
+          <CardHeader><CardTitle className="text-lg font-bold">Content Cataloging Growth</CardTitle></CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
-              <ChartContainer config={{ uploads: { label: "Uploads", color: "hsl(var(--primary))" } }}>
+              <ChartContainer config={{ uploads: { label: "Videos", color: "hsl(var(--primary))" } }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={uploadData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
@@ -322,22 +314,6 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
                   </LineChart>
                 </ResponsiveContainer>
               </ChartContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-950 border-zinc-800 shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader><CardTitle className="text-lg font-bold">Category Distribution</CardTitle></CardHeader>
-          <CardContent>
-            <div className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {categoryData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                  </Pie>
-                  <RechartsTooltip />
-                </PieChart>
-              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -362,7 +338,7 @@ function StatCard({ icon: Icon, label, value, color, bgColor }: any) {
   );
 }
 
-function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onOpenChange: (open: boolean) => void, btnClass?: string }) {
+function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { open: boolean, onOpenChange: (open: boolean) => void, channels: any[], existingVideos: any[] }) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -380,6 +356,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+  const existingVideoIds = new Set(existingVideos.map(v => v.id));
 
   const fetchChannelDetails = async () => {
     let input = channelInput.trim();
@@ -436,6 +413,15 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
 
   const saveChannel = async () => {
     if (!fetchedData) return;
+    
+    // Check if channel already linked
+    if (channels.some(c => c.id === fetchedData.id)) {
+      toast({ title: "Already Linked", description: "This channel is already in your database." });
+      await fetchChannelVideos(fetchedData.id);
+      setView('videos');
+      return;
+    }
+
     setLoading(true);
     try {
       const channelData = { ...fetchedData, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
@@ -474,7 +460,9 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
   const importVideo = (video: any, silent = false) => {
     if (!user) return;
     const vidId = video.id.videoId;
-    if (importingVideoIds.has(vidId)) return;
+    
+    // Check local duplicate set and global list
+    if (importingVideoIds.has(vidId) || existingVideoIds.has(vidId)) return;
     
     setImportingVideoIds(prev => new Set(prev).add(vidId));
     const videoData = {
@@ -518,7 +506,9 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
         
         const videos = data.items || [];
         for (const video of videos) {
-          importVideo(video, true);
+          if (!existingVideoIds.has(video.id.videoId)) {
+            importVideo(video, true);
+          }
           syncedCount++;
           setCurrentSyncCount(syncedCount);
           if (totalToSync > 0) {
@@ -527,15 +517,13 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
         }
         
         currentToken = data.nextPageToken || null;
-        
-        // Safety delay to prevent browser freeze and quota flooding
         await new Promise(r => setTimeout(r, 200));
 
       } while (currentToken && isBulkImporting);
 
       toast({ 
         title: "Deep Sync Complete", 
-        description: `Successfully cataloged ${syncedCount} videos from ${fetchedData.title}.` 
+        description: `Cataloged all historical content from ${fetchedData.title}.` 
       });
     } catch (error: any) {
       toast({ 
@@ -564,21 +552,15 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
         setCurrentSyncCount(0);
       }
     }}>
-      <DialogTrigger asChild>
-        <Button size="sm" className={cn("rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground", btnClass)}>
-          <Plus className="w-4 h-4" />
-          Add Channel
-        </Button>
-      </DialogTrigger>
       <DialogContent className={cn("bg-zinc-950 border-zinc-800 p-0 overflow-hidden flex flex-col h-[90vh] md:h-[80vh]", view === 'videos' ? "sm:max-w-[900px]" : "sm:max-w-[450px]")}>
           <DialogHeader className="px-6 py-6 border-b border-zinc-800 bg-zinc-950/50">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              {view === 'search' ? <Youtube className="w-5 h-5 text-red-500" /> : <RefreshCw className={cn("w-5 h-5 text-primary", isBulkImporting && "animate-spin")} />}
+              {view === 'search' ? <Youtube className="w-5 h-5 text-primary" /> : <RefreshCw className={cn("w-5 h-5 text-primary", isBulkImporting && "animate-spin")} />}
               {view === 'search' ? 'Link Channel' : `Syncing ${fetchedData?.title}`}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 relative bg-zinc-950">
+          <div className="flex-1 min-h-0 relative bg-zinc-950 overflow-hidden">
             <ScrollArea className="h-full w-full">
               {view === 'search' ? (
                 <div className="grid gap-8 p-8">
@@ -608,11 +590,14 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-lg truncate">{fetchedData.title}</p>
                         <p className="text-xs text-muted-foreground">{(fetchedData.subscribersCount / 1000).toFixed(1)}K Subs • {fetchedData.videoCount} Videos</p>
+                        {channels.some(c => c.id === fetchedData.id) && (
+                          <Badge variant="outline" className="mt-2 text-[9px] font-black uppercase tracking-widest bg-zinc-950 text-primary border-primary/20">Linked</Badge>
+                        )}
                       </div>
                     </div>
                   )}
                   <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full h-14 font-bold rounded-xl bg-primary text-primary-foreground text-base">
-                    Connect & Fetch Feed
+                    {channels.some(c => c.id === fetchedData?.id) ? 'Continue to Catalog' : 'Connect & Fetch Feed'}
                   </Button>
                 </div>
               ) : (
@@ -636,9 +621,10 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
                     {channelVideos.map((v) => {
-                      const isImported = importingVideoIds.has(v.id.videoId);
+                      const vidId = v.id.videoId;
+                      const isImported = importingVideoIds.has(vidId) || existingVideoIds.has(vidId);
                       return (
-                        <Card key={v.id.videoId} className="overflow-hidden bg-zinc-900 border-zinc-800 rounded-2xl group cursor-default shadow-md hover:border-zinc-700 transition-colors">
+                        <Card key={vidId} className="overflow-hidden bg-zinc-900 border-zinc-800 rounded-2xl group cursor-default shadow-md hover:border-zinc-700 transition-colors">
                           <div className="aspect-video relative overflow-hidden bg-zinc-800">
                             <Image src={v.snippet.thumbnails.medium.url} alt={v.snippet.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                             {isImported && (
@@ -692,7 +678,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
   );
 }
 
-function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], speakers: any[], btnClass?: string }) {
+function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any[] }) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -794,7 +780,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   return (
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) resetForm(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" className={cn("rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground", btnClass)}>
+        <Button size="sm" className="rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground">
           <Plus className="w-4 h-4" />
           Add Video
         </Button>
@@ -804,7 +790,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           <DialogTitle className="text-xl font-bold">Manual Video Import</DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 min-h-0 bg-zinc-950">
+        <div className="flex-1 min-h-0 bg-zinc-950 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-6 space-y-8">
               {!isFetched ? (
@@ -939,7 +925,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   );
 }
 
-function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
+function AddSpeakerDialog() {
   const db = useFirestore();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -965,7 +951,7 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
   return (
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) setErrors({}); }}>
       <DialogTrigger asChild>
-        <Button size="sm" className={cn("rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground", btnClass)}>
+        <Button size="sm" className="rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground">
           <Plus className="w-4 h-4" />
           Add Scholar
         </Button>
@@ -1211,7 +1197,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   );
 }
 
-function ChannelManagement({ channels }: { channels: any[] }) {
+function ChannelManagement({ channels, existingVideos }: { channels: any[], existingVideos: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -1227,7 +1213,7 @@ function ChannelManagement({ channels }: { channels: any[] }) {
           <h3 className="font-bold text-lg">YouTube Connections</h3>
           <p className="text-xs text-muted-foreground font-medium">Link channels to auto-import content metadata.</p>
         </div>
-        <AddChannelDialog open={isAddOpen} onOpenChange={setIsAddOpen} />
+        <AddChannelDialog open={isAddOpen} onOpenChange={setIsAddOpen} channels={channels} existingVideos={existingVideos} />
       </div>
       <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
@@ -1410,9 +1396,9 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
 function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+      <DialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl"><Trash2 className="w-4 h-4" /></Button></DialogTrigger>
       <AlertDialogContent className="bg-zinc-950 border-zinc-800 rounded-3xl shadow-2xl">
-        <AlertDialogHeader><AlertDialogTitle className="text-2xl font-black uppercase tracking-tight">Delete Record?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">This action is permanent and will remove the document from Firestore.</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogHeader><DialogTitle className="text-2xl font-black uppercase tracking-tight">Delete Record?</DialogTitle><AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">This action is permanent and will remove the document from Firestore.</AlertDialogDescription></AlertDialogHeader>
         <AlertDialogFooter className="mt-8 gap-3">
           <AlertDialogCancel className="font-bold rounded-2xl h-12 border-zinc-800 px-8">Keep</AlertDialogCancel>
           <AlertDialogAction onClick={(e) => { e.preventDefault(); onConfirm(); }} className="bg-destructive text-white font-bold h-12 px-8 rounded-2xl hover:bg-destructive/90 transition-all">Delete</AlertDialogAction>
