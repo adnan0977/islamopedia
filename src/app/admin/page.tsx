@@ -591,6 +591,8 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
     let syncedCount = 0;
 
     try {
+      const currentExistingIds = new Set(existingVideos.map(v => v.id));
+
       do {
         let url = `https://www.googleapis.com/youtube/v3/playlistItems?key=${apiKey}&playlistId=${fetchedData.uploadsPlaylistId}&part=snippet,contentDetails&maxResults=50`;
         if (currentToken) url += `&pageToken=${currentToken}`;
@@ -603,7 +605,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
         const items = data.items || [];
         for (const item of items) {
           const vidId = item.contentDetails.videoId;
-          if (!existingVideoIds.has(vidId)) {
+          if (!currentExistingIds.has(vidId) && !importingVideoIds.has(vidId)) {
             importVideo(item, true);
           }
           syncedCount++;
@@ -614,13 +616,13 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
         }
         
         currentToken = data.nextPageToken || null;
-        await new Promise(r => setTimeout(r, 100)); // Rate limiting safety
+        if (currentToken) await new Promise(r => setTimeout(r, 200));
 
       } while (currentToken && isBulkImporting);
 
       toast({ 
         title: "Deep Sync Complete", 
-        description: `Cataloged all historical content from ${fetchedData.title}.` 
+        description: `Cataloged the channel's historical content.` 
       });
     } catch (error: any) {
       toast({ 
@@ -712,7 +714,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
                          <span className="text-xs font-mono font-bold text-primary">{bulkImportProgress}%</span>
                        </div>
                        <Progress value={bulkImportProgress} className="h-2 bg-zinc-800" />
-                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest text-center">Fetching all historical content from YouTube</p>
+                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest text-center">Fetching historical content from YouTube</p>
                     </div>
                   )}
 
@@ -901,7 +903,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                     </div>
                     <div className="space-y-1">
                       <h3 className="font-bold text-xl text-white">Import Meta via URL</h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed">Simply paste a YouTube link and we'll handle the rest.</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Simply paste a YouTube link and we'll pre-fill the form.</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
