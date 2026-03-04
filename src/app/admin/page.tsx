@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -107,7 +106,6 @@ export default function AdminPanel() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [copied, setCopied] = useState(false);
-  const [isAddChannelOpen, setIsAddChannelOpen] = useState(false);
 
   // Admin Check
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
@@ -193,16 +191,14 @@ export default function AdminPanel() {
     );
   }
 
-  const commonBtnClass = "bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2 px-6 h-10 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap";
-
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen w-full bg-background text-foreground">
         <Sidebar className="border-r border-border bg-card">
           <SidebarHeader className="p-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-                <ShieldCheck className="text-white w-6 h-6" />
+                <ShieldCheck className="text-primary-foreground w-6 h-6" />
               </div>
               <div className="flex flex-col">
                 <span className="font-headline font-bold text-lg leading-none">Admin Hub</span>
@@ -252,7 +248,7 @@ export default function AdminPanel() {
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset className="flex-1 overflow-auto bg-background/50">
+        <SidebarInset className="flex-1 overflow-auto bg-background">
           <header className="h-20 border-b border-border flex items-center justify-between px-8 bg-card/50 sticky top-0 z-10 backdrop-blur-md">
              <h2 className="font-headline font-bold text-2xl">
                {activeTab === 'dashboard' && 'Admin Overview'}
@@ -262,13 +258,7 @@ export default function AdminPanel() {
                {activeTab === 'quran' && 'Quranic Metadata'}
              </h2>
              <div className="flex items-center gap-4">
-               <div className="flex gap-2">
-                 <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} btnClass={commonBtnClass} />
-                 <AddVideoDialog channels={channels || []} speakers={speakers || []} btnClass={commonBtnClass} />
-                 <AddSpeakerDialog btnClass={commonBtnClass} />
-               </div>
-               <Separator orientation="vertical" className="h-8 mx-2" />
-               <Button variant="outline" size="sm" className="rounded-xl px-4" onClick={() => window.location.href = '/'}>Live Site</Button>
+               <Button variant="outline" size="sm" className="rounded-xl px-4 h-10 font-bold" onClick={() => window.location.href = '/'}>Live Site</Button>
              </div>
           </header>
 
@@ -309,9 +299,9 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard icon={Youtube} label="Channels" value={channels.length} color="text-primary" bgColor="bg-primary/10" />
-        <StatCard icon={VideoIcon} label="Videos" value={videos.length} color="text-accent" bgColor="bg-accent/10" />
-        <StatCard icon={Users} label="Total Subs" value={`${(totalSubs / 1000000).toFixed(1)}M`} color="text-green-500" bgColor="bg-green-500/10" />
-        <StatCard icon={Eye} label="Total Views" value={`${(totalViews / 1000000).toFixed(1)}M`} color="text-red-500" bgColor="bg-red-500/10" />
+        <StatCard icon={VideoIcon} label="Videos" value={videos.length} color="text-white" bgColor="bg-white/10" />
+        <StatCard icon={Users} label="Total Subs" value={`${(totalSubs / 1000000).toFixed(1)}M`} color="text-primary" bgColor="bg-primary/10" />
+        <StatCard icon={Eye} label="Total Views" value={`${(totalViews / 1000000).toFixed(1)}M`} color="text-primary" bgColor="bg-primary/10" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -1178,45 +1168,52 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
 function ChannelManagement({ channels }: { channels: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
+  const [isAddChannelOpen, setIsAddChannelOpen] = useState(false);
+
   const handleDelete = (id: string) => {
     deleteDocumentNonBlocking(doc(db, 'channels', id));
     toast({ title: "Removed", description: "Channel removed." });
   };
   return (
-    <Card className="bg-card border-border overflow-hidden">
-      <Table>
-        <TableHeader className="bg-secondary/30">
-          <TableRow>
-            <TableHead className="w-[300px]">Channel</TableHead>
-            <TableHead>Subscribers</TableHead>
-            <TableHead>Videos</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {channels.map((channel) => (
-            <TableRow key={channel.id} className="hover:bg-secondary/20 transition-colors">
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden relative border border-border shrink-0">
-                    {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
-                  </div>
-                  <span className="font-bold truncate max-w-[200px]">{channel.title}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{channel.subscribersCount?.toLocaleString() || 0}</TableCell>
-              <TableCell className="text-muted-foreground">{channel.videoCount?.toLocaleString() || 0}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1">
-                  <EditChannelDialog channel={channel} />
-                  <DeleteConfirm onConfirm={() => handleDelete(channel.id)} />
-                </div>
-              </TableCell>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} btnClass="bg-primary text-primary-foreground font-bold px-6 h-10 rounded-xl transition-all shadow-md active:scale-95" />
+      </div>
+      <Card className="bg-card border-border overflow-hidden">
+        <Table>
+          <TableHeader className="bg-secondary/30">
+            <TableRow>
+              <TableHead className="w-[300px]">Channel</TableHead>
+              <TableHead>Subscribers</TableHead>
+              <TableHead>Videos</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {channels.map((channel) => (
+              <TableRow key={channel.id} className="hover:bg-secondary/20 transition-colors">
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden relative border border-border shrink-0">
+                      {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
+                    </div>
+                    <span className="font-bold truncate max-w-[200px]">{channel.title}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{channel.subscribersCount?.toLocaleString() || 0}</TableCell>
+                <TableCell className="text-muted-foreground">{channel.videoCount?.toLocaleString() || 0}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <EditChannelDialog channel={channel} />
+                    <DeleteConfirm onConfirm={() => handleDelete(channel.id)} />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
 
@@ -1228,65 +1225,70 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
     toast({ title: "Removed" });
   };
   return (
-    <Card className="bg-card border-border overflow-hidden">
-      <Table>
-        <TableHeader className="bg-secondary/30">
-          <TableRow>
-            <TableHead className="w-[400px]">Video</TableHead>
-            <TableHead>Channel</TableHead>
-            <TableHead>Views</TableHead>
-            <TableHead>Likes</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {videos.map((video) => (
-            <TableRow key={video.id} className="hover:bg-secondary/20 transition-colors">
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-3">
-                  <div className="w-20 h-12 rounded-lg overflow-hidden relative shrink-0 border border-border bg-secondary/30">
-                    {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <a 
-                      href={video.externalUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="truncate max-w-[250px] font-bold hover:text-primary transition-colors flex items-center gap-1"
-                    >
-                      {video.title}
-                      <ExternalLink className="w-3 h-3 opacity-50" />
-                    </a>
-                    <span className="text-[10px] text-muted-foreground uppercase">{video.id}</span>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                {channels.find(c => c.id === video.channelId)?.title || 'Unknown'}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1.5 text-xs font-medium">
-                  <Eye className="w-3 h-3 text-muted-foreground" />
-                  {video.viewCount?.toLocaleString() || 0}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1.5 text-xs font-medium">
-                  <ThumbsUp className="w-3 h-3 text-muted-foreground" />
-                  {video.likeCount?.toLocaleString() || 0}
-                </div>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1">
-                  <EditVideoDialog video={video} channels={channels} speakers={speakers} />
-                  <DeleteConfirm onConfirm={() => handleDelete(video.id)} />
-                </div>
-              </TableCell>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <AddVideoDialog channels={channels} speakers={speakers} btnClass="bg-primary text-primary-foreground font-bold px-6 h-10 rounded-xl transition-all shadow-md active:scale-95" />
+      </div>
+      <Card className="bg-card border-border overflow-hidden">
+        <Table>
+          <TableHeader className="bg-secondary/30">
+            <TableRow>
+              <TableHead className="w-[400px]">Video</TableHead>
+              <TableHead>Channel</TableHead>
+              <TableHead>Views</TableHead>
+              <TableHead>Likes</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {videos.map((video) => (
+              <TableRow key={video.id} className="hover:bg-secondary/20 transition-colors">
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-12 rounded-lg overflow-hidden relative shrink-0 border border-border bg-secondary/30">
+                      {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <a 
+                        href={video.externalUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="truncate max-w-[250px] font-bold hover:text-primary transition-colors flex items-center gap-1"
+                      >
+                        {video.title}
+                        <ExternalLink className="w-3 h-3 opacity-50" />
+                      </a>
+                      <span className="text-[10px] text-muted-foreground uppercase">{video.id}</span>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {channels.find(c => c.id === video.channelId)?.title || 'Unknown'}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5 text-xs font-medium">
+                    <Eye className="w-3 h-3 text-muted-foreground" />
+                    {video.viewCount?.toLocaleString() || 0}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5 text-xs font-medium">
+                    <ThumbsUp className="w-3 h-3 text-muted-foreground" />
+                    {video.likeCount?.toLocaleString() || 0}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <EditVideoDialog video={video} channels={channels} speakers={speakers} />
+                    <DeleteConfirm onConfirm={() => handleDelete(video.id)} />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
 
@@ -1298,38 +1300,43 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
     toast({ title: "Removed" });
   };
   return (
-    <Card className="bg-card border-border overflow-hidden">
-      <Table>
-        <TableHeader className="bg-secondary/30">
-          <TableRow>
-            <TableHead>Scholar</TableHead>
-            <TableHead className="w-[500px]">Bio</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {speakers.map((s) => (
-            <TableRow key={s.id} className="hover:bg-secondary/20 transition-colors">
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden relative border border-border shrink-0">
-                    <Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" />
-                  </div>
-                  <span className="font-bold">{s.name}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground truncate max-w-[500px]">{s.bio}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1">
-                  <EditSpeakerDialog speaker={s} />
-                  <DeleteConfirm onConfirm={() => handleDelete(s.id)} />
-                </div>
-              </TableCell>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <AddSpeakerDialog btnClass="bg-primary text-primary-foreground font-bold px-6 h-10 rounded-xl transition-all shadow-md active:scale-95" />
+      </div>
+      <Card className="bg-card border-border overflow-hidden">
+        <Table>
+          <TableHeader className="bg-secondary/30">
+            <TableRow>
+              <TableHead>Scholar</TableHead>
+              <TableHead className="w-[500px]">Bio</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {speakers.map((s) => (
+              <TableRow key={s.id} className="hover:bg-secondary/20 transition-colors">
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full overflow-hidden relative border border-border shrink-0">
+                      <Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" />
+                    </div>
+                    <span className="font-bold">{s.name}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground truncate max-w-[500px]">{s.bio}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <EditSpeakerDialog speaker={s} />
+                    <DeleteConfirm onConfirm={() => handleDelete(s.id)} />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
 
