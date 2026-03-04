@@ -34,7 +34,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <div className="flex flex-col min-h-screen">
             <Navbar />
-            <main className="flex-grow pt-24 md:pt-28">
+            <main className="flex-grow pt-24 md:pt-32">
               {children}
             </main>
           </div>

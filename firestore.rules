@@ -15,42 +15,41 @@ service cloud.firestore {
     }
 
     // --- Public Content (Open Read Access) ---
-    // These collections are readable by anyone freely without login.
-    // This allows discovery features and filtered queries to work for guests.
+    // Explicitly allowing list/get for all users to enable browsing and filtering
     
     match /videos/{videoId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if (isSignedIn() && request.resource.data.uploadedByUserId == request.auth.uid) || isAdmin();
       allow update, delete: if (isSignedIn() && (resource.data.uploadedByUserId == request.auth.uid || isAdmin()));
     }
 
     match /channels/{channelId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /speakers/{speakerId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /quran_surahs/{surahId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
       
       match /ayats/{ayahId} {
-        allow get, list: if true;
+        allow read: if true;
         allow write: if isAdmin();
       }
     }
 
     match /categories/{categoryId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /tags/{tagId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 

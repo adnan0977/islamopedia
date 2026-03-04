@@ -34,7 +34,8 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 h-20 shadow-2xl">
+      {/* Desktop Nav */}
+      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border/50 h-20 shadow-2xl transition-all duration-300">
         <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between h-full">
           {/* Logo Section */}
           <Link href="/" className="flex items-center gap-3 group shrink-0">
@@ -49,8 +50,8 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Nav Items Section */}
-          <div className="flex items-center gap-1 bg-secondary/40 p-1 rounded-2xl border border-border/40 absolute left-1/2 -translate-x-1/2">
+          {/* Nav Items Section - Centered */}
+          <div className="flex items-center gap-1 bg-secondary/40 p-1 rounded-2xl border border-border/40 absolute left-1/2 -translate-x-1/2 shadow-inner">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -107,8 +108,8 @@ export function Navbar() {
       </nav>
 
       {/* Mobile Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/50 md:hidden safe-area-bottom">
-        <div className="flex justify-around items-center h-16">
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-background/90 backdrop-blur-xl border-t border-border/50 md:hidden pb-safe">
+        <div className="flex justify-around items-center h-16 px-2">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -117,14 +118,14 @@ export function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all relative",
+                  "flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all relative group",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 {isActive && (
                   <div className="absolute top-0 w-8 h-[2px] bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                 )}
-                <Icon className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
+                <Icon className={cn("w-5 h-5 transition-transform group-active:scale-90", isActive && "stroke-[2.5px]")} />
                 <span className="text-[10px] font-bold uppercase tracking-tight">{item.label}</span>
               </Link>
             );
