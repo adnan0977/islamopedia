@@ -90,11 +90,7 @@ import {
   YAxis, 
   ResponsiveContainer,
   Line,
-  LineChart,
-  Pie,
-  PieChart,
-  Cell,
-  Tooltip as RechartsTooltip
+  LineChart
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import Image from 'next/image';
@@ -377,7 +373,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
     setErrors({});
     setLoading(true);
     try {
-      let finalUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&key=${apiKey}`;
+      let finalUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&key=${apiKey}`;
       if (input.includes('youtube.com/channel/')) {
         const id = input.split('youtube.com/channel/')[1].split('/')[0].split('?')[0];
         finalUrl += `&id=${id}`;
@@ -407,6 +403,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
         subscribersCount: Number(item.statistics.subscriberCount),
         videoCount: Number(item.statistics.videoCount),
         viewCount: Number(item.statistics.viewCount),
+        uploadsPlaylistId: item.contentDetails?.relatedPlaylists?.uploads,
       });
     } catch (error: any) {
       setErrors({ channel: error.message });
@@ -418,7 +415,6 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
   const saveChannel = async () => {
     if (!fetchedData) return;
     
-    // Check if channel already linked
     if (channels.some(c => c.id === fetchedData.id)) {
       toast({ title: "Already Linked", description: "This channel is already in your database." });
       await fetchChannelVideos(fetchedData.id);
@@ -463,9 +459,9 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
 
   const importVideo = (video: any, silent = false) => {
     if (!user) return;
-    const vidId = video.id.videoId;
-    
-    // Check local duplicate set and global list
+    const vidId = video.id?.videoId || video.contentDetails?.videoId || video.id;
+    if (!vidId) return;
+
     if (importingVideoIds.has(vidId) || existingVideoIds.has(vidId)) return;
     
     setImportingVideoIds(prev => new Set(prev).add(vidId));
@@ -489,7 +485,10 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
   };
 
   const handleDeepSync = async () => {
-    if (!fetchedData || !apiKey) return;
+    if (!fetchedData || !apiKey || !fetchedData.uploadsPlaylistId) {
+      toast({ variant: "destructive", title: "Sync Unavailable", description: "Could not find Uploads playlist for this channel." });
+      return;
+    }
     setIsBulkImporting(true);
     setBulkImportProgress(0);
     setCurrentSyncCount(0);
@@ -500,7 +499,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
 
     try {
       do {
-        let url = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${fetchedData.id}&part=snippet,id&order=date&maxResults=50&type=video`;
+        let url = `https://www.googleapis.com/youtube/v3/playlistItems?key=${apiKey}&playlistId=${fetchedData.uploadsPlaylistId}&part=snippet,contentDetails&maxResults=50`;
         if (currentToken) url += `&pageToken=${currentToken}`;
         
         const res = await fetch(url);
@@ -508,10 +507,11 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
         
         if (data.error) throw new Error(data.error.message);
         
-        const videos = data.items || [];
-        for (const video of videos) {
-          if (!existingVideoIds.has(video.id.videoId)) {
-            importVideo(video, true);
+        const items = data.items || [];
+        for (const item of items) {
+          const vidId = item.contentDetails.videoId;
+          if (!existingVideoIds.has(vidId)) {
+            importVideo(item, true);
           }
           syncedCount++;
           setCurrentSyncCount(syncedCount);
@@ -521,7 +521,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
         }
         
         currentToken = data.nextPageToken || null;
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 100)); // Rate limiting safety
 
       } while (currentToken && isBulkImporting);
 
