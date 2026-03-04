@@ -22,6 +22,7 @@ export default function WatchPage() {
   // Capture the current origin on mount to satisfy YouTube's domain restrictions
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // YouTube requires the exact protocol + domain for the origin parameter
       setOrigin(window.location.origin);
     }
   }, []);
@@ -67,12 +68,11 @@ export default function WatchPage() {
   };
 
   const embedId = getEmbedId(video);
-  // Important: origin and enablejsapi parameters help resolve domain restriction issues
-  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&enablejsapi=1&showinfo=0&modestbranding=1${origin ? `&origin=${origin}` : ''}`;
+  // enablejsapi=1 and origin are critical for domain-restricted embeds
+  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&enablejsapi=1&showinfo=0&modestbranding=1${origin ? `&origin=${encodeURIComponent(origin)}` : ''}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Top Header Navigation */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border h-16 flex items-center justify-between px-4 md:px-8 shrink-0">
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-full gap-2 hover:bg-secondary">
           <ArrowLeft className="w-4 h-4" />
@@ -89,7 +89,6 @@ export default function WatchPage() {
       </div>
 
       <main className="flex-1 overflow-hidden flex flex-col lg:flex-row">
-        {/* Video Player Section */}
         <div className="flex-1 bg-black flex flex-col items-center justify-center relative group">
           <div className="w-full h-full max-h-[80vh] lg:max-h-full relative aspect-video bg-secondary/10 flex items-center justify-center">
             <iframe
@@ -102,7 +101,6 @@ export default function WatchPage() {
           </div>
         </div>
 
-        {/* Info Sidebar */}
         <div className="w-full lg:w-[400px] border-l border-border bg-card/30 flex flex-col overflow-hidden shrink-0">
           <ScrollArea className="flex-1">
             <div className="p-6 space-y-8">
@@ -155,14 +153,7 @@ export default function WatchPage() {
                   </p>
                 </div>
               </div>
-              
-              {video.isTrending && (
-                <Badge className="bg-primary/20 text-primary border-primary/30 w-full py-3 rounded-2xl flex justify-center gap-2">
-                  🔥 Trending Topic
-                </Badge>
-              )}
             </div>
-            {/* Added bottom padding for mobile safety area */}
             <div className="h-20 lg:hidden" />
           </ScrollArea>
         </div>

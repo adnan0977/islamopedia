@@ -34,11 +34,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <div className="flex flex-col min-h-screen">
             <Navbar />
-            {/* 
-                Desktop: pt-24 matches h-24 navbar height exactly.
-                Mobile: pt-20 matches the h-20 mobile top bar logo height.
-            */}
-            <main className="flex-grow pt-20 md:pt-24">
+            <main className="flex-grow pt-0 md:pt-24">
               {children}
             </main>
           </div>

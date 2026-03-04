@@ -34,27 +34,9 @@ export function Navbar() {
 
   return (
     <>
-      {/* Mobile Header (Top Logo Bar) */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-[100] h-20 bg-background/80 backdrop-blur-xl border-b border-border flex items-center px-6 justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-             <Sparkles className="text-white w-5 h-5" />
-          </div>
-          <span className="font-headline tracking-tight text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            VlogNest
-          </span>
-        </Link>
-        {user && (
-          <Link href="/channel" className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center border border-border">
-            <User className="w-4 h-4 text-muted-foreground" />
-          </Link>
-        )}
-      </header>
-
       {/* Desktop Nav (Top) */}
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-md border-b border-border h-24 shadow-sm">
+      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border h-24 shadow-sm">
         <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between h-full">
-          {/* Logo Section */}
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-all shadow-lg shadow-primary/20">
                <Sparkles className="text-white w-6 h-6" />
@@ -67,7 +49,6 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Nav Items Section - Centered */}
           <div className="flex items-center gap-1 bg-secondary/30 p-1.5 rounded-2xl border border-border/50 shadow-inner">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
@@ -90,7 +71,6 @@ export function Navbar() {
             })}
           </div>
 
-          {/* User Section */}
           <div className="flex items-center gap-4 shrink-0">
             {isAdmin && (
               <Link href="/admin">
@@ -121,7 +101,7 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Nav (Bottom) */}
+      {/* Mobile Nav (Bottom Only - Removes top gap) */}
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-background/90 backdrop-blur-xl border-t border-border md:hidden pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.5)] h-20">
         <div className="flex justify-around items-center h-full px-4">
           {filteredNavItems.map((item) => {

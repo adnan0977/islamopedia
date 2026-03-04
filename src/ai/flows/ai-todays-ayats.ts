@@ -3,10 +3,6 @@
 /**
  * @fileOverview This file implements a Genkit flow that generates a daily selection of important Quranic verses
  * along with their Arabic text, English translation, and a reason for their importance, chosen by an AI.
- *
- * - aiTodaysAyats - A function to get the AI-selected important Quranic verses for the day.
- * - AiTodaysAyatsInput - The input type for the aiTodaysAyats function.
- * - AiTodaysAyatsOutput - The return type for the aiTodaysAyats function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -15,35 +11,25 @@ import {z} from 'genkit';
 const AiTodaysAyatsInputSchema = z.object({
   currentDate: z
     .string()
-    .describe(
-      'The current date in YYYY-MM-DD format. The AI can use this for context when selecting verses.'
-    )
+    .describe('The current date in YYYY-MM-DD format.')
     .optional(),
 });
 export type AiTodaysAyatsInput = z.infer<typeof AiTodaysAyatsInputSchema>;
 
 const AyatSchema = z.object({
-  surahNumber: z.number().describe('The surah number (chapter) of the ayat.'),
-  ayatNumber: z.number().describe('The ayat number (verse) within the surah.'),
+  surahNumber: z.number().describe('The surah number of the ayat.'),
+  ayatNumber: z.number().describe('The ayat number within the surah.'),
   text: z.string().describe('The Arabic text of the ayat.'),
   translation: z.string().describe('An English translation of the ayat.'),
-  importanceReason: z
-    .string()
-    .describe(
-      'A brief explanation from the AI why this ayat is considered important for the day.'
-    ),
+  importanceReason: z.string().describe('AI reason for importance.'),
 });
 
 const AiTodaysAyatsOutputSchema = z.object({
-  ayats: z
-    .array(AyatSchema)
-    .describe('A list of important Quranic verses for the day.'),
+  ayats: z.array(AyatSchema).describe('A list of important Quranic verses for the day.'),
 });
 export type AiTodaysAyatsOutput = z.infer<typeof AiTodaysAyatsOutputSchema>;
 
-export async function aiTodaysAyats(
-  input: AiTodaysAyatsInput
-): Promise<AiTodaysAyatsOutput> {
+export async function aiTodaysAyats(input: AiTodaysAyatsInput): Promise<AiTodaysAyatsOutput> {
   return aiTodaysAyatsFlow(input);
 }
 
@@ -52,18 +38,9 @@ const aiTodaysAyatsPrompt = ai.definePrompt({
   model: 'googleai/gemini-1.5-flash',
   input: {schema: AiTodaysAyatsInputSchema},
   output: {schema: AiTodaysAyatsOutputSchema},
-  prompt: `You are an AI assistant specialized in Islamic knowledge and the Quran. Your task is to select 3-5 Quranic verses that are particularly important or reflective for a user to contemplate today.
-
-For each verse, provide:
-1.  The Surah number.
-2.  The Ayat number.
-3.  The Arabic text of the verse.
-4.  A concise English translation.
-5.  A brief, insightful reason why this verse is important for daily reflection, especially considering the general challenges and opportunities people face today.
-
-Assume the current date is {{{currentDate}}} (if provided), and use this as a general context for selecting universally relevant verses.
-
-The output must be a JSON object containing an array of these verse objects.`,
+  prompt: `You are an AI assistant specialized in Islamic knowledge. Select 3-5 Quranic verses for reflection today.
+Date: {{{currentDate}}}.
+Provide Arabic text, translation, and a reason for daily reflection.`,
 });
 
 const aiTodaysAyatsFlow = ai.defineFlow(
