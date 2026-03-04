@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, PlusSquare, BookOpen, User, Sparkles, ShieldCheck, LogIn } from 'lucide-react';
+import { Home, Compass, PlusSquare, BookOpen, User, Sparkles, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';

@@ -2,15 +2,10 @@
 'use server';
 /**
  * @fileOverview This file implements a Genkit flow for generating video titles and descriptions.
- *
- * - generateVideoMetadata - A function that handles the generation of video metadata.
- * - AIGeneratedVideoMetadataInput - The input type for the generateVideoMetadata function.
- * - AIGeneratedVideoMetadataOutput - The return type for the generateVideoMetadata function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const AIGeneratedVideoMetadataInputSchema = z.object({
   videoSummary: z.string().optional().describe('A summary or transcript of the video content.'),
@@ -32,7 +27,7 @@ export async function generateVideoMetadata(
 
 const aiGeneratedVideoMetadataPrompt = ai.definePrompt({
   name: 'aiGeneratedVideoMetadataPrompt',
-  model: googleAI.model('gemini-1.5-flash'),
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: AIGeneratedVideoMetadataInputSchema },
   output: { schema: AIGeneratedVideoMetadataOutputSchema },
   prompt: `You are an expert YouTube content strategist. Generate several compelling title suggestions and description suggestions based on the content summary and keywords provided.
