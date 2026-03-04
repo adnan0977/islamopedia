@@ -70,6 +70,9 @@ export function Navbar() {
                 >
                   <Icon className={cn("w-4 h-4", isActive && "stroke-[2.5px]")} />
                   <span>{item.label}</span>
+                  {isActive && (
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_hsl(var(--primary))]" />
+                  )}
                 </Link>
               );
             })}
@@ -116,7 +119,7 @@ export function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all",
+                  "flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all relative",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
