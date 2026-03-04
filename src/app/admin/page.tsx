@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -31,7 +31,10 @@ import {
   Check,
   Sparkles,
   RefreshCw,
-  Info
+  Info,
+  MoreVertical,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -203,7 +206,7 @@ export default function AdminPanel() {
                 <ShieldCheck className="text-primary-foreground w-6 h-6" />
               </div>
               <div className="flex flex-col">
-                <span className="font-headline font-bold text-lg leading-none">Admin Hub</span>
+                <span className="font-headline font-bold text-lg leading-none text-white">Admin Hub</span>
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 font-black text-white/50">Management</span>
               </div>
             </div>
@@ -252,7 +255,7 @@ export default function AdminPanel() {
 
         <SidebarInset className="flex-1 overflow-auto bg-background">
           <header className="h-20 border-b border-zinc-800 flex items-center justify-between px-8 bg-zinc-950/50 sticky top-0 z-10 backdrop-blur-md">
-             <h2 className="font-headline font-bold text-2xl tracking-tight">
+             <h2 className="font-headline font-bold text-2xl tracking-tight text-white">
                {activeTab === 'dashboard' && 'Admin Overview'}
                {activeTab === 'channels' && 'YouTube Channels'}
                {activeTab === 'videos' && 'Video Catalog'}
@@ -260,7 +263,7 @@ export default function AdminPanel() {
                {activeTab === 'quran' && 'Quranic Metadata'}
              </h2>
              <div className="flex items-center gap-4">
-               <Button variant="outline" size="sm" className="rounded-xl px-4 h-10 font-bold border-zinc-800 hover:bg-zinc-900" onClick={() => window.location.href = '/'}>Live Site</Button>
+               <Button variant="outline" size="sm" className="rounded-xl px-4 h-10 font-bold border-zinc-800 hover:bg-zinc-900 text-white" onClick={() => window.location.href = '/'}>Live Site</Button>
              </div>
           </header>
 
@@ -301,7 +304,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
         <Card className="bg-zinc-950 border-zinc-800 shadow-sm xl:col-span-3 rounded-2xl overflow-hidden">
-          <CardHeader><CardTitle className="text-lg font-bold">Content Cataloging Growth</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg font-bold text-white">Content Cataloging Growth</CardTitle></CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
               <ChartContainer config={{ uploads: { label: "Videos", color: "hsl(var(--primary))" } }}>
@@ -332,7 +335,7 @@ function StatCard({ icon: Icon, label, value, color, bgColor }: any) {
         </div>
         <div>
           <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none mb-1">{label}</p>
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-2xl font-bold text-white">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -555,7 +558,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
     }}>
       <DialogContent className={cn("bg-zinc-950 border-zinc-800 p-0 overflow-hidden flex flex-col h-[90vh] md:h-[80vh]", view === 'videos' ? "sm:max-w-[900px]" : "sm:max-w-[450px]")}>
           <DialogHeader className="px-6 py-6 border-b border-zinc-800 bg-zinc-950/50">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
               {view === 'search' ? <Youtube className="w-5 h-5 text-primary" /> : <RefreshCw className={cn("w-5 h-5 text-primary", isBulkImporting && "animate-spin")} />}
               {view === 'search' ? 'Link Channel' : `Syncing ${fetchedData?.title}`}
             </DialogTitle>
@@ -575,7 +578,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
                           setChannelInput(e.target.value);
                           if (errors.channel) setErrors({});
                         }} 
-                        className={cn("bg-zinc-900 border-zinc-800 h-12 rounded-xl text-sm", errors.channel && "border-destructive")}
+                        className={cn("bg-zinc-900 border-zinc-800 h-12 rounded-xl text-sm text-white", errors.channel && "border-destructive")}
                       />
                       <Button onClick={fetchChannelDetails} disabled={loading} variant="secondary" className="h-12 w-12 p-0 rounded-xl">
                         {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
@@ -589,7 +592,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
                         <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-lg truncate">{fetchedData.title}</p>
+                        <p className="font-bold text-lg truncate text-white">{fetchedData.title}</p>
                         <p className="text-xs text-muted-foreground">{(fetchedData.subscribersCount / 1000).toFixed(1)}K Subs • {fetchedData.videoCount} Videos</p>
                         {channels.some(c => c.id === fetchedData.id) && (
                           <Badge variant="outline" className="mt-2 text-[9px] font-black uppercase tracking-widest bg-zinc-950 text-primary border-primary/20">Linked</Badge>
@@ -609,7 +612,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
                          <div className="flex items-center gap-3">
                            <RefreshCw className="w-5 h-5 animate-spin text-primary" />
                            <div className="flex flex-col">
-                             <span className="font-bold text-sm">Deep Cataloging...</span>
+                             <span className="font-bold text-sm text-white">Deep Cataloging...</span>
                              <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{currentSyncCount} / {fetchedData?.videoCount || '?'} indexed</span>
                            </div>
                          </div>
@@ -635,7 +638,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
                             )}
                           </div>
                           <CardContent className="p-4 space-y-4">
-                            <p className="text-[11px] font-bold line-clamp-2 leading-tight h-9">{v.snippet.title}</p>
+                            <p className="text-[11px] font-bold line-clamp-2 leading-tight h-9 text-white">{v.snippet.title}</p>
                             <Button 
                               size="sm" 
                               variant={isImported ? "secondary" : "default"}
@@ -652,7 +655,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
                   </div>
                   {nextPageToken && !isBulkImporting && (
                     <div className="py-8 flex justify-center">
-                      <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore} className="rounded-xl px-10 h-11 font-bold border-zinc-800 hover:bg-zinc-900">
+                      <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore} className="rounded-xl px-10 h-11 font-bold border-zinc-800 hover:bg-zinc-900 text-white">
                         {loadingMore ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                         Load More Content
                       </Button>
@@ -664,7 +667,7 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
           </div>
 
           <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0 gap-3">
-            <Button onClick={() => onOpenChange(false)} variant="outline" className="flex-1 h-12 font-bold rounded-xl border-zinc-800 hover:bg-zinc-900" disabled={isBulkImporting}>
+            <Button onClick={() => onOpenChange(false)} variant="outline" className="flex-1 h-12 font-bold rounded-xl border-zinc-800 hover:bg-zinc-900 text-white" disabled={isBulkImporting}>
               Cancel
             </Button>
             {view === 'videos' && (
@@ -788,7 +791,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
       </DialogTrigger>
       <DialogContent className="bg-zinc-950 sm:max-w-[650px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-zinc-800">
         <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
-          <DialogTitle className="text-xl font-bold">Manual Video Import</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-white">Manual Video Import</DialogTitle>
         </DialogHeader>
         
         <div className="flex-1 min-h-0 bg-zinc-950 overflow-hidden">
@@ -800,7 +803,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                     <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto shadow-xl border border-zinc-800">
                       <SearchCode className="w-7 h-7 text-primary" />
                     </div>
-                    <h3 className="font-bold text-lg">Import Metadata</h3>
+                    <h3 className="font-bold text-lg text-white">Import Metadata</h3>
                     <p className="text-xs text-muted-foreground max-w-[320px] mx-auto leading-relaxed">Paste a YouTube URL to automatically fetch details.</p>
                   </div>
                   <div className="flex gap-2">
@@ -811,7 +814,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                         setYtInput(e.target.value);
                         if (errors.ytInput) setErrors({});
                       }} 
-                      className={cn("bg-zinc-900 border-zinc-800 h-12 rounded-xl text-sm", errors.ytInput && "border-destructive")}
+                      className={cn("bg-zinc-900 border-zinc-800 h-12 rounded-xl text-sm text-white", errors.ytInput && "border-destructive")}
                       disabled={loading}
                     />
                     <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary" className="h-12 px-8 rounded-xl font-bold">
@@ -840,7 +843,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                           if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
                         }} 
                         disabled={loading}
-                        className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11", errors.title && "border-destructive")}
+                        className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white", errors.title && "border-destructive")}
                       />
                     </div>
 
@@ -854,7 +857,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                         }} 
                         disabled={loading}
                       >
-                        <SelectTrigger className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11", errors.channelId && "border-destructive")}>
+                        <SelectTrigger className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white", errors.channelId && "border-destructive")}>
                           <SelectValue placeholder="Select Parent Channel" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px] bg-zinc-950 border-zinc-800">
@@ -866,11 +869,11 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Initial Views</Label>
-                        <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                        <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Initial Likes</Label>
-                        <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                        <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
                       </div>
                     </div>
 
@@ -890,7 +893,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                                 setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
                               }} 
                             />
-                            <Label htmlFor={`av-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1 font-medium">{s.name}</Label>
+                            <Label htmlFor={`av-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1 font-medium text-white">{s.name}</Label>
                           </div>
                         ))}
                       </div>
@@ -902,7 +905,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                         placeholder="Content summary..." 
                         value={description} 
                         onChange={(e) => setDescription(e.target.value)} 
-                        className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm leading-relaxed"
+                        className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm leading-relaxed text-white"
                         disabled={loading}
                       />
                     </div>
@@ -914,7 +917,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
         </div>
 
         <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
           {isFetched && (
             <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold px-10 rounded-xl h-11" disabled={loading}>
               Catalog Video
@@ -959,7 +962,7 @@ function AddSpeakerDialog() {
       </DialogTrigger>
       <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800">
         <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
-          <DialogTitle className="text-xl font-bold">New Scholar Profile</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-white">New Scholar Profile</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
@@ -973,22 +976,22 @@ function AddSpeakerDialog() {
                     setName(e.target.value);
                     if (errors.name) setErrors({});
                   }} 
-                  className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11", errors.name && "border-destructive")}
+                  className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white", errors.name && "border-destructive")}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Biography</Label>
-                <Textarea placeholder="Short bio..." value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[140px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm" />
+                <Textarea placeholder="Short bio..." value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[140px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm text-white" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Profile Image URL</Label>
-                <Input placeholder="Direct image link..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                <Input placeholder="Direct image link..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
               </div>
             </div>
           </ScrollArea>
         </div>
         <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
           <Button onClick={handleSave} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Create Profile</Button>
         </DialogFooter>
       </DialogContent>
@@ -1016,11 +1019,11 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
       <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800">
         <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
-          <DialogTitle className="text-xl font-bold">Edit Scholar Profile</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-white">Edit Scholar Profile</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
@@ -1030,22 +1033,22 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
                 <Input 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
-                  className="bg-zinc-900 border-zinc-800 rounded-xl h-11"
+                  className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Bio</Label>
-                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[140px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm" />
+                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[140px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm text-white" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Image URL</Label>
-                <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
               </div>
             </div>
           </ScrollArea>
         </div>
         <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
           <Button onClick={handleUpdate} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Save Changes</Button>
         </DialogFooter>
       </DialogContent>
@@ -1072,26 +1075,26 @@ function EditChannelDialog({ channel }: { channel: any }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
       <DialogContent className="bg-zinc-950 flex flex-col p-0 overflow-hidden max-h-[90vh] border-zinc-800">
-        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50"><DialogTitle className="text-xl font-bold">Edit Channel Details</DialogTitle></DialogHeader>
+        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50"><DialogTitle className="text-xl font-bold text-white">Edit Channel Details</DialogTitle></DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
             <div className="grid gap-6 p-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Channel Title <span className="text-destructive">*</span></Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Subscribers Count</Label>
-                <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
               </div>
             </div>
           </ScrollArea>
         </div>
         <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
           <Button onClick={handleUpdate} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Update Records</Button>
         </DialogFooter>
       </DialogContent>
@@ -1125,11 +1128,11 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
       <DialogContent className="bg-zinc-950 sm:max-w-[650px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-zinc-800">
         <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
-          <DialogTitle className="text-xl font-bold">Edit Video Entry</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-white">Edit Video Entry</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
@@ -1142,23 +1145,23 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
               <div className="grid gap-6">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Video Title <span className="text-destructive">*</span></Label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Channel <span className="text-destructive">*</span></Label>
                   <Select value={channelId} onValueChange={setChannelId}>
-                    <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-11"><SelectValue placeholder="Channel" /></SelectTrigger>
+                    <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white"><SelectValue placeholder="Channel" /></SelectTrigger>
                     <SelectContent className="max-h-[300px] bg-zinc-950 border-zinc-800">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Views</Label>
-                    <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                    <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Likes</Label>
-                    <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
+                    <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -1169,18 +1172,18 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
                         <Checkbox id={`ev-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
                           setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
                         }} />
-                        <Label htmlFor={`ev-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1 font-medium">{s.name}</Label>
+                        <Label htmlFor={`ev-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1 font-medium text-white">{s.name}</Label>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Description</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm" />
+                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm text-white" />
                 </div>
                 <div className="flex items-center justify-between p-5 bg-zinc-900 border border-zinc-800 rounded-2xl">
                   <div className="space-y-1">
-                    <Label className="text-sm font-bold">Featured / Trending</Label>
+                    <Label className="text-sm font-bold text-white">Featured / Trending</Label>
                     <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Promote on home screen</p>
                   </div>
                   <Switch checked={isTrending} onCheckedChange={setIsTrending} />
@@ -1190,7 +1193,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
           </ScrollArea>
         </div>
         <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
           <Button onClick={handleUpdate} className="font-bold px-10 rounded-xl bg-primary text-primary-foreground h-11">Save Changes</Button>
         </DialogFooter>
       </DialogContent>
@@ -1202,44 +1205,88 @@ function ChannelManagement({ channels, existingVideos }: { channels: any[], exis
   const db = useFirestore();
   const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const handleDelete = (id: string) => {
     deleteDocumentNonBlocking(doc(db, 'channels', id));
     toast({ title: "Channel Removed" });
+    setSelectedIds(prev => prev.filter(x => x !== id));
   };
+
+  const handleBulkDelete = async () => {
+    try {
+      const batch = writeBatch(db);
+      selectedIds.forEach(id => batch.delete(doc(db, 'channels', id)));
+      await batch.commit();
+      toast({ title: "Bulk Delete Success", description: `${selectedIds.length} channels removed.` });
+      setSelectedIds([]);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e.message });
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => prev.length === channels.length ? [] : channels.map(c => c.id));
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <div className="space-y-1">
-          <h3 className="font-bold text-lg">YouTube Connections</h3>
+          <h3 className="font-bold text-lg text-white">YouTube Connections</h3>
           <p className="text-xs text-muted-foreground font-medium">Link channels to auto-import content metadata.</p>
         </div>
-        <AddChannelDialog open={isAddOpen} onOpenChange={setIsAddOpen} channels={channels} existingVideos={existingVideos} />
-        <Button onClick={() => setIsAddOpen(true)} className="rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground">
-          <Plus className="w-4 h-4" />
-          Add Channel
-        </Button>
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <DeleteConfirm 
+              onConfirm={handleBulkDelete} 
+              trigger={
+                <Button variant="destructive" className="rounded-xl h-11 px-6 font-bold flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Delete Selected ({selectedIds.length})
+                </Button>
+              }
+              title={`Delete ${selectedIds.length} Channels?`}
+              description="This will permanently remove selected channel metadata from Firestore."
+            />
+          )}
+          <AddChannelDialog open={isAddOpen} onOpenChange={setIsAddOpen} channels={channels} existingVideos={existingVideos} />
+          <Button onClick={() => setIsAddOpen(true)} className="rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground">
+            <Plus className="w-4 h-4" />
+            Add Channel
+          </Button>
+        </div>
       </div>
       <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-800">
-              <TableHead className="w-[350px] text-[10px] font-black uppercase tracking-widest py-5">Connected Channel</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest">Subscribers</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest">Content Count</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Management</TableHead>
+              <TableHead className="w-12 text-center">
+                <Checkbox checked={selectedIds.length === channels.length && channels.length > 0} onCheckedChange={toggleSelectAll} />
+              </TableHead>
+              <TableHead className="w-[350px] text-[10px] font-black uppercase tracking-widest py-5 text-white/70">Connected Channel</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-white/70">Subscribers</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-white/70">Content Count</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-white/70">Management</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {channels.map((channel) => (
               <TableRow key={channel.id} className="hover:bg-zinc-900/40 transition-all border-zinc-800 h-20">
+                <TableCell className="text-center">
+                  <Checkbox checked={selectedIds.includes(channel.id)} onCheckedChange={() => toggleSelect(channel.id)} />
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl overflow-hidden relative border border-zinc-800 shrink-0 shadow-sm bg-zinc-800">
                       {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                     </div>
                     <div className="flex flex-col min-w-0">
-                       <span className="font-bold text-base truncate max-w-[220px]">{channel.title}</span>
+                       <span className="font-bold text-base truncate max-w-[220px] text-white">{channel.title}</span>
                        <span className="text-[10px] text-muted-foreground truncate">{channel.id}</span>
                     </div>
                   </div>
@@ -1256,7 +1303,7 @@ function ChannelManagement({ channels, existingVideos }: { channels: any[], exis
             ))}
             {channels.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="h-40 text-center text-muted-foreground italic font-medium">No YouTube channels linked yet.</TableCell>
+                <TableCell colSpan={5} className="h-40 text-center text-muted-foreground italic font-medium">No YouTube channels linked yet.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -1269,39 +1316,84 @@ function ChannelManagement({ channels, existingVideos }: { channels: any[], exis
 function VideoManagement({ videos, channels, speakers }: { videos: any[], channels: any[], speakers: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   const handleDelete = (id: string) => {
     deleteDocumentNonBlocking(doc(db, 'videos', id));
     toast({ title: "Video Purged" });
+    setSelectedIds(prev => prev.filter(x => x !== id));
   };
+
+  const handleBulkDelete = async () => {
+    try {
+      const batch = writeBatch(db);
+      selectedIds.forEach(id => batch.delete(doc(db, 'videos', id)));
+      await batch.commit();
+      toast({ title: "Bulk Delete Success", description: `${selectedIds.length} videos removed.` });
+      setSelectedIds([]);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e.message });
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => prev.length === videos.length ? [] : videos.map(v => v.id));
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <div className="space-y-1">
-          <h3 className="font-bold text-lg">Video Catalog</h3>
+          <h3 className="font-bold text-lg text-white">Video Catalog</h3>
           <p className="text-xs text-muted-foreground font-medium">Manage featured content and scholar assignments.</p>
         </div>
-        <AddVideoDialog channels={channels} speakers={speakers} />
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <DeleteConfirm 
+              onConfirm={handleBulkDelete} 
+              trigger={
+                <Button variant="destructive" className="rounded-xl h-11 px-6 font-bold flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Delete Selected ({selectedIds.length})
+                </Button>
+              }
+              title={`Delete ${selectedIds.length} Videos?`}
+              description="This will permanently purge selected videos from the catalog."
+            />
+          )}
+          <AddVideoDialog channels={channels} speakers={speakers} />
+        </div>
       </div>
       <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-800">
-              <TableHead className="w-[450px] text-[10px] font-black uppercase tracking-widest py-5">Video Metadata</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest">Parent Channel</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Management</TableHead>
+              <TableHead className="w-12 text-center">
+                <Checkbox checked={selectedIds.length === videos.length && videos.length > 0} onCheckedChange={toggleSelectAll} />
+              </TableHead>
+              <TableHead className="w-[450px] text-[10px] font-black uppercase tracking-widest py-5 text-white/70">Video Metadata</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-white/70">Parent Channel</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-white/70">Engagement</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-white/70">Management</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {videos.map((video) => (
               <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-800 h-24">
+                <TableCell className="text-center">
+                  <Checkbox checked={selectedIds.includes(video.id)} onCheckedChange={() => toggleSelect(video.id)} />
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-4">
                     <div className="w-24 h-14 rounded-xl overflow-hidden relative shrink-0 border border-zinc-800 bg-zinc-900 shadow-sm">
                       {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <a href={video.externalUrl} target="_blank" rel="noopener noreferrer" className="truncate max-w-[280px] font-bold text-sm hover:text-primary transition-colors flex items-center gap-2">
+                      <a href={video.externalUrl} target="_blank" rel="noopener noreferrer" className="truncate max-w-[280px] font-bold text-sm hover:text-primary transition-colors flex items-center gap-2 text-white">
                         {video.title}
                         <ExternalLink className="w-3 h-3 opacity-40 shrink-0" />
                       </a>
@@ -1331,7 +1423,7 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
             ))}
             {videos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="h-40 text-center text-muted-foreground italic font-medium">No videos cataloged yet.</TableCell>
+                <TableCell colSpan={5} className="h-40 text-center text-muted-foreground italic font-medium">No videos cataloged yet.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -1344,38 +1436,83 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
 function SpeakerManagement({ speakers }: { speakers: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   const handleDelete = (id: string) => {
     deleteDocumentNonBlocking(doc(db, 'speakers', id));
     toast({ title: "Scholar Removed" });
+    setSelectedIds(prev => prev.filter(x => x !== id));
   };
+
+  const handleBulkDelete = async () => {
+    try {
+      const batch = writeBatch(db);
+      selectedIds.forEach(id => batch.delete(doc(db, 'speakers', id)));
+      await batch.commit();
+      toast({ title: "Bulk Delete Success", description: `${selectedIds.length} scholars removed.` });
+      setSelectedIds([]);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e.message });
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => prev.length === speakers.length ? [] : speakers.map(s => s.id));
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <div className="space-y-1">
-          <h3 className="font-bold text-lg">Scholar Directory</h3>
+          <h3 className="font-bold text-lg text-white">Scholar Directory</h3>
           <p className="text-xs text-muted-foreground font-medium">Manage profile info for speakers and scholars.</p>
         </div>
-        <AddSpeakerDialog />
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <DeleteConfirm 
+              onConfirm={handleBulkDelete} 
+              trigger={
+                <Button variant="destructive" className="rounded-xl h-11 px-6 font-bold flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Delete Selected ({selectedIds.length})
+                </Button>
+              }
+              title={`Delete ${selectedIds.length} Scholars?`}
+              description="This will permanently remove selected scholar profiles from Firestore."
+            />
+          )}
+          <AddSpeakerDialog />
+        </div>
       </div>
       <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-800">
-              <TableHead className="w-[300px] text-[10px] font-black uppercase tracking-widest py-5">Scholar Identity</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest">Biography / Profile</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Management</TableHead>
+              <TableHead className="w-12 text-center">
+                <Checkbox checked={selectedIds.length === speakers.length && speakers.length > 0} onCheckedChange={toggleSelectAll} />
+              </TableHead>
+              <TableHead className="w-[300px] text-[10px] font-black uppercase tracking-widest py-5 text-white/70">Scholar Identity</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-white/70">Biography / Profile</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-white/70">Management</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {speakers.map((s) => (
               <TableRow key={s.id} className="hover:bg-zinc-900/40 transition-all border-zinc-800 h-24">
+                <TableCell className="text-center">
+                  <Checkbox checked={selectedIds.includes(s.id)} onCheckedChange={() => toggleSelect(s.id)} />
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl overflow-hidden relative border border-zinc-800 shrink-0 shadow-sm bg-zinc-800">
                       {s.profileImageUrl && <Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" />}
                     </div>
                     <div className="flex flex-col">
-                       <span className="font-bold text-base leading-tight">{s.name}</span>
+                       <span className="font-bold text-base leading-tight text-white">{s.name}</span>
                        <span className="text-[10px] text-muted-foreground font-mono mt-1">{s.id}</span>
                     </div>
                   </div>
@@ -1391,6 +1528,11 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
                 </TableCell>
               </TableRow>
             ))}
+            {speakers.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="h-40 text-center text-muted-foreground italic font-medium">No scholars added yet.</TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Card>
@@ -1398,23 +1540,25 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
   );
 }
 
-function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
+function DeleteConfirm({ onConfirm, trigger, title, description }: { onConfirm: () => void, trigger?: React.ReactNode, title?: string, description?: string }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl">
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        {trigger || (
+          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
       </AlertDialogTrigger>
       <AlertDialogContent className="bg-zinc-950 border-zinc-800 rounded-3xl shadow-2xl">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-2xl font-black uppercase tracking-tight">Delete Record?</AlertDialogTitle>
+          <AlertDialogTitle className="text-2xl font-black uppercase tracking-tight text-white">{title || 'Delete Record?'}</AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">
-            This action is permanent and will remove the document from Firestore.
+            {description || 'This action is permanent and will remove the document from Firestore.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-8 gap-3">
-          <AlertDialogCancel className="font-bold rounded-2xl h-12 border-zinc-800 px-8">Keep</AlertDialogCancel>
+          <AlertDialogCancel className="font-bold rounded-2xl h-12 border-zinc-800 px-8 text-white">Keep</AlertDialogCancel>
           <AlertDialogAction 
             onClick={(e) => { e.preventDefault(); onConfirm(); }} 
             className="bg-destructive text-white font-bold h-12 px-8 rounded-2xl hover:bg-destructive/90 transition-all"
@@ -1434,25 +1578,25 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
   return (
     <div className="space-y-8">
       <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
-        <h3 className="font-bold text-lg mb-1">Quranic Metadata</h3>
+        <h3 className="font-bold text-lg mb-1 text-white">Quranic Metadata</h3>
         <p className="text-xs text-muted-foreground font-medium">Review verified Quranic content stored in Firestore.</p>
       </div>
       <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-800">
-              <TableHead className="w-20 text-[10px] font-black uppercase tracking-widest py-5">No.</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest">English Identity</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest">Arabic Script</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest">Ayahs</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Management</TableHead>
+              <TableHead className="w-20 text-[10px] font-black uppercase tracking-widest py-5 text-white/70">No.</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-white/70">English Identity</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-white/70">Arabic Script</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-white/70">Ayahs</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-white/70">Management</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {surahs.sort((a,b) => a.number - b.number).map((surah) => (
               <TableRow key={surah.id} className="hover:bg-zinc-900/40 transition-all border-zinc-800 h-20">
                 <TableCell className="font-black text-xl text-primary opacity-50">{surah.number}</TableCell>
-                <TableCell className="font-bold text-base">{surah.nameEnglish}</TableCell>
+                <TableCell className="font-bold text-base text-white">{surah.nameEnglish}</TableCell>
                 <TableCell className="font-arabic text-2xl text-primary">{surah.nameArabic}</TableCell>
                 <TableCell className="text-muted-foreground font-bold">{surah.numberOfAyahs} Verses</TableCell>
                 <TableCell className="text-right">
