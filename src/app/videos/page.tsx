@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, orderBy, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Play, Filter, Loader2, ArrowLeft, Video as VideoIcon } from 'lucide-react';
@@ -29,15 +29,23 @@ export default function VideosPage() {
 
   // Dynamic Video Query
   const videoQuery = useMemoFirebase(() => {
-    let q = query(collection(db, 'videos'), orderBy('publishedAt', 'desc'));
+    // Basic query for listing
+    const videosCol = collection(db, 'videos');
     
+    // Filtering by speakerId (using the 'speakerIds' array field)
     if (speakerId) {
-      q = query(collection(db, 'videos'), where('speakerIds', 'array-contains', speakerId), orderBy('publishedAt', 'desc'));
-    } else if (channelId) {
-      q = query(collection(db, 'videos'), where('channelId', '==', channelId), orderBy('publishedAt', 'desc'));
+      // Note: We remove orderBy when filtering by speakerId to avoid needing a composite index,
+      // which often triggers "Missing or insufficient permissions" errors if the index doesn't exist.
+      return query(videosCol, where('speakerIds', 'array-contains', speakerId), limit(50));
+    } 
+    
+    // Filtering by channelId
+    if (channelId) {
+      return query(videosCol, where('channelId', '==', channelId), limit(50));
     }
     
-    return q;
+    // Default: Sort by newest
+    return query(videosCol, orderBy('publishedAt', 'desc'), limit(50));
   }, [db, speakerId, channelId]);
 
   const { data: videos, isLoading } = useCollection(videoQuery);

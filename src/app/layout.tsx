@@ -34,7 +34,8 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <div className="flex flex-col min-h-screen">
             <Navbar />
-            <main className="flex-grow pt-24 md:pt-32">
+            {/* Added larger padding to prevent overlap with the fixed navbar on desktop */}
+            <main className="flex-grow pt-24 md:pt-36">
               {children}
             </main>
           </div>
