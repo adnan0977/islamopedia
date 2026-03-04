@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -36,7 +35,7 @@ export function Navbar() {
     <>
       {/* Desktop Nav (Top) */}
       <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border h-24 shadow-sm items-center">
-        <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between h-full">
+        <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-all shadow-lg shadow-primary/20">
                <Sparkles className="text-white w-6 h-6" />
@@ -49,7 +48,7 @@ export function Navbar() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-1 bg-secondary/30 p-1.5 rounded-2xl border border-border/50 shadow-inner h-fit self-center">
+          <div className="flex items-center gap-1 bg-secondary/30 p-1.5 rounded-2xl border border-border/50 shadow-inner">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -71,7 +70,7 @@ export function Navbar() {
             })}
           </div>
 
-          <div className="flex items-center gap-4 shrink-0 h-fit self-center">
+          <div className="flex items-center gap-4 shrink-0">
             {isAdmin && (
               <Link href="/admin">
                 <Button variant="outline" size="sm" className="hidden lg:flex rounded-xl gap-2 font-bold border-accent/30 text-accent hover:bg-accent/10 h-11 px-5 items-center">

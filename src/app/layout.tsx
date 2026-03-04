@@ -1,4 +1,3 @@
-
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
@@ -33,7 +32,7 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground min-h-screen flex flex-col overflow-x-hidden">
         <FirebaseClientProvider>
           <Navbar />
-          <main className="flex-grow pt-0 md:pt-24 pb-24 md:pb-0">
+          <main className="flex-grow pt-4 md:pt-24 pb-24 md:pb-0">
             {children}
           </main>
           <Toaster />

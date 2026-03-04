@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, limit } from 'firebase/firestore';
@@ -16,7 +15,6 @@ import {
   CheckCircle2,
   Sparkles
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -47,8 +45,8 @@ export default function WatchPage() {
       .filter(v => v.id !== video.id)
       .sort((a, b) => {
         // Boost score if same speaker
-        const aHasSpeaker = a.speakerIds?.some(id => video.speakerIds?.includes(id));
-        const bHasSpeaker = b.speakerIds?.some(id => video.speakerIds?.includes(id));
+        const aHasSpeaker = a.speakerIds?.some((id: string) => video.speakerIds?.includes(id));
+        const bHasSpeaker = b.speakerIds?.some((id: string) => video.speakerIds?.includes(id));
         if (aHasSpeaker && !bHasSpeaker) return -1;
         if (!aHasSpeaker && bHasSpeaker) return 1;
         
@@ -87,8 +85,8 @@ export default function WatchPage() {
     );
   }
 
-  // Use nocookie domain for better compatibility
-  const embedUrl = `https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&rel=0&modestbranding=1`;
+  // Use standard embed URL which is most compatible
+  const embedUrl = `https://www.youtube.com/embed/${video.id}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,7 +101,7 @@ export default function WatchPage() {
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
+              referrerPolicy="no-referrer-when-downgrade"
               className="absolute inset-0 w-full h-full border-0"
             />
           </div>
