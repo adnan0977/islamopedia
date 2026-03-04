@@ -70,6 +70,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
@@ -1163,7 +1164,7 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
                       )}
                    </div>
                    <div className="flex-1 space-y-2">
-                     <Label className="text-[10px) font-black uppercase text-muted-foreground tracking-widest">Update Image URL</Label>
+                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Update Image URL</Label>
                      <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
                    </div>
                 </div>
@@ -1501,7 +1502,7 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
     <div className="space-y-8">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <div className="space-y-1">
-          <h3 className="font-bold text-lg text-white">Video Catalog</h3>
+          h3 className="font-bold text-lg text-white">Video Catalog</h3>
           <p className="text-xs text-muted-foreground font-medium">Manage featured content and scholar assignments.</p>
         </div>
         <div className="flex items-center gap-3">
