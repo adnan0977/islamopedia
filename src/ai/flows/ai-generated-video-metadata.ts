@@ -34,9 +34,7 @@ const aiGeneratedVideoMetadataPrompt = ai.definePrompt({
   model: 'googleai/gemini-1.5-flash',
   input: { schema: AIGeneratedVideoMetadataInputSchema },
   output: { schema: AIGeneratedVideoMetadataOutputSchema },
-  prompt: `You are an expert YouTube content strategist specializing in creating engaging and discoverable video titles and descriptions. Your goal is to help content creators optimize their videos for maximum views and engagement.
-
-Based on the following information about a video, generate several compelling title suggestions and description suggestions. Focus on clarity, keyword richness, and appeal to a broad audience.
+  prompt: `You are an expert YouTube content strategist. Generate several compelling title suggestions and description suggestions based on the content summary and keywords provided.
 
 {{#if videoSummary}}
 Video Content Summary:
@@ -48,10 +46,7 @@ Key Themes/Keywords:
 {{#each keywords}}
 - {{{this}}}
 {{/each}}
-{{/if}}
-
-Generate at least 3 to 5 distinct title options.
-Generate 1 to 3 distinct description options. Each description should be concise but informative, incorporating relevant keywords naturally and including a call to action if appropriate.`,
+{{/if}}`,
 });
 
 const aiGeneratedVideoMetadataFlow = ai.defineFlow(

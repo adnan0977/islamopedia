@@ -10,38 +10,38 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // Public Content: Open read access for everyone to prevent "Missing or insufficient permissions"
+    // Public Content: Explicitly allow get and list for all users
     match /videos/{videoId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isSignedIn() || isAdmin();
     }
 
     match /channels/{channelId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /speakers/{speakerId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /quran_surahs/{surahId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
       
       match /ayats/{ayahId} {
-        allow read: if true;
+        allow get, list: if true;
       }
     }
 
     match /categories/{categoryId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
     match /tags/{tagId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 

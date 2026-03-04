@@ -20,7 +20,7 @@ export default function Home() {
   const [prayerTimes, setPrayerTimes] = useState<any>(null);
   const [location] = useState({ city: 'London', country: 'UK' });
 
-  // Firestore Queries
+  // Firestore Queries - Simplified to avoid index errors for public read
   const trendingQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     where('isTrending', '==', true),

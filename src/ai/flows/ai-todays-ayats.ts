@@ -61,9 +61,9 @@ For each verse, provide:
 4.  A concise English translation.
 5.  A brief, insightful reason why this verse is important for daily reflection, especially considering the general challenges and opportunities people face today.
 
-Assume the current date is {{{currentDate}}} (if provided), and use this as a general context for selecting universally relevant verses, not based on any specific real-world events. If no date is provided, just pick universally important verses.
+Assume the current date is {{{currentDate}}} (if provided), and use this as a general context for selecting universally relevant verses.
 
-The output must be a JSON object containing an array of these verse objects. Do not include any other text besides the JSON.`,
+The output must be a JSON object containing an array of these verse objects.`,
 });
 
 const aiTodaysAyatsFlow = ai.defineFlow(
