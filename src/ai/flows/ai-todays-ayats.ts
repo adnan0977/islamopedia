@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview This file implements a Genkit flow that generates a daily selection of important Quranic verses
@@ -7,6 +6,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 
 const AiTodaysAyatsInputSchema = z.object({
   currentDate: z
@@ -35,7 +35,7 @@ export async function aiTodaysAyats(input: AiTodaysAyatsInput): Promise<AiTodays
 
 const aiTodaysAyatsPrompt = ai.definePrompt({
   name: 'aiTodaysAyatsPrompt',
-  model: 'googleai/gemini-1.5-flash',
+  model: googleAI.model('gemini-1.5-flash'),
   input: {schema: AiTodaysAyatsInputSchema},
   output: {schema: AiTodaysAyatsOutputSchema},
   prompt: `You are an AI assistant specialized in Islamic knowledge. Select 3-5 Quranic verses for reflection today.

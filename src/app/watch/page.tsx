@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
@@ -17,15 +16,6 @@ export default function WatchPage() {
   const videoId = searchParams.get('v');
   const router = useRouter();
   const db = useFirestore();
-  const [origin, setOrigin] = useState('');
-
-  // Capture the current origin on mount to satisfy YouTube's domain restrictions
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // YouTube requires the exact protocol + domain for the origin parameter
-      setOrigin(window.location.origin);
-    }
-  }, []);
 
   const videoRef = useMemoFirebase(() => (videoId ? doc(db, 'videos', videoId) : null), [db, videoId]);
   const { data: video, isLoading } = useDoc(videoRef);
@@ -45,7 +35,7 @@ export default function WatchPage() {
   if (!videoId || !video) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-6 text-center px-4">
-        <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center">
+        <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
           <Youtube className="w-10 h-10 text-destructive" />
         </div>
         <div className="space-y-2">
@@ -68,8 +58,8 @@ export default function WatchPage() {
   };
 
   const embedId = getEmbedId(video);
-  // enablejsapi=1 and origin are critical for domain-restricted embeds
-  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&enablejsapi=1&showinfo=0&modestbranding=1${origin ? `&origin=${encodeURIComponent(origin)}` : ''}`;
+  // Simplified embed URL to avoid domain restriction blocks
+  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&modestbranding=1`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -96,6 +86,7 @@ export default function WatchPage() {
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
               className="absolute inset-0 w-full h-full border-0 shadow-2xl"
             />
           </div>

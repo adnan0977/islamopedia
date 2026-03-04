@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -20,7 +19,7 @@ export default function Home() {
   const [prayerTimes, setPrayerTimes] = useState<any>(null);
   const [location] = useState({ city: 'London', country: 'UK' });
 
-  // Firestore Queries - Simplified to avoid index errors for public read
+  // Firestore Queries - Simplified for public access
   const trendingQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     where('isTrending', '==', true),
@@ -57,7 +56,7 @@ export default function Home() {
   }, [location]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 space-y-12 pb-24">
+    <div className="max-w-7xl mx-auto px-4 pt-20 md:pt-8 pb-24 space-y-12">
       {/* Header Info */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card p-6 rounded-3xl border border-border shadow-xl">
         <div className="space-y-2">

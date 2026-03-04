@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -35,7 +34,7 @@ export function Navbar() {
   return (
     <>
       {/* Desktop Nav (Top) */}
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border h-24 shadow-sm">
+      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border h-24 shadow-sm items-center">
         <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between h-full">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-all shadow-lg shadow-primary/20">
@@ -49,7 +48,7 @@ export function Navbar() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-1 bg-secondary/30 p-1.5 rounded-2xl border border-border/50 shadow-inner">
+          <div className="flex items-center gap-1 bg-secondary/30 p-1.5 rounded-2xl border border-border/50 shadow-inner h-fit">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -71,7 +70,7 @@ export function Navbar() {
             })}
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-4 shrink-0 h-fit">
             {isAdmin && (
               <Link href="/admin">
                 <Button variant="outline" size="sm" className="hidden lg:flex rounded-xl gap-2 font-bold border-accent/30 text-accent hover:bg-accent/10 h-11 px-5">
@@ -101,7 +100,17 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Nav (Bottom Only - Removes top gap) */}
+      {/* Mobile Branding (Top) - Fixed alignment, removes gap */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border h-16 flex items-center px-6">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <Sparkles className="text-white w-4 h-4" />
+          </div>
+          <span className="font-headline font-bold text-lg text-primary">VlogNest</span>
+        </Link>
+      </div>
+
+      {/* Mobile Nav (Bottom) */}
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-background/90 backdrop-blur-xl border-t border-border md:hidden pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.5)] h-20">
         <div className="flex justify-around items-center h-full px-4">
           {filteredNavItems.map((item) => {
