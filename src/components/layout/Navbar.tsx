@@ -36,35 +36,9 @@ export function Navbar() {
 
   return (
     <>
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl border-t border-border/50 md:hidden safe-area-bottom">
-        <div className="flex justify-around items-center h-16 px-2">
-          {filteredNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full space-y-1.5 transition-all duration-300 relative",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {isActive && (
-                  <div className="absolute top-0 w-10 h-[3px] bg-primary rounded-full shadow-[0_0_15px_rgba(59,130,246,0.6)] animate-in fade-in slide-in-from-top-1" />
-                )}
-                <Icon className={cn("w-5 h-5 transition-transform", isActive && "scale-110 stroke-[2.5px]")} />
-                <span className="text-[10px] font-bold uppercase tracking-tight">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
       {/* Desktop Top Nav */}
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50 h-20 items-center shadow-lg transition-all duration-300">
-        <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between">
+      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-card/60 backdrop-blur-xl border-b border-border/50 h-20 items-center shadow-lg transition-all duration-300">
+        <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between h-full">
           <Link href="/" className="flex items-center gap-4 group">
             <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 shadow-xl shadow-primary/30">
                <Sparkles className="text-white w-6 h-6" />
@@ -124,8 +98,35 @@ export function Navbar() {
           </div>
         </div>
       </nav>
-      {/* Spacer for Desktop top bar */}
+
+      {/* Spacer for Desktop top bar - This prevents overlap */}
       <div className="hidden md:block h-20" />
+
+      {/* Mobile Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl border-t border-border/50 md:hidden safe-area-bottom">
+        <div className="flex justify-around items-center h-16 px-2">
+          {filteredNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex flex-col items-center justify-center flex-1 h-full space-y-1.5 transition-all duration-300 relative",
+                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isActive && (
+                  <div className="absolute top-0 w-10 h-[3px] bg-primary rounded-full shadow-[0_0_15px_rgba(59,130,246,0.6)] animate-in fade-in slide-in-from-top-1" />
+                )}
+                <Icon className={cn("w-5 h-5 transition-transform", isActive && "scale-110 stroke-[2.5px]")} />
+                <span className="text-[10px] font-bold uppercase tracking-tight">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </>
   );
 }

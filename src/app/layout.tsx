@@ -33,10 +33,10 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground min-h-screen pb-20 md:pb-0 md:pl-0 overflow-x-hidden">
         <FirebaseClientProvider>
           <div className="flex flex-col min-h-screen">
+            <Navbar />
             <main className="flex-grow">
               {children}
             </main>
-            <Navbar />
           </div>
           <Toaster />
         </FirebaseClientProvider>

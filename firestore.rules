@@ -15,8 +15,7 @@ service cloud.firestore {
     }
 
     // --- Public Content (Open Read Access) ---
-    // These collections are readable by anyone to support the discovery feed,
-    // trending videos, and the Quran/prayer features.
+    // These collections are readable by anyone freely without login.
     
     match /videos/{videoId} {
       allow read: if true;
