@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,10 @@ import {
   Info,
   MoreVertical,
   CheckSquare,
-  Square
+  Square,
+  Image as ImageIcon,
+  Upload as UploadIcon,
+  X
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -79,7 +82,7 @@ import {
   SelectItem, 
   SelectTrigger, 
   SelectValue 
-} from "@/components/ui/select"
+} from "@/select"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -99,6 +102,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran';
 
@@ -335,6 +339,95 @@ function StatCard({ icon: Icon, label, value, color, bgColor }: any) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Reusable Thumbnail Selector Component
+function ThumbnailSelector({ 
+  currentUrl, 
+  onUrlChange 
+}: { 
+  currentUrl: string, 
+  onUrlChange: (url: string) => void 
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onUrlChange(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="relative aspect-video rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 group shadow-xl">
+        {currentUrl ? (
+          <Image src={currentUrl} alt="Thumbnail Preview" fill className="object-cover" />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+            <ImageIcon className="w-8 h-8 opacity-20" />
+            <span className="text-[10px] font-black uppercase tracking-widest">No Thumbnail Selected</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+          <Button size="sm" variant="secondary" onClick={() => setGalleryOpen(true)} className="rounded-xl h-9 px-4 text-[10px] font-black uppercase tracking-widest">
+            <Sparkles className="w-3.5 h-3.5 mr-2" /> Gallery
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} className="rounded-xl h-9 px-4 text-[10px] font-black uppercase tracking-widest">
+            <UploadIcon className="w-3.5 h-3.5 mr-2" /> Upload
+          </Button>
+        </div>
+      </div>
+      
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept="image/*" 
+        onChange={handleFileUpload} 
+      />
+
+      <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 overflow-hidden flex flex-col h-[70vh]">
+          <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
+            <DialogTitle className="text-xl font-bold text-white">System Gallery</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 bg-zinc-950">
+            <ScrollArea className="h-full">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-6">
+                {PlaceHolderImages.map((img) => (
+                  <button 
+                    key={img.id}
+                    onClick={() => {
+                      onUrlChange(img.imageUrl);
+                      setGalleryOpen(false);
+                    }}
+                    className={cn(
+                      "relative aspect-video rounded-xl overflow-hidden border-2 transition-all hover:scale-[1.02] active:scale-95 group",
+                      currentUrl === img.imageUrl ? "border-primary" : "border-zinc-800 hover:border-zinc-700"
+                    )}
+                  >
+                    <Image src={img.imageUrl} alt={img.description} fill className="object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-white" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+          <DialogFooter className="px-6 py-4 border-t border-zinc-800 bg-zinc-950/50">
+            <Button variant="outline" onClick={() => setGalleryOpen(false)} className="rounded-xl border-zinc-800 text-white font-bold">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
@@ -789,125 +882,145 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
           Add Video
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 sm:max-w-[650px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-zinc-800">
-        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
-          <DialogTitle className="text-xl font-bold text-white">Manual Video Import</DialogTitle>
+      <DialogContent className="bg-zinc-950 sm:max-w-[800px] p-0 overflow-hidden flex flex-col max-h-[95vh] border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50">
+          <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white flex items-center gap-3">
+            <VideoIcon className="w-6 h-6 text-primary" />
+            Catalog New Content
+          </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 min-h-0 bg-zinc-950 overflow-hidden">
+        <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
-            <div className="p-6 space-y-8">
+            <div className="p-8">
               {!isFetched ? (
-                <div className="space-y-6 py-8">
-                  <div className="text-center space-y-3 mb-8">
-                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto shadow-xl border border-zinc-800">
-                      <SearchCode className="w-7 h-7 text-primary" />
+                <div className="max-w-md mx-auto py-12 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                  <div className="text-center space-y-4">
+                    <div className="w-20 h-20 bg-zinc-900 rounded-3xl flex items-center justify-center mx-auto shadow-2xl border border-zinc-800 rotate-3 hover:rotate-0 transition-transform">
+                      <SearchCode className="w-10 h-10 text-primary" />
                     </div>
-                    <h3 className="font-bold text-lg text-white">Import Metadata</h3>
-                    <p className="text-xs text-muted-foreground max-w-[320px] mx-auto leading-relaxed">Paste a YouTube URL to automatically fetch details.</p>
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-xl text-white">Import Meta via URL</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Simply paste a YouTube link and we'll handle the rest.</p>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <Input 
-                      placeholder="Paste YouTube URL here..." 
+                      placeholder="https://youtube.com/watch?v=..." 
                       value={ytInput} 
                       onChange={(e) => {
                         setYtInput(e.target.value);
                         if (errors.ytInput) setErrors({});
                       }} 
-                      className={cn("bg-zinc-900 border-zinc-800 h-12 rounded-xl text-sm text-white", errors.ytInput && "border-destructive")}
+                      className={cn("bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-base text-white px-6", errors.ytInput && "border-destructive")}
                       disabled={loading}
                     />
-                    <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary" className="h-12 px-8 rounded-xl font-bold">
-                      {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                      {loading ? '' : 'Fetch'}
+                    <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary" className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest">
+                      {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Fetch'}
                     </Button>
                   </div>
-                  {errors.ytInput && <p className="text-destructive text-[11px] font-medium text-center">{errors.ytInput}</p>}
+                  {errors.ytInput && <p className="text-destructive text-[11px] font-black uppercase text-center tracking-widest">{errors.ytInput}</p>}
                 </div>
               ) : (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  {thumbnailUrl && (
-                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl">
-                      <Image src={thumbnailUrl} alt="Preview" fill className="object-cover" />
-                    </div>
-                  )}
-
-                  <div className="grid gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Video Title <span className="text-destructive">*</span></Label>
-                      <Input 
-                        placeholder="Title" 
-                        value={title} 
-                        onChange={(e) => {
-                          setTitle(e.target.value);
-                          if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
-                        }} 
-                        disabled={loading}
-                        className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white", errors.title && "border-destructive")}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Channel Reference <span className="text-destructive">*</span></Label>
-                      <Select 
-                        value={channelId} 
-                        onValueChange={(val) => {
-                          setChannelId(val);
-                          if (errors.channelId) setErrors(prev => ({ ...prev, channelId: "" }));
-                        }} 
-                        disabled={loading}
-                      >
-                        <SelectTrigger className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white", errors.channelId && "border-destructive")}>
-                          <SelectValue placeholder="Select Parent Channel" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px] bg-zinc-950 border-zinc-800">
-                          {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  {/* Left Column: Media & Meta */}
+                  <div className="space-y-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Visual Cover <span className="text-destructive">*</span></Label>
+                      <ThumbnailSelector currentUrl={thumbnailUrl} onUrlChange={setThumbnailUrl} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Initial Views</Label>
-                        <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+                        <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Initial Likes</Label>
-                        <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scholars/Speakers <span className="text-destructive">*</span></Label>
-                      <div className={cn(
-                        "grid grid-cols-2 gap-2 p-4 bg-zinc-900/50 rounded-2xl max-h-[160px] overflow-auto border transition-colors",
-                        errors.speakers ? "border-destructive" : "border-zinc-800"
-                      )}>
-                        {speakers.map(s => (
-                          <div key={s.id} className="flex items-center space-x-3 p-2 hover:bg-zinc-800 rounded-xl transition-colors">
-                            <Checkbox 
-                              id={`av-s-${s.id}`} 
-                              checked={selectedSpeakerIds.includes(s.id)} 
-                              disabled={loading}
-                              onCheckedChange={(checked) => {
-                                setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
-                              }} 
-                            />
-                            <Label htmlFor={`av-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1 font-medium text-white">{s.name}</Label>
-                          </div>
-                        ))}
+                        <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono" />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Video Description</Label>
-                      <Textarea 
-                        placeholder="Content summary..." 
-                        value={description} 
-                        onChange={(e) => setDescription(e.target.value)} 
-                        className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm leading-relaxed text-white"
-                        disabled={loading}
-                      />
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Video URL / ID</Label>
+                      <div className="flex gap-2">
+                        <Input value={videoUrl} disabled className="bg-zinc-900/50 border-zinc-800 rounded-xl h-11 text-xs text-muted-foreground" />
+                        <Button variant="ghost" size="icon" onClick={() => setIsFetched(false)} className="rounded-xl border border-zinc-800 hover:bg-zinc-900"><X className="w-4 h-4" /></Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Information */}
+                  <div className="space-y-8">
+                    <div className="grid gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Video Title <span className="text-destructive">*</span></Label>
+                        <Input 
+                          placeholder="Compelling Title..." 
+                          value={title} 
+                          onChange={(e) => {
+                            setTitle(e.target.value);
+                            if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
+                          }} 
+                          disabled={loading}
+                          className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-12 text-sm text-white font-bold", errors.title && "border-destructive")}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Affiliated Channel <span className="text-destructive">*</span></Label>
+                        <Select 
+                          value={channelId} 
+                          onValueChange={(val) => {
+                            setChannelId(val);
+                            if (errors.channelId) setErrors(prev => ({ ...prev, channelId: "" }));
+                          }} 
+                          disabled={loading}
+                        >
+                          <SelectTrigger className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white", errors.channelId && "border-destructive")}>
+                            <SelectValue placeholder="Link to YouTube Channel" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px] bg-zinc-950 border-zinc-800">
+                            {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assign Scholars <span className="text-destructive">*</span></Label>
+                          {errors.speakers && <span className="text-[9px] text-destructive uppercase font-bold">Selection Required</span>}
+                        </div>
+                        <div className={cn(
+                          "grid grid-cols-1 gap-1.5 p-3 bg-zinc-900/50 rounded-2xl max-h-[160px] overflow-auto border transition-all",
+                          errors.speakers ? "border-destructive" : "border-zinc-800"
+                        )}>
+                          {speakers.map(s => (
+                            <div key={s.id} className="flex items-center space-x-3 p-2.5 hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer group">
+                              <Checkbox 
+                                id={`av-s-${s.id}`} 
+                                checked={selectedSpeakerIds.includes(s.id)} 
+                                disabled={loading}
+                                onCheckedChange={(checked) => {
+                                  setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
+                                }} 
+                              />
+                              <Label htmlFor={`av-s-${s.id}`} className="text-xs cursor-pointer flex-1 font-bold text-white group-hover:text-primary transition-colors">{s.name}</Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Full Description</Label>
+                        <Textarea 
+                          placeholder="Detailed content summary..." 
+                          value={description} 
+                          onChange={(e) => setDescription(e.target.value)} 
+                          className="min-h-[160px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-xs leading-relaxed text-white resize-none"
+                          disabled={loading}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -916,11 +1029,11 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
           </ScrollArea>
         </div>
 
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
+        <DialogFooter className="px-8 py-6 border-t border-zinc-800 bg-zinc-950/50 shrink-0 gap-4">
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="font-black uppercase tracking-widest rounded-xl h-12 border-zinc-800 text-white px-8">Cancel</Button>
           {isFetched && (
-            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold px-10 rounded-xl h-11" disabled={loading}>
-              Catalog Video
+            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-black uppercase tracking-widest px-12 rounded-xl h-12 shadow-xl hover:scale-[1.02] active:scale-95 transition-all" disabled={loading}>
+              Save Entry
             </Button>
           )}
         </DialogFooter>
@@ -960,15 +1073,31 @@ function AddSpeakerDialog() {
           Add Scholar
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800">
-        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
-          <DialogTitle className="text-xl font-bold text-white">New Scholar Profile</DialogTitle>
+      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50">
+          <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">New Scholar Profile</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
-            <div className="grid gap-6 p-6">
+            <div className="grid gap-8 p-8">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Full Name <span className="text-destructive">*</span></Label>
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scholar Portrait</Label>
+                <div className="flex items-center gap-6">
+                   <div className="relative w-24 h-24 rounded-3xl overflow-hidden border-2 border-zinc-800 bg-zinc-900 shadow-xl">
+                      {imageUrl ? (
+                        <Image src={imageUrl} alt="Preview" fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground"><ImageIcon className="w-8 h-8 opacity-20" /></div>
+                      )}
+                   </div>
+                   <div className="flex-1 space-y-2">
+                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Image URL</Label>
+                     <Input placeholder="Direct image link..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+                   </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Professional Name <span className="text-destructive">*</span></Label>
                 <Input 
                   placeholder="e.g. Mufti Menk" 
                   value={name} 
@@ -976,23 +1105,19 @@ function AddSpeakerDialog() {
                     setName(e.target.value);
                     if (errors.name) setErrors({});
                   }} 
-                  className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white", errors.name && "border-destructive")}
+                  className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-12 text-sm text-white font-bold", errors.name && "border-destructive")}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Biography</Label>
-                <Textarea placeholder="Short bio..." value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[140px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm text-white" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Profile Image URL</Label>
-                <Input placeholder="Direct image link..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+                <Textarea placeholder="Brief scholar background..." value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[160px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-xs leading-relaxed text-white resize-none" />
               </div>
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
-          <Button onClick={handleSave} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Create Profile</Button>
+        <DialogFooter className="px-8 py-6 border-t border-zinc-800 bg-zinc-950/50 shrink-0 gap-4">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-black uppercase tracking-widest rounded-xl h-12 border-zinc-800 text-white px-8">Cancel</Button>
+          <Button onClick={handleSave} className="font-black uppercase tracking-widest rounded-xl bg-primary text-primary-foreground h-12 px-10 shadow-xl">Create Profile</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1021,35 +1146,47 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800">
-        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
-          <DialogTitle className="text-xl font-bold text-white">Edit Scholar Profile</DialogTitle>
+      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50">
+          <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">Edit Profile: {speaker.name}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
-            <div className="grid gap-6 p-6">
+            <div className="grid gap-8 p-8">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Name <span className="text-destructive">*</span></Label>
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Portrait</Label>
+                <div className="flex items-center gap-6">
+                   <div className="relative w-24 h-24 rounded-3xl overflow-hidden border-2 border-zinc-800 bg-zinc-900 shadow-xl">
+                      {imageUrl ? (
+                        <Image src={imageUrl} alt="Preview" fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground"><ImageIcon className="w-8 h-8 opacity-20" /></div>
+                      )}
+                   </div>
+                   <div className="flex-1 space-y-2">
+                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Update Image URL</Label>
+                     <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+                   </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Full Name <span className="text-destructive">*</span></Label>
                 <Input 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
-                  className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white"
+                  className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-sm text-white font-bold"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Bio</Label>
-                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[140px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm text-white" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Image URL</Label>
-                <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Professional Bio</Label>
+                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-xs leading-relaxed text-white resize-none" />
               </div>
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
-          <Button onClick={handleUpdate} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Save Changes</Button>
+        <DialogFooter className="px-8 py-6 border-t border-zinc-800 bg-zinc-950/50 shrink-0 gap-4">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-black uppercase tracking-widest rounded-xl h-12 border-zinc-800 text-white px-8">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-black uppercase tracking-widest rounded-xl bg-primary text-primary-foreground h-12 px-10 shadow-xl">Apply Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1077,25 +1214,25 @@ function EditChannelDialog({ channel }: { channel: any }) {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 flex flex-col p-0 overflow-hidden max-h-[90vh] border-zinc-800">
-        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50"><DialogTitle className="text-xl font-bold text-white">Edit Channel Details</DialogTitle></DialogHeader>
+      <DialogContent className="bg-zinc-950 flex flex-col p-0 overflow-hidden max-h-[90vh] border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50"><DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">Edit: {channel.title}</DialogTitle></DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
-            <div className="grid gap-6 p-6">
+            <div className="grid gap-8 p-8">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Channel Title <span className="text-destructive">*</span></Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Display Title <span className="text-destructive">*</span></Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-sm text-white font-bold" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Subscribers Count</Label>
-                <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Live Subscriber Count</Label>
+                <Input type="number" value={subs} onChange={(e) => setSubs(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-sm text-white font-mono" />
               </div>
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
-          <Button onClick={handleUpdate} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Update Records</Button>
+        <DialogFooter className="px-8 py-6 border-t border-zinc-800 bg-zinc-950/50 shrink-0 gap-4">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-black uppercase tracking-widest rounded-xl h-12 border-zinc-800 text-white px-8">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-black uppercase tracking-widest rounded-xl bg-primary text-primary-foreground h-12 px-10 shadow-xl">Update Meta</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1109,6 +1246,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   const [title, setTitle] = useState(video.title);
   const [description, setDescription] = useState(video.description || '');
   const [channelId, setChannelId] = useState(video.channelId || '');
+  const [thumbnailUrl, setThumbnailUrl] = useState(video.thumbnailUrl || '');
   const [viewCount, setViewCount] = useState(video.viewCount || 0);
   const [likeCount, setLikeCount] = useState(video.likeCount || 0);
   const [isTrending, setIsTrending] = useState(video.isTrending || false);
@@ -1118,10 +1256,10 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
     if (!title.trim() || !channelId) return;
     updateDocumentNonBlocking(doc(db, 'videos', video.id), {
       title, description, channelId, isTrending, speakerIds: selectedSpeakerIds, 
-      viewCount: Number(viewCount), likeCount: Number(likeCount),
+      thumbnailUrl, viewCount: Number(viewCount), likeCount: Number(likeCount),
       updatedAt: new Date().toISOString()
     });
-    toast({ title: "Video Updated" });
+    toast({ title: "Video Record Updated" });
     setOpen(false);
   };
 
@@ -1130,71 +1268,87 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 sm:max-w-[650px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-zinc-800">
-        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
-          <DialogTitle className="text-xl font-bold text-white">Edit Video Entry</DialogTitle>
+      <DialogContent className="bg-zinc-950 sm:max-w-[800px] p-0 overflow-hidden flex flex-col max-h-[95vh] border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50">
+          <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white flex items-center gap-3">
+            <Edit3 className="w-6 h-6 text-primary" />
+            Edit Video Entry
+          </DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
-            <div className="p-6 space-y-8">
-              {video.thumbnailUrl && (
-                <div className="relative aspect-video rounded-2xl overflow-hidden border border-zinc-800 shadow-xl">
-                  <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />
-                </div>
-              )}
-              <div className="grid gap-6">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Video Title <span className="text-destructive">*</span></Label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Channel <span className="text-destructive">*</span></Label>
-                  <Select value={channelId} onValueChange={setChannelId}>
-                    <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white"><SelectValue placeholder="Channel" /></SelectTrigger>
-                    <SelectContent className="max-h-[300px] bg-zinc-950 border-zinc-800">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Views</Label>
-                    <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                {/* Left Column: Media */}
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Update Cover <span className="text-destructive">*</span></Label>
+                    <ThumbnailSelector currentUrl={thumbnailUrl} onUrlChange={setThumbnailUrl} />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Likes</Label>
-                    <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Live Views</Label>
+                      <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Live Likes</Label>
+                      <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-5 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-inner">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-bold text-white">Featured Video</Label>
+                      <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Show in home trending carousel</p>
+                    </div>
+                    <Switch checked={isTrending} onCheckedChange={setIsTrending} />
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scholars <span className="text-destructive">*</span></Label>
-                  <div className="grid grid-cols-2 gap-2 p-4 bg-zinc-900/50 rounded-2xl max-h-[160px] overflow-auto border border-zinc-800">
-                    {speakers.map(s => (
-                      <div key={s.id} className="flex items-center space-x-3 p-2 hover:bg-zinc-800 rounded-xl transition-colors">
-                        <Checkbox id={`ev-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
-                          setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
-                        }} />
-                        <Label htmlFor={`ev-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1 font-medium text-white">{s.name}</Label>
+
+                {/* Right Column: Information */}
+                <div className="space-y-8">
+                  <div className="grid gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Core Title <span className="text-destructive">*</span></Label>
+                      <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-sm text-white font-bold" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Parent Channel <span className="text-destructive">*</span></Label>
+                      <Select value={channelId} onValueChange={setChannelId}>
+                        <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white"><SelectValue placeholder="Channel" /></SelectTrigger>
+                        <SelectContent className="max-h-[300px] bg-zinc-950 border-zinc-800">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Associated Scholars <span className="text-destructive">*</span></Label>
+                      <div className="grid grid-cols-1 gap-1.5 p-3 bg-zinc-900/50 rounded-2xl max-h-[160px] overflow-auto border border-zinc-800">
+                        {speakers.map(s => (
+                          <div key={s.id} className="flex items-center space-x-3 p-2.5 hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer group">
+                            <Checkbox id={`ev-s-${s.id}`} checked={selectedSpeakerIds.includes(s.id)} onCheckedChange={(checked) => {
+                              setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
+                            }} />
+                            <Label htmlFor={`ev-s-${s.id}`} className="text-xs cursor-pointer flex-1 font-bold text-white group-hover:text-primary transition-colors">{s.name}</Label>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Meta Description</Label>
+                      <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[160px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-xs leading-relaxed text-white resize-none" />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Description</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm text-white" />
-                </div>
-                <div className="flex items-center justify-between p-5 bg-zinc-900 border border-zinc-800 rounded-2xl">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-bold text-white">Featured / Trending</Label>
-                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Promote on home screen</p>
-                  </div>
-                  <Switch checked={isTrending} onCheckedChange={setIsTrending} />
                 </div>
               </div>
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800 text-white">Cancel</Button>
-          <Button onClick={handleUpdate} className="font-bold px-10 rounded-xl bg-primary text-primary-foreground h-11">Save Changes</Button>
+        <DialogFooter className="px-8 py-6 border-t border-zinc-800 bg-zinc-950/50 shrink-0 gap-4">
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-black uppercase tracking-widest rounded-xl h-12 border-zinc-800 text-white px-8">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-black uppercase tracking-widest rounded-xl bg-primary text-primary-foreground h-12 px-10 shadow-xl">Sync Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
