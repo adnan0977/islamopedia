@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +28,10 @@ import {
   ExternalLink,
   ThumbsUp,
   SearchCode,
-  Wand2
+  Wand2,
+  Check,
+  CloudDownload,
+  Sparkles
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -95,6 +98,7 @@ import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran';
 
@@ -160,28 +164,28 @@ export default function AdminPanel() {
   if (!user || !isVerifiedAdmin) {
     return (
       <div className="max-w-md mx-auto py-20 px-4 text-center space-y-8 bg-background min-h-screen">
-        <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto">
+        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto border border-zinc-800">
           <ShieldAlert className="w-10 h-10 text-muted-foreground" />
         </div>
         <div className="space-y-2">
           <h1 className="text-3xl font-headline font-bold">Access Denied</h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Administrative access required. Copy your UID and add it to the <code className="bg-secondary px-1 rounded text-primary">roles_admin</code> collection in Firestore.
+            Administrative access required. Copy your UID and add it to the <code className="bg-zinc-900 px-1 rounded text-primary">roles_admin</code> collection in Firestore.
           </p>
         </div>
 
-        <div className="bg-secondary/50 p-4 rounded-2xl border border-border flex items-center justify-between gap-4">
+        <div className="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 flex items-center justify-between gap-4">
            <div className="flex flex-col items-start min-w-0">
              <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Your UID</span>
              <code className="text-xs font-mono truncate w-full text-left">{user?.uid || 'N/A'}</code>
            </div>
-           <Button variant="secondary" size="sm" onClick={copyUid}>
+           <Button variant="secondary" size="sm" onClick={copyUid} className="rounded-xl">
             {copied ? <CheckCircle2 className="w-4 h-4 text-zinc-400" /> : <Copy className="w-4 h-4" />}
           </Button>
         </div>
 
         <div className="flex flex-col gap-3">
-          <Button variant="outline" onClick={handleSignOut} className="w-full text-destructive border-border/50">Sign Out</Button>
+          <Button variant="outline" onClick={handleSignOut} className="w-full text-destructive border-zinc-800 rounded-xl font-bold">Sign Out</Button>
           <Button variant="ghost" onClick={() => window.location.href = '/'} className="w-full font-bold">Home</Button>
         </div>
       </div>
@@ -191,7 +195,7 @@ export default function AdminPanel() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background text-foreground">
-        <Sidebar className="border-r border-border bg-card">
+        <Sidebar className="border-r border-zinc-800 bg-zinc-950">
           <SidebarHeader className="p-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
@@ -233,7 +237,7 @@ export default function AdminPanel() {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-          <SidebarFooter className="p-4 border-t border-border">
+          <SidebarFooter className="p-4 border-t border-zinc-800">
             <Button 
               variant="ghost" 
               className="w-full justify-start text-destructive hover:bg-destructive/10 rounded-xl font-bold"
@@ -246,7 +250,7 @@ export default function AdminPanel() {
         </Sidebar>
 
         <SidebarInset className="flex-1 overflow-auto bg-background">
-          <header className="h-20 border-b border-border flex items-center justify-between px-8 bg-card/50 sticky top-0 z-10 backdrop-blur-md">
+          <header className="h-20 border-b border-zinc-800 flex items-center justify-between px-8 bg-zinc-950/50 sticky top-0 z-10 backdrop-blur-md">
              <h2 className="font-headline font-bold text-2xl tracking-tight">
                {activeTab === 'dashboard' && 'Admin Overview'}
                {activeTab === 'channels' && 'YouTube Channels'}
@@ -255,7 +259,7 @@ export default function AdminPanel() {
                {activeTab === 'quran' && 'Quranic Metadata'}
              </h2>
              <div className="flex items-center gap-4">
-               <Button variant="outline" size="sm" className="rounded-xl px-4 h-10 font-bold border-border/50 hover:bg-zinc-900" onClick={() => window.location.href = '/'}>Live Site</Button>
+               <Button variant="outline" size="sm" className="rounded-xl px-4 h-10 font-bold border-zinc-800 hover:bg-zinc-900" onClick={() => window.location.href = '/'}>Live Site</Button>
              </div>
           </header>
 
@@ -302,7 +306,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-        <Card className="bg-card border-border shadow-sm xl:col-span-2 rounded-2xl overflow-hidden">
+        <Card className="bg-zinc-950 border-zinc-800 shadow-sm xl:col-span-2 rounded-2xl overflow-hidden">
           <CardHeader><CardTitle className="text-lg font-bold">Content Growth</CardTitle></CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
@@ -321,7 +325,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm rounded-2xl overflow-hidden">
+        <Card className="bg-zinc-950 border-zinc-800 shadow-sm rounded-2xl overflow-hidden">
           <CardHeader><CardTitle className="text-lg font-bold">Category Distribution</CardTitle></CardHeader>
           <CardContent>
             <div className="h-[250px] w-full">
@@ -343,7 +347,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
 
 function StatCard({ icon: Icon, label, value, color, bgColor }: any) {
   return (
-    <Card className="bg-card border-border rounded-2xl overflow-hidden shadow-sm">
+    <Card className="bg-zinc-950 border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
       <CardContent className="p-6 flex items-center gap-4">
         <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-inner", bgColor)}>
           <Icon className={cn("w-6 h-6", color)} />
@@ -363,6 +367,8 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [isBulkImporting, setIsBulkImporting] = useState(false);
+  const [bulkImportProgress, setBulkImportProgress] = useState(0);
   const [channelInput, setChannelInput] = useState('');
   const [fetchedData, setFetchedData] = useState<any | null>(null);
   const [view, setView] = useState<'search' | 'videos'>('search');
@@ -381,8 +387,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
     }
 
     if (!apiKey) {
-      setErrors({ channel: "YouTube API Key is missing. Please set NEXT_PUBLIC_YOUTUBE_API_KEY in your environment." });
-      toast({ variant: "destructive", title: "Config Error", description: "API Key is required for discovery." });
+      setErrors({ channel: "YouTube API Key is missing. Please set NEXT_PUBLIC_YOUTUBE_API_KEY." });
       return;
     }
 
@@ -390,8 +395,6 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
     setLoading(true);
     try {
       let finalUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&key=${apiKey}`;
-      
-      // Improved URL/Handle parsing
       if (input.includes('youtube.com/channel/')) {
         const id = input.split('youtube.com/channel/')[1].split('/')[0].split('?')[0];
         finalUrl += `&id=${id}`;
@@ -403,21 +406,13 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
       } else if (input.startsWith('UC') && input.length === 24) {
         finalUrl += `&id=${input}`;
       } else {
-        // Fallback: assume handle or search by handle
         finalUrl += `&forHandle=@${input.replace(/^@/, '')}`;
       }
 
       const response = await fetch(finalUrl);
       const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error.message || "YouTube API error occurred.");
-      }
-
-      if (!data.items || data.items.length === 0) {
-        // One more try: search for the channel name if it's not a handle/id
-        throw new Error("Channel not found. Try using the exact @handle or full URL.");
-      }
+      if (data.error) throw new Error(data.error.message || "YouTube API error.");
+      if (!data.items || data.items.length === 0) throw new Error("Channel not found.");
 
       const item = data.items[0];
       setFetchedData({
@@ -431,7 +426,6 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
         viewCount: Number(item.statistics.viewCount),
       });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Discovery Error", description: error.message });
       setErrors({ channel: error.message });
     } finally {
       setLoading(false);
@@ -444,7 +438,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
     try {
       const channelData = { ...fetchedData, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       setDocumentNonBlocking(doc(db, 'channels', fetchedData.id), channelData, { merge: true });
-      toast({ title: "Channel Connected", description: `${fetchedData.title} is now linked.` });
+      toast({ title: "Channel Connected", description: `${fetchedData.title} linked.` });
       await fetchChannelVideos(fetchedData.id);
       setView('videos');
     } catch (error: any) {
@@ -458,7 +452,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
     const isMore = !!token;
     if (isMore) setLoadingMore(true);
     try {
-      let url = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=12&type=video`;
+      let url = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=15&type=video`;
       if (token) url += `&pageToken=${token}`;
       const res = await fetch(url);
       const data = await res.json();
@@ -469,15 +463,17 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
       }
       setNextPageToken(data.nextPageToken || null);
     } catch (e) {
-      toast({ variant: "destructive", title: "Video Fetch Error", description: "Could not load videos." });
+      toast({ variant: "destructive", title: "Fetch Error" });
     } finally {
       if (isMore) setLoadingMore(false);
     }
   };
 
-  const importVideo = (video: any) => {
+  const importVideo = (video: any, silent = false) => {
     if (!user) return;
     const vidId = video.id.videoId;
+    if (importingVideoIds.has(vidId)) return;
+    
     setImportingVideoIds(prev => new Set(prev).add(vidId));
     const videoData = {
       id: vidId,
@@ -495,13 +491,34 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
       updatedAt: new Date().toISOString()
     };
     setDocumentNonBlocking(doc(db, 'videos', vidId), videoData, { merge: true });
-    toast({ title: "Video Imported", description: video.snippet.title });
+    if (!silent) toast({ title: "Imported", description: video.snippet.title });
+  };
+
+  const handleBulkImport = async () => {
+    if (!channelVideos.length) return;
+    setIsBulkImporting(true);
+    setBulkImportProgress(0);
+    
+    const unimported = channelVideos.filter(v => !importingVideoIds.has(v.id.videoId));
+    const total = unimported.length;
+    
+    for (let i = 0; i < total; i++) {
+      importVideo(unimported[i], true);
+      setBulkImportProgress(Math.round(((i + 1) / total) * 100));
+      // Small artificial delay for visual effect
+      await new Promise(r => setTimeout(r, 100));
+    }
+    
+    setTimeout(() => {
+      setIsBulkImporting(false);
+      toast({ title: "Batch Import Complete", description: `Successfully imported ${total} videos.` });
+    }, 500);
   };
 
   return (
     <Dialog open={open} onOpenChange={(val) => {
       onOpenChange(val);
-      if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); setErrors({}); }
+      if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); setErrors({}); setImportingVideoIds(new Set()); }
     }}>
       <DialogTrigger asChild>
         <Button size="sm" className={cn("rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground", btnClass)}>
@@ -509,74 +526,100 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
           Add Channel
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn("bg-card overflow-hidden flex flex-col max-h-[90vh] p-0 border-border", view === 'videos' ? "sm:max-w-[800px]" : "sm:max-w-[450px]")}>
-          <DialogHeader className="px-6 py-5 border-b border-border bg-zinc-900/50">
-            <DialogTitle className="text-xl font-bold">{view === 'search' ? 'Link YouTube Channel' : `Import Videos`}</DialogTitle>
+      <DialogContent className={cn("bg-zinc-950 border-zinc-800 p-0 overflow-hidden flex flex-col h-[90vh] md:h-[80vh]", view === 'videos' ? "sm:max-w-[900px]" : "sm:max-w-[450px]")}>
+          <DialogHeader className="px-6 py-6 border-b border-zinc-800 bg-zinc-950/50">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              {view === 'search' ? <Youtube className="w-5 h-5 text-red-500" /> : <CloudDownload className="w-5 h-5 text-primary" />}
+              {view === 'search' ? 'Link Channel' : `Syncing ${fetchedData?.title}`}
+            </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0">
-            <ScrollArea className="h-full">
+
+          <div className="flex-1 min-h-0 relative">
+            <ScrollArea className="h-full w-full">
               {view === 'search' ? (
-                <div className="grid gap-6 p-6">
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Channel Handle or URL</Label>
-                    <div className="flex gap-2">
+                <div className="grid gap-8 p-8">
+                  <div className="space-y-4">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">YouTube Handle or Channel URL</Label>
+                    <div className="flex gap-3">
                       <Input 
-                        placeholder="@handle, URL, or ID" 
+                        placeholder="@handle or full URL" 
                         value={channelInput} 
                         onChange={(e) => {
                           setChannelInput(e.target.value);
                           if (errors.channel) setErrors({});
                         }} 
-                        className={cn("bg-zinc-900 border-zinc-800 h-11 rounded-xl", errors.channel && "border-destructive")}
+                        className={cn("bg-zinc-900 border-zinc-800 h-12 rounded-xl text-sm", errors.channel && "border-destructive")}
                       />
-                      <Button onClick={fetchChannelDetails} disabled={loading} variant="secondary" className="h-11 w-11 p-0 rounded-xl">
-                        {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
+                      <Button onClick={fetchChannelDetails} disabled={loading} variant="secondary" className="h-12 w-12 p-0 rounded-xl">
+                        {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
                       </Button>
                     </div>
                     {errors.channel && <p className="text-destructive text-[11px] font-medium leading-tight">{errors.channel}</p>}
                   </div>
                   {fetchedData && (
-                    <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <div className="w-14 h-14 rounded-full overflow-hidden relative border border-zinc-700 shrink-0">
+                    <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="w-16 h-16 rounded-full overflow-hidden relative border border-zinc-800 shrink-0">
                         <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-base truncate">{fetchedData.title}</p>
-                        <p className="text-xs text-muted-foreground">{(fetchedData.subscribersCount / 1000).toFixed(1)}K Subscribers • {fetchedData.videoCount} Videos</p>
+                        <p className="font-bold text-lg truncate">{fetchedData.title}</p>
+                        <p className="text-xs text-muted-foreground">{(fetchedData.subscribersCount / 1000).toFixed(1)}K Subs • {fetchedData.videoCount} Videos</p>
                       </div>
                     </div>
                   )}
-                  <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full h-12 font-bold rounded-xl bg-primary text-primary-foreground">
-                    Connect & Start Importing
+                  <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full h-14 font-bold rounded-xl bg-primary text-primary-foreground text-base">
+                    Connect & Fetch Feed
                   </Button>
                 </div>
               ) : (
-                <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {channelVideos.map((v) => (
-                      <Card key={v.id.videoId} className="overflow-hidden bg-zinc-900 border-zinc-800 rounded-2xl group cursor-default">
-                        <div className="aspect-video relative overflow-hidden">
-                          <Image src={v.snippet.thumbnails.medium.url} alt={v.snippet.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                        </div>
-                        <CardContent className="p-3 space-y-3">
-                          <p className="text-[11px] font-bold line-clamp-2 leading-snug h-8">{v.snippet.title}</p>
-                          <Button 
-                            size="sm" 
-                            variant={importingVideoIds.has(v.id.videoId) ? "secondary" : "default"}
-                            className="w-full h-8 text-[11px] font-bold rounded-xl" 
-                            onClick={() => importVideo(v)} 
-                            disabled={importingVideoIds.has(v.id.videoId)}
-                          >
-                            {importingVideoIds.has(v.id.videoId) ? 'Imported' : 'Import Video'}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                <div className="p-8 space-y-8">
+                  {isBulkImporting && (
+                    <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4 animate-in fade-in zoom-in-95 duration-300 shadow-2xl">
+                       <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                           <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                           <span className="font-bold text-sm">Batch Synchronizing...</span>
+                         </div>
+                         <span className="text-xs font-mono font-bold">{bulkImportProgress}%</span>
+                       </div>
+                       <Progress value={bulkImportProgress} className="h-2 bg-zinc-800" />
+                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest text-center">Please do not close this window</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                    {channelVideos.map((v) => {
+                      const isImported = importingVideoIds.has(v.id.videoId);
+                      return (
+                        <Card key={v.id.videoId} className="overflow-hidden bg-zinc-900 border-zinc-800 rounded-2xl group cursor-default shadow-md hover:border-zinc-700 transition-colors">
+                          <div className="aspect-video relative overflow-hidden bg-zinc-800">
+                            <Image src={v.snippet.thumbnails.medium.url} alt={v.snippet.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                            {isImported && (
+                              <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in duration-300">
+                                <Check className="w-8 h-8 text-primary-foreground drop-shadow-lg" />
+                              </div>
+                            )}
+                          </div>
+                          <CardContent className="p-4 space-y-4">
+                            <p className="text-[11px] font-bold line-clamp-2 leading-tight h-9">{v.snippet.title}</p>
+                            <Button 
+                              size="sm" 
+                              variant={isImported ? "secondary" : "default"}
+                              className="w-full h-9 text-[11px] font-bold rounded-xl" 
+                              onClick={() => importVideo(v)} 
+                              disabled={isImported || isBulkImporting}
+                            >
+                              {isImported ? 'Cataloged' : 'Import'}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
                   </div>
-                  {nextPageToken && (
-                    <div className="py-6 flex justify-center">
-                      <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore} className="rounded-xl px-8 h-10 font-bold border-zinc-800 hover:bg-zinc-900">
-                        {loadingMore ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
+                  {nextPageToken && !isBulkImporting && (
+                    <div className="py-8 flex justify-center">
+                      <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore} className="rounded-xl px-10 h-11 font-bold border-zinc-800 hover:bg-zinc-900">
+                        {loadingMore ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                         Load More Content
                       </Button>
                     </div>
@@ -585,8 +628,17 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
               )}
             </ScrollArea>
           </div>
-          <DialogFooter className="px-6 py-4 border-t border-zinc-800 bg-zinc-900/50 shrink-0">
-            <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full h-11 font-bold rounded-xl border-zinc-800">Close Manager</Button>
+
+          <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0 gap-3">
+            <Button onClick={() => onOpenChange(false)} variant="outline" className="flex-1 h-12 font-bold rounded-xl border-zinc-800 hover:bg-zinc-900" disabled={isBulkImporting}>
+              Cancel
+            </Button>
+            {view === 'videos' && (
+               <Button onClick={handleBulkImport} disabled={isBulkImporting || channelVideos.length === 0} className="flex-1 h-12 font-bold rounded-xl bg-primary text-primary-foreground flex items-center gap-2">
+                 {isBulkImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                 {isBulkImporting ? 'Importing...' : 'Bulk Sync All'}
+               </Button>
+            )}
           </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -700,8 +752,8 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           Add Video
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card sm:max-w-[650px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-border">
-        <DialogHeader className="px-6 py-5 border-b border-border bg-zinc-900/50">
+      <DialogContent className="bg-zinc-950 sm:max-w-[650px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-zinc-800">
+        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
           <DialogTitle className="text-xl font-bold">Manual Video Import</DialogTitle>
         </DialogHeader>
         
@@ -711,11 +763,11 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
               {!isFetched ? (
                 <div className="space-y-6 py-8">
                   <div className="text-center space-y-3 mb-8">
-                    <div className="w-14 h-14 bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto shadow-xl">
+                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto shadow-xl border border-zinc-800">
                       <SearchCode className="w-7 h-7 text-primary" />
                     </div>
                     <h3 className="font-bold text-lg">Import Metadata</h3>
-                    <p className="text-xs text-muted-foreground max-w-[320px] mx-auto leading-relaxed">Paste a YouTube URL to automatically fetch the title, description, and engagement statistics.</p>
+                    <p className="text-xs text-muted-foreground max-w-[320px] mx-auto leading-relaxed">Paste a YouTube URL to automatically fetch details.</p>
                   </div>
                   <div className="flex gap-2">
                     <Input 
@@ -756,7 +808,6 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                         disabled={loading}
                         className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11", errors.title && "border-destructive")}
                       />
-                      {errors.title && <p className="text-destructive text-[10px] font-medium">{errors.title}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -772,11 +823,10 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                         <SelectTrigger className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11", errors.channelId && "border-destructive")}>
                           <SelectValue placeholder="Select Parent Channel" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px] bg-zinc-900 border-zinc-800">
+                        <SelectContent className="max-h-[300px] bg-zinc-950 border-zinc-800">
                           {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      {errors.channelId && <p className="text-destructive text-[10px] font-medium">{errors.channelId}</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -803,18 +853,13 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                               checked={selectedSpeakerIds.includes(s.id)} 
                               disabled={loading}
                               onCheckedChange={(checked) => {
-                                setSelectedSpeakerIds(prev => {
-                                  const next = checked ? [...prev, s.id] : prev.filter(x => x !== s.id);
-                                  if (errors.speakers && next.length > 0) setErrors(prevErr => ({ ...prevErr, speakers: "" }));
-                                  return next;
-                                });
+                                setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
                               }} 
                             />
                             <Label htmlFor={`av-s-${s.id}`} className="text-xs cursor-pointer flex-1 py-1 font-medium">{s.name}</Label>
                           </div>
                         ))}
                       </div>
-                      {errors.speakers && <p className="text-destructive text-[10px] font-medium">{errors.speakers}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -834,11 +879,10 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           </ScrollArea>
         </div>
 
-        <DialogFooter className="px-6 py-5 border-t border-border bg-zinc-900/50 shrink-0">
+        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
           {isFetched && (
             <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold px-10 rounded-xl h-11" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
               Catalog Video
             </Button>
           )}
@@ -879,8 +923,8 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
           Add Scholar
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh] p-0 border-border">
-        <DialogHeader className="px-6 py-5 border-b border-border bg-zinc-900/50">
+      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800">
+        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
           <DialogTitle className="text-xl font-bold">New Scholar Profile</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0">
@@ -897,7 +941,6 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
                   }} 
                   className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11", errors.name && "border-destructive")}
                 />
-                {errors.name && <p className="text-destructive text-[11px] font-medium mt-1">{errors.name}</p>}
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Biography</Label>
@@ -910,7 +953,7 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-900/50 shrink-0">
+        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
           <Button onClick={handleSave} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Create Profile</Button>
         </DialogFooter>
@@ -926,13 +969,9 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
   const [name, setName] = useState(speaker.name);
   const [bio, setBio] = useState(speaker.bio || '');
   const [imageUrl, setImageUrl] = useState(speaker.profileImageUrl || '');
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleUpdate = () => {
-    if (!name.trim()) {
-      setErrors({ name: "Scholar name is required." });
-      return;
-    }
+    if (!name.trim()) return;
     updateDocumentNonBlocking(doc(db, 'speakers', speaker.id), {
       name, bio, profileImageUrl: imageUrl
     });
@@ -943,10 +982,10 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card overflow-hidden flex flex-col max-h-[90vh] p-0 border-border">
-        <DialogHeader className="px-6 py-5 border-b border-border bg-zinc-900/50">
+      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800">
+        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
           <DialogTitle className="text-xl font-bold">Edit Scholar Profile</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0">
@@ -956,11 +995,8 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Name <span className="text-destructive">*</span></Label>
                 <Input 
                   value={name} 
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    if (errors.name) setErrors({});
-                  }} 
-                  className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-11", errors.name && "border-destructive")}
+                  onChange={(e) => setName(e.target.value)} 
+                  className="bg-zinc-900 border-zinc-800 rounded-xl h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -974,7 +1010,7 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-900/50 shrink-0">
+        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
           <Button onClick={handleUpdate} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Save Changes</Button>
         </DialogFooter>
@@ -989,27 +1025,23 @@ function EditChannelDialog({ channel }: { channel: any }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(channel.title);
   const [subs, setSubs] = useState(channel.subscribersCount || 0);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleUpdate = () => {
-    if (!title.trim()) {
-      setErrors({ title: "Channel title is required." });
-      return;
-    }
+    if (!title.trim()) return;
     updateDocumentNonBlocking(doc(db, 'channels', channel.id), {
       title, subscribersCount: Number(subs), updatedAt: new Date().toISOString()
     });
-    toast({ title: "Channel Linked Metadata Updated" });
+    toast({ title: "Channel Meta Updated" });
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card flex flex-col p-0 overflow-hidden max-h-[90vh] border-border">
-        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-900/50"><DialogTitle className="text-xl font-bold">Edit Channel Details</DialogTitle></DialogHeader>
+      <DialogContent className="bg-zinc-950 flex flex-col p-0 overflow-hidden max-h-[90vh] border-zinc-800">
+        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50"><DialogTitle className="text-xl font-bold">Edit Channel Details</DialogTitle></DialogHeader>
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full">
             <div className="grid gap-6 p-6">
@@ -1024,7 +1056,7 @@ function EditChannelDialog({ channel }: { channel: any }) {
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-900/50 shrink-0">
+        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
           <Button onClick={handleUpdate} className="font-bold rounded-xl bg-primary text-primary-foreground h-11 px-8">Update Records</Button>
         </DialogFooter>
@@ -1044,35 +1076,25 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   const [likeCount, setLikeCount] = useState(video.likeCount || 0);
   const [isTrending, setIsTrending] = useState(video.isTrending || false);
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>(video.speakerIds || []);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleUpdate = () => {
-    const newErrors: Record<string, string> = {};
-    if (!title.trim()) newErrors.title = "Video title is required.";
-    if (!channelId) newErrors.channelId = "Please link this video to a channel.";
-    if (selectedSpeakerIds.length === 0) newErrors.speakers = "Please assign at least one scholar.";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
+    if (!title.trim() || !channelId) return;
     updateDocumentNonBlocking(doc(db, 'videos', video.id), {
       title, description, channelId, isTrending, speakerIds: selectedSpeakerIds, 
       viewCount: Number(viewCount), likeCount: Number(likeCount),
       updatedAt: new Date().toISOString()
     });
-    toast({ title: "Video Catalog Entry Updated" });
+    toast({ title: "Video Updated" });
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors"><Edit3 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-card sm:max-w-[650px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-border">
-        <DialogHeader className="px-6 py-5 border-b border-border bg-zinc-900/50">
+      <DialogContent className="bg-zinc-950 sm:max-w-[650px] p-0 overflow-hidden flex flex-col max-h-[90vh] border-zinc-800">
+        <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
           <DialogTitle className="text-xl font-bold">Edit Video Entry</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0">
@@ -1086,22 +1108,13 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
               <div className="grid gap-6">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Video Title <span className="text-destructive">*</span></Label>
-                  <Input 
-                    value={title} 
-                    onChange={(e) => setTitle(e.target.value)} 
-                    className="bg-zinc-900 border-zinc-800 rounded-xl h-11"
-                  />
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Connected Channel <span className="text-destructive">*</span></Label>
-                  <Select 
-                    value={channelId} 
-                    onValueChange={setChannelId}
-                  >
-                    <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-11">
-                      <SelectValue placeholder="Channel" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px] bg-zinc-900 border-zinc-800">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Channel <span className="text-destructive">*</span></Label>
+                  <Select value={channelId} onValueChange={setChannelId}>
+                    <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-11"><SelectValue placeholder="Channel" /></SelectTrigger>
+                    <SelectContent className="max-h-[300px] bg-zinc-950 border-zinc-800">{channels.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1115,7 +1128,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assigned Scholars <span className="text-destructive">*</span></Label>
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scholars <span className="text-destructive">*</span></Label>
                   <div className="grid grid-cols-2 gap-2 p-4 bg-zinc-900/50 rounded-2xl max-h-[160px] overflow-auto border border-zinc-800">
                     {speakers.map(s => (
                       <div key={s.id} className="flex items-center space-x-3 p-2 hover:bg-zinc-800 rounded-xl transition-colors">
@@ -1129,12 +1142,12 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Description</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm leading-relaxed" />
+                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[180px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-sm" />
                 </div>
-                <div className="flex items-center justify-between p-5 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-inner">
+                <div className="flex items-center justify-between p-5 bg-zinc-900 border border-zinc-800 rounded-2xl">
                   <div className="space-y-1">
                     <Label className="text-sm font-bold">Featured / Trending</Label>
-                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Promote this video on the home screen</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Promote on home screen</p>
                   </div>
                   <Switch checked={isTrending} onCheckedChange={setIsTrending} />
                 </div>
@@ -1142,9 +1155,9 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
             </div>
           </ScrollArea>
         </div>
-        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-900/50 shrink-0">
+        <DialogFooter className="px-6 py-5 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl border-zinc-800">Cancel</Button>
-          <Button onClick={handleUpdate} className="font-bold px-10 rounded-xl bg-primary text-primary-foreground h-11">Save Video Changes</Button>
+          <Button onClick={handleUpdate} className="font-bold px-10 rounded-xl bg-primary text-primary-foreground h-11">Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1154,25 +1167,25 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
 function ChannelManagement({ channels }: { channels: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
-  const [isAddChannelOpen, setIsAddChannelOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const handleDelete = (id: string) => {
     deleteDocumentNonBlocking(doc(db, 'channels', id));
-    toast({ title: "Channel Removed", description: "All linked metadata for this channel has been purged." });
+    toast({ title: "Channel Removed" });
   };
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800">
+      <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <div className="space-y-1">
           <h3 className="font-bold text-lg">YouTube Connections</h3>
-          <p className="text-xs text-muted-foreground font-medium">Link official YouTube channels to automatically import content metadata.</p>
+          <p className="text-xs text-muted-foreground font-medium">Link channels to auto-import content metadata.</p>
         </div>
-        <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} />
+        <AddChannelDialog open={isAddOpen} onOpenChange={setIsAddOpen} />
       </div>
-      <Card className="bg-card border-border overflow-hidden rounded-2xl shadow-xl">
+      <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-border">
+            <TableRow className="border-zinc-800">
               <TableHead className="w-[350px] text-[10px] font-black uppercase tracking-widest py-5">Connected Channel</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest">Subscribers</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest">Content Count</TableHead>
@@ -1181,10 +1194,10 @@ function ChannelManagement({ channels }: { channels: any[] }) {
           </TableHeader>
           <TableBody>
             {channels.map((channel) => (
-              <TableRow key={channel.id} className="hover:bg-zinc-900/40 transition-all border-border h-20">
+              <TableRow key={channel.id} className="hover:bg-zinc-900/40 transition-all border-zinc-800 h-20">
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden relative border border-zinc-800 shrink-0 shadow-sm">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden relative border border-zinc-800 shrink-0 shadow-sm bg-zinc-800">
                       {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                     </div>
                     <div className="flex flex-col min-w-0">
@@ -1224,17 +1237,17 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
   };
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800">
+      <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <div className="space-y-1">
           <h3 className="font-bold text-lg">Video Catalog</h3>
-          <p className="text-xs text-muted-foreground font-medium">Curate the video library, assign scholars, and manage featured content.</p>
+          <p className="text-xs text-muted-foreground font-medium">Manage featured content and scholar assignments.</p>
         </div>
         <AddVideoDialog channels={channels} speakers={speakers} />
       </div>
-      <Card className="bg-card border-border overflow-hidden rounded-2xl shadow-xl">
+      <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-border">
+            <TableRow className="border-zinc-800">
               <TableHead className="w-[450px] text-[10px] font-black uppercase tracking-widest py-5">Video Metadata</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest">Parent Channel</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
@@ -1243,25 +1256,20 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
           </TableHeader>
           <TableBody>
             {videos.map((video) => (
-              <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-border h-24">
+              <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-800 h-24">
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-4">
                     <div className="w-24 h-14 rounded-xl overflow-hidden relative shrink-0 border border-zinc-800 bg-zinc-900 shadow-sm">
                       {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <a 
-                        href={video.externalUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="truncate max-w-[280px] font-bold text-sm hover:text-primary transition-colors flex items-center gap-2"
-                      >
+                      <a href={video.externalUrl} target="_blank" rel="noopener noreferrer" className="truncate max-w-[280px] font-bold text-sm hover:text-primary transition-colors flex items-center gap-2">
                         {video.title}
                         <ExternalLink className="w-3 h-3 opacity-40 shrink-0" />
                       </a>
                       <div className="flex gap-2 mt-1">
-                        <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest bg-zinc-800 px-1.5 py-0.5 rounded leading-none">{video.id}</span>
-                        {video.isTrending && <span className="text-[9px] text-zinc-900 uppercase font-black tracking-widest bg-primary px-1.5 py-0.5 rounded leading-none">Featured</span>}
+                        <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest bg-zinc-900 px-1.5 py-0.5 rounded">{video.id}</span>
+                        {video.isTrending && <span className="text-[9px] text-zinc-900 uppercase font-black tracking-widest bg-primary px-1.5 py-0.5 rounded">Featured</span>}
                       </div>
                     </div>
                   </div>
@@ -1271,12 +1279,8 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
-                      <Eye className="w-3 h-3" /> {video.viewCount?.toLocaleString() || 0}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
-                      <ThumbsUp className="w-3 h-3" /> {video.likeCount?.toLocaleString() || 0}
-                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground"><Eye className="w-3 h-3" /> {video.viewCount?.toLocaleString() || 0}</div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground"><ThumbsUp className="w-3 h-3" /> {video.likeCount?.toLocaleString() || 0}</div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -1304,21 +1308,21 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
   const { toast } = useToast();
   const handleDelete = (id: string) => {
     deleteDocumentNonBlocking(doc(db, 'speakers', id));
-    toast({ title: "Scholar Profile Removed" });
+    toast({ title: "Scholar Removed" });
   };
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800">
+      <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <div className="space-y-1">
           <h3 className="font-bold text-lg">Scholar Directory</h3>
-          <p className="text-xs text-muted-foreground font-medium">Manage biographies and profiles for speakers, scholars, and reciters.</p>
+          <p className="text-xs text-muted-foreground font-medium">Manage profile info for speakers and scholars.</p>
         </div>
         <AddSpeakerDialog />
       </div>
-      <Card className="bg-card border-border overflow-hidden rounded-2xl shadow-xl">
+      <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-border">
+            <TableRow className="border-zinc-800">
               <TableHead className="w-[300px] text-[10px] font-black uppercase tracking-widest py-5">Scholar Identity</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest">Biography / Profile</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Management</TableHead>
@@ -1326,11 +1330,11 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
           </TableHeader>
           <TableBody>
             {speakers.map((s) => (
-              <TableRow key={s.id} className="hover:bg-zinc-900/40 transition-all border-border h-24">
+              <TableRow key={s.id} className="hover:bg-zinc-900/40 transition-all border-zinc-800 h-24">
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden relative border border-zinc-800 shrink-0 shadow-sm">
-                      <Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" />
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden relative border border-zinc-800 shrink-0 shadow-sm bg-zinc-800">
+                      {s.profileImageUrl && <Image src={s.profileImageUrl} alt={s.name} fill className="object-cover" />}
                     </div>
                     <div className="flex flex-col">
                        <span className="font-bold text-base leading-tight">{s.name}</span>
@@ -1339,7 +1343,7 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
                   </div>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground leading-relaxed line-clamp-2 pt-6 max-w-[450px]">
-                  {s.bio || 'No biography provided.'}
+                  {s.bio || 'No bio.'}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2 pr-2">
@@ -1349,11 +1353,6 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
                 </TableCell>
               </TableRow>
             ))}
-            {speakers.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="h-40 text-center text-muted-foreground italic font-medium">No scholar profiles created yet.</TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </Card>
@@ -1364,12 +1363,12 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
 function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 transition-all rounded-xl"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
-      <AlertDialogContent className="bg-card border-border rounded-3xl shadow-2xl">
-        <AlertDialogHeader><AlertDialogTitle className="text-2xl font-black uppercase tracking-tight">Confirm Deletion</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">This action is permanent and will immediately remove the record from the database. Linked content may lose its associations.</AlertDialogDescription></AlertDialogHeader>
+      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+      <AlertDialogContent className="bg-zinc-950 border-zinc-800 rounded-3xl shadow-2xl">
+        <AlertDialogHeader><AlertDialogTitle className="text-2xl font-black uppercase tracking-tight">Delete Record?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">This action is permanent and will remove the document from Firestore.</AlertDialogDescription></AlertDialogHeader>
         <AlertDialogFooter className="mt-8 gap-3">
-          <AlertDialogCancel className="font-bold rounded-2xl h-12 border-zinc-800 px-8">Keep Record</AlertDialogCancel>
-          <AlertDialogAction onClick={(e) => { e.preventDefault(); onConfirm(); }} className="bg-destructive text-white font-bold h-12 px-8 rounded-2xl hover:bg-destructive/90 transition-all">Delete Permanently</AlertDialogAction>
+          <AlertDialogCancel className="font-bold rounded-2xl h-12 border-zinc-800 px-8">Keep</AlertDialogCancel>
+          <AlertDialogAction onClick={(e) => { e.preventDefault(); onConfirm(); }} className="bg-destructive text-white font-bold h-12 px-8 rounded-2xl hover:bg-destructive/90 transition-all">Delete</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -1379,14 +1378,14 @@ function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
 function QuranManagement({ surahs }: { surahs: any[] }) {
   return (
     <div className="space-y-8">
-      <div className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800">
+      <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <h3 className="font-bold text-lg mb-1">Quranic Metadata</h3>
-        <p className="text-xs text-muted-foreground font-medium">Review verified Quranic Surahs and Ayats stored for reflection tools.</p>
+        <p className="text-xs text-muted-foreground font-medium">Review verified Quranic content stored in Firestore.</p>
       </div>
-      <Card className="bg-card border-border overflow-hidden rounded-2xl shadow-xl">
+      <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-border">
+            <TableRow className="border-zinc-800">
               <TableHead className="w-20 text-[10px] font-black uppercase tracking-widest py-5">No.</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest">English Identity</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest">Arabic Script</TableHead>
@@ -1396,7 +1395,7 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
           </TableHeader>
           <TableBody>
             {surahs.sort((a,b) => a.number - b.number).map((surah) => (
-              <TableRow key={surah.id} className="hover:bg-zinc-900/40 transition-all border-border h-20">
+              <TableRow key={surah.id} className="hover:bg-zinc-900/40 transition-all border-zinc-800 h-20">
                 <TableCell className="font-black text-xl text-primary opacity-50">{surah.number}</TableCell>
                 <TableCell className="font-bold text-base">{surah.nameEnglish}</TableCell>
                 <TableCell className="font-arabic text-2xl text-primary">{surah.nameArabic}</TableCell>
@@ -1406,11 +1405,6 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
                 </TableCell>
               </TableRow>
             ))}
-            {surahs.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="h-40 text-center text-muted-foreground italic font-medium">No Quranic metadata synchronized yet.</TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </Card>

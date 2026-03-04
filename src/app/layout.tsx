@@ -33,7 +33,7 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground min-h-screen flex flex-col overflow-x-hidden">
         <FirebaseClientProvider>
           <Navbar />
-          {/* pt-0 on mobile for zero gap, pt-24 on desktop for alignment */}
+          {/* pt-0 on mobile for zero gap as nav is at the bottom, pt-24 on desktop for alignment */}
           <main className="flex-grow pt-0 md:pt-24 pb-24 md:pb-0">
             {children}
           </main>
