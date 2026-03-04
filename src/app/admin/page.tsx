@@ -31,7 +31,8 @@ import {
   Wand2,
   Check,
   CloudDownload,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -203,7 +204,7 @@ export default function AdminPanel() {
               </div>
               <div className="flex flex-col">
                 <span className="font-headline font-bold text-lg leading-none">Admin Hub</span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 font-black">Management</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 font-black text-white/50">Management</span>
               </div>
             </div>
           </SidebarHeader>
@@ -369,6 +370,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
   const [loadingMore, setLoadingMore] = useState(false);
   const [isBulkImporting, setIsBulkImporting] = useState(false);
   const [bulkImportProgress, setBulkImportProgress] = useState(0);
+  const [currentSyncCount, setCurrentSyncCount] = useState(0);
   const [channelInput, setChannelInput] = useState('');
   const [fetchedData, setFetchedData] = useState<any | null>(null);
   const [view, setView] = useState<'search' | 'videos'>('search');
@@ -494,31 +496,73 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
     if (!silent) toast({ title: "Imported", description: video.snippet.title });
   };
 
-  const handleBulkImport = async () => {
-    if (!channelVideos.length) return;
+  const handleDeepSync = async () => {
+    if (!fetchedData || !apiKey) return;
     setIsBulkImporting(true);
     setBulkImportProgress(0);
-    
-    const unimported = channelVideos.filter(v => !importingVideoIds.has(v.id.videoId));
-    const total = unimported.length;
-    
-    for (let i = 0; i < total; i++) {
-      importVideo(unimported[i], true);
-      setBulkImportProgress(Math.round(((i + 1) / total) * 100));
-      // Small artificial delay for visual effect
-      await new Promise(r => setTimeout(r, 100));
-    }
-    
-    setTimeout(() => {
+    setCurrentSyncCount(0);
+
+    const totalToSync = fetchedData.videoCount || 0;
+    let currentToken: string | null = null;
+    let syncedCount = 0;
+
+    try {
+      do {
+        let url = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${fetchedData.id}&part=snippet,id&order=date&maxResults=50&type=video`;
+        if (currentToken) url += `&pageToken=${currentToken}`;
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (data.error) throw new Error(data.error.message);
+        
+        const videos = data.items || [];
+        for (const video of videos) {
+          importVideo(video, true);
+          syncedCount++;
+          setCurrentSyncCount(syncedCount);
+          if (totalToSync > 0) {
+            setBulkImportProgress(Math.min(100, Math.round((syncedCount / totalToSync) * 100)));
+          }
+        }
+        
+        currentToken = data.nextPageToken || null;
+        
+        // Safety delay to prevent browser freeze and quota flooding
+        await new Promise(r => setTimeout(r, 200));
+
+      } while (currentToken && isBulkImporting);
+
+      toast({ 
+        title: "Deep Sync Complete", 
+        description: `Successfully cataloged ${syncedCount} videos from ${fetchedData.title}.` 
+      });
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Sync Error", 
+        description: error.message || "Failed to complete deep sync." 
+      });
+    } finally {
       setIsBulkImporting(false);
-      toast({ title: "Batch Import Complete", description: `Successfully imported ${total} videos.` });
-    }, 500);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={(val) => {
       onOpenChange(val);
-      if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); setErrors({}); setImportingVideoIds(new Set()); }
+      if(!val) { 
+        setFetchedData(null); 
+        setChannelInput(''); 
+        setView('search'); 
+        setChannelVideos([]); 
+        setNextPageToken(null); 
+        setErrors({}); 
+        setImportingVideoIds(new Set());
+        setIsBulkImporting(false);
+        setBulkImportProgress(0);
+        setCurrentSyncCount(0);
+      }
     }}>
       <DialogTrigger asChild>
         <Button size="sm" className={cn("rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground", btnClass)}>
@@ -529,12 +573,12 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
       <DialogContent className={cn("bg-zinc-950 border-zinc-800 p-0 overflow-hidden flex flex-col h-[90vh] md:h-[80vh]", view === 'videos' ? "sm:max-w-[900px]" : "sm:max-w-[450px]")}>
           <DialogHeader className="px-6 py-6 border-b border-zinc-800 bg-zinc-950/50">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              {view === 'search' ? <Youtube className="w-5 h-5 text-red-500" /> : <CloudDownload className="w-5 h-5 text-primary" />}
+              {view === 'search' ? <Youtube className="w-5 h-5 text-red-500" /> : <RefreshCw className={cn("w-5 h-5 text-primary", isBulkImporting && "animate-spin")} />}
               {view === 'search' ? 'Link Channel' : `Syncing ${fetchedData?.title}`}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 relative">
+          <div className="flex-1 min-h-0 relative bg-zinc-950">
             <ScrollArea className="h-full w-full">
               {view === 'search' ? (
                 <div className="grid gap-8 p-8">
@@ -558,7 +602,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                   </div>
                   {fetchedData && (
                     <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <div className="w-16 h-16 rounded-full overflow-hidden relative border border-zinc-800 shrink-0">
+                      <div className="w-16 h-16 rounded-full overflow-hidden relative border border-zinc-800 shrink-0 bg-zinc-800">
                         <Image src={fetchedData.thumbnailUrl} alt={fetchedData.title} fill className="object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -574,16 +618,19 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
               ) : (
                 <div className="p-8 space-y-8">
                   {isBulkImporting && (
-                    <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4 animate-in fade-in zoom-in-95 duration-300 shadow-2xl">
+                    <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4 animate-in fade-in zoom-in-95 duration-300 shadow-2xl sticky top-0 z-20">
                        <div className="flex items-center justify-between">
                          <div className="flex items-center gap-3">
-                           <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                           <span className="font-bold text-sm">Batch Synchronizing...</span>
+                           <RefreshCw className="w-5 h-5 animate-spin text-primary" />
+                           <div className="flex flex-col">
+                             <span className="font-bold text-sm">Deep Cataloging...</span>
+                             <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{currentSyncCount} / {fetchedData?.videoCount || '?'} indexed</span>
+                           </div>
                          </div>
-                         <span className="text-xs font-mono font-bold">{bulkImportProgress}%</span>
+                         <span className="text-xs font-mono font-bold text-primary">{bulkImportProgress}%</span>
                        </div>
                        <Progress value={bulkImportProgress} className="h-2 bg-zinc-800" />
-                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest text-center">Please do not close this window</p>
+                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest text-center">Fetching all historical content from YouTube</p>
                     </div>
                   )}
 
@@ -634,9 +681,9 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
               Cancel
             </Button>
             {view === 'videos' && (
-               <Button onClick={handleBulkImport} disabled={isBulkImporting || channelVideos.length === 0} className="flex-1 h-12 font-bold rounded-xl bg-primary text-primary-foreground flex items-center gap-2">
+               <Button onClick={handleDeepSync} disabled={isBulkImporting} className="flex-1 h-12 font-bold rounded-xl bg-primary text-primary-foreground flex items-center gap-2">
                  {isBulkImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                 {isBulkImporting ? 'Importing...' : 'Bulk Sync All'}
+                 {isBulkImporting ? 'Deep Syncing...' : 'Deep Sync All (History)'}
                </Button>
             )}
           </DialogFooter>
@@ -757,7 +804,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
           <DialogTitle className="text-xl font-bold">Manual Video Import</DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
             <div className="p-6 space-y-8">
               {!isFetched ? (
@@ -927,7 +974,7 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
         <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
           <DialogTitle className="text-xl font-bold">New Scholar Profile</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
             <div className="grid gap-6 p-6">
               <div className="space-y-2">
@@ -988,7 +1035,7 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
         <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
           <DialogTitle className="text-xl font-bold">Edit Scholar Profile</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
             <div className="grid gap-6 p-6">
               <div className="space-y-2">
@@ -1042,7 +1089,7 @@ function EditChannelDialog({ channel }: { channel: any }) {
       </DialogTrigger>
       <DialogContent className="bg-zinc-950 flex flex-col p-0 overflow-hidden max-h-[90vh] border-zinc-800">
         <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50"><DialogTitle className="text-xl font-bold">Edit Channel Details</DialogTitle></DialogHeader>
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
             <div className="grid gap-6 p-6">
               <div className="space-y-2">
@@ -1097,7 +1144,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
         <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
           <DialogTitle className="text-xl font-bold">Edit Video Entry</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
             <div className="p-6 space-y-8">
               {video.thumbnailUrl && (
