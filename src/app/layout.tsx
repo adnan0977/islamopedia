@@ -30,11 +30,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground min-h-screen pb-20 md:pb-0 md:pl-0 overflow-x-hidden">
+      <body className="font-body antialiased bg-background text-foreground min-h-screen pb-20 md:pb-0 overflow-x-hidden">
         <FirebaseClientProvider>
           <div className="flex flex-col min-h-screen">
             <Navbar />
-            <main className="flex-grow">
+            <main className="flex-grow pt-20 md:pt-0">
               {children}
             </main>
           </div>
