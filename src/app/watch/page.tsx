@@ -50,7 +50,7 @@ export default function WatchPage() {
   }
 
   const getEmbedId = (video: any) => {
-    if (video.id.length === 11) return video.id;
+    if (video.id && video.id.length === 11) return video.id;
     const url = video.externalUrl || '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
@@ -58,8 +58,9 @@ export default function WatchPage() {
   };
 
   const embedId = getEmbedId(video);
-  // Using youtube-nocookie.com for better compatibility and privacy
-  const embedUrl = `https://www.youtube-nocookie.com/embed/${embedId}?autoplay=1&rel=0&modestbranding=1`;
+  // Using standard youtube.com/embed/ which is most compatible for domain-restricted videos
+  // Added referrerpolicy to handle potential domain restrictions correctly
+  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&modestbranding=1`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

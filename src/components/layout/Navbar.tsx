@@ -40,7 +40,7 @@ export function Navbar() {
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-all shadow-lg shadow-primary/20">
                <Sparkles className="text-white w-6 h-6" />
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col justify-center">
               <span className="font-headline tracking-tight text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 VlogNest
               </span>
@@ -48,7 +48,7 @@ export function Navbar() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-1 bg-secondary/30 p-1.5 rounded-2xl border border-border/50 shadow-inner h-fit">
+          <div className="flex items-center gap-1 bg-secondary/30 p-1.5 rounded-2xl border border-border/50 shadow-inner h-fit self-center">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -70,10 +70,10 @@ export function Navbar() {
             })}
           </div>
 
-          <div className="flex items-center gap-4 shrink-0 h-fit">
+          <div className="flex items-center gap-4 shrink-0 h-fit self-center">
             {isAdmin && (
               <Link href="/admin">
-                <Button variant="outline" size="sm" className="hidden lg:flex rounded-xl gap-2 font-bold border-accent/30 text-accent hover:bg-accent/10 h-11 px-5">
+                <Button variant="outline" size="sm" className="hidden lg:flex rounded-xl gap-2 font-bold border-accent/30 text-accent hover:bg-accent/10 h-11 px-5 items-center">
                   <ShieldCheck className="w-4 h-4" />
                   Admin
                 </Button>
@@ -84,14 +84,14 @@ export function Navbar() {
                 <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
                   <User className="w-5 h-5 text-primary" />
                 </div>
-                <div className="flex flex-col text-left">
+                <div className="flex flex-col text-left justify-center">
                   <span className="text-xs font-bold truncate max-w-[100px] leading-tight">{user.email?.split('@')[0]}</span>
                   <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black">Creator</span>
                 </div>
               </Link>
             ) : (
               <Link href="/login">
-                <Button size="lg" className="bg-primary text-white font-bold rounded-2xl px-8 h-12 shadow-xl shadow-primary/20 transition-transform active:scale-95">
+                <Button size="lg" className="bg-primary text-white font-bold rounded-2xl px-8 h-12 shadow-xl shadow-primary/20 transition-transform active:scale-95 items-center">
                   Sign In
                 </Button>
               </Link>
@@ -99,16 +99,6 @@ export function Navbar() {
           </div>
         </div>
       </nav>
-
-      {/* Mobile Branding (Top) - Fixed alignment, removes gap */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border h-16 flex items-center px-6">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Sparkles className="text-white w-4 h-4" />
-          </div>
-          <span className="font-headline font-bold text-lg text-primary">VlogNest</span>
-        </Link>
-      </div>
 
       {/* Mobile Nav (Bottom) */}
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-background/90 backdrop-blur-xl border-t border-border md:hidden pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.5)] h-20">

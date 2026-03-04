@@ -10,7 +10,6 @@ service cloud.firestore {
     }
 
     // Public Content: Open access for browsing
-    // We use a simplified match pattern to ensure all queries on these collections are allowed
     match /videos/{videoId} {
       allow read, list: if true;
       allow write: if isAdmin();
