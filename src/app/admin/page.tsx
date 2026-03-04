@@ -1502,7 +1502,7 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
     <div className="space-y-8">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <div className="space-y-1">
-          h3 className="font-bold text-lg text-white">Video Catalog</h3>
+          <h3 className="font-bold text-lg text-white">Video Catalog</h3>
           <p className="text-xs text-muted-foreground font-medium">Manage featured content and scholar assignments.</p>
         </div>
         <div className="flex items-center gap-3">
