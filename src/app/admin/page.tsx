@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -65,6 +65,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -1214,6 +1215,10 @@ function ChannelManagement({ channels, existingVideos }: { channels: any[], exis
           <p className="text-xs text-muted-foreground font-medium">Link channels to auto-import content metadata.</p>
         </div>
         <AddChannelDialog open={isAddOpen} onOpenChange={setIsAddOpen} channels={channels} existingVideos={existingVideos} />
+        <Button onClick={() => setIsAddOpen(true)} className="rounded-xl h-11 px-6 font-bold flex items-center gap-2 bg-primary text-primary-foreground">
+          <Plus className="w-4 h-4" />
+          Add Channel
+        </Button>
       </div>
       <Card className="bg-zinc-950 border-zinc-800 overflow-hidden rounded-2xl shadow-xl">
         <Table>
@@ -1396,12 +1401,26 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
 function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
   return (
     <AlertDialog>
-      <DialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl"><Trash2 className="w-4 h-4" /></Button></DialogTrigger>
+      <AlertDialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl">
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </AlertDialogTrigger>
       <AlertDialogContent className="bg-zinc-950 border-zinc-800 rounded-3xl shadow-2xl">
-        <AlertDialogHeader><DialogTitle className="text-2xl font-black uppercase tracking-tight">Delete Record?</DialogTitle><AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">This action is permanent and will remove the document from Firestore.</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-2xl font-black uppercase tracking-tight">Delete Record?</AlertDialogTitle>
+          <AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">
+            This action is permanent and will remove the document from Firestore.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
         <AlertDialogFooter className="mt-8 gap-3">
           <AlertDialogCancel className="font-bold rounded-2xl h-12 border-zinc-800 px-8">Keep</AlertDialogCancel>
-          <AlertDialogAction onClick={(e) => { e.preventDefault(); onConfirm(); }} className="bg-destructive text-white font-bold h-12 px-8 rounded-2xl hover:bg-destructive/90 transition-all">Delete</AlertDialogAction>
+          <AlertDialogAction 
+            onClick={(e) => { e.preventDefault(); onConfirm(); }} 
+            className="bg-destructive text-white font-bold h-12 px-8 rounded-2xl hover:bg-destructive/90 transition-all"
+          >
+            Delete
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -1409,6 +1428,9 @@ function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
 }
 
 function QuranManagement({ surahs }: { surahs: any[] }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  
   return (
     <div className="space-y-8">
       <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
@@ -1434,7 +1456,10 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
                 <TableCell className="font-arabic text-2xl text-primary">{surah.nameArabic}</TableCell>
                 <TableCell className="text-muted-foreground font-bold">{surah.numberOfAyahs} Verses</TableCell>
                 <TableCell className="text-right">
-                   <DeleteConfirm onConfirm={() => deleteDocumentNonBlocking(doc(useFirestore(), 'quran_surahs', surah.id))} />
+                   <DeleteConfirm onConfirm={() => {
+                     deleteDocumentNonBlocking(doc(db, 'quran_surahs', surah.id));
+                     toast({ title: "Surah Metadata Removed" });
+                   }} />
                 </TableCell>
               </TableRow>
             ))}
