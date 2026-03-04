@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, PlusSquare, BookOpen, User, Sparkles, ShieldCheck } from 'lucide-react';
+import { Home, Compass, PlusSquare, BookOpen, User, Sparkles, ShieldCheck, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -101,7 +102,7 @@ export function Navbar() {
       </nav>
 
       {/* Mobile Nav (Bottom) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-background/90 backdrop-blur-xl border-t border-border md:hidden pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.5)] h-20">
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-xl border-t border-border md:hidden pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.5)] h-20">
         <div className="flex justify-around items-center h-full px-4">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;

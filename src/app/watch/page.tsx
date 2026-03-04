@@ -37,6 +37,13 @@ export default function WatchPage() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [suggestedVideos, setSuggestedVideos] = useState<any[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin);
+    }
+  }, []);
 
   // Current Video Data
   const videoRef = useMemoFirebase(() => (videoId ? doc(db, 'videos', videoId) : null), [db, videoId]);
@@ -109,13 +116,12 @@ export default function WatchPage() {
     );
   }
 
-  const embedId = video.id;
-  // Use youtube-nocookie and standard parameters for maximum compatibility
-  const embedUrl = `https://www.youtube-nocookie.com/embed/${embedId}?autoplay=1&rel=0&modestbranding=1&showinfo=0`;
+  // standard youtube embed with origin to prevent restriction errors
+  const embedUrl = `https://www.youtube.com/embed/${video.id}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${origin}`;
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="max-w-[1700px] mx-auto flex flex-col lg:flex-row gap-6 p-0 md:p-6 lg:pt-4">
+      <main className="max-w-[1700px] mx-auto flex flex-col lg:flex-row gap-6 p-0 md:p-6 lg:pt-4 pb-24 md:pb-6">
         
         {/* Left Column: Player & Details */}
         <div className="flex-1 space-y-4">
@@ -126,7 +132,7 @@ export default function WatchPage() {
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
+              referrerPolicy="no-referrer-when-downgrade"
               className="absolute inset-0 w-full h-full border-0"
             />
           </div>
@@ -143,7 +149,13 @@ export default function WatchPage() {
                 {channel && (
                   <div className="flex items-center gap-3 group cursor-pointer">
                     <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border">
-                      <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />
+                      {channel.thumbnailUrl ? (
+                        <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-secondary flex items-center justify-center">
+                          <Youtube className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col pr-4">
                       <div className="flex items-center gap-1">
@@ -151,7 +163,7 @@ export default function WatchPage() {
                         <CheckCircle2 className="w-3 h-3 text-muted-foreground fill-muted-foreground" />
                       </div>
                       <span className="text-[11px] text-muted-foreground">
-                        {(channel.subscribersCount / 1000).toFixed(1)}K subscribers
+                        {channel.subscribersCount ? (channel.subscribersCount / 1000).toFixed(1) + 'K subscribers' : '0 subscribers'}
                       </span>
                     </div>
                   </div>
@@ -241,14 +253,17 @@ export default function WatchPage() {
                       {sVideo.title}
                     </h3>
                     <p className="text-[11px] text-muted-foreground mt-1 truncate">
-                      {sVideo.channelId} {/* Ideally channel name, but ID is fallback */}
+                      {sVideo.channelId}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      {sVideo.viewCount?.toLocaleString()} views • {new Date(sVideo.publishedAt).toLocaleDateString()}
+                      {sVideo.viewCount?.toLocaleString()} views
                     </p>
                   </div>
                 </Link>
               ))
+            )}
+            {suggestedVideos.length === 0 && !isSuggesting && (
+              <p className="text-xs text-muted-foreground text-center py-8">No related videos found.</p>
             )}
           </div>
         </div>
