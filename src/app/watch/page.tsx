@@ -58,8 +58,8 @@ export default function WatchPage() {
   };
 
   const embedId = getEmbedId(video);
-  // Simplified embed URL to avoid domain restriction blocks
-  const embedUrl = `https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0&modestbranding=1`;
+  // Using youtube-nocookie.com for better compatibility and privacy
+  const embedUrl = `https://www.youtube-nocookie.com/embed/${embedId}?autoplay=1&rel=0&modestbranding=1`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -70,7 +70,7 @@ export default function WatchPage() {
         </Button>
         <div className="flex items-center gap-3">
           <Badge variant="outline" className="hidden sm:flex border-primary/20 text-primary uppercase text-[10px] font-black tracking-widest px-3">
-            In-App Player
+            Pro Player
           </Badge>
           <Button variant="ghost" size="icon" className="rounded-full">
             <Share2 className="w-4 h-4" />
