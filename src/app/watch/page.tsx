@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -71,8 +72,8 @@ export default function WatchPage() {
   if (!videoId || !video) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center px-4">
-        <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
-          <Youtube className="w-10 h-10 text-destructive" />
+        <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto">
+          <Youtube className="w-10 h-10 text-muted-foreground" />
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">Video Unavailable</h1>
@@ -85,8 +86,8 @@ export default function WatchPage() {
     );
   }
 
-  // Use standard embed URL which is most compatible
-  const embedUrl = `https://www.youtube.com/embed/${video.id}`;
+  // Use nocookie domain for better compatibility with domain restrictions
+  const embedUrl = `https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&modestbranding=1&rel=0`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -101,7 +102,7 @@ export default function WatchPage() {
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
+              referrerPolicy="strict-origin-when-cross-origin"
               className="absolute inset-0 w-full h-full border-0"
             />
           </div>
@@ -137,26 +138,26 @@ export default function WatchPage() {
                     </div>
                   </div>
                 )}
-                <Button className="bg-foreground text-background hover:bg-foreground/90 rounded-full font-bold text-xs h-9 px-4">
+                <Button className="bg-foreground text-background hover:bg-foreground/90 rounded-full font-bold text-xs h-9 px-6 transition-transform active:scale-95">
                   Subscribe
                 </Button>
               </div>
 
               <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-                <div className="flex items-center bg-secondary rounded-full h-9">
-                  <button className="flex items-center gap-2 px-4 hover:bg-secondary-foreground/10 transition-colors border-r border-border/50 h-full rounded-l-full">
+                <div className="flex items-center bg-secondary/50 rounded-full h-9 border border-border/50">
+                  <button className="flex items-center gap-2 px-4 hover:bg-white/10 transition-colors border-r border-border/50 h-full rounded-l-full">
                     <ThumbsUp className="w-4 h-4" />
                     <span className="text-xs font-bold">{video.viewCount?.toLocaleString() || 0}</span>
                   </button>
-                  <button className="px-4 hover:bg-secondary-foreground/10 transition-colors h-full rounded-r-full">
+                  <button className="px-4 hover:bg-white/10 transition-colors h-full rounded-r-full">
                     <ThumbsDown className="w-4 h-4" />
                   </button>
                 </div>
-                <Button variant="secondary" className="rounded-full h-9 gap-2 font-bold text-xs">
+                <Button variant="secondary" className="rounded-full h-9 gap-2 font-bold text-xs bg-secondary/50 border border-border/50">
                   <Share2 className="w-4 h-4" />
                   Share
                 </Button>
-                <Button variant="secondary" className="rounded-full h-9 font-bold text-xs px-3">
+                <Button variant="secondary" className="rounded-full h-9 font-bold text-xs px-3 bg-secondary/50 border border-border/50">
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </div>
@@ -165,21 +166,21 @@ export default function WatchPage() {
             {/* Description Section */}
             <div 
               className={cn(
-                "bg-secondary/40 rounded-xl p-3 text-sm transition-all cursor-pointer hover:bg-secondary/60",
+                "bg-secondary/20 rounded-2xl p-4 text-sm transition-all cursor-pointer hover:bg-secondary/30 border border-border/30",
                 !isDescriptionExpanded ? "max-h-24 overflow-hidden" : "h-auto"
               )}
               onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
             >
-              <div className="flex items-center gap-2 font-bold mb-1">
+              <div className="flex items-center gap-2 font-black text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
                 <span>{video.viewCount?.toLocaleString() || 0} views</span>
                 <span>•</span>
                 <span>{new Date(video.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
-              <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">
+              <p className="whitespace-pre-wrap leading-relaxed text-foreground/90 font-medium">
                 {video.description || 'No description provided.'}
               </p>
               {!isDescriptionExpanded && (
-                <button className="text-xs font-bold mt-2 text-foreground">...more</button>
+                <button className="text-xs font-bold mt-3 text-primary uppercase tracking-widest">Show More</button>
               )}
             </div>
           </div>
@@ -187,38 +188,38 @@ export default function WatchPage() {
 
         {/* Right Column: Up Next */}
         <div className="w-full lg:w-[400px] shrink-0 space-y-4 px-4 md:px-0">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold flex items-center gap-2">
+          <div className="flex items-center justify-between pb-2 border-b border-border/50">
+            <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-muted-foreground">
               <Sparkles className="w-4 h-4 text-primary" />
               Up Next
             </h2>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {suggestedVideos.map((sVideo) => (
               <Link 
                 key={sVideo.id} 
                 href={`/watch?v=${sVideo.id}`}
                 className="flex gap-3 group cursor-pointer"
               >
-                <div className="relative w-40 aspect-video rounded-lg overflow-hidden shrink-0 bg-secondary/30">
-                  <Image src={sVideo.thumbnailUrl} alt={sVideo.title} fill className="object-cover" />
+                <div className="relative w-40 aspect-video rounded-xl overflow-hidden shrink-0 bg-secondary/30 border border-border/50">
+                  <Image src={sVideo.thumbnailUrl} alt={sVideo.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
                 <div className="flex flex-col min-w-0 py-0.5">
                   <h3 className="text-sm font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
                     {sVideo.title}
                   </h3>
-                  <p className="text-[11px] text-muted-foreground mt-1 truncate">
-                    {sVideo.channelId}
+                  <p className="text-[11px] text-muted-foreground mt-1.5 font-bold uppercase tracking-wider truncate">
+                    {allVideos?.find(v => v.id === sVideo.id)?.channelId || 'Channel'}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground opacity-70">
                     {sVideo.viewCount?.toLocaleString()} views
                   </p>
                 </div>
               </Link>
             ))}
             {suggestedVideos.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-8">No related videos found.</p>
+              <p className="text-xs text-muted-foreground text-center py-12 border-2 border-dashed border-border rounded-2xl">No related videos found.</p>
             )}
           </div>
         </div>

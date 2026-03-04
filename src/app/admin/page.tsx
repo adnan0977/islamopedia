@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -163,8 +164,8 @@ export default function AdminPanel() {
   if (!user || !isVerifiedAdmin) {
     return (
       <div className="max-w-md mx-auto py-20 px-4 text-center space-y-8 bg-background min-h-screen">
-        <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
-          <ShieldAlert className="w-10 h-10 text-destructive" />
+        <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-10 h-10 text-muted-foreground" />
         </div>
         <div className="space-y-2">
           <h1 className="text-3xl font-headline font-bold">Access Denied</h1>
@@ -184,7 +185,7 @@ export default function AdminPanel() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <Button variant="outline" onClick={handleSignOut} className="w-full text-destructive">Sign Out</Button>
+          <Button variant="outline" onClick={handleSignOut} className="w-full text-destructive border-border/50">Sign Out</Button>
           <Button variant="ghost" onClick={() => window.location.href = '/'} className="w-full">Home</Button>
         </div>
       </div>
@@ -258,7 +259,7 @@ export default function AdminPanel() {
                {activeTab === 'quran' && 'Quranic Metadata'}
              </h2>
              <div className="flex items-center gap-4">
-               <Button variant="outline" size="sm" className="rounded-xl px-4 h-10 font-bold" onClick={() => window.location.href = '/'}>Live Site</Button>
+               <Button variant="outline" size="sm" className="rounded-xl px-4 h-10 font-bold border-border/50" onClick={() => window.location.href = '/'}>Live Site</Button>
              </div>
           </header>
 
@@ -287,9 +288,9 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
 
   const categoryData = [
     { name: "Recitations", value: 400, fill: "hsl(var(--primary))" },
-    { name: "Islamic", value: 300, fill: "hsl(var(--accent))" },
-    { name: "Lectures", value: 200, fill: "hsl(var(--chart-3))" },
-    { name: "Vlogs", value: 100, fill: "hsl(var(--chart-4))" },
+    { name: "Islamic", value: 300, fill: "hsl(var(--muted-foreground))" },
+    { name: "Lectures", value: 200, fill: "hsl(var(--secondary))" },
+    { name: "Vlogs", value: 100, fill: "hsl(var(--muted))" },
   ];
 
   const totalSubs = channels.reduce((acc, curr) => acc + (curr.subscribersCount || 0), 0);
@@ -298,10 +299,10 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon={Youtube} label="Channels" value={channels.length} color="text-primary" bgColor="bg-primary/10" />
+        <StatCard icon={Youtube} label="Channels" value={channels.length} color="text-white" bgColor="bg-white/10" />
         <StatCard icon={VideoIcon} label="Videos" value={videos.length} color="text-white" bgColor="bg-white/10" />
-        <StatCard icon={Users} label="Total Subs" value={`${(totalSubs / 1000000).toFixed(1)}M`} color="text-primary" bgColor="bg-primary/10" />
-        <StatCard icon={Eye} label="Total Views" value={`${(totalViews / 1000000).toFixed(1)}M`} color="text-primary" bgColor="bg-primary/10" />
+        <StatCard icon={Users} label="Total Subs" value={`${(totalSubs / 1000000).toFixed(1)}M`} color="text-white" bgColor="bg-white/10" />
+        <StatCard icon={Eye} label="Total Views" value={`${(totalViews / 1000000).toFixed(1)}M`} color="text-white" bgColor="bg-white/10" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -352,7 +353,7 @@ function StatCard({ icon: Icon, label, value, color, bgColor }: any) {
           <Icon className={cn("w-6 h-6", color)} />
         </div>
         <div>
-          <p className="text-xs text-muted-foreground font-bold uppercase">{label}</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">{label}</p>
           <p className="text-2xl font-bold">{value}</p>
         </div>
       </CardContent>
@@ -487,7 +488,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
       if(!val) { setFetchedData(null); setChannelInput(''); setView('search'); setChannelVideos([]); setNextPageToken(null); setErrors({}); }
     }}>
       <DialogTrigger asChild>
-        <Button size="sm" className={btnClass}>
+        <Button size="sm" className={cn("rounded-xl h-10 px-5 font-bold flex items-center gap-2", btnClass)}>
           <Plus className="w-4 h-4" />
           Add Channel
         </Button>
@@ -529,7 +530,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                       </div>
                     </div>
                   )}
-                  <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full h-11 font-bold">
+                  <Button onClick={saveChannel} disabled={loading || !fetchedData} className="w-full h-11 font-bold rounded-xl">
                     Save & Import Videos
                   </Button>
                 </div>
@@ -537,7 +538,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {channelVideos.map((v) => (
-                      <Card key={v.id.videoId} className="overflow-hidden bg-secondary/20 border-border/50">
+                      <Card key={v.id.videoId} className="overflow-hidden bg-secondary/20 border-border/50 rounded-xl">
                         <div className="aspect-video relative">
                           <Image src={v.snippet.thumbnails.medium.url} alt={v.snippet.title} fill className="object-cover" />
                         </div>
@@ -546,7 +547,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                           <Button 
                             size="sm" 
                             variant={importingVideoIds.has(v.id.videoId) ? "secondary" : "default"}
-                            className="w-full h-7 text-[10px] font-bold" 
+                            className="w-full h-7 text-[10px] font-bold rounded-lg" 
                             onClick={() => importVideo(v)} 
                             disabled={importingVideoIds.has(v.id.videoId)}
                           >
@@ -558,7 +559,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
                   </div>
                   {nextPageToken && (
                     <div className="py-4 flex justify-center">
-                      <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore}>
+                      <Button variant="outline" size="sm" onClick={() => fetchChannelVideos(fetchedData.id, nextPageToken)} disabled={loadingMore} className="rounded-xl">
                         {loadingMore ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
                         Load More
                       </Button>
@@ -569,7 +570,7 @@ function AddChannelDialog({ open, onOpenChange, btnClass }: { open: boolean, onO
             </ScrollArea>
           </div>
           <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
-            <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full h-11 font-bold">Close</Button>
+            <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full h-11 font-bold rounded-xl">Close</Button>
           </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -678,7 +679,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
   return (
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) resetForm(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" className={btnClass}>
+        <Button size="sm" className={cn("rounded-xl h-10 px-5 font-bold flex items-center gap-2", btnClass)}>
           <Plus className="w-4 h-4" />
           Add Video
         </Button>
@@ -711,7 +712,7 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
                       className={cn("bg-secondary/50 h-11", errors.ytInput && "border-destructive")}
                       disabled={loading}
                     />
-                    <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary" className="h-11 px-6">
+                    <Button onClick={handleFetchMetadata} disabled={loading || !ytInput} variant="secondary" className="h-11 px-6 rounded-xl">
                       {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Wand2 className="w-4 h-4 mr-2" />}
                       {loading ? '' : 'Fetch'}
                     </Button>
@@ -823,9 +824,9 @@ function AddVideoDialog({ channels, speakers, btnClass }: { channels: any[], spe
         </div>
 
         <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="font-bold">Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="font-bold rounded-xl">Cancel</Button>
           {isFetched && (
-            <Button onClick={handleSave} className="bg-primary font-bold px-8" disabled={loading}>
+            <Button onClick={handleSave} className="bg-primary font-bold px-8 rounded-xl" disabled={loading}>
               {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
               Save Video
             </Button>
@@ -862,7 +863,7 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
   return (
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) setErrors({}); }}>
       <DialogTrigger asChild>
-        <Button size="sm" className={btnClass}>
+        <Button size="sm" className={cn("rounded-xl h-10 px-5 font-bold flex items-center gap-2", btnClass)}>
           <Plus className="w-4 h-4" />
           Add Scholar
         </Button>
@@ -899,8 +900,8 @@ function AddSpeakerDialog({ btnClass }: { btnClass?: string }) {
           </ScrollArea>
         </div>
         <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">Cancel</Button>
-          <Button onClick={handleSave} className="font-bold">Save Scholar</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl">Cancel</Button>
+          <Button onClick={handleSave} className="font-bold rounded-xl">Save Scholar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -965,8 +966,8 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
           </ScrollArea>
         </div>
         <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">Cancel</Button>
-          <Button onClick={handleUpdate} className="font-bold">Update Scholar</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-bold rounded-xl">Update Scholar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1023,8 +1024,8 @@ function EditChannelDialog({ channel }: { channel: any }) {
           </ScrollArea>
         </div>
         <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">Cancel</Button>
-          <Button onClick={handleUpdate} className="font-bold">Update Channel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-bold rounded-xl">Update Channel</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1157,8 +1158,8 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
           </ScrollArea>
         </div>
         <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/10 shrink-0">
-          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold">Cancel</Button>
-          <Button onClick={handleUpdate} className="font-bold px-8">Update Video</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} className="font-bold rounded-xl">Cancel</Button>
+          <Button onClick={handleUpdate} className="font-bold px-8 rounded-xl">Update Video</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1175,11 +1176,12 @@ function ChannelManagement({ channels }: { channels: any[] }) {
     toast({ title: "Removed", description: "Channel removed." });
   };
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} btnClass="bg-primary text-primary-foreground font-bold px-6 h-10 rounded-xl transition-all shadow-md active:scale-95" />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-card p-4 rounded-2xl border border-border/50">
+        <p className="text-sm text-muted-foreground font-medium">Manage connected YouTube channels and their metadata.</p>
+        <AddChannelDialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen} btnClass="bg-primary text-primary-foreground font-bold shadow-md hover:scale-[1.02] active:scale-95" />
       </div>
-      <Card className="bg-card border-border overflow-hidden">
+      <Card className="bg-card border-border overflow-hidden rounded-2xl">
         <Table>
           <TableHeader className="bg-secondary/30">
             <TableRow>
@@ -1225,11 +1227,12 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
     toast({ title: "Removed" });
   };
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <AddVideoDialog channels={channels} speakers={speakers} btnClass="bg-primary text-primary-foreground font-bold px-6 h-10 rounded-xl transition-all shadow-md active:scale-95" />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-card p-4 rounded-2xl border border-border/50">
+        <p className="text-sm text-muted-foreground font-medium">Browse and curate the video library, including AI-generated insights.</p>
+        <AddVideoDialog channels={channels} speakers={speakers} btnClass="bg-primary text-primary-foreground font-bold shadow-md hover:scale-[1.02] active:scale-95" />
       </div>
-      <Card className="bg-card border-border overflow-hidden">
+      <Card className="bg-card border-border overflow-hidden rounded-2xl">
         <Table>
           <TableHeader className="bg-secondary/30">
             <TableRow>
@@ -1300,11 +1303,12 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
     toast({ title: "Removed" });
   };
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <AddSpeakerDialog btnClass="bg-primary text-primary-foreground font-bold px-6 h-10 rounded-xl transition-all shadow-md active:scale-95" />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-card p-4 rounded-2xl border border-border/50">
+        <p className="text-sm text-muted-foreground font-medium">Maintain profiles for scholars, speakers, and reciters.</p>
+        <AddSpeakerDialog btnClass="bg-primary text-primary-foreground font-bold shadow-md hover:scale-[1.02] active:scale-95" />
       </div>
-      <Card className="bg-card border-border overflow-hidden">
+      <Card className="bg-card border-border overflow-hidden rounded-2xl">
         <Table>
           <TableHeader className="bg-secondary/30">
             <TableRow>
@@ -1344,11 +1348,11 @@ function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
-      <AlertDialogContent className="bg-card border-border">
+      <AlertDialogContent className="bg-card border-border rounded-3xl">
         <AlertDialogHeader><AlertDialogTitle className="text-xl">Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">This action cannot be undone. This will permanently remove the record from our database.</AlertDialogDescription></AlertDialogHeader>
         <AlertDialogFooter className="mt-6">
-          <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={(e) => { e.preventDefault(); onConfirm(); }} className="bg-destructive font-bold text-white hover:bg-destructive/90">Delete Record</AlertDialogAction>
+          <AlertDialogCancel className="font-bold rounded-xl">Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={(e) => { e.preventDefault(); onConfirm(); }} className="bg-destructive font-bold text-white hover:bg-destructive/90 rounded-xl">Delete Record</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -1356,38 +1360,37 @@ function DeleteConfirm({ onConfirm }: { onConfirm: () => void }) {
 }
 
 function QuranManagement({ surahs }: { surahs: any[] }) {
-  const db = useFirestore();
-  const { toast } = useToast();
-  const handleDelete = (id: string) => {
-    deleteDocumentNonBlocking(doc(db, 'quran_surahs', id));
-    toast({ title: "Removed" });
-  };
   return (
-    <Card className="bg-card border-border overflow-hidden">
-      <Table>
-        <TableHeader className="bg-secondary/30">
-          <TableRow>
-            <TableHead className="w-20">No.</TableHead>
-            <TableHead>English Name</TableHead>
-            <TableHead>Arabic Name</TableHead>
-            <TableHead>Ayahs</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {surahs.sort((a,b) => a.number - b.number).map((surah) => (
-            <TableRow key={surah.id} className="hover:bg-secondary/20 transition-colors">
-              <TableCell className="font-bold text-primary">{surah.number}</TableCell>
-              <TableCell className="font-bold">{surah.nameEnglish}</TableCell>
-              <TableCell className="font-arabic text-xl text-primary">{surah.nameArabic}</TableCell>
-              <TableCell className="text-muted-foreground">{surah.numberOfAyahs}</TableCell>
-              <TableCell className="text-right">
-                 <DeleteConfirm onConfirm={() => handleDelete(surah.id)} />
-              </TableCell>
+    <div className="space-y-6">
+      <div className="bg-card p-4 rounded-2xl border border-border/50">
+        <p className="text-sm text-muted-foreground font-medium">View and verify Quranic Surahs and Ayats stored in the database.</p>
+      </div>
+      <Card className="bg-card border-border overflow-hidden rounded-2xl">
+        <Table>
+          <TableHeader className="bg-secondary/30">
+            <TableRow>
+              <TableHead className="w-20">No.</TableHead>
+              <TableHead>English Name</TableHead>
+              <TableHead>Arabic Name</TableHead>
+              <TableHead>Ayahs</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {surahs.sort((a,b) => a.number - b.number).map((surah) => (
+              <TableRow key={surah.id} className="hover:bg-secondary/20 transition-colors">
+                <TableCell className="font-bold text-primary">{surah.number}</TableCell>
+                <TableCell className="font-bold">{surah.nameEnglish}</TableCell>
+                <TableCell className="font-arabic text-xl text-primary">{surah.nameArabic}</TableCell>
+                <TableCell className="text-muted-foreground">{surah.numberOfAyahs}</TableCell>
+                <TableCell className="text-right">
+                   <DeleteConfirm onConfirm={() => deleteDocumentNonBlocking(doc(useFirestore(), 'quran_surahs', surah.id))} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
