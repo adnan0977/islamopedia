@@ -15,7 +15,7 @@ service cloud.firestore {
     }
 
     // --- Public Content (Open Read Access) ---
-    // Explicitly allowing list/get for all users to enable browsing and filtering
+    // Explicitly allow get and list for unauthenticated users
     
     match /videos/{videoId} {
       allow read: if true;

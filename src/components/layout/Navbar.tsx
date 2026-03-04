@@ -36,7 +36,7 @@ export function Navbar() {
     <>
       {/* Desktop Nav */}
       <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border/50 h-20 shadow-2xl transition-all duration-300">
-        <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between h-full">
+        <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between h-full relative">
           {/* Logo Section */}
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center group-hover:rotate-6 transition-all shadow-lg shadow-primary/20">
