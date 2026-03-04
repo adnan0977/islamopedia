@@ -70,7 +70,6 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
@@ -82,7 +81,7 @@ import {
   SelectItem, 
   SelectTrigger, 
   SelectValue 
-} from "@/select"
+} from "@/components/ui/select"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -1164,7 +1163,7 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
                       )}
                    </div>
                    <div className="flex-1 space-y-2">
-                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Update Image URL</Label>
+                     <Label className="text-[10px) font-black uppercase text-muted-foreground tracking-widest">Update Image URL</Label>
                      <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white" />
                    </div>
                 </div>
