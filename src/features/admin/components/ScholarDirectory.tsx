@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { 
   Card, 
@@ -126,12 +126,12 @@ export function ScholarDirectory() {
                 <span className="text-sm">Add New Scholar</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-xl shadow-2xl">
-              <DialogHeader>
+            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-xl shadow-2xl flex flex-col max-h-[90vh]">
+              <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
                 <DialogTitle className="text-2xl font-bold">Register Scholar</DialogTitle>
                 <DialogDescription className="text-zinc-500">Create a new profile for a spiritual teacher.</DialogDescription>
               </DialogHeader>
-              <div className="space-y-6 py-6">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6">
                 <div className="space-y-2">
                   <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Scholar Name</Label>
                   <Input 
@@ -160,12 +160,14 @@ export function ScholarDirectory() {
                   />
                 </div>
               </div>
-              <Button 
-                className="w-full h-14 font-bold rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl border border-zinc-800" 
-                onClick={handleAddScholar}
-              >
-                Save Scholar Profile
-              </Button>
+              <div className="p-8 border-t border-zinc-900 bg-zinc-950 shrink-0">
+                <Button 
+                  className="w-full h-14 font-bold rounded-2xl bg-zinc-100 text-black hover:bg-white shadow-xl transition-all active:scale-[0.98]" 
+                  onClick={handleAddScholar}
+                >
+                  Save Scholar Profile
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
           <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold hidden sm:flex items-center gap-2">
