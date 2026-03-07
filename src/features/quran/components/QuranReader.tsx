@@ -14,7 +14,9 @@ import {
   Book as BookIcon,
   ArrowLeft,
   Database,
-  Settings
+  Settings,
+  Volume2,
+  Mic2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -365,15 +367,6 @@ export function QuranReader() {
             <div className="space-y-12">
               {groupedAyats.map(group => (
                 <div key={group.surah.number} className="space-y-8">
-                  {/* Surah Header for the page */}
-                  <div className="flex items-center justify-between border-b border-zinc-900 pb-4 mb-8">
-                    <div className="flex items-center gap-3">
-                      <AyatFrame number={group.surah.number} size="sm" frameId={ayatFrameId} />
-                      <h2 className="font-bold text-lg text-zinc-200">{group.surah.englishName}</h2>
-                    </div>
-                    <span className="text-2xl font-arabic text-zinc-500">{group.surah.name}</span>
-                  </div>
-
                   {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                   
                   {viewMode === 'page' ? (
