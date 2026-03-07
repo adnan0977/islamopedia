@@ -95,9 +95,7 @@ export function QuranReader() {
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="flex gap-8 group">
                           <div className="w-12 pt-2 shrink-0">
-                            <span className="text-[10px] font-black text-zinc-100 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
-                              {toArabicNumerals(a.numberInSurah)}
-                            </span>
+                            <AyatNumberFrame number={a.numberInSurah} />
                           </div>
                           <div className="flex-1 space-y-8">
                             <p className="text-right text-4xl md:text-6xl font-arabic leading-[2] text-zinc-100" dir="rtl">
@@ -119,8 +117,8 @@ export function QuranReader() {
                   {quranData.arabic.map(a => (
                     <span key={a.number} className="hover:text-white transition-colors">
                       {a.text} 
-                      <span className="inline-flex items-center justify-center w-14 h-14 mx-4 text-base border border-zinc-800 rounded-full font-sans font-black text-zinc-600 bg-zinc-900/30">
-                        {toArabicNumerals(a.numberInSurah)}
+                      <span className="inline-flex mx-2">
+                        <AyatNumberFrame number={a.numberInSurah} size="lg" />
                       </span>
                     </span>
                   ))}
@@ -130,6 +128,35 @@ export function QuranReader() {
           </ScrollArea>
         )}
       </Card>
+    </div>
+  );
+}
+
+function AyatNumberFrame({ number, size = "md" }: { number: number | string, size?: "sm" | "md" | "lg" }) {
+  const dimensions = {
+    sm: "w-8 h-8",
+    md: "w-10 h-10",
+    lg: "w-14 h-14"
+  };
+  
+  const fontSizes = {
+    sm: "text-[8px]",
+    md: "text-[10px]",
+    lg: "text-xs"
+  };
+
+  return (
+    <div className={cn("relative inline-flex items-center justify-center shrink-0 align-middle", dimensions[size])}>
+      <svg 
+        viewBox="0 0 100 100" 
+        className="absolute inset-0 w-full h-full text-zinc-800 fill-zinc-900/30 stroke-zinc-700"
+        strokeWidth="3"
+      >
+        <path d="M50 5 L62 38 L95 50 L62 62 L50 95 L38 62 L5 50 L38 38 Z" />
+      </svg>
+      <span className={cn("relative z-10 font-black font-sans text-zinc-400", fontSizes[size])}>
+        {toArabicNumerals(number)}
+      </span>
     </div>
   );
 }
