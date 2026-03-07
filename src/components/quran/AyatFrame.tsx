@@ -29,18 +29,18 @@ export function AyatFrame({ number, frameId = 'ornate-star', customPath, customI
   
   const dimensions = {
     sm: "w-[24px] h-[24px]",
-    md: "w-[32px] h-[32px]",
-    lg: "w-[40px] h-[40px]"
+    md: "w-[36px] h-[36px]",
+    lg: "w-[48px] h-[48px]"
   };
   
   const fontSizes = {
-    sm: "text-[8px]",
-    md: "text-[10px]",
-    lg: "text-[12px]"
+    sm: "text-[10px]",
+    md: "text-[14px]",
+    lg: "text-[18px]"
   };
 
   return (
-    <span className={cn("relative inline-flex items-center justify-center shrink-0 align-middle", dimensions[size], className)}>
+    <span className={cn("relative inline-flex items-center justify-center shrink-0 align-middle select-none", dimensions[size], className)}>
       {isImage ? (
         <img 
           src={customImageUrl} 

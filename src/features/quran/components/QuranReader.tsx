@@ -71,7 +71,6 @@ export function QuranReader() {
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Variable initialization for rendering logic
   const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
                     (viewMode === 'juz' && selectedJuz !== null) || 
                     (viewMode === 'page' && selectedPage !== null);
@@ -104,7 +103,7 @@ export function QuranReader() {
     };
   }, []);
 
-  // Sync State FROM URL (Handles browser Back/Forward)
+  // Sync State FROM URL
   useEffect(() => {
     const mode = (searchParams.get('mode') as QuranViewMode) || 'surah';
     const surah = searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null;
@@ -151,7 +150,7 @@ export function QuranReader() {
     audio.onended = () => setPlayingAyat(null);
   };
 
-  // Content Fetching Logic
+  // Content Fetching
   useEffect(() => {
     if (!isReading) {
       setContent([]);
@@ -241,7 +240,7 @@ export function QuranReader() {
 
   const goBackToIndex = () => {
     const params = new URLSearchParams();
-    params.set('mode', viewMode);
+    params.set('mode', viewMode === 'page' ? 'surah' : viewMode);
     router.push(`/quran?${params.toString()}`);
   };
 
@@ -261,7 +260,7 @@ export function QuranReader() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col space-y-4">
-      {/* Dynamic Reader Header */}
+      {/* Header */}
       <div className="sticky top-0 md:top-24 z-50 bg-background -mx-4 px-4 py-3">
         <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 rounded-[2rem] border border-zinc-900 shadow-2xl gap-4">
           <div className="flex items-center gap-4">
@@ -386,10 +385,7 @@ export function QuranReader() {
             )}
           </div>
         ) : (
-          <div 
-            ref={ayatScrollContainerRef}
-            className="flex-1 overflow-y-auto scrollbar-hide"
-          >
+          <div ref={ayatScrollContainerRef} className="flex-1 overflow-y-auto scrollbar-hide">
             {loadingContent ? (
               <div className="flex flex-col items-center justify-center py-32 space-y-4">
                 <Loader2 className="w-10 h-10 animate-spin text-zinc-800" />
@@ -414,11 +410,11 @@ export function QuranReader() {
                           {surah.ayats.map((ayat) => (
                             <span key={ayat.number} className="inline">
                               {ayat.text}
-                              <span className="inline-block mx-3 align-middle">
+                              <span className="inline-flex mx-5 align-middle">
                                 <AyatFrame 
                                   number={ayat.numberInSurah} 
                                   frameId={ayatFrameId} 
-                                  size="md" 
+                                  size="lg" 
                                 />
                               </span>
                             </span>
@@ -427,41 +423,24 @@ export function QuranReader() {
                       </div>
                     ) : (
                       surah.ayats.map((ayat, aIdx) => (
-                        <div 
-                          key={`${ayat.number}-${aIdx}`} 
-                          className="flex flex-col items-center justify-center border-b border-zinc-900/30 p-8 md:p-24 min-h-[40vh]"
-                        >
+                        <div key={`${ayat.number}-${aIdx}`} className="flex flex-col items-center justify-center border-b border-zinc-900/30 p-8 md:p-24 min-h-[40vh]">
                           <div className="w-full max-w-4xl space-y-12 text-center">
-                            {/* Verse Header */}
                             <div className="flex items-center justify-between w-full border-b border-zinc-900 pb-4 mb-8">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">
-                                Verse {ayat.numberInSurah}
-                              </span>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Verse {ayat.numberInSurah}</span>
                               <Button 
-                                variant="ghost" 
-                                size="icon" 
+                                variant="ghost" size="icon" 
                                 className="rounded-full h-10 w-10 bg-zinc-900/50 text-zinc-500 hover:text-white"
                                 onClick={() => playAudio(ayat.number)}
                               >
-                                {playingAyat === ayat.number ? (
-                                  <Square className="w-4 h-4 fill-current" />
-                                ) : (
-                                  <Play className="w-4 h-4 fill-current ml-0.5" />
-                                )}
+                                {playingAyat === ayat.number ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
                               </Button>
                             </div>
-
                              <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                               {ayat.text}
                               <span className="inline-block mr-4 align-middle">
-                                <AyatFrame 
-                                  number={ayat.numberInSurah} 
-                                  frameId={ayatFrameId} 
-                                  size="md" 
-                                />
+                                <AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} size="md" />
                               </span>
                             </p>
-                            
                             <div className="space-y-6 text-left">
                               {localSettings.showTransliteration && ayat.transliterationText && (
                                 <p className="text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{ayat.transliterationText}</p>
@@ -481,21 +460,6 @@ export function QuranReader() {
           </div>
         )}
       </Card>
-
-      {isReading && (
-        <div className="flex items-center justify-between px-6 pb-32">
-          <div className="text-zinc-600 font-black text-[10px] uppercase tracking-widest">
-            {viewMode === 'surah' ? 'Full Surah View' : viewMode === 'juz' ? 'Juz Content' : 'Page Context'}
-          </div>
-          <Button 
-            variant="ghost" 
-            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
-            onClick={goBackToIndex}
-          >
-            Back to Quran Index
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
