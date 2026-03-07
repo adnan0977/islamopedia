@@ -12,39 +12,14 @@ import {
   Layers, 
   Type, 
   Book as BookIcon,
-  Languages,
   ArrowLeft,
   Database,
-  Check,
   Settings,
-  Search,
-  FilterX,
-  Globe,
-  ChevronDown,
   Volume2,
-  Mic2,
-  Languages as TransliterationIcon,
-  Eye,
-  EyeOff
+  Mic2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
@@ -62,16 +37,13 @@ export function QuranReader() {
   const initialMode = (searchParams.get('mode') as 'ayat' | 'page' | 'index') || 'index';
   const initialIndexType = (searchParams.get('type') as 'surah' | 'juz') || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
-  const initialTrans = searchParams.get('trans') || 'en.sahih';
-  const initialTranslit = searchParams.get('translit') || 'none';
-  const initialAudio = searchParams.get('audio') || 'none';
 
   const [localSettings, setLocalSettings] = useState({
     arabicFontSize: 40,
     translationFontSize: 16,
-    preferredTranslationId: initialTrans,
-    preferredTransliterationId: initialTranslit,
-    preferredAudioId: initialAudio,
+    preferredTranslationId: 'en.sahih',
+    preferredTransliterationId: 'none',
+    preferredAudioId: 'none',
     ayatFrameId: 'royal-ornate',
     showTranslation: true,
     showTransliteration: true,
@@ -83,12 +55,8 @@ export function QuranReader() {
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[], translit: any[] }>({ arabic: [], trans: [], translit: [] });
-  const [selectedEditionId, setSelectedEditionId] = useState(initialTrans);
-  const [selectedTranslitId, setSelectedTranslitId] = useState(initialTranslit);
-  const [selectedAudioId, setSelectedAudioId] = useState(initialAudio);
-  
-  const [langFilter, setLangFilter] = useState('all');
 
+  // Load settings from local storage
   useEffect(() => {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
     const saved = localStorage.getItem(storageKey);
@@ -102,29 +70,16 @@ export function QuranReader() {
           showTransliteration: parsed.showTransliteration ?? true,
           showAudio: parsed.showAudio ?? true
         }));
-        if (parsed.preferredTranslationId && !searchParams.get('trans')) {
-          setSelectedEditionId(parsed.preferredTranslationId);
-        }
-        if (parsed.preferredTransliterationId && !searchParams.get('translit')) {
-          setSelectedTranslitId(parsed.preferredTransliterationId);
-        }
-        if (parsed.preferredAudioId && !searchParams.get('audio')) {
-          setSelectedAudioId(parsed.preferredAudioId);
-        }
       } catch (e) {
         console.error("Error parsing local quran settings", e);
       }
     }
-  }, [user, searchParams]);
+  }, [user]);
 
+  // Sync URL state
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
-    params.set('trans', selectedEditionId);
-    if (selectedTranslitId && selectedTranslitId !== 'none') params.set('translit', selectedTranslitId);
-    else params.delete('translit');
-    if (selectedAudioId && selectedAudioId !== 'none') params.set('audio', selectedAudioId);
-    else params.delete('audio');
     
     if (viewMode === 'index') {
       params.set('type', indexType);
@@ -134,7 +89,7 @@ export function QuranReader() {
       params.set('page', currentPage.toString());
     }
     router.replace(`/quran?${params.toString()}`, { scroll: false });
-  }, [viewMode, indexType, currentPage, selectedEditionId, selectedTranslitId, selectedAudioId, router, searchParams]);
+  }, [viewMode, indexType, currentPage, router, searchParams]);
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
@@ -143,47 +98,17 @@ export function QuranReader() {
   ), [db]);
   const { data: editions } = useCollection(editionsQuery);
 
-  const languages = useMemo(() => {
-    if (!editions) return [];
-    return Array.from(new Set(editions.map(e => e.language))).sort();
-  }, [editions]);
-
-  const editionsForSelectedLang = useMemo(() => {
-    if (!editions) return [];
-    if (langFilter === 'all') return editions;
-    return editions.filter(e => e.language === langFilter);
-  }, [editions, langFilter]);
-
-  const translationEditions = useMemo(() => {
-    return editionsForSelectedLang.filter(e => e.type === 'translation' && e.format === 'text');
-  }, [editionsForSelectedLang]);
-
-  const transliterationEditions = useMemo(() => {
-    return editionsForSelectedLang.filter(e => e.type === 'transliteration' && e.format === 'text');
-  }, [editionsForSelectedLang]);
-
-  const audioEditions = useMemo(() => {
-    return editionsForSelectedLang.filter(e => e.format === 'audio' || e.type === 'audio');
-  }, [editionsForSelectedLang]);
-
-  useEffect(() => {
-    if (editions && selectedEditionId && langFilter === 'all') {
-      const current = editions.find(e => e.id === selectedEditionId);
-      if (current) setLangFilter(current.language);
-    }
-  }, [editions, selectedEditionId, langFilter]);
-
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
 
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
-  const { data: settings } = useDoc(settingsRef);
+  const { data: globalAppSettings } = useDoc(settingsRef);
   
   const arabicFontSize = localSettings.arabicFontSize;
   const transFontSize = localSettings.translationFontSize;
-  const ayatFrameId = localSettings.ayatFrameId || settings?.ayatFrameId || 'ornate-star';
-  const customAyatFramePath = settings?.customAyatFramePath;
-  const frameImageUrl = settings?.frameImageUrl;
+  const ayatFrameId = localSettings.ayatFrameId || globalAppSettings?.ayatFrameId || 'ornate-star';
+  const customAyatFramePath = globalAppSettings?.customAyatFramePath;
+  const frameImageUrl = globalAppSettings?.frameImageUrl;
 
   const cleanAyatText = (text: string, surahNumber: number, ayatNumberInSurah: number) => {
     if (surahNumber !== 9 && ayatNumberInSurah === 1) {
@@ -225,14 +150,14 @@ export function QuranReader() {
                 surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } 
               });
               
-              const transSurah = docsByEdition[selectedEditionId];
+              const transSurah = docsByEdition[localSettings.preferredTranslationId];
               if (transSurah) {
                 const matchingAyat = transSurah.ayats.find((ta: any) => ta.number === a.number);
                 if (matchingAyat) pageTrans.push(matchingAyat);
               }
 
-              if (selectedTranslitId && selectedTranslitId !== 'none') {
-                const translitSurah = docsByEdition[selectedTranslitId];
+              if (localSettings.preferredTransliterationId && localSettings.preferredTransliterationId !== 'none') {
+                const translitSurah = docsByEdition[localSettings.preferredTransliterationId];
                 if (translitSurah) {
                   const matchingAyat = translitSurah.ayats.find((ta: any) => ta.number === a.number);
                   if (matchingAyat) pageTranslit.push(matchingAyat);
@@ -254,7 +179,7 @@ export function QuranReader() {
       }
     }
     fetchPage();
-  }, [currentPage, selectedEditionId, selectedTranslitId, viewMode, db]);
+  }, [currentPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId, viewMode, db]);
 
   const groupedAyats = useMemo(() => {
     const groups: any[] = [];
@@ -279,13 +204,6 @@ export function QuranReader() {
     });
     return groups;
   }, [quranData]);
-
-  const updateDisplaySettings = (key: string, val: boolean) => {
-    const updated = { ...localSettings, [key]: val };
-    setLocalSettings(updated);
-    const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
-    localStorage.setItem(storageKey, JSON.stringify(updated));
-  };
 
   const isReading = viewMode !== 'index';
 
@@ -354,124 +272,6 @@ export function QuranReader() {
               </div>
             ) : (
               <div className="flex items-center gap-2 md:gap-3">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white transition-all">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 bg-zinc-950 border-zinc-800 p-6 rounded-2xl shadow-2xl z-[100] space-y-6">
-                    <div className="space-y-4">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Display Options</Label>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-zinc-300">Translation</span>
-                        <Switch 
-                          checked={localSettings.showTranslation}
-                          onCheckedChange={(val) => updateDisplaySettings('showTranslation', val)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-zinc-300">Transliteration</span>
-                        <Switch 
-                          checked={localSettings.showTransliteration}
-                          onCheckedChange={(val) => updateDisplaySettings('showTransliteration', val)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-zinc-300">Audio Controls</span>
-                        <Switch 
-                          checked={localSettings.showAudio}
-                          onCheckedChange={(val) => updateDisplaySettings('showAudio', val)}
-                        />
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" className="rounded-xl h-10 px-3 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white transition-all">
-                      <Languages className="w-4 h-4 md:mr-2" />
-                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Recitation Hub</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 bg-zinc-950 border-zinc-800 p-6 rounded-2xl shadow-2xl z-[100] space-y-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">1. Available Languages</span>
-                      </div>
-                      <Select value={langFilter} onValueChange={setLangFilter}>
-                        <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
-                          <SelectValue placeholder="Choose Language" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectItem value="all">All Languages</SelectItem>
-                          {languages.map(l => (
-                            <SelectItem key={l} value={l}>{l}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Type className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">2. Translation</span>
-                      </div>
-                      <Select value={selectedEditionId} onValueChange={setSelectedEditionId}>
-                        <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
-                          <SelectValue placeholder="Choose Translation" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          {translationEditions.map(e => (
-                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                          ))}
-                          {translationEditions.length === 0 && (
-                            <div className="p-4 text-center text-xs text-zinc-500">No translations available</div>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <TransliterationIcon className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">3. Transliteration</span>
-                      </div>
-                      <Select value={selectedTranslitId} onValueChange={setSelectedTranslitId}>
-                        <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
-                          <SelectValue placeholder="Choose Transliteration" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectItem value="none">None</SelectItem>
-                          {transliterationEditions.map(e => (
-                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Volume2 className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">4. Audio Reciter</span>
-                      </div>
-                      <Select value={selectedAudioId} onValueChange={setSelectedAudioId}>
-                        <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
-                          <SelectValue placeholder="Choose Qari" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectItem value="none">None</SelectItem>
-                          {audioEditions.map(e => (
-                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -616,14 +416,14 @@ export function QuranReader() {
       </Card>
 
       {/* Audio Section */}
-      {isReading && localSettings.showAudio && selectedAudioId !== 'none' && (
+      {isReading && localSettings.showAudio && localSettings.preferredAudioId !== 'none' && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl z-50 animate-in slide-in-from-bottom-8 duration-500">
           <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-4 shadow-2xl flex items-center gap-6">
             <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center shrink-0 border border-zinc-800">
                <Volume2 className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-               <p className="text-xs font-bold text-white truncate">Reciting: {editions?.find(e => e.id === selectedAudioId)?.name}</p>
+               <p className="text-xs font-bold text-white truncate">Reciting: {editions?.find(e => e.id === localSettings.preferredAudioId)?.name || 'Selected Reciter'}</p>
                <p className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage}</p>
             </div>
             <div className="flex items-center gap-2">
