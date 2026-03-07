@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { 
   Loader2, 
   ChevronLeft, 
   ChevronRight, 
-  Grid3X3, 
   Layers, 
   Book as BookIcon,
   ArrowLeft,
@@ -27,6 +26,13 @@ import Link from 'next/link';
 import { getOfflineSurah } from '@/lib/offline-db';
 
 const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+
+interface PageContent {
+  pageNumber: number;
+  arabic: any[];
+  trans: any[];
+  translit: any[];
+}
 
 export function QuranReader() {
   const db = useFirestore();
@@ -50,13 +56,18 @@ export function QuranReader() {
     showAudio: true
   });
 
-  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [basePage, setBasePage] = useState(initialPage);
+  const [visiblePage, setVisiblePage] = useState(initialPage);
   const [viewMode, setViewMode] = useState<'ayat' | 'page' | 'index'>(initialMode);
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
-  const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[], translit: any[] }>({ arabic: [], trans: [], translit: [] });
+  const [pagedData, setPagedData] = useState<PageContent[]>([]);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  
+  const observer = useRef<IntersectionObserver | null>(null);
+  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
+  // Load settings
   useEffect(() => {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
     const saved = localStorage.getItem(storageKey);
@@ -70,6 +81,7 @@ export function QuranReader() {
     }
   }, [user]);
 
+  // Update URL
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
@@ -78,16 +90,10 @@ export function QuranReader() {
       params.delete('page');
     } else {
       params.delete('type');
-      params.set('page', currentPage.toString());
+      params.set('page', visiblePage.toString());
     }
     router.replace(`/quran?${params.toString()}`, { scroll: false });
-  }, [viewMode, indexType, currentPage, router, searchParams]);
-
-  const editionsQuery = useMemoFirebase(() => query(
-    collection(db, 'quran_editions'), 
-    where('isActive', '==', true)
-  ), [db]);
-  const { data: editions } = useCollection(editionsQuery);
+  }, [viewMode, indexType, visiblePage, router, searchParams]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
@@ -103,114 +109,186 @@ export function QuranReader() {
     return text;
   };
 
-  useEffect(() => {
-    async function fetchPage() {
-      if (viewMode === 'index') return;
-      setLoadingContent(true);
-      setIsOfflineMode(false);
+  const fetchPageData = async (pageNum: number) => {
+    if (pageNum < 1 || pageNum > 604) return null;
+    
+    try {
+      const preferredIds = ['quran-uthmani', localSettings.preferredTranslationId, localSettings.preferredTransliterationId]
+        .filter(id => id && id !== 'none');
       
-      try {
-        const preferredIds = ['quran-uthmani', localSettings.preferredTranslationId, localSettings.preferredTransliterationId]
-          .filter(id => id && id !== 'none');
-        
-        let offlineWorks = false;
-        const docsByEdition: Record<string, any> = {};
+      let currentIsOffline = false;
+      const docsByEdition: Record<string, any> = {};
 
-        const q = query(collection(db, 'quran'), where('pages', 'array-contains', currentPage));
-        const snapshots = await getDocs(q);
-        
-        const surahNumbersOnPage = Array.from(new Set(snapshots.docs.map(d => d.data().surahNumber)));
+      const q = query(collection(db, 'quran'), where('pages', 'array-contains', pageNum));
+      const snapshots = await getDocs(q);
+      
+      const surahNumbersOnPage = Array.from(new Set(snapshots.docs.map(d => d.data().surahNumber)));
 
-        for (const editionId of preferredIds) {
-          docsByEdition[editionId] = [];
-          for (const sNum of surahNumbersOnPage) {
-            const offlineSurah = await getOfflineSurah(`${editionId}_surah_${sNum}`);
-            if (offlineSurah) {
-              docsByEdition[editionId].push(offlineSurah);
-              offlineWorks = true;
-            }
+      for (const editionId of preferredIds) {
+        docsByEdition[editionId] = [];
+        for (const sNum of surahNumbersOnPage) {
+          const offlineSurah = await getOfflineSurah(`${editionId}_surah_${sNum}`);
+          if (offlineSurah) {
+            docsByEdition[editionId].push(offlineSurah);
+            currentIsOffline = true;
           }
         }
-
-        let arabicData: any[] = [];
-        let transData: any[] = [];
-        let translitData: any[] = [];
-
-        if (offlineWorks && docsByEdition['quran-uthmani']?.length > 0) {
-          setIsOfflineMode(true);
-          const uthmaniDocs = docsByEdition['quran-uthmani'];
-          uthmaniDocs.forEach((s: any) => {
-            s.ayahs.forEach((a: any) => {
-              if (a.page === currentPage) {
-                arabicData.push({ ...a, text: cleanAyatText(a.text, s.number, a.numberInSurah), surah: { number: s.number, name: s.name, englishName: s.englishName } });
-              }
-            });
-          });
-          
-          if (viewMode === 'ayat') {
-            arabicData.sort((a, b) => a.number - b.number);
-            arabicData.forEach(aa => {
-              const trSurah = docsByEdition[localSettings.preferredTranslationId]?.find((s: any) => s.number === aa.surah.number);
-              const trAyat = trSurah?.ayahs.find((ta: any) => ta.number === aa.number);
-              transData.push(trAyat || null);
-
-              const tlSurah = docsByEdition[localSettings.preferredTransliterationId]?.find((s: any) => s.number === aa.surah.number);
-              const tlAyat = tlSurah?.ayahs.find((ta: any) => ta.number === aa.number);
-              translitData.push(tlAyat || null);
-            });
-          }
-        } else {
-          const firestoreDocs: Record<string, any> = {};
-          snapshots.forEach(d => {
-            const data = d.data();
-            if (!firestoreDocs[data.editionId]) firestoreDocs[data.editionId] = [];
-            firestoreDocs[data.editionId].push(data);
-          });
-
-          const arabicSurahs = firestoreDocs['quran-uthmani'] || [];
-          arabicSurahs.forEach(s => {
-            s.ayats.forEach((a: any) => {
-              if (a.page === currentPage) {
-                arabicData.push({ ...a, text: cleanAyatText(a.text, s.surahNumber, a.numberInSurah), surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } });
-                
-                if (viewMode === 'ayat') {
-                  const trSurah = firestoreDocs[localSettings.preferredTranslationId]?.find(ts => ts.surahNumber === s.surahNumber);
-                  transData.push(trSurah?.ayats.find((ta: any) => ta.number === a.number) || null);
-
-                  const tlSurah = firestoreDocs[localSettings.preferredTransliterationId]?.find(ts => ts.surahNumber === s.surahNumber);
-                  translitData.push(tlSurah?.ayats.find((ta: any) => ta.number === a.number) || null);
-                }
-              }
-            });
-          });
-        }
-
-        arabicData.sort((a, b) => a.number - b.number);
-        setQuranData({ arabic: arabicData, trans: transData, translit: translitData });
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoadingContent(false);
       }
-    }
-    fetchPage();
-  }, [currentPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId, viewMode, db]);
 
-  const groupedAyats = useMemo(() => {
-    const groups: any[] = [];
-    quranData.arabic.forEach((ayat, idx) => {
-      const last = groups[groups.length - 1];
-      if (!last || last.surah.number !== ayat.surah.number) {
-        groups.push({ 
-          surah: ayat.surah, 
-          ayats: [{ ...ayat, trans: quranData.trans[idx]?.text || quranData.trans[idx]?.translationText, translit: quranData.translit[idx]?.text || quranData.translit[idx]?.translationText }] 
+      let arabicData: any[] = [];
+      let transData: any[] = [];
+      let translitData: any[] = [];
+
+      if (currentIsOffline && docsByEdition['quran-uthmani']?.length > 0) {
+        setIsOfflineMode(true);
+        const uthmaniDocs = docsByEdition['quran-uthmani'];
+        uthmaniDocs.forEach((s: any) => {
+          s.ayahs.forEach((a: any) => {
+            if (a.page === pageNum) {
+              arabicData.push({ ...a, text: cleanAyatText(a.text, s.number, a.numberInSurah), surah: { number: s.number, name: s.name, englishName: s.englishName } });
+            }
+          });
+        });
+        
+        arabicData.sort((a, b) => a.number - b.number);
+        arabicData.forEach(aa => {
+          const trSurah = docsByEdition[localSettings.preferredTranslationId]?.find((s: any) => s.number === aa.surah.number);
+          const trAyat = trSurah?.ayahs.find((ta: any) => ta.number === aa.number);
+          transData.push(trAyat || null);
+
+          const tlSurah = docsByEdition[localSettings.preferredTransliterationId]?.find((s: any) => s.number === aa.surah.number);
+          const tlAyat = tlSurah?.ayahs.find((ta: any) => ta.number === aa.number);
+          translitData.push(tlAyat || null);
         });
       } else {
-        last.ayats.push({ ...ayat, trans: quranData.trans[idx]?.text || quranData.trans[idx]?.translationText, translit: quranData.translit[idx]?.text || quranData.translit[idx]?.translationText });
+        const firestoreDocs: Record<string, any> = {};
+        snapshots.forEach(d => {
+          const data = d.data();
+          if (!firestoreDocs[data.editionId]) firestoreDocs[data.editionId] = [];
+          firestoreDocs[data.editionId].push(data);
+        });
+
+        const arabicSurahs = firestoreDocs['quran-uthmani'] || [];
+        arabicSurahs.forEach(s => {
+          s.ayats.forEach((a: any) => {
+            if (a.page === pageNum) {
+              arabicData.push({ ...a, text: cleanAyatText(a.text, s.surahNumber, a.numberInSurah), surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } });
+              
+              const trSurah = firestoreDocs[localSettings.preferredTranslationId]?.find(ts => ts.surahNumber === s.surahNumber);
+              transData.push(trSurah?.ayats.find((ta: any) => ta.number === a.number) || null);
+
+              const tlSurah = firestoreDocs[localSettings.preferredTransliterationId]?.find(ts => ts.surahNumber === s.surahNumber);
+              translitData.push(tlSurah?.ayats.find((ta: any) => ta.number === a.number) || null);
+            }
+          });
+        });
       }
+
+      arabicData.sort((a, b) => a.number - b.number);
+      return { pageNumber: pageNum, arabic: arabicData, trans: transData, translit: translitData };
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  };
+
+  // Initial fetch or reset on mode change
+  useEffect(() => {
+    if (viewMode === 'index') {
+      setPagedData([]);
+      return;
+    }
+    
+    async function initFetch() {
+      setLoadingContent(true);
+      const data = await fetchPageData(initialPage);
+      if (data) {
+        setPagedData([data]);
+        setVisiblePage(initialPage);
+        setBasePage(initialPage);
+      }
+      setLoadingContent(false);
+    }
+    initFetch();
+  }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
+
+  // Infinite Scroll Trigger
+  const lastPageRef = useCallback((node: HTMLDivElement | null) => {
+    if (loadingContent || viewMode === 'page' || viewMode === 'index') return;
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        const lastPage = pagedData[pagedData.length - 1];
+        if (lastPage && lastPage.pageNumber < 604) {
+          loadMorePages();
+        }
+      }
+    }, { threshold: 0.1 });
+
+    if (node) observer.current.observe(node);
+  }, [loadingContent, viewMode, pagedData]);
+
+  const loadMorePages = async () => {
+    if (loadingContent) return;
+    const lastPage = pagedData[pagedData.length - 1]?.pageNumber || basePage;
+    const nextPage = lastPage + 1;
+    if (nextPage > 604) return;
+
+    setLoadingContent(true);
+    const data = await fetchPageData(nextPage);
+    if (data) {
+      setPagedData(prev => [...prev, data]);
+    }
+    setLoadingContent(false);
+  };
+
+  // Header Page Tracking
+  useEffect(() => {
+    const pageObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const pageNum = parseInt(entry.target.getAttribute('data-page') || '0');
+            if (pageNum > 0) setVisiblePage(pageNum);
+          }
+        });
+      },
+      { threshold: 0.3, rootMargin: '-10% 0px -80% 0px' }
+    );
+
+    pageRefs.current.forEach((ref) => {
+      if (ref) pageObserver.observe(ref);
     });
-    return groups;
-  }, [quranData]);
+
+    return () => pageObserver.disconnect();
+  }, [pagedData]);
+
+  const groupedPagedContent = useMemo(() => {
+    return pagedData.map(page => {
+      const groups: any[] = [];
+      page.arabic.forEach((ayat, idx) => {
+        const last = groups[groups.length - 1];
+        if (!last || last.surah.number !== ayat.surah.number) {
+          groups.push({ 
+            surah: ayat.surah, 
+            ayats: [{ 
+              ...ayat, 
+              trans: page.trans[idx]?.text || page.trans[idx]?.translationText, 
+              translit: page.translit[idx]?.text || page.translit[idx]?.translationText 
+            }] 
+          });
+        } else {
+          last.ayats.push({ 
+            ...ayat, 
+            trans: page.trans[idx]?.text || page.trans[idx]?.translationText, 
+            translit: page.translit[idx]?.text || page.translit[idx]?.translationText 
+          });
+        }
+      });
+      return { pageNumber: page.pageNumber, groups };
+    });
+  }, [pagedData]);
 
   const isReading = viewMode !== 'index';
 
@@ -243,10 +321,10 @@ export function QuranReader() {
                 </Button>
                 <div className="flex flex-col justify-center">
                   <h1 className="text-sm md:text-xl font-headline font-bold text-white leading-tight">
-                    {groupedAyats[0]?.surah.englishName || 'Reciting...'}
+                    {groupedPagedContent[0]?.groups[0]?.surah.englishName || 'Reciting...'}
                   </h1>
                   <div className="flex items-center gap-2">
-                    <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">Page {currentPage}</p>
+                    <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">Page {visiblePage}</p>
                     {isOfflineMode && <WifiOff className="w-2.5 h-2.5 text-zinc-600" />}
                   </div>
                 </div>
@@ -293,7 +371,9 @@ export function QuranReader() {
                       const q = query(collection(db, 'quran'), where('editionId', '==', 'quran-uthmani'), where('surahNumber', '==', surah.number));
                       getDocs(q).then(snap => {
                         if (!snap.empty) {
-                          setCurrentPage(snap.docs[0].data().pages[0]);
+                          const startPage = snap.docs[0].data().pages[0];
+                          setVisiblePage(startPage);
+                          setBasePage(startPage);
                           setViewMode('ayat');
                         }
                       }).finally(() => setLoadingContent(false));
@@ -316,7 +396,11 @@ export function QuranReader() {
                 {metadata?.juzs?.references?.map((juz: any, idx: number) => (
                   <button 
                     key={idx}
-                    onClick={() => { setCurrentPage(juz.ayah || 1); setViewMode('page'); }}
+                    onClick={() => { 
+                      setVisiblePage(juz.ayah || 1); 
+                      setBasePage(juz.ayah || 1);
+                      setViewMode('page'); 
+                    }}
                     className="group flex items-center justify-between p-6 bg-zinc-900/30 rounded-3xl border border-zinc-900 hover:border-zinc-700 transition-all text-left"
                   >
                     <div className="flex items-center gap-5">
@@ -329,42 +413,55 @@ export function QuranReader() {
               </div>
             )}
           </div>
-        ) : loadingContent ? (
-          <div className="flex items-center justify-center h-96 py-20"><Loader2 className="animate-spin text-zinc-800 w-12 h-12" /></div>
         ) : (
           <div className="p-8 md:p-16">
             <div className="space-y-12">
-              {groupedAyats.map(group => (
-                <div key={group.surah.number} className="space-y-8">
-                  {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
-                  {viewMode === 'page' ? (
-                    <div className="text-right leading-[3]" dir="rtl">
-                      {group.ayats.map((a: any) => (
-                        <span key={a.number} className="inline transition-all">
-                          <span className="text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }}>{a.text}</span>
-                          <span className="inline-block mx-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-12">
-                      {group.ayats.map((a: any) => (
-                        <div key={a.number} className="space-y-4">
-                          <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
-                            {a.text}
-                            <span className="inline-block mr-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
-                          </p>
-                          <div className="space-y-2">
-                            {localSettings.showTransliteration && a.translit && (
-                              <p className="text-left max-w-3xl text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{a.translit}</p>
-                            )}
-                            {localSettings.showTranslation && a.trans && (
-                              <p className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{a.trans}</p>
-                            )}
-                          </div>
-                          <div className="h-px bg-zinc-900 w-full mt-8" />
+              {groupedPagedContent.map((page, pIdx) => (
+                <div 
+                  key={page.pageNumber} 
+                  ref={el => { if(el) pageRefs.current.set(page.pageNumber, el) }}
+                  data-page={page.pageNumber}
+                  className="space-y-12 mb-16"
+                >
+                  {page.groups.map((group: any) => (
+                    <div key={group.surah.number} className="space-y-8">
+                      {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
+                      {viewMode === 'page' ? (
+                        <div className="text-right leading-[3]" dir="rtl">
+                          {group.ayats.map((a: any) => (
+                            <span key={a.number} className="inline transition-all">
+                              <span className="text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }}>{a.text}</span>
+                              <span className="inline-block mx-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                            </span>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="space-y-12">
+                          {group.ayats.map((a: any) => (
+                            <div key={a.number} className="space-y-4">
+                              <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
+                                {a.text}
+                                <span className="inline-block mr-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                              </p>
+                              <div className="space-y-2">
+                                {localSettings.showTransliteration && a.translit && (
+                                  <p className="text-left max-w-3xl text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{a.translit}</p>
+                                )}
+                                {localSettings.showTranslation && a.trans && (
+                                  <p className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{a.trans}</p>
+                                )}
+                              </div>
+                              <div className="h-px bg-zinc-900 w-full mt-8" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {/* Sentinel for infinite scroll */}
+                  {pIdx === groupedPagedContent.length - 1 && (
+                    <div ref={lastPageRef} className="h-20 flex items-center justify-center">
+                      {loadingContent && <Loader2 className="animate-spin text-zinc-800 w-8 h-8" />}
                     </div>
                   )}
                 </div>
@@ -391,24 +488,31 @@ export function QuranReader() {
         </div>
       )}
       
-      {isReading && (
+      {isReading && viewMode === 'page' && (
         <div className="flex items-center justify-between px-6 pb-32">
-          {/* RTL Context: Left button goes FORWARD (Next), Right button goes BACK (Previous) */}
           <Button 
             variant="ghost" 
             className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
-            onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
-            disabled={currentPage >= 604}
+            onClick={() => {
+              const prev = Math.max(1, visiblePage - 1);
+              setVisiblePage(prev);
+              setBasePage(prev);
+            }} 
+            disabled={visiblePage <= 1}
           >
-            <ChevronLeft className="w-4 h-4" /> Next Page
+            Previous Page <ChevronRight className="w-4 h-4" />
           </Button>
           <Button 
             variant="ghost" 
             className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
-            disabled={currentPage <= 1}
+            onClick={() => {
+              const next = Math.min(604, visiblePage + 1);
+              setVisiblePage(next);
+              setBasePage(next);
+            }} 
+            disabled={visiblePage >= 604}
           >
-            Previous Page <ChevronRight className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4" /> Next Page
           </Button>
         </div>
       )}
