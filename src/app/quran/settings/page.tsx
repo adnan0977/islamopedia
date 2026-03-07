@@ -14,7 +14,8 @@ import {
   Loader2, 
   CheckCircle2,
   Globe,
-  Eye
+  Eye,
+  Volume2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +29,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
+import { AYAT_FRAMES } from '@/components/quran/AyatFrame';
+import { AyatFrame } from '@/components/quran/AyatFrame';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -36,7 +38,6 @@ export default function QuranSettingsPage() {
   const router = useRouter();
   const { user } = useUser();
   const db = useFirestore();
-  const { toast } = useToast();
 
   const [localSettings, setLocalSettings] = useState({
     arabicFontSize: 40,
@@ -80,7 +81,7 @@ export default function QuranSettingsPage() {
   }, [editionsForSelectedLang]);
 
   const audioEditions = useMemo(() => {
-    return editionsForSelectedLang.filter(e => e.format === 'audio' || e.type === 'audio');
+    return editionsForSelectedLang.filter(e => (e.format === 'audio' || e.type === 'audio'));
   }, [editionsForSelectedLang]);
 
   useEffect(() => {
@@ -105,15 +106,6 @@ export default function QuranSettingsPage() {
     }
     setIsLoaded(true);
   }, [user]);
-
-  useEffect(() => {
-    if (editions && localSettings.preferredTranslationId && localSettings.preferredTranslationId !== 'none' && langFilter === 'all') {
-      const current = editions.find(e => e.id === localSettings.preferredTranslationId);
-      if (current) {
-        setLangFilter(current.language);
-      }
-    }
-  }, [editions, localSettings.preferredTranslationId, langFilter]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -161,12 +153,12 @@ export default function QuranSettingsPage() {
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
                 <Globe className="w-4 h-4 text-zinc-500" />
-                Language & Editions
+                Available Languages
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="space-y-4">
-                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">1. Available Languages</Label>
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">1. Language Filter</Label>
                 <Select value={langFilter} onValueChange={setLangFilter}>
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                     <SelectValue placeholder="Choose Language" />
@@ -252,7 +244,7 @@ export default function QuranSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
                 <div className="space-y-0.5">
                   <Label className="text-sm font-bold text-zinc-300">Show Translation</Label>
-                  <p className="text-[10px] text-zinc-500 font-medium">Display English meanings</p>
+                  <p className="text-[10px] text-zinc-500 font-medium">Display meanings</p>
                 </div>
                 <Switch 
                   checked={localSettings.showTranslation}
@@ -263,7 +255,7 @@ export default function QuranSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
                 <div className="space-y-0.5">
                   <Label className="text-sm font-bold text-zinc-300">Show Transliteration</Label>
-                  <p className="text-[10px] text-zinc-500 font-medium">Display phonetic guide</p>
+                  <p className="text-[10px] text-zinc-500 font-medium">Display pronunciation guide</p>
                 </div>
                 <Switch 
                   checked={localSettings.showTransliteration}
@@ -391,7 +383,7 @@ export default function QuranSettingsPage() {
                       className="font-medium leading-relaxed italic transition-all duration-300 text-left text-zinc-400"
                       style={{ fontSize: `${localSettings.translationFontSize}px` }}
                     >
-                      {currentTranslation?.type === 'transliteration' ? 'al-ḥamdu lillāhi rabbi l-ʿālamīn' : '[All] praise is [due] to Allah, Lord of the worlds -'}
+                      [All] praise is [due] to Allah, Lord of the worlds -
                     </p>
                   )}
                 </div>
