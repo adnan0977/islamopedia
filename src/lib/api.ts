@@ -21,6 +21,7 @@ export async function getSurahDetails(id: number, translationEdition: string = '
  * @param translationEdition The identifier of the translation edition (e.g., 'en.sahih')
  */
 export async function getPageDetails(pageNumber: number, translationEdition: string = 'en.sahih') {
+  // Using the editions endpoint to get Arabic, Translation, and Audio in a single request for the page
   const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/editions/quran-uthmani,${translationEdition},ar.alafasy`);
   if (!res.ok) throw new Error('Failed to fetch page details');
   return res.json();
