@@ -228,7 +228,7 @@ export function QuranReader() {
     initFetch();
   }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
-  // Observer for dynamic header and infinite scroll
+  // Observer for infinite scroll and current ayat tracking
   useEffect(() => {
     if (viewMode !== 'ayat' || !ayatScrollContainerRef.current || pagedData.length === 0) return;
 
@@ -237,22 +237,19 @@ export function QuranReader() {
     observerRef.current = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          const pageNum = parseInt(entry.target.getAttribute('data-page-number') || '0');
           const ayatIndex = parseInt(entry.target.getAttribute('data-ayat-index') || '0');
           
-          if (pageNum > 0) setVisiblePage(pageNum);
           setCurrentAyatIndex(ayatIndex);
 
           // Trigger infinite load if near end
-          const totalAyats = entries.length; // Approximate
-          if (ayatIndex >= flattenedAyats.length - 10) {
+          if (ayatIndex >= flattenedAyats.length - 5) {
             loadMorePages();
           }
         }
       });
     }, { 
       root: ayatScrollContainerRef.current,
-      threshold: 0.6,
+      threshold: 0.5,
       rootMargin: '0px'
     });
 
