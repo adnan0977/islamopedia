@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -1039,8 +1040,8 @@ function QuranIndexing({ translations }: { translations: any[] }) {
         // Fetch combined data (Arabic + Translation) for indexing
         const data = await getPageDetails(p, selectedEdition);
         
-        if (!data.data || data.data.length < 2) {
-          throw new Error(`Failed to fetch combined data for page ${p}`);
+        if (!data || !data.data || !Array.isArray(data.data) || data.data.length < 2) {
+          throw new Error(`Invalid response for page ${p}. Check edition identifier.`);
         }
 
         const pageId = `${selectedEdition}_${p}`;
@@ -1048,8 +1049,8 @@ function QuranIndexing({ translations }: { translations: any[] }) {
           pageNumber: p,
           translationId: selectedEdition,
           // Content now stores Arabic ayats [0] and Translation ayats [1]
-          arabicContent: data.data[0].ayahs || [],
-          translationContent: data.data[1].ayahs || [],
+          arabicContent: data.data[0]?.ayahs || [],
+          translationContent: data.data[1]?.ayahs || [],
           updatedAt: new Date().toISOString()
         }, { merge: true });
 

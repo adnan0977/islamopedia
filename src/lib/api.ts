@@ -11,7 +11,7 @@ export async function getQuranSurahs() {
  * @param translationEdition The identifier of the translation edition (e.g., 'en.sahih')
  */
 export async function getSurahDetails(id: number, translationEdition: string = 'en.sahih') {
-  const res = await fetch(`https://api.alquran.cloud/v1/surah/${id}/editions/quran-uthmani,${translationEdition},ar.alafasy`);
+  const res = await fetch(`https://api.alquran.cloud/v1/surah/${id}/editions/quran-uthmani,${translationEdition}`);
   if (!res.ok) throw new Error('Failed to fetch surah details');
   return res.json();
 }
@@ -23,7 +23,8 @@ export async function getSurahDetails(id: number, translationEdition: string = '
  */
 export async function getPageDetails(pageNumber: number, translationEdition: string = 'en.sahih') {
   // Use the combined editions endpoint for reading and indexing
-  const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/editions/quran-uthmani,${translationEdition},ar.alafasy`);
+  // Removed ar.alafasy as it is an audio identifier and fails in the text editions endpoint
+  const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/editions/quran-uthmani,${translationEdition}`);
   if (!res.ok) throw new Error('Failed to fetch page details');
   return res.json();
 }

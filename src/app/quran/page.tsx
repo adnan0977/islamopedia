@@ -97,24 +97,26 @@ export default function QuranPage() {
         const indexedData = indexedDocSnap.data();
         setSelectedPageData({
           number: page,
-          ayats: indexedData.arabicContent,
-          translation: indexedData.translationContent,
-          audio: [] // Audio is handled separately or not stored to save quota
+          ayats: indexedData.arabicContent || [],
+          translation: indexedData.translationContent || [],
+          audio: []
         });
         setIsUsingIndexedData(true);
       } else {
         // Fallback: Fetch from API if not indexed
         const data = await getPageDetails(page, selectedEdition);
-        const ayahs = data.data[0].ayahs; // Arabic base
-        const translation = data.data[1].ayahs; // Translation
-        const audio = data.data[2].ayahs;
+        
+        if (data && data.data && Array.isArray(data.data)) {
+          const ayahs = data.data[0]?.ayahs || []; // Arabic base
+          const translation = data.data[1]?.ayahs || []; // Translation
 
-        setSelectedPageData({
-          number: page,
-          ayats: ayahs,
-          translation: translation,
-          audio: audio
-        });
+          setSelectedPageData({
+            number: page,
+            ayats: ayahs,
+            translation: translation,
+            audio: []
+          });
+        }
       }
       
       const primarySurah = selectedPageData?.ayats?.[0]?.surah;
