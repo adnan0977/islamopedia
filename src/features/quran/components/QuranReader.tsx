@@ -207,8 +207,8 @@ export function QuranReader() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Sticky Header */}
-      <div className="sticky top-0 md:top-24 z-30 flex flex-row justify-between items-center bg-zinc-950/95 backdrop-blur-md p-6 rounded-[2.5rem] border border-zinc-900 shadow-xl gap-4">
+      {/* Sticky Header - Now with solid background color */}
+      <div className="sticky top-0 md:top-24 z-30 flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2.5rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex items-center gap-4">
           {!isReading ? (
             <div className="flex items-center gap-3">
@@ -378,7 +378,7 @@ export function QuranReader() {
                     {group.ayats.map((a: any) => (
                       <div key={a.number} className="space-y-6">
                         <div className="text-left">
-                          <span className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.2em] select-none">
+                          <span className="text-xs font-bold text-zinc-700 select-none">
                             {group.surah.number}:{a.numberInSurah}
                           </span>
                         </div>
