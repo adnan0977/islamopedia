@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -512,7 +511,6 @@ function ChannelManagement({ channels, existingVideos }: { channels: any[], exis
     if (!channelIdInput) return;
     setLoading(true);
     try {
-      // In a real app, this would fetch from YouTube API
       const newChannel = {
         id: channelIdInput,
         title: `Channel ${channelIdInput}`,
