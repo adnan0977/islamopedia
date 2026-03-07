@@ -191,7 +191,7 @@ export function QuranReader() {
     const isRightSwipe = distance < -minSwipeDistance;
 
     // RTL Swipe Navigation:
-    // Physical analogy: Pulling a page from left-to-right (Right Swipe) reveals the NEXT page.
+    // Swiping right (pulling from left) advances to the next page in RTL Arabic books.
     if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
     } else if (isLeftSwipe && currentPage > 1) {
@@ -373,9 +373,11 @@ export function QuranReader() {
                             </span>
                           </p>
                           {a.trans && (
-                            <p className="text-zinc-500 text-sm md:text-lg font-medium border-l border-zinc-900 pl-4 md:pl-6 italic">
-                              {a.trans}
-                            </p>
+                            <div className="mt-6 border-l-2 border-zinc-800 pl-6 py-1">
+                              <p className="text-zinc-400 text-sm md:text-base font-medium leading-relaxed text-left italic">
+                                {a.trans}
+                              </p>
+                            </div>
                           )}
                         </div>
                       ))}
