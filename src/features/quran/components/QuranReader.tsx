@@ -337,20 +337,6 @@ export function QuranReader() {
                 <div className="space-y-16">
                   {groupedAyats.map(group => (
                     <div key={group.surah.number} className="space-y-12">
-                      <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
-                        <div className="flex items-center gap-4">
-                          <AyatFrame 
-                            number={group.surah.number} 
-                            frameId={ayatFrameId} 
-                            customPath={customAyatFramePath} 
-                            customImageUrl={frameImageUrl}
-                            size="md" 
-                          />
-                          <h2 className="text-xl font-headline font-bold text-zinc-400 uppercase tracking-widest">{group.surah.englishName}</h2>
-                        </div>
-                        <span className="text-2xl font-arabic text-zinc-600">{group.surah.name}</span>
-                      </div>
-                      
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="flex gap-8 group">
                           <div className="w-10 pt-2 shrink-0 flex justify-center">
