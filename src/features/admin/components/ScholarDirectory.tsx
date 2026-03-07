@@ -33,6 +33,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Image from 'next/image';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +53,7 @@ export function ScholarDirectory() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [newScholar, setNewScholar] = useState({ id: '', name: '', profileImageUrl: '' });
 
   const scholarsQuery = useMemoFirebase(() => query(
@@ -73,6 +84,14 @@ export function ScholarDirectory() {
     toast({ title: "Scholar Added", description: `${newScholar.name} has been saved.` });
     setIsAddDialogOpen(false);
     setNewScholar({ id: '', name: '', profileImageUrl: '' });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirmId) {
+      deleteDocumentNonBlocking(doc(db, 'speakers', deleteConfirmId));
+      setDeleteConfirmId(null);
+      toast({ title: "Scholar Removed" });
+    }
   };
 
   if (isLoading) {
@@ -149,11 +168,28 @@ export function ScholarDirectory() {
               </Button>
             </DialogContent>
           </Dialog>
-          <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold flex items-center gap-2">
+          <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold hidden sm:flex items-center gap-2">
             {scholars?.length || 0} Listed
           </Badge>
         </div>
       </div>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">Remove Scholar Profile?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">
+              This will delete the scholar's profile from the directory. Linked videos will remain but will no longer be associated with this scholar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-8 gap-3">
+            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 rounded-xl h-12 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl h-12 px-6 font-bold">
+              Permanently Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredScholars?.map((scholar) => (
@@ -199,7 +235,7 @@ export function ScholarDirectory() {
                 variant="ghost" 
                 size="icon" 
                 className="rounded-xl h-11 w-11 text-destructive hover:bg-destructive/10"
-                onClick={() => deleteDocumentNonBlocking(doc(db, 'speakers', scholar.id))}
+                onClick={() => setDeleteConfirmId(scholar.id)}
                >
                   <Trash2 className="w-4 h-4" />
                </Button>

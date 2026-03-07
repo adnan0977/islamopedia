@@ -34,8 +34,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Table, 
   TableBody, 
@@ -73,14 +82,9 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   const [syncStatus, setSyncStatus] = useState('');
   
   const [bulkIds, setBulkBulkIds] = useState(DEFAULT_IDS);
-  const [singleId, setSingleId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [syncError, setSyncError] = useState<string | null>(null);
-
-  // Edit State
-  const [editingChannel, setEditingChannel] = useState<any>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const channelsQuery = useMemoFirebase(() => query(
     collection(db, 'channels'),
@@ -115,8 +119,6 @@ export function ChannelHub({ videos }: { videos: any[] }) {
     }
 
     setIsSyncing(true);
-    setSyncError(null);
-    setSyncStatus('Fetching channel metadata...');
     try {
       let totalSynced = 0;
       const allResolvedChannels: any[] = [];
@@ -152,7 +154,6 @@ export function ChannelHub({ videos }: { videos: any[] }) {
       toast({ title: 'Sync Complete', description: `Successfully indexed ${totalSynced} channels.` });
       setIsImportDialogOpen(false);
     } catch (error: any) {
-      setSyncError(error.message);
       toast({ variant: 'destructive', title: 'Sync Failed', description: error.message });
     } finally {
       setIsSyncing(false);
@@ -220,6 +221,14 @@ export function ChannelHub({ videos }: { videos: any[] }) {
     toast({ title: newStatus ? "Activated" : "Deactivated" });
   };
 
+  const confirmDelete = () => {
+    if (deleteConfirmId) {
+      deleteDocumentNonBlocking(doc(db, 'channels', deleteConfirmId));
+      setDeleteConfirmId(null);
+      toast({ title: "Creator Removed" });
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl">
@@ -259,15 +268,32 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         </Dialog>
       </div>
 
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">Unlink Creator?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">
+              Removing this channel will stop local synchronization. Existing videos will remain in the catalog unless manually removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-8 gap-3">
+            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 rounded-xl h-12 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl h-12 px-6 font-bold">
+              Unlink Channel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
         <div className="w-full overflow-hidden">
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900">
-                <TableHead className="py-6 text-zinc-600 pl-6 w-[25%]">Creator Branding</TableHead>
+                <TableHead className="py-6 text-zinc-600 pl-6 w-[30%]">Creator Branding</TableHead>
                 <TableHead className="text-zinc-600 text-center w-[20%]">Inventory</TableHead>
                 <TableHead className="text-zinc-600 text-center w-[20%]">Subs</TableHead>
-                <TableHead className="text-right text-zinc-600 pr-6 w-[35%]">Actions</TableHead>
+                <TableHead className="text-right text-zinc-600 pr-6 w-[30%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -305,7 +331,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                       <Button variant="ghost" size="icon" onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)} className="h-8 w-8 text-zinc-600">
                         {channel.isActive ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => { if(confirm("Remove?")) deleteDocumentNonBlocking(doc(db, 'channels', channel.id)); }} className="h-8 w-8 text-zinc-600 hover:text-destructive">
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(channel.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive">
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>

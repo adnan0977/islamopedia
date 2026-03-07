@@ -55,8 +55,17 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -70,6 +79,7 @@ export function VideoCatalog() {
   const [filterChannel, setFilterChannel] = useState('all');
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -178,6 +188,14 @@ export function VideoCatalog() {
     const videoRef = doc(db, 'videos', video.id);
     updateDocumentNonBlocking(videoRef, { isActive: newStatus });
     toast({ title: newStatus ? "Video Enabled" : "Video Disabled" });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirmId) {
+      deleteDocumentNonBlocking(doc(db, 'videos', deleteConfirmId));
+      setDeleteConfirmId(null);
+      toast({ title: "Video Removed", description: "The entry has been permanently deleted." });
+    }
   };
 
   const resetFilters = () => {
@@ -351,6 +369,23 @@ export function VideoCatalog() {
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">Remove from Catalog?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">
+              This action will permanently delete this video entry from your local library. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-8 gap-3">
+            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 rounded-xl h-12 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl h-12 px-6 font-bold">
+              Permanently Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
         <div className="w-full overflow-hidden">
           <Table className="w-full table-fixed">
@@ -429,7 +464,7 @@ export function VideoCatalog() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-zinc-600 hover:text-destructive transition-colors"
-                        onClick={() => { if(confirm("Permanently remove this video from catalog?")) deleteDocumentNonBlocking(doc(db, 'videos', video.id)); }}
+                        onClick={() => setDeleteConfirmId(video.id)}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
