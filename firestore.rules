@@ -31,6 +31,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /quran_metadata/{id} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+
     match /speakers/{speakerId} {
       allow read, list: if true;
       allow write: if isAdmin();
