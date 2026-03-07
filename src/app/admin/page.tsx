@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, writeBatch, limit, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -27,7 +27,10 @@ import {
   TrendingUp,
   History,
   Eye,
-  BookOpen,
+  Database,
+  Download,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -80,6 +83,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { getAvailableTranslations, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'scholars' | 'quran-tools';
 
@@ -744,14 +748,18 @@ function QuranToolsView({ translations }: { translations: any[] }) {
       <Tabs defaultValue="directory" className="w-full">
         <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
           <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Edition Directory</TabsTrigger>
-          <TabsTrigger value="full-viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Full Quran Viewer</TabsTrigger>
+          <TabsTrigger value="sync" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Database Sync</TabsTrigger>
+          <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Full Quran Viewer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory">
           <TranslationManagement translations={translations} />
         </TabsContent>
-        <TabsContent value="full-viewer">
-          <FullQuranViewer translations={translations} />
+        <TabsContent value="sync">
+          <QuranDatabaseSync translations={translations} />
+        </TabsContent>
+        <TabsContent value="viewer">
+          <QuranDatabaseViewer translations={translations} />
         </TabsContent>
       </Tabs>
     </div>
@@ -843,8 +851,16 @@ function TranslationManagement({ translations }: { translations: any[] }) {
   }, [available]);
 
   const handleDeleteTranslation = async (id: string) => {
+    const q = query(collection(db, 'quran'), where('editionId', '==', id));
+    const snapshots = await getDocs(q);
+    const batch = writeBatch(db);
+    snapshots.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+
     deleteDocumentNonBlocking(doc(db, 'quran_translations', id));
-    toast({ title: "Translation Removed" });
+    toast({ title: "Translation & Content Deleted" });
   };
 
   const toggleTranslation = (edition: any) => {
@@ -980,94 +996,277 @@ function TranslationManagement({ translations }: { translations: any[] }) {
   );
 }
 
-function FullQuranViewer({ translations }: { translations: any[] }) {
-  const [selectedEdition, setSelectedEdition] = useState('quran-uthmani');
-  const [quranData, setQuranData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+function QuranDatabaseSync({ translations }: { translations: any[] }) {
+  const db = useFirestore();
   const { toast } = useToast();
+  const [selectedEdition, setSelectedEdition] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'fetching' | 'saving' | 'success' | 'error'>('idle');
 
-  const fetchQuran = async () => {
-    setLoading(true);
+  const handleSync = async () => {
+    if (!selectedEdition) return;
+    setSyncing(true);
+    setSyncStatus('fetching');
+    setProgress(0);
+    
     try {
-      const result = await getFullQuran(selectedEdition);
-      setQuranData(result.data);
-    } catch (e) {
-      toast({ variant: "destructive", title: "API Error", description: "Failed to fetch full Quran content." });
+      // 1. Fetch Full Content (parallel Arabic base + Translation)
+      const [arabicRes, transRes] = await Promise.all([
+        getFullQuran('quran-uthmani'),
+        getFullQuran(selectedEdition)
+      ]);
+
+      setSyncStatus('saving');
+      
+      const arabicSurahs = arabicRes.data.surahs;
+      const transSurahs = transRes.data.surahs;
+
+      // 2. Map all ayats by page across all surahs
+      const pageMap = new Map<number, any[]>();
+      
+      arabicSurahs.forEach((surah: any, sIdx: number) => {
+        surah.ayahs.forEach((ayah: any, aIdx: number) => {
+          const pageNum = ayah.page;
+          const transAyah = transSurahs[sIdx].ayahs[aIdx];
+          
+          const combinedAyat = {
+            number: ayah.number,
+            numberInSurah: ayah.numberInSurah,
+            text: ayah.text,
+            translationText: transAyah.text,
+            surah: {
+              number: surah.number,
+              name: surah.name,
+              englishName: surah.englishName
+            }
+          };
+
+          if (!pageMap.has(pageNum)) {
+            pageMap.set(pageNum, []);
+          }
+          pageMap.get(pageNum)?.push(combinedAyat);
+        });
+      });
+
+      // 3. Save to Firestore in batches (604 pages)
+      const pages = Array.from(pageMap.entries());
+      const batchSize = 10; // Batch save pages to avoid overloading
+      
+      for (let i = 0; i < pages.length; i += batchSize) {
+        const chunk = pages.slice(i, i + batchSize);
+        const batch = writeBatch(db);
+        
+        chunk.forEach(([pageNum, ayats]) => {
+          const pageId = `${selectedEdition}_page_${pageNum}`;
+          const pageRef = doc(db, 'quran', pageId);
+          batch.set(pageRef, {
+            id: pageId,
+            editionId: selectedEdition,
+            pageNumber: pageNum,
+            ayats: ayats,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        });
+
+        await batch.commit();
+        setProgress(Math.round(((i + chunk.length) / pages.length) * 100));
+      }
+
+      setSyncStatus('success');
+      toast({ title: "Database Synchronized", description: `Successfully synced ${pages.length} pages of ${selectedEdition} to your database.` });
+    } catch (error) {
+      console.error(error);
+      setSyncStatus('error');
+      toast({ variant: "destructive", title: "Sync Failed", description: "Could not synchronize edition to database." });
     } finally {
-      setLoading(false);
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
+        <div className="flex flex-col md:flex-row gap-6 items-end">
+          <div className="flex-1 space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Translation</Label>
+            <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={syncing}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                <SelectValue placeholder="Select edition to sync..." />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                {translations.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name} ({languageNameMap[t.language] || t.language.toUpperCase()})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button 
+            className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold min-w-[160px]"
+            onClick={handleSync}
+            disabled={syncing || !selectedEdition}
+          >
+            {syncing ? (
+              <Loader2 className="animate-spin w-4 h-4 mr-2" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            {syncing ? 'Syncing...' : 'Start Data Sync'}
+          </Button>
+        </div>
+
+        {syncing && (
+          <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-top-2">
+            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+              <span className="text-zinc-500">
+                {syncStatus === 'fetching' ? 'Downloading from API...' : 'Writing to Firestore...'}
+              </span>
+              <span className="text-white">{progress}%</span>
+            </div>
+            <Progress value={progress} className="h-2 bg-zinc-900" />
+          </div>
+        )}
+
+        {syncStatus === 'success' && !syncing && (
+          <div className="mt-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3 animate-in zoom-in-95">
+            <CheckCircle className="w-5 h-5 text-emerald-500" />
+            <span className="text-sm font-bold text-emerald-500">Edition successfully stored in database.</span>
+          </div>
+        )}
+
+        {syncStatus === 'error' && !syncing && (
+          <div className="mt-8 p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-center gap-3 animate-in shake">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            <span className="text-sm font-bold text-destructive">Error occurred during synchronization.</span>
+          </div>
+        )}
+      </Card>
+
+      <Card className="bg-zinc-900/30 border border-zinc-900 p-8 rounded-3xl text-center space-y-4">
+        <div className="w-16 h-16 bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center mx-auto shadow-xl">
+           <Database className="w-8 h-8 text-zinc-600" />
+        </div>
+        <div className="space-y-2 max-w-md mx-auto">
+          <h4 className="font-bold text-white text-lg">Why Sync?</h4>
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            Synchronizing data to your database allows for faster reader load times, customized verse annotations, and high-performance cross-surah searches without relying on external API rate limits.
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function QuranDatabaseViewer({ translations }: { translations: any[] }) {
+  const db = useFirestore();
+  const [selectedEdition, setSelectedEdition] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [pageData, setPageData] = useState<any>(null);
+
+  const fetchPageFromDB = async () => {
+    if (!selectedEdition) return;
+    setIsLoading(true);
+    try {
+      const pageId = `${selectedEdition}_page_${currentPage}`;
+      const docRef = doc(db, 'quran', pageId);
+      const snap = await getDocs(query(collection(db, 'quran'), where('id', '==', pageId), limit(1)));
+      if (!snap.empty) {
+        setPageData(snap.docs[0].data());
+      } else {
+        setPageData(null);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchQuran();
-  }, [selectedEdition]);
+    fetchPageFromDB();
+  }, [selectedEdition, currentPage]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
           <h3 className="font-bold text-lg text-white">Full Quran Viewer</h3>
-          <p className="text-xs text-zinc-500 font-medium">Fetch and inspect the entire payload of any activated translation edition.</p>
+          <p className="text-xs text-zinc-500 font-medium">Inspect synchronized data directly from your database table.</p>
         </div>
-        <div className="w-full md:w-80">
-           <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Target Edition</Label>
-           <Select value={selectedEdition} onValueChange={setSelectedEdition}>
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+          <div className="w-full md:w-64">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Edition</Label>
+            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
               <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white rounded-xl">
-                <SelectValue placeholder="Select Edition" />
+                <SelectValue placeholder="Select edition..." />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                <SelectItem value="quran-uthmani">Arabic Uthmani (Base)</SelectItem>
-                {translations.map(t => (
+                {translations.map((t) => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
               </SelectContent>
-           </Select>
+            </Select>
+          </div>
+          <div className="w-full md:w-32">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Page</Label>
+            <Input 
+              type="number" 
+              min={1} 
+              max={604} 
+              value={currentPage} 
+              onChange={(e) => setCurrentPage(parseInt(e.target.value) || 1)}
+              className="bg-zinc-900 border-zinc-800 rounded-xl"
+            />
+          </div>
         </div>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl h-[70vh] flex flex-col">
-        {loading ? (
+      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl min-h-[500px] flex flex-col">
+        {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center text-zinc-800 space-y-4">
             <Loader2 className="animate-spin w-12 h-12" />
-            <p className="text-sm font-black uppercase tracking-widest">Fetching Full Quran Payload...</p>
+            <p className="text-sm font-black uppercase tracking-widest">Querying Firestore Table...</p>
           </div>
-        ) : quranData ? (
+        ) : pageData ? (
           <ScrollArea className="flex-1">
             <div className="p-8 space-y-12">
-              {quranData.surahs.map((surah: any) => (
-                <div key={surah.number} className="space-y-6">
-                  <div className="flex items-center gap-4 border-b border-zinc-900 pb-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">Surah {surah.number}. {surah.englishName}</span>
-                    <div className="flex-1 h-px bg-zinc-900" />
-                  </div>
-                  {surah.ayahs.map((ayah: any) => (
-                    <div key={ayah.number} className="group p-6 bg-zinc-900/30 rounded-2xl border border-zinc-900/50 hover:border-zinc-800 transition-all">
-                       <div className="flex justify-between items-start gap-8">
-                         <div className="flex flex-col gap-2">
-                            <Badge variant="outline" className="w-fit text-[8px] font-black uppercase tracking-widest text-zinc-600 border-zinc-900">
-                              PAGE {ayah.page}
-                            </Badge>
-                            <Badge variant="secondary" className="w-fit text-[8px] font-black uppercase tracking-widest bg-zinc-900 text-zinc-400">
-                              AYAT {ayah.numberInSurah}
-                            </Badge>
-                         </div>
-                         <p className={cn(
-                           "flex-1 text-right leading-relaxed text-zinc-100",
-                           selectedEdition.includes('ar') ? "text-2xl font-arabic" : "text-sm font-medium"
-                         )}>
-                           {ayah.text}
+               <div className="flex items-center gap-4 border-b border-zinc-900 pb-2">
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">
+                    Page {pageData.pageNumber} • Edition: {pageData.editionId}
+                 </span>
+                 <div className="flex-1 h-px bg-zinc-900" />
+               </div>
+               <div className="space-y-8">
+                 {pageData.ayats?.map((ayat: any, idx: number) => (
+                   <div key={idx} className="group p-8 bg-zinc-900/30 rounded-3xl border border-zinc-900/50 hover:border-zinc-800 transition-all space-y-8">
+                      <div className="flex justify-between items-start gap-8">
+                         <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-zinc-900 text-zinc-600 shrink-0">
+                           {ayat.surah.englishName} • {ayat.numberInSurah}
+                         </Badge>
+                         <p className="flex-1 text-right text-3xl font-arabic leading-relaxed text-zinc-100">
+                           {ayat.text}
                          </p>
-                       </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
+                      </div>
+                      <p className="text-zinc-500 text-sm md:text-lg font-medium leading-relaxed italic border-l-2 border-zinc-900 pl-6">
+                        {ayat.translationText}
+                      </p>
+                   </div>
+                 ))}
+               </div>
             </div>
           </ScrollArea>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-zinc-600">
-            <Eye className="w-12 h-12 opacity-10 mb-4" />
-            <p className="font-bold">Select an edition to view its content.</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 space-y-4">
+            <Eye className="w-12 h-12 opacity-10" />
+            <p className="font-bold text-center px-8">
+              {selectedEdition ? `No data found for Page ${currentPage} of ${selectedEdition} in your database. Please sync this edition first.` : 'Select an edition and page to view synchronized data.'}
+            </p>
+            {selectedEdition && (
+              <Button variant="outline" className="rounded-xl border-zinc-800 font-bold" onClick={() => fetchPageFromDB()}>
+                Retry Fetch
+              </Button>
+            )}
           </div>
         )}
       </Card>
