@@ -286,15 +286,18 @@ export function QuranReader() {
                 </Button>
               </div>
             ) : (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={toggleReaderViewMode}
-                className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
-                title={viewMode === 'page' ? "Switch to Ayat View" : "Switch to Page View"}
-              >
-                {viewMode === 'page' ? <List className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
-              </Button>
+              /* Toggle only shown for Surah/Page views, hidden for Juz as per request */
+              isReading && viewMode !== 'juz' && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={toggleReaderViewMode}
+                  className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
+                  title={viewMode === 'page' ? "Switch to Ayat View" : "Switch to Page View"}
+                >
+                  {viewMode === 'page' ? <List className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+                </Button>
+              )
             )}
             <Link href="/quran/settings">
               <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white">
