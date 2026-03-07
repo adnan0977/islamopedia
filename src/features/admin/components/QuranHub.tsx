@@ -22,9 +22,10 @@ import {
   PowerOff,
   CloudDownload,
   RefreshCw,
-  Type,
+  Type as TypeIcon,
   Mic,
-  FilterX
+  FilterX,
+  Layers
 } from 'lucide-react';
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -198,11 +199,9 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
   const [filterLanguage, setFilterLanguage] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   
-  // Pagination State for Main Table
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  // Extract unique languages and formats for filters
   const languages = useMemo(() => {
     const unique = new Set(editions.map(e => e.language).filter(Boolean));
     return Array.from(unique).sort();
@@ -225,9 +224,10 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
         batch.set(docRef, {
           id: item.identifier,
           name: item.name,
+          englishName: item.englishName,
+          type: item.type,
           language: languageNameMap[item.language] || item.language.toUpperCase(),
           languageCode: item.language,
-          type: item.type,
           format: item.format,
           isActive: editions.find(e => e.id === item.identifier)?.isActive ?? (item.identifier === 'quran-uthmani'),
           dataSync: editions.find(e => e.id === item.identifier)?.dataSync || 'no',
@@ -261,11 +261,11 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
     setCurrentPage(1);
   };
 
-  // Filter Main Directory
   const filteredEditions = useMemo(() => {
     return editions.filter(e => {
-      const matchesSearch = e.name.toLowerCase().includes(dirSearch.toLowerCase()) || 
-                           e.id.toLowerCase().includes(dirSearch.toLowerCase());
+      const matchesSearch = e.name?.toLowerCase().includes(dirSearch.toLowerCase()) || 
+                           e.englishName?.toLowerCase().includes(dirSearch.toLowerCase()) ||
+                           e.id?.toLowerCase().includes(dirSearch.toLowerCase());
       
       const matchesLanguage = filterLanguage === 'all' || e.language === filterLanguage;
       const matchesFormat = filterFormat === 'all' || e.format === filterFormat;
@@ -310,7 +310,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
         <div className="relative md:col-span-2 lg:col-span-2">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder="Search name or ID..." 
+            placeholder="Search name, English name, or ID..." 
             className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
             value={dirSearch}
             onChange={(e) => setDirSearch(e.target.value)}
@@ -368,6 +368,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
             <TableRow className="border-zinc-900">
               <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 text-zinc-500 pl-8">Edition Detail</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Language</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Type</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Format</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Status</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500 pr-8">Actions</TableHead>
@@ -378,7 +379,9 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
               <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
                 <TableCell className="pl-8">
                   <div className="flex flex-col">
-                    <span className="font-bold text-zinc-100">{t.name}</span>
+                    <span className="font-bold text-zinc-100">
+                      {t.name} {t.englishName && <span className="text-zinc-500 font-normal ml-1">({t.englishName})</span>}
+                    </span>
                     <span className="text-[9px] font-mono text-zinc-700 uppercase">{t.id}</span>
                   </div>
                 </TableCell>
@@ -387,7 +390,13 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2 text-zinc-500 text-xs font-medium">
-                    {t.format === 'text' ? <Type className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                    <Layers className="w-3.5 h-3.5 text-zinc-600" />
+                    <span className="capitalize">{t.type || 'N/A'}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2 text-zinc-500 text-xs font-medium">
+                    {t.format === 'text' ? <TypeIcon className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
                     <span className="capitalize">{t.format}</span>
                   </div>
                 </TableCell>
@@ -443,7 +452,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
             ))}
             {paginatedEditions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="h-60 text-center">
+                <TableCell colSpan={6} className="h-60 text-center">
                   <div className="flex flex-col items-center justify-center space-y-4">
                      <BookOpen className="w-12 h-12 text-zinc-900" />
                      <p className="text-zinc-600 font-medium">No editions found matching filters.</p>
@@ -455,7 +464,6 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
           </TableBody>
         </Table>
         
-        {/* Pagination Footer */}
         <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between">
            <div className="flex flex-col">
              <span className="text-xs font-bold text-zinc-400">Showing {paginatedEditions.length} of {filteredEditions.length}</span>
@@ -526,7 +534,7 @@ function SyncTool({ editions, syncing, performSync, handleStandardSync, isStanda
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                 {activeEditions.map((t) => (
                   <SelectItem key={t.id} value={t.id} disabled={t.dataSync === 'yes'}>
-                    {t.name} {t.dataSync === 'yes' ? ' (Done)' : ''}
+                    {t.name} {t.englishName && `(${t.englishName})`} {t.dataSync === 'yes' ? ' (Done)' : ''}
                   </SelectItem>
                 ))}
                 {activeEditions.length === 0 && (
@@ -593,7 +601,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                 {editions.filter(e => e.dataSync === 'yes').map(e => (
-                  <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                  <SelectItem key={e.id} value={e.id}>{e.name} {e.englishName && `(${e.englishName})`}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
