@@ -65,6 +65,7 @@ export function QuranReader() {
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   
   const observer = useRef<IntersectionObserver | null>(null);
+  const pageTrackingObserver = useRef<IntersectionObserver | null>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Load settings
@@ -212,7 +213,7 @@ export function QuranReader() {
     initFetch();
   }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
-  // Infinite Scroll Trigger
+  // Infinite Scroll Trigger (Sentinel at the bottom)
   const lastPageRef = useCallback((node: HTMLDivElement | null) => {
     if (loadingContent || viewMode === 'page' || viewMode === 'index') return;
     if (observer.current) observer.current.disconnect();
@@ -224,17 +225,17 @@ export function QuranReader() {
           loadMorePages();
         }
       }
-    }, { threshold: 0.1 });
+    }, { threshold: 0.1, rootMargin: '400px' });
 
     if (node) observer.current.observe(node);
   }, [loadingContent, viewMode, pagedData]);
 
   const loadMorePages = async () => {
     if (loadingContent) return;
-    const lastPage = pagedData[pagedData.length - 1]?.pageNumber || basePage;
-    const nextPage = lastPage + 1;
-    if (nextPage > 604) return;
+    const lastPage = pagedData[pagedData.length - 1]?.pageNumber;
+    if (!lastPage || lastPage >= 604) return;
 
+    const nextPage = lastPage + 1;
     setLoadingContent(true);
     const data = await fetchPageData(nextPage);
     if (data) {
@@ -243,26 +244,36 @@ export function QuranReader() {
     setLoadingContent(false);
   };
 
-  // Header Page Tracking
+  // Page Tracking Observer (Updates header)
   useEffect(() => {
-    const pageObserver = new IntersectionObserver(
+    if (viewMode === 'index') return;
+
+    if (pageTrackingObserver.current) pageTrackingObserver.current.disconnect();
+
+    pageTrackingObserver.current = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const pageNum = parseInt(entry.target.getAttribute('data-page') || '0');
-            if (pageNum > 0) setVisiblePage(pageNum);
+        // Find the page entry that is most visible or closest to the top
+        const visibleEntry = entries.find((entry) => entry.isIntersecting);
+        if (visibleEntry) {
+          const pageNum = parseInt(visibleEntry.target.getAttribute('data-page') || '0');
+          if (pageNum > 0) {
+            setVisiblePage(pageNum);
           }
-        });
+        }
       },
-      { threshold: 0.3, rootMargin: '-10% 0px -80% 0px' }
+      { 
+        threshold: 0.1,
+        // Focus the observation on the top part of the scroll area
+        rootMargin: '-10% 0px -70% 0px' 
+      }
     );
 
     pageRefs.current.forEach((ref) => {
-      if (ref) pageObserver.observe(ref);
+      if (ref) pageTrackingObserver.current?.observe(ref);
     });
 
-    return () => pageObserver.disconnect();
-  }, [pagedData]);
+    return () => pageTrackingObserver.current?.disconnect();
+  }, [pagedData, viewMode]);
 
   const groupedPagedContent = useMemo(() => {
     return pagedData.map(page => {
@@ -315,13 +326,17 @@ export function QuranReader() {
                 <Button 
                   variant="ghost" size="icon" 
                   className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
-                  onClick={() => setViewMode('index')}
+                  onClick={() => {
+                    setViewMode('index');
+                    setPagedData([]);
+                  }}
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <div className="flex flex-col justify-center">
                   <h1 className="text-sm md:text-xl font-headline font-bold text-white leading-tight">
-                    {groupedPagedContent[0]?.groups[0]?.surah.englishName || 'Reciting...'}
+                    {groupedPagedContent.find(p => p.pageNumber === visiblePage)?.groups[0]?.surah.englishName || 
+                     groupedPagedContent[0]?.groups[0]?.surah.englishName || 'Reciting...'}
                   </h1>
                   <div className="flex items-center gap-2">
                     <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">Page {visiblePage}</p>
@@ -418,13 +433,13 @@ export function QuranReader() {
             <div className="space-y-12">
               {groupedPagedContent.map((page, pIdx) => (
                 <div 
-                  key={page.pageNumber} 
+                  key={`page-${page.pageNumber}`} 
                   ref={el => { if(el) pageRefs.current.set(page.pageNumber, el) }}
                   data-page={page.pageNumber}
                   className="space-y-12 mb-16"
                 >
                   {page.groups.map((group: any) => (
-                    <div key={group.surah.number} className="space-y-8">
+                    <div key={`${page.pageNumber}-${group.surah.number}`} className="space-y-8">
                       {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                       {viewMode === 'page' ? (
                         <div className="text-right leading-[3]" dir="rtl">
@@ -458,8 +473,8 @@ export function QuranReader() {
                       )}
                     </div>
                   ))}
-                  {/* Sentinel for infinite scroll */}
-                  {pIdx === groupedPagedContent.length - 1 && (
+                  {/* Sentinel for infinite scroll - only on the last loaded page block */}
+                  {pIdx === groupedPagedContent.length - 1 && viewMode === 'ayat' && (
                     <div ref={lastPageRef} className="h-20 flex items-center justify-center">
                       {loadingContent && <Loader2 className="animate-spin text-zinc-800 w-8 h-8" />}
                     </div>
@@ -497,10 +512,11 @@ export function QuranReader() {
               const prev = Math.max(1, visiblePage - 1);
               setVisiblePage(prev);
               setBasePage(prev);
+              setPagedData([]); // Reset and load specific page
             }} 
             disabled={visiblePage <= 1}
           >
-            Previous Page <ChevronRight className="w-4 h-4" />
+            Next Page <ChevronLeft className="w-4 h-4 ml-2" />
           </Button>
           <Button 
             variant="ghost" 
@@ -509,13 +525,15 @@ export function QuranReader() {
               const next = Math.min(604, visiblePage + 1);
               setVisiblePage(next);
               setBasePage(next);
+              setPagedData([]); // Reset and load specific page
             }} 
             disabled={visiblePage >= 604}
           >
-            <ChevronLeft className="w-4 h-4" /> Next Page
+            <ChevronRight className="w-4 h-4 mr-2" /> Previous Page
           </Button>
         </div>
       )}
     </div>
   );
 }
+
