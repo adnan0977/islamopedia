@@ -1,21 +1,19 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { query, collection, where, doc } from 'firebase/firestore';
+import { query, collection, where } from 'firebase/firestore';
 import { 
   Settings, 
   ArrowLeft, 
   Type, 
-  Languages, 
-  Hash, 
   Loader2, 
   CheckCircle2,
   Globe,
   Eye,
-  Volume2
+  DownloadCloud,
+  Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,16 +31,21 @@ import { AYAT_FRAMES } from '@/components/quran/AyatFrame';
 import { AyatFrame } from '@/components/quran/AyatFrame';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { getFullQuran } from '@/lib/api';
+import { saveOfflineSurah, getOfflineEditionStatus } from '@/lib/offline-db';
+import { Progress } from '@/components/ui/progress';
 
 export default function QuranSettingsPage() {
   const router = useRouter();
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
 
   const [localSettings, setLocalSettings] = useState({
     arabicFontSize: 40,
     translationFontSize: 16,
-    preferredTranslationId: 'en.sahih',
+    preferredLanguage: 'English',
+    preferredTranslationId: 'none',
     preferredTransliterationId: 'none',
     preferredAudioId: 'none',
     ayatFrameId: 'royal-ornate',
@@ -52,38 +55,34 @@ export default function QuranSettingsPage() {
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
-  const [langFilter, setLangFilter] = useState('all');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
-    where('isActive', '==', true),
-    where('dataSync', '==', 'yes')
+    where('isActive', '==', true)
   ), [db]);
   const { data: editions } = useCollection(editionsQuery);
 
   const languages = useMemo(() => {
     if (!editions) return [];
-    return Array.from(new Set(editions.map(e => e.language))).sort();
+    const langs = Array.from(new Set(editions.map(e => e.language))).sort();
+    return langs;
   }, [editions]);
 
-  const editionsForSelectedLang = useMemo(() => {
+  const translationOptions = useMemo(() => {
     if (!editions) return [];
-    if (langFilter === 'all') return editions;
-    return editions.filter(e => e.language === langFilter);
-  }, [editions, langFilter]);
+    return editions.filter(e => e.language === localSettings.preferredLanguage && e.type === 'translation');
+  }, [editions, localSettings.preferredLanguage]);
 
-  const translationEditions = useMemo(() => {
-    return editionsForSelectedLang.filter(e => e.type === 'translation' && e.format === 'text');
-  }, [editionsForSelectedLang]);
-
-  const transliterationEditions = useMemo(() => {
-    return editionsForSelectedLang.filter(e => e.type === 'transliteration' && e.format === 'text');
-  }, [editionsForSelectedLang]);
-
-  const audioEditions = useMemo(() => {
+  const transliterationOptions = useMemo(() => {
     if (!editions) return [];
-    // Audio reciters are often universal, so we show all available ones with their language labels
-    return editions.filter(e => (e.format === 'audio' || e.type === 'audio'));
+    return editions.filter(e => e.language === localSettings.preferredLanguage && e.type === 'transliteration');
+  }, [editions, localSettings.preferredLanguage]);
+
+  const audioOptions = useMemo(() => {
+    if (!editions) return [];
+    return editions.filter(e => e.format === 'audio' || e.type === 'audio');
   }, [editions]);
 
   useEffect(() => {
@@ -92,18 +91,9 @@ export default function QuranSettingsPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setLocalSettings(prev => ({ 
-          ...prev, 
-          ...parsed,
-          preferredTranslationId: parsed.preferredTranslationId || 'en.sahih',
-          preferredTransliterationId: parsed.preferredTransliterationId || 'none',
-          preferredAudioId: parsed.preferredAudioId || 'none',
-          showTranslation: parsed.showTranslation ?? true,
-          showTransliteration: parsed.showTransliteration ?? true,
-          showAudio: parsed.showAudio ?? true
-        }));
+        setLocalSettings(prev => ({ ...prev, ...parsed }));
       } catch (e) {
-        console.error("Failed to parse local quran settings", e);
+        console.error("Failed to parse settings", e);
       }
     }
     setIsLoaded(true);
@@ -114,6 +104,39 @@ export default function QuranSettingsPage() {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
     localStorage.setItem(storageKey, JSON.stringify(localSettings));
   }, [localSettings, isLoaded, user]);
+
+  const downloadEdition = async (editionId: string) => {
+    if (!editionId || editionId === 'none') return;
+    
+    // Check if already synced in IndexedDB
+    const isSynced = await getOfflineEditionStatus(editionId);
+    if (isSynced) return;
+
+    setIsDownloading(true);
+    setDownloadProgress(10);
+    try {
+      const payload = await getFullQuran(editionId);
+      const surahs = payload.data.surahs;
+      
+      for (let i = 0; i < surahs.length; i++) {
+        const surah = surahs[i];
+        await saveOfflineSurah({
+          id: `${editionId}_surah_${surah.number}`,
+          editionId,
+          number: surah.number,
+          data: surah
+        });
+        setDownloadProgress(Math.round(10 + ((i + 1) / surahs.length) * 90));
+      }
+      
+      toast({ title: "Sync Complete", description: `${editionId} is now available offline.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Sync Failed", description: "Could not download edition for offline use." });
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
+  };
 
   if (!isLoaded) {
     return (
@@ -143,7 +166,7 @@ export default function QuranSettingsPage() {
         </div>
         <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-black uppercase tracking-widest">
            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-           Auto-saved locally
+           Offline Ready
         </div>
       </div>
 
@@ -153,61 +176,59 @@ export default function QuranSettingsPage() {
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
                 <Globe className="w-4 h-4 text-zinc-500" />
-                Available Editions
+                Language & Editions
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="space-y-4">
-                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">1. Language Filter</Label>
-                <Select value={langFilter} onValueChange={setLangFilter}>
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">1. Available Languages</Label>
+                <Select 
+                  value={localSettings.preferredLanguage} 
+                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredLanguage: val }))}
+                >
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                    <SelectValue placeholder="Choose Language" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                    <SelectItem value="all">All Languages</SelectItem>
-                    {languages.map(l => (
-                      <SelectItem key={l} value={l}>{l}</SelectItem>
-                    ))}
+                    {languages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">2. Translation Edition</Label>
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">2. Selected Translation</Label>
                 <Select 
                   value={localSettings.preferredTranslationId} 
-                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredTranslationId: val }))}
+                  onValueChange={(val) => {
+                    setLocalSettings(prev => ({ ...prev, preferredTranslationId: val }));
+                    downloadEdition(val);
+                  }}
                 >
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                    <SelectValue placeholder="Choose Translation" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                    {translationEditions.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.name}
-                      </SelectItem>
-                    ))}
-                    {translationEditions.length === 0 && <SelectItem value="none" disabled>No translations found</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-4">
-                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">3. Transliteration Edition</Label>
-                <Select 
-                  value={localSettings.preferredTransliterationId} 
-                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredTransliterationId: val }))}
-                >
-                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                    <SelectValue placeholder="Choose Transliteration" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                     <SelectItem value="none">None</SelectItem>
-                    {transliterationEditions.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.name}
-                      </SelectItem>
-                    ))}
+                    {translationOptions.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">3. Selected Transliteration</Label>
+                <Select 
+                  value={localSettings.preferredTransliterationId} 
+                  onValueChange={(val) => {
+                    setLocalSettings(prev => ({ ...prev, preferredTransliterationId: val }));
+                    downloadEdition(val);
+                  }}
+                >
+                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                    <SelectItem value="none">None</SelectItem>
+                    {transliterationOptions.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -219,18 +240,26 @@ export default function QuranSettingsPage() {
                   onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredAudioId: val }))}
                 >
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                    <SelectValue placeholder="Choose Qari" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                     <SelectItem value="none">None</SelectItem>
-                    {audioEditions.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.name} ({e.language})
-                      </SelectItem>
-                    ))}
+                    {audioOptions.map(e => <SelectItem key={e.id} value={e.id}>{e.name} ({e.language})</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+
+              {isDownloading && (
+                <div className="space-y-3 pt-4 border-t border-zinc-900">
+                  <div className="flex items-center justify-between">
+                     <span className="text-[10px] font-black uppercase text-zinc-500 flex items-center gap-2">
+                       <DownloadCloud className="w-3 h-3 animate-bounce" /> Offline Syncing...
+                     </span>
+                     <span className="text-xs font-mono text-zinc-500">{downloadProgress}%</span>
+                  </div>
+                  <Progress value={downloadProgress} className="h-1 bg-zinc-900" />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -238,37 +267,26 @@ export default function QuranSettingsPage() {
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
                 <Eye className="w-4 h-4 text-zinc-500" />
-                Display Toggles
+                Display Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-bold text-zinc-300">Show Translation</Label>
-                  <p className="text-[10px] text-zinc-500 font-medium">Display meanings</p>
-                </div>
+                <Label className="text-sm font-bold text-zinc-300">Show Translation</Label>
                 <Switch 
                   checked={localSettings.showTranslation}
                   onCheckedChange={(val) => setLocalSettings(prev => ({ ...prev, showTranslation: val }))}
                 />
               </div>
-
               <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-bold text-zinc-300">Show Transliteration</Label>
-                  <p className="text-[10px] text-zinc-500 font-medium">Display pronunciation guide</p>
-                </div>
+                <Label className="text-sm font-bold text-zinc-300">Show Transliteration</Label>
                 <Switch 
                   checked={localSettings.showTransliteration}
                   onCheckedChange={(val) => setLocalSettings(prev => ({ ...prev, showTransliteration: val }))}
                 />
               </div>
-
               <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-bold text-zinc-300">Show Audio Player</Label>
-                  <p className="text-[10px] text-zinc-500 font-medium">Display recitation controls</p>
-                </div>
+                <Label className="text-sm font-bold text-zinc-300">Show Audio Controls</Label>
                 <Switch 
                   checked={localSettings.showAudio}
                   onCheckedChange={(val) => setLocalSettings(prev => ({ ...prev, showAudio: val }))}
@@ -294,11 +312,8 @@ export default function QuranSettingsPage() {
                 </div>
                 <Slider 
                   value={[localSettings.arabicFontSize]} 
-                  min={24} 
-                  max={80} 
-                  step={2}
+                  min={24} max={80} step={2}
                   onValueChange={([val]) => setLocalSettings(prev => ({ ...prev, arabicFontSize: val }))}
-                  className="py-4"
                 />
               </div>
 
@@ -309,85 +324,46 @@ export default function QuranSettingsPage() {
                 </div>
                 <Slider 
                   value={[localSettings.translationFontSize]} 
-                  min={12} 
-                  max={32} 
-                  step={1}
+                  min={12} max={32} step={1}
                   onValueChange={([val]) => setLocalSettings(prev => ({ ...prev, translationFontSize: val }))}
-                  className="py-4"
                 />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
-            <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
-              <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
-                <Hash className="w-4 h-4 text-zinc-500" />
-                Verse Frame Style
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-3 gap-3">
-                {AYAT_FRAMES.map(frame => (
-                  <button
-                    key={frame.id}
-                    onClick={() => setLocalSettings(prev => ({ ...prev, ayatFrameId: frame.id }))}
-                    className={cn(
-                      "flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all",
-                      localSettings.ayatFrameId === frame.id 
-                        ? "bg-zinc-900 border-zinc-500 shadow-lg" 
-                        : "bg-zinc-950 border-zinc-900 hover:border-zinc-700"
-                    )}
-                  >
-                    <AyatFrame number={7} frameId={frame.id} size="sm" />
-                    <span className="text-[8px] font-black uppercase text-zinc-600 tracking-tight">{frame.name}</span>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl sticky top-32">
-            <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                <Eye className="w-3 h-3" />
-                Live Preview
-              </CardTitle>
+            <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 text-center">
+               <Database className="w-6 h-6 text-zinc-800 mx-auto mb-2" />
+               <CardTitle className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Recitation Preview</CardTitle>
             </CardHeader>
             <CardContent className="p-8 space-y-10">
-              <div className="space-y-6">
-                <p 
-                  className="text-right font-arabic leading-relaxed text-zinc-100 transition-all duration-300" 
-                  style={{ fontSize: `${localSettings.arabicFontSize}px` }}
-                  dir="rtl"
-                >
-                  ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ
-                  <span className="inline-block ms-4 align-middle">
-                    <AyatFrame 
-                      number={2} 
-                      frameId={localSettings.ayatFrameId} 
-                      size="md"
-                    />
-                  </span>
-                </p>
-                <div className="space-y-4">
-                  {localSettings.showTransliteration && localSettings.preferredTransliterationId !== 'none' && (
-                    <p 
-                      className="font-medium leading-relaxed italic transition-all duration-300 text-left text-zinc-500"
-                      style={{ fontSize: `${localSettings.translationFontSize - 2}px` }}
-                    >
-                      al-ḥamdu lillāhi rabbi l-ʿālamīn
-                    </p>
-                  )}
-                  {localSettings.showTranslation && (
-                    <p 
-                      className="font-medium leading-relaxed italic transition-all duration-300 text-left text-zinc-400"
-                      style={{ fontSize: `${localSettings.translationFontSize}px` }}
-                    >
-                      [All] praise is [due] to Allah, Lord of the worlds -
-                    </p>
-                  )}
-                </div>
+              <p 
+                className="text-right font-arabic leading-relaxed text-zinc-100" 
+                style={{ fontSize: `${localSettings.arabicFontSize}px` }}
+                dir="rtl"
+              >
+                ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ
+                <span className="inline-block ms-4 align-middle">
+                  <AyatFrame number={2} frameId={localSettings.ayatFrameId} size="md" />
+                </span>
+              </p>
+              <div className="space-y-4">
+                {localSettings.showTransliteration && localSettings.preferredTransliterationId !== 'none' && (
+                  <p 
+                    className="font-medium leading-relaxed italic text-zinc-500"
+                    style={{ fontSize: `${localSettings.translationFontSize - 2}px` }}
+                  >
+                    al-ḥamdu lillāhi rabbi l-ʿālamīn
+                  </p>
+                )}
+                {localSettings.showTranslation && localSettings.preferredTranslationId !== 'none' && (
+                  <p 
+                    className="font-medium leading-relaxed italic text-zinc-400"
+                    style={{ fontSize: `${localSettings.translationFontSize}px` }}
+                  >
+                    [All] praise is [due] to Allah, Lord of the worlds -
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
