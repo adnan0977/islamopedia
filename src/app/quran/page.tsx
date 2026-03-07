@@ -120,9 +120,15 @@ export default function QuranPage() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
-          <div>
-            <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100">Quran Majeed</h1>
-            <p className="text-zinc-500 text-xs md:text-sm">Read, listen, and contemplate the Word of Allah.</p>
+          <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+            <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100">
+              {selectedSurah ? selectedSurah.info.englishName : 'Quran Majeed'}
+            </h1>
+            <p className="text-zinc-500 text-xs md:text-sm">
+              {selectedSurah 
+                ? `${selectedSurah.info.englishNameTranslation} • ${selectedSurah.info.numberOfAyahs} Ayahs` 
+                : 'Read, listen, and contemplate the Word of Allah.'}
+            </p>
           </div>
         </div>
         
