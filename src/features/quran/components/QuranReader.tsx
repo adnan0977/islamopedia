@@ -28,8 +28,10 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
+import Image from 'next/image';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-const BISMILLAH = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
 export function QuranReader() {
   const db = useFirestore();
@@ -78,6 +80,10 @@ export function QuranReader() {
     return editions?.filter(e => e.type === 'translation') || [];
   }, [editions]);
 
+  const bismillahImage = useMemo(() => {
+    return PlaceHolderImages.find(img => img.id === 'bismillah-header')?.imageUrl;
+  }, []);
+
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
 
@@ -89,8 +95,8 @@ export function QuranReader() {
 
   const cleanAyatText = (text: string, surahNumber: number, ayatNumberInSurah: number) => {
     if (surahNumber !== 1 && surahNumber !== 9 && ayatNumberInSurah === 1) {
-      if (text.startsWith(BISMILLAH)) {
-        return text.substring(BISMILLAH.length).trim();
+      if (text.startsWith(BISMILLAH_TEXT)) {
+        return text.substring(BISMILLAH_TEXT.length).trim();
       }
     }
     return text;
@@ -202,8 +208,8 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // RTL Swipe Navigation:
-    // Swiping right (pulling from left) advances to the next page in RTL Arabic books.
+    // RTL Swipe Navigation reversed per user request:
+    // Swiping right advances to next page
     if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
     } else if (isLeftSwipe && currentPage > 1) {
@@ -371,9 +377,21 @@ export function QuranReader() {
                     <div key={group.surah.number} className="space-y-10">
                       {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 1 && group.surah.number !== 9 && (
                         <div className="flex justify-center py-10 border-b border-zinc-900/50">
-                          <p className="text-4xl md:text-6xl font-arabic text-zinc-100 leading-none">
-                            {BISMILLAH}
-                          </p>
+                          {bismillahImage ? (
+                            <div className="relative w-full max-w-[400px] aspect-[4/1]">
+                              <Image 
+                                src={bismillahImage} 
+                                alt="Bismillah" 
+                                fill 
+                                className="object-contain invert brightness-200"
+                                data-ai-hint="islamic calligraphy"
+                              />
+                            </div>
+                          ) : (
+                            <p className="text-4xl md:text-6xl font-arabic text-zinc-100 leading-none">
+                              {BISMILLAH_TEXT}
+                            </p>
+                          )}
                         </div>
                       )}
                       {group.ayats.map((a: any) => (
@@ -410,8 +428,22 @@ export function QuranReader() {
                     return (
                       <span key={a.number} className="inline">
                         {isNewSurah && (
-                          <span className="block w-full text-center py-10 text-4xl md:text-6xl border-y border-zinc-900/50 my-8">
-                            {BISMILLAH}
+                          <span className="block w-full text-center py-10 border-y border-zinc-900/50 my-8">
+                            {bismillahImage ? (
+                              <div className="relative w-full max-w-[400px] aspect-[4/1] mx-auto">
+                                <Image 
+                                  src={bismillahImage} 
+                                  alt="Bismillah" 
+                                  fill 
+                                  className="object-contain invert brightness-200"
+                                  data-ai-hint="islamic calligraphy"
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-4xl md:text-6xl">
+                                {BISMILLAH_TEXT}
+                              </span>
+                            )}
                           </span>
                         )}
                         <span className="hover:text-white transition-colors">
@@ -464,3 +496,4 @@ export function QuranReader() {
     </div>
   );
 }
+

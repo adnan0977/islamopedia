@@ -35,6 +35,12 @@
       "description": "User profile avatar",
       "imageUrl": "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx1c2VyJTIwcHJvZmlsZXxlbnwwfHx8fDE3NzI0Njg3NjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "user profile"
+    },
+    {
+      "id": "bismillah-header",
+      "description": "Bismillah Islamic Calligraphy Header",
+      "imageUrl": "https://picsum.photos/seed/bismillah/800/200",
+      "imageHint": "islamic calligraphy"
     }
   ]
 }
