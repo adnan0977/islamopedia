@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -84,16 +85,19 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   const { data: linkedChannels, isLoading: isLoadingChannels } = useCollection(channelsQuery);
 
   const filteredChannels = linkedChannels?.filter(ch => 
-    ch.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ch.id.toLowerCase().includes(searchTerm.toLowerCase())
+    ch.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const extractSelectors = (text: string) => {
+    // 1. Extract raw IDs (UC followed by 22 chars)
     const idMatches = text.match(/UC[a-zA-Z0-9_-]{22}/g) || [];
-    const handleMatches = text.match(/@[\w.-]+/g) || [];
-    const urlMatches = text.match(/youtube\.com\/(@[\w.-]+)/g) || [];
     
-    const handlesFromUrls = urlMatches.map(m => m.split('/').pop()).filter(Boolean) as string[];
+    // 2. Extract Handles (@name)
+    const handleMatches = text.match(/@[\w.-]+/g) || [];
+    
+    // 3. Extract Handles from URLs (youtube.com/@handle)
+    const urlHandleMatches = text.match(/youtube\.com\/(@[\w.-]+)/g) || [];
+    const handlesFromUrls = urlHandleMatches.map(m => m.split('/').pop()).filter(Boolean) as string[];
 
     return {
       ids: Array.from(new Set(idMatches)),
@@ -134,22 +138,18 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         throw new Error("No channels found. Please verify the IDs/Handles are correct and active.");
       }
 
-      const batchSize = 10;
-      for (let i = 0; i < allResolvedChannels.length; i += batchSize) {
-        const batch = writeBatch(db);
-        const chunk = allResolvedChannels.slice(i, i + batchSize);
-        chunk.forEach(channel => {
-          const channelRef = doc(db, 'channels', channel.id);
-          batch.set(channelRef, {
-            ...channel,
-            isActive: true,
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-          }, { merge: true });
-          totalSynced++;
-        });
-        await batch.commit();
-      }
+      const batch = writeBatch(db);
+      allResolvedChannels.forEach(channel => {
+        const channelRef = doc(db, 'channels', channel.id);
+        batch.set(channelRef, {
+          ...channel,
+          isActive: true,
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        }, { merge: true });
+        totalSynced++;
+      });
+      await batch.commit();
 
       toast({ title: 'Sync Complete', description: `Successfully indexed ${totalSynced} channels.` });
       setIsImportDialogOpen(false);
@@ -163,14 +163,25 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   };
 
   const handleSyncVideos = async (channel: any) => {
-    if (!channel.uploadsPlaylistId) {
-      toast({ variant: 'destructive', title: 'Missing Playlist', description: 'Cannot find uploads playlist for this channel.' });
-      return;
-    }
-
+    let uploadsId = channel.uploadsPlaylistId;
     setSyncingVideosFor(channel.id);
+
     try {
-      const ytVideos = await fetchPlaylistVideos(channel.uploadsPlaylistId);
+      // If missing playlist ID, attempt to resolve it once from the API
+      if (!uploadsId) {
+        const freshData = await fetchYouTubeChannels([channel.id]);
+        if (freshData.length > 0 && freshData[0].uploadsPlaylistId) {
+          uploadsId = freshData[0].uploadsPlaylistId;
+          // Silently update local record for next time
+          updateDocumentNonBlocking(doc(db, 'channels', channel.id), { uploadsPlaylistId: uploadsId });
+        }
+      }
+
+      if (!uploadsId) {
+        throw new Error('Cannot find uploads playlist for this channel. It may have zero public videos.');
+      }
+
+      const ytVideos = await fetchPlaylistVideos(uploadsId);
       if (ytVideos.length === 0) {
         toast({ title: "No Videos", description: "No public uploads found for this channel." });
         return;
@@ -232,10 +243,10 @@ export function ChannelHub({ videos }: { videos: any[] }) {
 
       toast({ 
         title: newStatus ? "Channel Activated" : "Channel Deactivated", 
-        description: `Channel and its ${videoSnaps.size} associated videos have been updated.` 
+        description: `Channel and its ${videoSnaps.size} associated videos updated.` 
       });
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Propagation Error', description: "Failed to update associated videos." });
+      toast({ variant: 'destructive', title: 'Error', description: "Failed to update associated videos." });
     }
   };
 
@@ -248,7 +259,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
       updatedAt: new Date().toISOString()
     });
     setIsEditDialogOpen(false);
-    toast({ title: "Channel Updated", description: "Metadata has been saved locally." });
+    toast({ title: "Channel Updated", description: "Metadata saved locally." });
   };
 
   return (
@@ -279,14 +290,14 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-4xl p-0 overflow-hidden outline-none shadow-2xl">
             <DialogHeader className="p-10 border-b border-zinc-900 bg-zinc-900/40">
               <DialogTitle className="text-2xl font-bold">Import Creators</DialogTitle>
-              <DialogDescription className="text-zinc-500 text-sm mt-2">Use a Channel ID, Handle, or full URL to sync spiritual content.</DialogDescription>
+              <DialogDescription className="text-zinc-500 text-sm mt-2">Paste Channel IDs, Handles, or full URLs to begin indexing.</DialogDescription>
             </DialogHeader>
             
             {syncError && (
               <div className="px-10 pt-6">
                 <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle className="font-bold">Synchronization Error</AlertTitle>
+                  <AlertTitle className="font-bold">Sync Error</AlertTitle>
                   <AlertDescription className="text-xs mt-1">{syncError}</AlertDescription>
                 </Alert>
               </div>
@@ -303,13 +314,10 @@ export function ChannelHub({ videos }: { videos: any[] }) {
               <div className="p-10">
                 <TabsContent value="bulk" className="m-0 space-y-8">
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Input List</label>
-                      <Badge variant="outline" className="border-zinc-800 text-zinc-500">Detects IDs, Handles & URLs</Badge>
-                    </div>
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Input List</Label>
                     <Textarea 
-                      placeholder="Paste text containing YouTube identifiers..."
-                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-xs min-h-[300px] rounded-[1.5rem] p-6 focus:ring-zinc-700 resize-none scrollbar-hide"
+                      placeholder="Paste text containing identifiers..."
+                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-xs min-h-[250px] rounded-[1.5rem] p-6 focus:ring-zinc-700 resize-none"
                       value={bulkIds}
                       onChange={(e) => setBulkBulkIds(e.target.value)}
                     />
@@ -320,15 +328,15 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                     onClick={() => handleSync(bulkIds)}
                   >
                     {isSyncing ? <Loader2 className="animate-spin h-5 w-5" /> : <RefreshCw className="h-5 w-5" />}
-                    Process & Sync All Content
+                    Process & Sync Content
                   </Button>
                 </TabsContent>
 
                 <TabsContent value="single" className="m-0 space-y-8">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Identifier or URL</label>
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Identifier or URL</Label>
                     <Input 
-                      placeholder="e.g. @TheKohistani or https://youtube.com/..."
+                      placeholder="e.g. @TheKohistani or https://youtube.com/channel/..."
                       className="bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 px-6"
                       value={singleId}
                       onChange={(e) => setSingleId(e.target.value)}
@@ -355,7 +363,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
             <Youtube className="w-5 h-5 text-red-500" />
             <h3 className="text-sm font-bold text-white uppercase tracking-widest">Linked Channels Registry</h3>
           </div>
-          <Badge variant="outline" className="border-zinc-800 text-[10px] font-black text-zinc-500 rounded-lg px-3 py-1">
+          <Badge variant="outline" className="border-zinc-800 text-[10px] font-black text-zinc-500 px-3 py-1">
             {linkedChannels?.length || 0} Registered
           </Badge>
         </div>
@@ -407,17 +415,13 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                           <VideoIcon className="w-3 h-3 text-zinc-600" />
                           <span>{videosInDbCount} / {channel.videoCount || 0}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                           <span className="text-[8px] font-black uppercase text-zinc-600 tracking-tighter">Indexed / YouTube</span>
-                        </div>
+                        <span className="text-[8px] font-black uppercase text-zinc-600 tracking-tighter">Indexed / YouTube</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm">
-                          <Users className="w-4 h-4 text-zinc-700" />
-                          {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount} Subscribers
-                        </div>
+                      <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm">
+                        <Users className="w-4 h-4 text-zinc-700" />
+                        {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount}
                       </div>
                     </TableCell>
                     <TableCell className="text-right pr-10">
@@ -426,7 +430,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                           variant="ghost" 
                           size="icon" 
                           disabled={syncingVideosFor === channel.id}
-                          className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-emerald-500 hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
+                          className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-emerald-500 hover:bg-zinc-900 border border-transparent"
                           onClick={() => handleSyncVideos(channel)}
                           title="Sync All Channel Videos"
                         >
@@ -435,7 +439,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className={cn("rounded-2xl h-12 w-12 text-zinc-600 hover:bg-zinc-900 border border-transparent hover:border-zinc-800", channel.isActive ? "text-emerald-500" : "text-zinc-700")}
+                          className={cn("rounded-2xl h-12 w-12 text-zinc-600 hover:bg-zinc-900 border border-transparent", channel.isActive ? "text-emerald-500" : "text-zinc-700")}
                           onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)}
                           title={channel.isActive ? "Deactivate Channel" : "Activate Channel"}
                         >
@@ -444,7 +448,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
+                          className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent"
                           onClick={() => {
                             setEditingChannel(channel);
                             setIsEditDialogOpen(true);
@@ -454,16 +458,16 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                           <Pencil className="w-5 h-5" />
                         </Button>
                         <a href={channel.externalUrl} target="_blank" rel="noopener noreferrer">
-                          <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800" title="View on YouTube">
+                          <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent">
                             <ExternalLink className="w-5 h-5" />
                           </Button>
                         </a>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-destructive hover:bg-destructive/10 border border-transparent"
+                          className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-destructive hover:bg-destructive/10"
                           onClick={() => {
-                            if (confirm("Delete channel registry? This will NOT delete associated videos.")) {
+                            if (confirm("Delete channel registry? Associated videos will remain.")) {
                               deleteDocumentNonBlocking(doc(db, 'channels', channel.id));
                             }
                           }}
@@ -481,7 +485,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                 <TableCell colSpan={4} className="h-64 text-center">
                   <div className="flex flex-col items-center justify-center space-y-4">
                      <Youtube className="w-16 h-16 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">No spiritual creators found in your directory.</p>
+                     <p className="text-zinc-600 font-medium">No creators found in your directory.</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -490,12 +494,11 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         </Table>
       </Card>
 
-      {/* Edit Channel Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-2xl shadow-2xl">
+        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">Edit Channel Metadata</DialogTitle>
-            <DialogDescription className="text-zinc-500">Update the information for this spiritual content creator.</DialogDescription>
+            <DialogDescription className="text-zinc-500">Update branding information for this creator.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-6">
             <div className="space-y-2">
@@ -518,7 +521,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           <DialogFooter className="gap-3">
             <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold h-12 px-6 border border-zinc-800">Cancel</Button>
             <Button 
-              className="rounded-xl h-12 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 shadow-xl"
+              className="rounded-xl h-12 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800"
               onClick={handleEditSave}
             >
               Save Registry Info

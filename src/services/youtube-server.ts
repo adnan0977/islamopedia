@@ -30,6 +30,12 @@ interface YouTubeVideoData {
  * Common mapper for YouTube API items to our internal format.
  */
 function mapChannelItem(item: any): YouTubeChannelData {
+  // Most channels follow the pattern where the uploads playlist ID is just the channel ID
+  // with 'C' replaced by 'U' at index 1. We use this as a robust fallback.
+  const fallbackUploadsId = item.id.startsWith('UC') 
+    ? 'UU' + item.id.substring(2) 
+    : '';
+
   return {
     id: item.id,
     title: item.snippet.title,
@@ -39,7 +45,7 @@ function mapChannelItem(item: any): YouTubeChannelData {
     subscribersCount: parseInt(item.statistics.subscriberCount) || 0,
     videoCount: parseInt(item.statistics.videoCount) || 0,
     viewCount: parseInt(item.statistics.viewCount) || 0,
-    uploadsPlaylistId: item.contentDetails?.relatedPlaylists?.uploads || '',
+    uploadsPlaylistId: item.contentDetails?.relatedPlaylists?.uploads || fallbackUploadsId,
   };
 }
 
@@ -49,7 +55,7 @@ function mapChannelItem(item: any): YouTubeChannelData {
 export async function fetchYouTubeChannels(ids: string[]): Promise<YouTubeChannelData[]> {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
-    throw new Error('YOUTUBE_API_KEY is not configured. Please add a valid key to your .env file.');
+    throw new Error('YOUTUBE_API_KEY is not configured in the environment.');
   }
 
   const idString = ids.join(',');
@@ -60,8 +66,7 @@ export async function fetchYouTubeChannels(ids: string[]): Promise<YouTubeChanne
     const data = await response.json();
 
     if (data.error) {
-      console.error('YouTube API Error:', data.error);
-      throw new Error(`YouTube API Error: ${data.error.message || 'Unknown error'}`);
+      throw new Error(`YouTube API Error: ${data.error.message}`);
     }
 
     if (!data.items || data.items.length === 0) {
@@ -84,7 +89,6 @@ export async function fetchYouTubeChannelByHandle(handle: string): Promise<YouTu
     throw new Error('YOUTUBE_API_KEY is not configured.');
   }
 
-  // Ensure handle starts with @
   const formattedHandle = handle.startsWith('@') ? handle : `@${handle}`;
   const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&forHandle=${encodeURIComponent(formattedHandle)}&key=${apiKey}`;
 
@@ -93,8 +97,7 @@ export async function fetchYouTubeChannelByHandle(handle: string): Promise<YouTu
     const data = await response.json();
 
     if (data.error) {
-      console.error('YouTube API Error (Handle):', data.error);
-      throw new Error(`YouTube API Error: ${data.error.message || 'Unknown error'}`);
+      throw new Error(`YouTube API Error: ${data.error.message}`);
     }
 
     if (!data.items || data.items.length === 0) {
@@ -117,7 +120,9 @@ export async function fetchPlaylistVideos(playlistId: string, maxResults = 50): 
     throw new Error('YOUTUBE_API_KEY is not configured.');
   }
 
-  if (!playlistId) return [];
+  if (!playlistId) {
+    throw new Error('Missing playlist ID for synchronization.');
+  }
 
   const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=${maxResults}&key=${apiKey}`;
 
