@@ -379,7 +379,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
 
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
         <div className="overflow-x-auto">
-          <Table className="min-w-[800px]">
+          <Table className="min-w-[800px] table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[30%]">Creator branding</TableHead>
@@ -396,16 +396,18 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                   const videosInDbCount = videos.filter(v => v.channelId === channel.id).length;
                   return (
                     <TableRow key={channel.id} className={cn("hover:bg-zinc-900/40 transition-all border-zinc-900 h-24", !channel.isActive && "opacity-50 grayscale")}>
-                      <TableCell className="pl-6 max-w-0">
-                        <div className="flex items-center gap-4 min-w-0">
+                      <TableCell className="pl-6">
+                        <div className="flex items-center gap-4 min-w-0 overflow-hidden">
                           <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-zinc-800 bg-black shrink-0">
                             {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                           </div>
                           <div className="flex flex-col min-w-0 overflow-hidden">
-                            <span className="font-bold text-zinc-100 truncate text-sm flex items-center gap-2">
-                              {channel.title}
-                              {channel.isActive && <CheckCircle2 className="w-3 h-3 text-zinc-600" />}
-                            </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-bold text-zinc-100 truncate text-sm" title={channel.title}>
+                                {channel.title}
+                              </span>
+                              {channel.isActive && <CheckCircle2 className="w-3 h-3 text-zinc-600 shrink-0" />}
+                            </div>
                             <div className="mt-1">
                               {channel.isActive ? (
                                 <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[7px] font-black uppercase px-1.5 py-0">Active</Badge>

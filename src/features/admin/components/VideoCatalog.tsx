@@ -227,7 +227,7 @@ export function VideoCatalog() {
 
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
         <div className="overflow-x-auto">
-          <Table className="min-w-[800px]">
+          <Table className="min-w-[800px] table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[30%]">Video Details</TableHead>
@@ -240,13 +240,13 @@ export function VideoCatalog() {
             <TableBody>
               {filteredVideos?.map((video) => (
                 <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
-                  <TableCell className="pl-6 max-w-0">
-                    <div className="flex items-center gap-4 min-w-0">
+                  <TableCell className="pl-6">
+                    <div className="flex items-center gap-4 min-w-0 overflow-hidden">
                       <div className="relative w-20 h-12 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
                         {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                       </div>
                       <div className="flex flex-col min-w-0 overflow-hidden">
-                        <span className="font-bold text-zinc-100 truncate text-xs">{video.title}</span>
+                        <span className="font-bold text-zinc-100 truncate text-xs" title={video.title}>{video.title}</span>
                         <span className="text-[9px] text-zinc-600 truncate uppercase mt-1">{video.channelId}</span>
                       </div>
                     </div>
