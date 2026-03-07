@@ -109,7 +109,7 @@ export async function fetchYouTubeChannelByHandle(handle: string): Promise<YouTu
 }
 
 /**
- * Fetches all videos from a specific YouTube channel's "Uploads" playlist.
+ * Fetches videos from a specific YouTube channel's "Uploads" playlist.
  * Implements pagination to fetch up to 5000 videos.
  */
 export async function fetchPlaylistVideos(playlistId: string, limit = 5000): Promise<YouTubeVideoData[]> {
@@ -127,7 +127,7 @@ export async function fetchPlaylistVideos(playlistId: string, limit = 5000): Pro
   
   try {
     do {
-      const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&pageToken=${nextPageToken}&key=${apiKey}`;
+      const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${playlistId}&maxResults=50&pageToken=${nextPageToken}&key=${apiKey}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -135,16 +135,16 @@ export async function fetchPlaylistVideos(playlistId: string, limit = 5000): Pro
         throw new Error(`YouTube API Error (Playlist): ${data.error.message}`);
       }
 
-      if (!data.items) break;
+      if (!data.items || data.items.length === 0) break;
 
       const pageVideos = data.items.map((item: any) => ({
-        id: item.snippet.resourceId.videoId,
+        id: item.snippet.resourceId?.videoId || item.contentDetails?.videoId,
         title: item.snippet.title,
         description: item.snippet.description,
         thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
         publishedAt: item.snippet.publishedAt,
         channelId: item.snippet.channelId,
-      }));
+      })).filter((v: any) => !!v.id);
 
       allVideos = [...allVideos, ...pageVideos];
       nextPageToken = data.nextPageToken;

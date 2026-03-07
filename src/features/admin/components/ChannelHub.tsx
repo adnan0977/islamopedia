@@ -168,13 +168,16 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   };
 
   const handleSyncVideos = async (channel: any) => {
+    const MAX_PROCESS_PER_CLICK = 500;
     let uploadsId = channel.uploadsPlaylistId;
+    
     setSyncingVideosFor(channel.id);
-    setSyncStatus(`Syncing uploads for ${channel.title}...`);
-    setSyncProgress(10);
+    setSyncStatus(`Syncing catalog for ${channel.title}...`);
+    setSyncProgress(5);
 
     try {
       if (!uploadsId) {
+        setSyncStatus('Resolving missing playlist data...');
         const freshData = await fetchYouTubeChannels([channel.id]);
         if (freshData.length > 0 && freshData[0].uploadsPlaylistId) {
           uploadsId = freshData[0].uploadsPlaylistId;
@@ -182,26 +185,33 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         }
       }
 
-      if (!uploadsId) throw new Error('Cannot find uploads playlist.');
+      if (!uploadsId) throw new Error('Cannot find uploads playlist for this channel.');
 
+      // Fetch a large pool to compare against DB
+      setSyncStatus('Fetching video history from YouTube...');
       const ytVideos = await fetchPlaylistVideos(uploadsId, 5000);
-      setSyncProgress(40);
-      setSyncStatus(`Processing ${ytVideos.length} videos...`);
+      setSyncProgress(30);
 
+      setSyncStatus('Cross-referencing with local database...');
       const existingVideosQ = query(collection(db, 'videos'), where('channelId', '==', channel.id));
       const existingSnap = await getDocs(existingVideosQ);
       const existingIds = new Set(existingSnap.docs.map(d => d.id));
 
-      const newVideos = ytVideos.filter(v => !existingIds.has(v.id));
+      const missingVideos = ytVideos.filter(v => !existingIds.has(v.id));
 
-      if (newVideos.length === 0) {
-        toast({ title: "Up to Date", description: "All latest videos are already in the catalog." });
+      if (missingVideos.length === 0) {
+        toast({ title: "Catalog Up to Date", description: "No new videos detected on YouTube." });
         return;
       }
 
+      // We process a subset to avoid long-running actions and timeouts
+      const subsetToProcess = missingVideos.slice(0, MAX_PROCESS_PER_CLICK);
+      const hasMoreRemaining = missingVideos.length > MAX_PROCESS_PER_CLICK;
+
+      setSyncStatus(`Indexing ${subsetToProcess.length} new videos...`);
       const batchSize = 400;
-      for (let i = 0; i < newVideos.length; i += batchSize) {
-        const chunk = newVideos.slice(i, i + batchSize);
+      for (let i = 0; i < subsetToProcess.length; i += batchSize) {
+        const chunk = subsetToProcess.slice(i, i + batchSize);
         const batch = writeBatch(db);
         
         chunk.forEach(v => {
@@ -216,14 +226,21 @@ export function ChannelHub({ videos }: { videos: any[] }) {
             likeCount: 0,
             updatedAt: new Date().toISOString(),
             createdAt: new Date().toISOString(),
-          });
+          }, { merge: true });
         });
         
         await batch.commit();
-        setSyncProgress(Math.round(40 + ((i + chunk.length) / newVideos.length) * 60));
+        setSyncProgress(Math.round(30 + ((i + chunk.length) / subsetToProcess.length) * 70));
       }
 
-      toast({ title: "Sync Successful", description: `Added ${newVideos.length} new videos from ${channel.title}.` });
+      if (hasMoreRemaining) {
+        toast({ 
+          title: "Partial Sync Successful", 
+          description: `Added ${subsetToProcess.length} videos. ${missingVideos.length - subsetToProcess.length} more remain. Click Sync again to continue.` 
+        });
+      } else {
+        toast({ title: "Sync Successful", description: `Added ${subsetToProcess.length} new videos from ${channel.title}.` });
+      }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Sync Failed', description: error.message });
     } finally {
@@ -442,7 +459,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                         <Button 
                           variant="ghost" size="icon" 
                           className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-destructive"
-                          onClick={() => { if (confirm("Delete?")) deleteDocumentNonBlocking(doc(db, 'channels', channel.id)); }}
+                          onClick={() => { if (confirm("Are you sure you want to remove this channel from the registry?")) deleteDocumentNonBlocking(doc(db, 'channels', channel.id)); }}
                         >
                           <Trash2 className="w-5 h-5" />
                         </Button>
