@@ -261,7 +261,7 @@ export function QuranReader() {
           const ayatIndex = parseInt(entry.target.getAttribute('data-ayat-index') || '0');
           
           setCurrentAyatIndex(ayatIndex);
-          // Removed automatic setVisiblePage(pageNum) to stop dynamic page number change on scroll
+          // Note: setVisiblePage(pageNum) is disabled here to stop dynamic page number change on scroll as requested
 
           if (ayatIndex >= flattenedAyats.length - 3) {
             loadMorePages();
@@ -304,7 +304,7 @@ export function QuranReader() {
                  <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800">
                     <Database className="w-5 h-5 text-zinc-500" />
                  </div>
-                 <h1 className="text-lg md:text-2xl font-headline font-bold text-white tracking-tight">Index</h1>
+                 <h1 className="text-lg md:text-2xl font-headline font-bold text-white tracking-tight">Quran</h1>
               </div>
             ) : (
               <div className="flex items-center gap-3">
