@@ -853,6 +853,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
       deleteDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier));
       toast({ title: "Translation Removed" });
     } else {
+      // Save activated translation to the 'quran_translations' collection
       setDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier), {
         id: edition.identifier,
         name: edition.name,
