@@ -383,7 +383,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                 return (
                   <TableRow key={channel.id} className={cn("hover:bg-zinc-900/40 transition-all border-zinc-900 h-24", !channel.isActive && "opacity-50 grayscale")}>
                     <TableCell className="pl-10">
-                      <div className="flex items-center gap-5">
+                      <div className="flex items-center gap-8">
                         <div className="relative w-12 h-12 rounded-2xl overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
                           {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                         </div>
@@ -392,7 +392,13 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                             {channel.title}
                             {channel.isActive && <CheckCircle2 className="w-3.5 h-3.5 text-zinc-600 fill-zinc-600" />}
                           </span>
-                          <code className="text-[10px] text-zinc-600 font-mono truncate tracking-tight">{channel.id}</code>
+                          <div className="mt-1">
+                            {channel.isActive ? (
+                              <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase rounded-sm h-4">Active</Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-zinc-800 text-zinc-600 text-[8px] font-black uppercase rounded-sm h-4">Deactivated</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -412,13 +418,6 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                         <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm">
                           <Users className="w-4 h-4 text-zinc-700" />
                           {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount} Subscribers
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {channel.isActive ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase rounded-sm">Active</Badge>
-                          ) : (
-                            <Badge variant="outline" className="border-zinc-800 text-zinc-600 text-[8px] font-black uppercase rounded-sm">Deactivated</Badge>
-                          )}
                         </div>
                       </div>
                     </TableCell>

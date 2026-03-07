@@ -242,7 +242,6 @@ export function VideoCatalog() {
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="font-bold text-zinc-100 truncate max-w-[300px]">{video.title}</span>
-                      <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest truncate">{video.channelId}</span>
                     </div>
                   </div>
                 </TableCell>
