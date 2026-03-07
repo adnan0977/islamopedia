@@ -1,15 +1,12 @@
 
 /**
- * Satisfier for static export. 
- * Since we moved to query params for the watch page, 
- * this dynamic route is no longer used but must be valid for the build.
+ * Redundant dynamic route. All navigation is handled via /watch?v=...
+ * Retained with minimal content to satisfy potential static export requirements.
  */
 export function generateStaticParams() {
-  // We provide a dummy param to satisfy the build process for output: export
-  return [{ videoId: 'initial' }];
+  return [{ videoId: 'shell' }];
 }
 
-export default function Page() {
-  // This page is a fallback. Real navigation goes to /watch?v=...
+export default function RedundantWatchPage() {
   return null;
 }
