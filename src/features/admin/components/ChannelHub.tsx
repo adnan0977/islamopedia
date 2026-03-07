@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -16,7 +17,8 @@ import {
   Search,
   CheckCircle2,
   ExternalLink,
-  Users
+  Users,
+  AlertCircle
 } from 'lucide-react';
 import {
   Dialog,
@@ -39,6 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { fetchYouTubeChannels } from '@/services/youtube-server';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const DEFAULT_IDS = `Islamic History Plus,UCsaR6SnAv97_9MI2JPLcyRA,English,Authentic & Research Stories
 Islamic History (Official),UC1mNByYnDzhPesq4RF-jGLQ,English,Pivotal Events & Journeys
@@ -58,6 +61,7 @@ export function ChannelHub() {
   const [singleId, setSingleId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const channelsQuery = useMemoFirebase(() => query(
     collection(db, 'channels'),
@@ -72,17 +76,19 @@ export function ChannelHub() {
   );
 
   const extractIds = (text: string) => {
-    const matches = text.match(/UC[a-zA-Z0-9_-]{10,24}/g);
+    // Robust regex to find UC followed by 22 alphanumeric/underscore/dash characters
+    const matches = text.match(/UC[a-zA-Z0-9_-]{22}/g);
     return Array.from(new Set(matches || []));
   };
 
   const handleSync = async (idsToSync: string[]) => {
     if (idsToSync.length === 0) {
-      toast({ variant: 'destructive', title: 'No IDs found', description: 'Please provide valid YouTube Channel IDs.' });
+      toast({ variant: 'destructive', title: 'No IDs found', description: 'Please provide valid YouTube Channel IDs (starting with UC).' });
       return;
     }
 
     setIsSyncing(true);
+    setSyncError(null);
     try {
       const chunks = [];
       for (let i = 0; i < idsToSync.length; i += 50) {
@@ -92,6 +98,11 @@ export function ChannelHub() {
       let totalSynced = 0;
       for (const chunk of chunks) {
         const data = await fetchYouTubeChannels(chunk);
+        
+        if (data.length === 0) {
+          throw new Error("No channels found. Please verify the Channel IDs are correct and your API key is active.");
+        }
+
         for (const channel of data) {
           const channelRef = doc(db, 'channels', channel.id);
           await setDoc(channelRef, {
@@ -107,7 +118,8 @@ export function ChannelHub() {
       setIsDialogOpen(false);
       setSingleId('');
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'API Error', description: error.message || 'Failed to fetch from YouTube.' });
+      setSyncError(error.message);
+      toast({ variant: 'destructive', title: 'Sync Failed', description: error.message || 'Failed to fetch from YouTube.' });
     } finally {
       setIsSyncing(false);
     }
@@ -126,7 +138,10 @@ export function ChannelHub() {
           />
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setSyncError(null);
+        }}>
           <DialogTrigger asChild>
             <Button 
               className="bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-700 rounded-full h-14 px-8 font-bold shadow-2xl transition-all active:scale-95 flex items-center gap-3 group"
@@ -143,6 +158,18 @@ export function ChannelHub() {
               <DialogDescription className="text-zinc-500 text-sm mt-2">Add YouTube channels to your directory to sync spiritual content.</DialogDescription>
             </DialogHeader>
             
+            {syncError && (
+              <div className="px-10 pt-6">
+                <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle className="font-bold">Synchronization Error</AlertTitle>
+                  <AlertDescription className="text-xs mt-1">
+                    {syncError}
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+
             <Tabs defaultValue="bulk" className="w-full">
               <div className="px-10 pt-8">
                 <TabsList className="bg-zinc-900 p-1 rounded-2xl h-14 w-full border border-zinc-800">

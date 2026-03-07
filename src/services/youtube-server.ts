@@ -21,8 +21,8 @@ interface YouTubeChannelData {
  */
 export async function fetchYouTubeChannels(ids: string[]): Promise<YouTubeChannelData[]> {
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) {
-    throw new Error('YOUTUBE_API_KEY is not configured in environment variables.');
+  if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
+    throw new Error('YOUTUBE_API_KEY is not configured. Please add a valid key to your .env file.');
   }
 
   const idString = ids.join(',');
@@ -32,7 +32,13 @@ export async function fetchYouTubeChannels(ids: string[]): Promise<YouTubeChanne
     const response = await fetch(url);
     const data = await response.json();
 
-    if (!data.items) {
+    if (data.error) {
+      console.error('YouTube API Error:', data.error);
+      throw new Error(`YouTube API Error: ${data.error.message || 'Unknown error'}`);
+    }
+
+    if (!data.items || data.items.length === 0) {
+      console.warn('No channels found for the provided IDs:', ids);
       return [];
     }
 
@@ -46,8 +52,8 @@ export async function fetchYouTubeChannels(ids: string[]): Promise<YouTubeChanne
       videoCount: parseInt(item.statistics.videoCount) || 0,
       viewCount: parseInt(item.statistics.viewCount) || 0,
     }));
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching YouTube channels:', error);
-    throw new Error('Failed to fetch data from YouTube API.');
+    throw new Error(error.message || 'Failed to fetch data from YouTube API.');
   }
 }
