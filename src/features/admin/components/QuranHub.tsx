@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
 import { doc, writeBatch, setDoc, query, where, getDocs, collection } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -22,7 +22,9 @@ import {
   PlusCircle,
   Power,
   PowerOff,
-  CloudDownload
+  CloudDownload,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { 
   Dialog,
@@ -199,17 +201,31 @@ function EditionDirectory({ editions }: { editions: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [available, setAvailable] = useState<any[]>([]);
   const [openAdd, setOpenAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('all');
+  
+  // Pagination State for Main Table
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
+  // Pagination State for Browse Dialog
+  const [browsePage, setBrowsePage] = useState(1);
+  const browseItemsPerPage = 10;
+
+  const languages = useMemo(() => {
+    const langs = new Set<string>();
+    editions.forEach(e => {
+      if (e.language) langs.add(e.language);
+    });
+    return Array.from(langs).sort();
+  }, [editions]);
 
   const fetchAndSeedRegistry = async () => {
     setLoading(true);
     try {
       const payload = await getAllAlQuranEditions();
       const availableList = payload.data || [];
-      setAvailable(availableList);
 
       const batch = writeBatch(db);
       availableList.forEach((item: any) => {
@@ -245,12 +261,46 @@ function EditionDirectory({ editions }: { editions: any[] }) {
     });
   };
 
-  // Filter current directory
+  // Filter Main Directory
   const [dirSearch, setDirSearch] = useState('');
-  const filteredEditions = editions.filter(e => 
-    e.name.toLowerCase().includes(dirSearch.toLowerCase()) || 
-    e.id.toLowerCase().includes(dirSearch.toLowerCase())
-  );
+  const filteredEditions = useMemo(() => {
+    return editions.filter(e => 
+      e.name.toLowerCase().includes(dirSearch.toLowerCase()) || 
+      e.id.toLowerCase().includes(dirSearch.toLowerCase())
+    );
+  }, [editions, dirSearch]);
+
+  const paginatedEditions = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredEditions.slice(start, start + itemsPerPage);
+  }, [filteredEditions, currentPage]);
+
+  const totalPages = Math.ceil(filteredEditions.length / itemsPerPage);
+
+  // Filter Browse Dialog
+  const filteredBrowse = useMemo(() => {
+    return editions.filter(e => {
+      const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase()) || 
+                           e.id.toLowerCase().includes(search.toLowerCase());
+      const matchesLang = selectedLanguage === 'all' || e.language === selectedLanguage;
+      return matchesSearch && matchesLang;
+    });
+  }, [editions, search, selectedLanguage]);
+
+  const paginatedBrowse = useMemo(() => {
+    const start = (browsePage - 1) * browseItemsPerPage;
+    return filteredBrowse.slice(start, start + browseItemsPerPage);
+  }, [filteredBrowse, browsePage]);
+
+  const totalBrowsePages = Math.ceil(filteredBrowse.length / browseItemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [dirSearch]);
+
+  useEffect(() => {
+    setBrowsePage(1);
+  }, [search, selectedLanguage]);
 
   return (
     <div className="space-y-6">
@@ -286,12 +336,23 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                       onChange={(e) => setSearch(e.target.value)}
                     />
                   </div>
+                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                    <SelectTrigger className="w-full md:w-48 bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                      <SelectValue placeholder="All Languages" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                      <SelectItem value="all">All Languages</SelectItem>
+                      {languages.map(lang => (
+                        <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </DialogHeader>
               <div className="flex-1 overflow-hidden relative bg-black/20">
                 <ScrollArea className="h-full">
-                  <div className="p-8 grid gap-4 pb-24">
-                    {editions.length > 0 ? editions.filter(e => e.name.toLowerCase().includes(search.toLowerCase())).map((item) => (
+                  <div className="p-8 grid gap-4 pb-32">
+                    {paginatedBrowse.length > 0 ? paginatedBrowse.map((item) => (
                       <div key={item.id} className="flex items-center justify-between p-6 bg-zinc-900/30 rounded-2xl border border-zinc-900/50 hover:border-zinc-800 transition-all group">
                         <div className="flex flex-col space-y-2">
                           <div className="flex items-center gap-3">
@@ -315,11 +376,54 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                     )) : (
                       <div className="text-center py-24 bg-zinc-900/20 rounded-[2rem] border-2 border-dashed border-zinc-900">
                         <Database className="w-12 h-12 text-zinc-900 mx-auto mb-4" />
-                        <p className="text-zinc-600 font-medium">Registry is empty. Click "Sync Registry from Cloud" first.</p>
+                        <p className="text-zinc-600 font-medium">No editions match your criteria.</p>
                       </div>
                     )}
                   </div>
                 </ScrollArea>
+                
+                {/* Browse Pagination Footer */}
+                <div className="absolute bottom-0 left-0 right-0 bg-zinc-950/80 backdrop-blur-md border-t border-zinc-800 p-4 flex items-center justify-between">
+                   <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest pl-4">Page {browsePage} of {totalBrowsePages || 1}</p>
+                   <div className="flex gap-2 pr-4">
+                     <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={() => setBrowsePage(1)} 
+                       disabled={browsePage === 1}
+                       className="rounded-lg hover:bg-zinc-900 text-zinc-500"
+                     >
+                       <ChevronsLeft className="w-4 h-4" />
+                     </Button>
+                     <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={() => setBrowsePage(prev => Math.max(1, prev - 1))} 
+                       disabled={browsePage === 1}
+                       className="rounded-lg hover:bg-zinc-900 text-zinc-500"
+                     >
+                       <ChevronLeft className="w-4 h-4" />
+                     </Button>
+                     <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={() => setBrowsePage(prev => Math.min(totalBrowsePages, prev + 1))} 
+                       disabled={browsePage === totalBrowsePages || totalBrowsePages === 0}
+                       className="rounded-lg hover:bg-zinc-900 text-zinc-500"
+                     >
+                       <ChevronRight className="w-4 h-4" />
+                     </Button>
+                     <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       onClick={() => setBrowsePage(totalBrowsePages)} 
+                       disabled={browsePage === totalBrowsePages || totalBrowsePages === 0}
+                       className="rounded-lg hover:bg-zinc-900 text-zinc-500"
+                     >
+                       <ChevronsRight className="w-4 h-4" />
+                     </Button>
+                   </div>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
@@ -330,7 +434,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
         <Input 
           placeholder="Filter your local directory..." 
-          className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14"
+          className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
           value={dirSearch}
           onChange={(e) => setDirSearch(e.target.value)}
         />
@@ -347,7 +451,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredEditions.slice(0, 50).map((t) => (
+            {paginatedEditions.map((t) => (
               <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
                 <TableCell className="pl-8">
                   <div className="flex flex-col">
@@ -392,22 +496,45 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                 </TableCell>
               </TableRow>
             ))}
-            {filteredEditions.length === 0 && (
+            {paginatedEditions.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="h-60 text-center">
                   <div className="flex flex-col items-center justify-center space-y-4">
                      <BookOpen className="w-12 h-12 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">No editions found. Pull the registry from the cloud to begin.</p>
+                     <p className="text-zinc-600 font-medium">No local editions found matching "{dirSearch}"</p>
                   </div>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+        
+        {/* Main Table Pagination Footer */}
+        <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between">
+           <div className="flex flex-col">
+             <span className="text-xs font-bold text-zinc-400">Showing {paginatedEditions.length} of {filteredEditions.length}</span>
+             <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
+           </div>
+           <div className="flex gap-2">
+             <Button 
+               variant="outline" 
+               className="rounded-xl border-zinc-800 text-zinc-400 font-bold h-10" 
+               disabled={currentPage === 1}
+               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+             >
+               <ChevronLeft className="w-4 h-4 mr-2" /> Previous
+             </Button>
+             <Button 
+               variant="outline" 
+               className="rounded-xl border-zinc-800 text-zinc-400 font-bold h-10" 
+               disabled={currentPage === totalPages || totalPages === 0}
+               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+             >
+               Next <ChevronRight className="w-4 h-4 ml-2" />
+             </Button>
+           </div>
+        </div>
       </Card>
-      {filteredEditions.length > 50 && (
-        <p className="text-center text-[10px] text-zinc-600 font-black uppercase tracking-widest pt-4">Showing first 50 results. Use search to find others.</p>
-      )}
     </div>
   );
 }
