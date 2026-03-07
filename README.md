@@ -34,18 +34,18 @@ To upload this project to your `quranproject` repository:
 
 When working on new features, it's best practice to use branches:
 
-1.  **Create a new branch**:
+1.  **Create and switch to a new branch**:
     ```bash
-    git checkout -b feature/my-new-feature
+    git checkout -b feature/quranproject
     ```
 2.  **Stage and Commit**:
     ```bash
     git add .
-    git commit -m "Description of changes"
+    git commit -m "feat: add dynamic quran header and search interaction"
     ```
 3.  **Push the branch**:
     ```bash
-    git push origin feature/my-new-feature
+    git push origin feature/quranproject
     ```
 
 ## Development
