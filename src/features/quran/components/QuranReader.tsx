@@ -73,7 +73,8 @@ export function QuranReader() {
   const { data: editions } = useCollection(editionsQuery);
 
   const translations = useMemo(() => {
-    return editions?.filter(e => e.type === 'translation' || e.id !== 'quran-uthmani') || [];
+    // Strictly filter for editions of type 'translation'
+    return editions?.filter(e => e.type === 'translation') || [];
   }, [editions]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
@@ -190,12 +191,12 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // RTL Navigation (Reversed):
-    // Swipe Left (finger moves left) -> Distance > 0 -> Next Page
-    // Swipe Right (finger moves right) -> Distance < 0 -> Previous Page
-    if (isLeftSwipe && currentPage < 604) {
+    // RTL Swipe (Reversed logic based on user feedback):
+    // Swipe Left (finger moves left) -> Returns to previous page
+    // Swipe Right (finger moves right) -> Advances to next page
+    if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
-    } else if (isRightSwipe && currentPage > 1) {
+    } else if (isLeftSwipe && currentPage > 1) {
       setCurrentPage(prev => prev - 1);
     }
   };
@@ -360,7 +361,7 @@ export function QuranReader() {
                     <div key={group.surah.number} className="space-y-10">
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="space-y-6 md:space-y-8 border-b border-zinc-900/50 pb-12 last:border-0">
-                          <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
+                          <p className="text-right text-3xl md:text-5xl font-headline-arabic leading-relaxed text-zinc-100" dir="rtl">
                             {a.text}
                             {" "}
                             <span className="inline-block align-middle ms-4 select-none">
@@ -384,7 +385,7 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                <div className="text-right font-arabic leading-loose text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
+                <div className="text-right font-arabic leading-[2.5] text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
                     <span key={a.number} className="inline">
                       <span className="hover:text-white transition-colors">
@@ -436,3 +437,4 @@ export function QuranReader() {
     </div>
   );
 }
+
