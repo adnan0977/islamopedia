@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, collection, query, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { 
   ShieldCheck, 
@@ -16,9 +16,7 @@ import {
   LogOut,
   Copy,
   CheckCircle2,
-  Search,
   Mic2,
-  X,
   Database,
   Settings
 } from 'lucide-react';
@@ -43,7 +41,6 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -62,8 +59,6 @@ export default function AdminPanel() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [copied, setCopied] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Sync State
   const [sync, setSync] = useState<SyncState>({ isSyncing: false, progress: 0, status: 'idle' });
@@ -73,8 +68,18 @@ export default function AdminPanel() {
 
   const isVerifiedAdmin = !!adminData;
 
-  const channelsRef = useMemoFirebase(() => (isVerifiedAdmin ? doc(db, 'channels', 'placeholder') : null), [db, isVerifiedAdmin]); // Simplified for structure
-  const { data: channels } = useCollection(useMemoFirebase(() => doc(db, 'channels', 'list'), [])); // Simplified mock
+  // Real Data Queries for Dashboard
+  const channelsQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'channels'), limit(100)) : null), [db, isVerifiedAdmin]);
+  const { data: channels } = useCollection(channelsQuery);
+
+  const videosQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'videos'), limit(100)) : null), [db, isVerifiedAdmin]);
+  const { data: videos } = useCollection(videosQuery);
+
+  const speakersQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'speakers'), limit(100)) : null), [db, isVerifiedAdmin]);
+  const { data: speakers } = useCollection(speakersQuery);
+
+  const editionsQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'quran_editions'), limit(100)) : null), [db, isVerifiedAdmin]);
+  const { data: editions } = useCollection(editionsQuery);
 
   const copyUid = () => {
     if (user?.uid) {
@@ -167,10 +172,17 @@ export default function AdminPanel() {
           </header>
 
           <main className="p-8 pb-32">
-            {activeTab === 'dashboard' && <DashboardOverview channels={[]} videos={[]} speakers={[]} editions={[]} />}
+            {activeTab === 'dashboard' && (
+              <DashboardOverview 
+                channels={channels || []} 
+                videos={videos || []} 
+                speakers={speakers || []} 
+                editions={editions || []} 
+              />
+            )}
             {activeTab === 'quran-tools' && (
               <QuranHub 
-                editions={[]} 
+                editions={editions || []} 
                 syncing={sync.isSyncing} 
                 setSyncing={(val) => setSync({ ...sync, isSyncing: val })}
                 setProgress={(val) => setSync({ ...sync, progress: val })}
