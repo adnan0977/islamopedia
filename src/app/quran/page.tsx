@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { getQuranSurahs, getSurahDetails } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, MapPin, Languages } from 'lucide-react';
+import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, MapPin, Languages, LayoutList, BookOpen } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+type ViewMode = 'ayat' | 'page';
 
 export default function QuranPage() {
   const db = useFirestore();
@@ -29,6 +32,7 @@ export default function QuranPage() {
   const [selectedSurah, setSelectedSurah] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [playingAyat, setPlayingAyat] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('ayat');
   
   // Translation State
   const translationsRef = useMemoFirebase(() => collection(db, 'quran_translations'), [db]);
@@ -122,7 +126,19 @@ export default function QuranPage() {
             <p className="text-zinc-500 text-xs md:text-sm">Read, listen, and contemplate the Word of Allah.</p>
           </div>
         </div>
-        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-center">
+          <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as ViewMode)} className="w-full md:w-auto">
+            <TabsList className="bg-zinc-950 border border-zinc-900 h-11 p-1 rounded-xl">
+              <TabsTrigger value="ayat" className="rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
+                <LayoutList className="w-4 h-4" />
+                Ayat
+              </TabsTrigger>
+              <TabsTrigger value="page" className="rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
+                <BookOpen className="w-4 h-4" />
+                Page
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <div className="w-full md:w-64">
             <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
               <SelectTrigger className="bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white">
@@ -140,7 +156,7 @@ export default function QuranPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="relative w-full md:w-80">
+          <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
             <Input 
               placeholder="Search Surah..." 
@@ -232,7 +248,7 @@ export default function QuranPage() {
                 <ScrollArea className="flex-1">
                   <div className="p-4 md:p-6 space-y-10">
                     
-                    {/* AI Story Section */}
+                    {/* AI Story Section (Always shown at top) */}
                     <div className="bg-zinc-900/40 rounded-3xl border border-zinc-900 p-6 md:p-8 space-y-6">
                       <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
                         <div className="flex items-center gap-3">
@@ -274,15 +290,15 @@ export default function QuranPage() {
                       )}
                     </div>
 
-                    {/* Ayats Grid */}
-                    <div className="space-y-12">
-                      {loadingDetails ? (
-                        <div className="p-12 flex flex-col items-center justify-center space-y-4">
-                            <Loader2 className="animate-spin text-zinc-700 w-8 h-8" />
-                            <p className="text-sm text-zinc-600">Syncing verses...</p>
-                        </div>
-                      ) : (
-                        selectedSurah.ayats.map((ayat: any, idx: number) => (
+                    {loadingDetails ? (
+                      <div className="p-12 flex flex-col items-center justify-center space-y-4">
+                          <Loader2 className="animate-spin text-zinc-700 w-8 h-8" />
+                          <p className="text-sm text-zinc-600">Syncing verses...</p>
+                      </div>
+                    ) : viewMode === 'ayat' ? (
+                      /* Ayat Reading View */
+                      <div className="space-y-12">
+                        {selectedSurah.ayats.map((ayat: any, idx: number) => (
                           <div key={ayat.number} className="group space-y-8 pb-10 border-b border-zinc-900/50 last:border-none">
                               <div className="flex items-start justify-between gap-6">
                                 <div className="flex flex-col gap-3">
@@ -317,9 +333,26 @@ export default function QuranPage() {
                                 </p>
                               </div>
                           </div>
-                        ))
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Page Reading View */
+                      <div className="py-8 px-4 md:px-12 bg-zinc-950 rounded-[3rem] border border-zinc-900 shadow-inner">
+                        <div 
+                          className="text-right font-arabic leading-[2.5] text-3xl md:text-5xl text-zinc-100 space-x-1 space-x-reverse"
+                          style={{ textAlign: 'justify', direction: 'rtl' }}
+                        >
+                          {selectedSurah.ayats.map((ayat: any) => (
+                            <span key={ayat.number} className="inline group cursor-pointer hover:text-white transition-colors">
+                              {ayat.text}
+                              <span className="inline-flex items-center justify-center w-10 h-10 mx-2 text-xs border border-zinc-800 rounded-full text-zinc-600 font-sans font-bold group-hover:border-zinc-500 group-hover:text-zinc-300">
+                                {ayat.numberInSurah}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </>
