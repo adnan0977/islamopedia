@@ -81,8 +81,10 @@ export default function QuranSettingsPage() {
   }, [editionsForSelectedLang]);
 
   const audioEditions = useMemo(() => {
-    return editionsForSelectedLang.filter(e => (e.format === 'audio' || e.type === 'audio'));
-  }, [editionsForSelectedLang]);
+    if (!editions) return [];
+    // Audio reciters are often universal, so we show all available ones with their language labels
+    return editions.filter(e => (e.format === 'audio' || e.type === 'audio'));
+  }, [editions]);
 
   useEffect(() => {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
@@ -122,8 +124,6 @@ export default function QuranSettingsPage() {
     );
   }
 
-  const currentTranslation = editions?.find(e => e.id === localSettings.preferredTranslationId);
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 pb-32">
       <div className="flex items-center justify-between">
@@ -153,7 +153,7 @@ export default function QuranSettingsPage() {
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
                 <Globe className="w-4 h-4 text-zinc-500" />
-                Available Languages
+                Available Editions
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
@@ -187,6 +187,7 @@ export default function QuranSettingsPage() {
                         {e.name}
                       </SelectItem>
                     ))}
+                    {translationEditions.length === 0 && <SelectItem value="none" disabled>No translations found</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -224,7 +225,7 @@ export default function QuranSettingsPage() {
                     <SelectItem value="none">None</SelectItem>
                     {audioEditions.map((e) => (
                       <SelectItem key={e.id} value={e.id}>
-                        {e.name}
+                        {e.name} ({e.language})
                       </SelectItem>
                     ))}
                   </SelectContent>
