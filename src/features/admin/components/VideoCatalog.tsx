@@ -44,7 +44,10 @@ import {
   FilterX,
   Youtube,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Pencil,
+  Power,
+  PowerOff
 } from 'lucide-react';
 import {
   Dialog,
@@ -56,7 +59,7 @@ import {
 } from "@/components/ui/dialog";
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -65,20 +68,22 @@ export function VideoCatalog() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterChannel, setFilterChannel] = useState('all');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  const [newVideo, setNewVideo] = useState({
+  const [videoFormData, setVideoFormData] = useState({
     id: '',
     title: '',
     description: '',
     thumbnailUrl: '',
     channelId: '',
     publishedAt: new Date().toISOString(),
-    isTrending: false
+    isTrending: false,
+    isActive: true
   });
 
   // Fetch Videos
@@ -120,35 +125,59 @@ export function VideoCatalog() {
     setCurrentPage(1);
   }, [searchTerm, filterChannel]);
 
-  const handleAddVideo = () => {
-    if (!newVideo.id || !newVideo.title) {
-      toast({ variant: "destructive", title: "Error", description: "YouTube ID and Title are required." });
-      return;
-    }
-
-    const videoRef = doc(db, 'videos', newVideo.id);
-    setDocumentNonBlocking(videoRef, {
-      ...newVideo,
-      externalUrl: `https://youtube.com/watch?v=${newVideo.id}`,
-      appViewCount: 0,
-      youtubeViewCount: 0,
-      likeCount: 0,
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      isActive: true
-    }, { merge: true });
-
-    toast({ title: "Video Cataloged", description: `${newVideo.title} has been added.` });
-    setIsAddDialogOpen(false);
-    setNewVideo({
+  const handleOpenAdd = () => {
+    setIsEditing(false);
+    setVideoFormData({
       id: '',
       title: '',
       description: '',
       thumbnailUrl: '',
       channelId: '',
       publishedAt: new Date().toISOString(),
-      isTrending: false
+      isTrending: false,
+      isActive: true
     });
+    setIsVideoDialogOpen(true);
+  };
+
+  const handleOpenEdit = (video: any) => {
+    setIsEditing(true);
+    setVideoFormData({
+      id: video.id,
+      title: video.title || '',
+      description: video.description || '',
+      thumbnailUrl: video.thumbnailUrl || '',
+      channelId: video.channelId || '',
+      publishedAt: video.publishedAt || new Date().toISOString(),
+      isTrending: !!video.isTrending,
+      isActive: video.isActive !== false
+    });
+    setIsVideoDialogOpen(true);
+  };
+
+  const handleSaveVideo = () => {
+    if (!videoFormData.id || !videoFormData.title) {
+      toast({ variant: "destructive", title: "Error", description: "YouTube ID and Title are required." });
+      return;
+    }
+
+    const videoRef = doc(db, 'videos', videoFormData.id);
+    setDocumentNonBlocking(videoRef, {
+      ...videoFormData,
+      externalUrl: `https://youtube.com/watch?v=${videoFormData.id}`,
+      updatedAt: new Date().toISOString(),
+      createdAt: isEditing ? (videos?.find(v => v.id === videoFormData.id)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+    }, { merge: true });
+
+    toast({ title: isEditing ? "Video Updated" : "Video Cataloged", description: `${videoFormData.title} has been saved.` });
+    setIsVideoDialogOpen(false);
+  };
+
+  const toggleVideoStatus = (video: any) => {
+    const newStatus = !video.isActive;
+    const videoRef = doc(db, 'videos', video.id);
+    updateDocumentNonBlocking(videoRef, { isActive: newStatus });
+    toast({ title: newStatus ? "Video Enabled" : "Video Disabled" });
   };
 
   const resetFilters = () => {
@@ -211,110 +240,126 @@ export function VideoCatalog() {
         </div>
 
         <div className="flex items-center gap-3 w-full xl:w-auto">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                className="rounded-full h-14 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 transition-all active:scale-95 flex items-center gap-3 shadow-lg group w-full sm:w-auto"
-              >
-                <Plus className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
-                <span className="text-sm">Catalog Video</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-              <DialogHeader className="p-10 border-b border-zinc-900 bg-zinc-900/40">
-                <DialogTitle className="text-2xl font-bold">Catalog New Video</DialogTitle>
-                <DialogDescription className="text-zinc-500 text-sm mt-2">Manually index spiritual content into your platform library.</DialogDescription>
-              </DialogHeader>
-              
-              <div className="flex-1 overflow-y-auto p-10 space-y-8 scrollbar-hide">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">YouTube Video ID</Label>
-                    <Input 
-                      placeholder="e.g. dQw4w9WgXcQ" 
-                      className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white px-6 focus:ring-zinc-700"
-                      value={newVideo.id}
-                      onChange={(e) => setNewVideo({ ...newVideo, id: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Channel ID</Label>
-                    <Input 
-                      placeholder="UC..." 
-                      className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white px-6 focus:ring-zinc-700"
-                      value={newVideo.channelId}
-                      onChange={(e) => setNewVideo({ ...newVideo, channelId: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Video Title</Label>
-                  <Input 
-                    placeholder="Enter descriptive title" 
-                    className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white px-6 focus:ring-zinc-700"
-                    value={newVideo.title}
-                    onChange={(e) => setNewVideo({ ...newVideo, title: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Thumbnail URL</Label>
-                  <Input 
-                    placeholder="https://i.ytimg.com/vi/..." 
-                    className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white px-6 focus:ring-zinc-700"
-                    value={newVideo.thumbnailUrl}
-                    onChange={(e) => setNewVideo({ ...newVideo, thumbnailUrl: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Description</Label>
-                  <Textarea 
-                    placeholder="Provide a detailed summary of the reflection..." 
-                    className="bg-zinc-900 border-zinc-800 rounded-[1.5rem] min-h-[150px] text-white p-6 focus:ring-zinc-700 resize-none"
-                    value={newVideo.description}
-                    onChange={(e) => setNewVideo({ ...newVideo, description: e.target.value })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-6 bg-zinc-900/50 rounded-3xl border border-zinc-800">
-                  <div className="space-y-1">
-                    <Label className="font-bold text-zinc-100 text-sm">Featured / Trending</Label>
-                    <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Promote this video in discovery sections</p>
-                  </div>
-                  <Switch 
-                    checked={newVideo.isTrending}
-                    onCheckedChange={(val) => setNewVideo({ ...newVideo, isTrending: val })}
-                  />
-                </div>
-              </div>
-
-              <div className="p-10 border-t border-zinc-900 bg-zinc-950">
-                <Button 
-                  className="w-full h-14 font-bold rounded-2xl text-base bg-zinc-100 text-black hover:bg-white shadow-xl transition-all active:scale-[0.98]" 
-                  onClick={handleAddVideo}
-                >
-                  Index Video Metadata
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            onClick={handleOpenAdd}
+            className="rounded-full h-14 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 transition-all active:scale-95 flex items-center gap-3 shadow-lg group w-full sm:w-auto"
+          >
+            <Plus className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+            <span className="text-sm">Catalog Video</span>
+          </Button>
+          
           <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold hidden sm:flex items-center gap-2">
             {filteredVideos.length} Listed
           </Badge>
         </div>
       </div>
 
+      <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-10 border-b border-zinc-900 bg-zinc-900/40">
+            <DialogTitle className="text-2xl font-bold">{isEditing ? 'Update Video' : 'Catalog New Video'}</DialogTitle>
+            <DialogDescription className="text-zinc-500 text-sm mt-2">
+              {isEditing ? 'Modify the existing entry in your platform library.' : 'Manually index spiritual content into your platform library.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-10 space-y-8 scrollbar-hide">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">YouTube Video ID</Label>
+                <Input 
+                  placeholder="e.g. dQw4w9WgXcQ" 
+                  className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white px-6 focus:ring-zinc-700"
+                  value={videoFormData.id}
+                  disabled={isEditing}
+                  onChange={(e) => setVideoFormData({ ...videoFormData, id: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Channel ID</Label>
+                <Input 
+                  placeholder="UC..." 
+                  className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white px-6 focus:ring-zinc-700"
+                  value={videoFormData.channelId}
+                  onChange={(e) => setVideoFormData({ ...videoFormData, channelId: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Video Title</Label>
+              <Input 
+                placeholder="Enter descriptive title" 
+                className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white px-6 focus:ring-zinc-700"
+                value={videoFormData.title}
+                onChange={(e) => setVideoFormData({ ...videoFormData, title: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Thumbnail URL</Label>
+              <Input 
+                placeholder="https://i.ytimg.com/vi/..." 
+                className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white px-6 focus:ring-zinc-700"
+                value={videoFormData.thumbnailUrl}
+                onChange={(e) => setVideoFormData({ ...videoFormData, thumbnailUrl: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Description</Label>
+              <Textarea 
+                placeholder="Provide a detailed summary of the reflection..." 
+                className="bg-zinc-900 border-zinc-800 rounded-[1.5rem] min-h-[150px] text-white p-6 focus:ring-zinc-700 resize-none"
+                value={videoFormData.description}
+                onChange={(e) => setVideoFormData({ ...videoFormData, description: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-6 bg-zinc-900/50 rounded-3xl border border-zinc-800">
+                <div className="space-y-1">
+                  <Label className="font-bold text-zinc-100 text-sm">Featured</Label>
+                  <p className="text-[8px] text-zinc-500 font-black uppercase tracking-widest">Promote video</p>
+                </div>
+                <Switch 
+                  checked={videoFormData.isTrending}
+                  onCheckedChange={(val) => setVideoFormData({ ...videoFormData, isTrending: val })}
+                />
+              </div>
+              <div className="flex items-center justify-between p-6 bg-zinc-900/50 rounded-3xl border border-zinc-800">
+                <div className="space-y-1">
+                  <Label className="font-bold text-zinc-100 text-sm">Active</Label>
+                  <p className="text-[8px] text-zinc-500 font-black uppercase tracking-widest">Public visibility</p>
+                </div>
+                <Switch 
+                  checked={videoFormData.isActive}
+                  onCheckedChange={(val) => setVideoFormData({ ...videoFormData, isActive: val })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="p-10 border-t border-zinc-900 bg-zinc-950">
+            <Button 
+              className="w-full h-14 font-bold rounded-2xl text-base bg-zinc-100 text-black hover:bg-white shadow-xl transition-all active:scale-[0.98]" 
+              onClick={handleSaveVideo}
+            >
+              {isEditing ? 'Save Changes' : 'Index Video Metadata'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
         <div className="w-full overflow-hidden">
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[25%]">Video Details</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[30%]">Video Details</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-[15%]">Engagement</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-[15%]">Status</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-[15%]">Published</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-[20%]">Status</TableHead>
                 <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-[25%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -349,30 +394,41 @@ export function VideoCatalog() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
+                    <div className="flex flex-col items-center gap-1.5">
+                      {video.isActive === false ? (
+                        <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[7px] font-black uppercase w-fit px-1.5 py-0">Disabled</Badge>
+                      ) : (
+                        <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[7px] font-black uppercase w-fit px-1.5 py-0">Active</Badge>
+                      )}
+                      {video.isTrending && (
+                        <Badge className="bg-amber-500/10 text-amber-500 border-none rounded-lg text-[7px] font-black uppercase flex items-center gap-0.5 w-fit px-1.5 py-0">
+                          <TrendingUp className="w-2 h-2" /> Featured
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
                     <div className="text-zinc-500 text-[9px] font-medium">
                       {new Date(video.publishedAt).toLocaleDateString()}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    {video.isTrending ? (
-                      <Badge className="bg-amber-500/10 text-amber-500 border-none rounded-lg text-[7px] font-black uppercase flex items-center gap-0.5 w-fit px-1.5 py-0">
-                        <TrendingUp className="w-2 h-2" /> Featured
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[7px] font-black uppercase w-fit px-1.5 py-0">Standard</Badge>
-                    )}
-                  </TableCell>
                   <TableCell className="text-right pr-6 max-w-0">
                     <div className="flex justify-end gap-1 flex-nowrap">
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(video)} className="h-8 w-8 text-zinc-600 hover:text-white">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => toggleVideoStatus(video)} className="h-8 w-8 text-zinc-600">
+                        {video.isActive !== false ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}
+                      </Button>
                       <a href={video.externalUrl} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="icon" className="rounded-lg h-8 w-8 text-zinc-600 hover:text-white hover:bg-zinc-900">
-                          <ExternalLink className="w-3.5 h-3.5" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-500">
+                          <Youtube className="w-3.5 h-3.5" />
                         </Button>
                       </a>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="rounded-lg h-8 w-8 text-zinc-600 hover:text-destructive transition-colors"
+                        className="h-8 w-8 text-zinc-600 hover:text-destructive transition-colors"
                         onClick={() => { if(confirm("Permanently remove this video from catalog?")) deleteDocumentNonBlocking(doc(db, 'videos', video.id)); }}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
