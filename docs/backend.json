@@ -97,8 +97,11 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "englishName": { "type": "string" },
         "language": { "type": "string" },
         "languageCode": { "type": "string" },
+        "type": { "type": "string" },
+        "format": { "type": "string" },
         "isDefault": { "type": "boolean" },
         "isActive": { "type": "boolean" },
         "dataSync": { "type": "string", "enum": ["yes", "no"] }
@@ -137,6 +140,21 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "editionId", "surahNumber", "name", "englishName", "ayats", "pages"]
+    },
+    "QuranMetadata": {
+      "title": "QuranMetadata",
+      "type": "object",
+      "description": "Global structural metadata about the Quran (Surahs, Juzs, Sajdas, etc.).",
+      "properties": {
+        "surahs": { "type": "object" },
+        "juzs": { "type": "object" },
+        "sajdas": { "type": "object" },
+        "rukus": { "type": "object" },
+        "pages": { "type": "object" },
+        "manazils": { "type": "object" },
+        "hizbs": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     },
     "AppSettings": {
       "title": "AppSettings",
@@ -180,6 +198,10 @@
       {
         "path": "/quran/{surahId}",
         "definition": { "entityName": "QuranSurah" }
+      },
+      {
+        "path": "/quran_metadata/{id}",
+        "definition": { "entityName": "QuranMetadata" }
       },
       {
         "path": "/roles_admin/{adminId}",

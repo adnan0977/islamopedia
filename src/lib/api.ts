@@ -31,6 +31,15 @@ export async function getAllAlQuranEditions() {
 }
 
 /**
+ * Fetches the metadata about the Quran structure.
+ */
+export async function getQuranMetadata() {
+  const res = await fetch('https://api.alquran.cloud/v1/meta');
+  if (!res.ok) throw new Error('Failed to fetch Quran metadata');
+  return res.json();
+}
+
+/**
  * Fetches available translation editions from AlQuran Cloud API.
  */
 export async function getAvailableTranslations() {

@@ -25,7 +25,8 @@ import {
   Type as TypeIcon,
   Mic,
   FilterX,
-  Layers
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,9 +40,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { getAllAlQuranEditions, getFullQuran } from '@/lib/api';
+import { getAllAlQuranEditions, getFullQuran, getQuranMetadata } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toArabicNumerals, cn } from '@/lib/utils';
@@ -184,6 +185,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [metaLoading, setMetaLoading] = useState(false);
   const [dirSearch, setDirSearch] = useState('');
   const [filterFormat, setFilterFormat] = useState('all');
   const [filterLanguage, setFilterLanguage] = useState('all');
@@ -237,6 +239,27 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
       toast({ variant: "destructive", title: "Seed Failed", description: e.message });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAndSeedMetadata = async () => {
+    setMetaLoading(true);
+    try {
+      const payload = await getQuranMetadata();
+      const metaData = payload.data;
+      if (!metaData) throw new Error("Failed to fetch metadata from API.");
+
+      const metaRef = doc(db, 'quran_metadata', 'global');
+      setDocumentNonBlocking(metaRef, {
+        ...metaData,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      toast({ title: "Metadata Updated", description: "Structural metadata for surahs and juzs successfully cached." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Metadata Sync Failed", description: e.message });
+    } finally {
+      setMetaLoading(false);
     }
   };
 
@@ -297,15 +320,18 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
           <p className="text-sm text-zinc-500 font-medium">Manage and filter {editions.length} indexed Quranic editions.</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <Button variant="outline" onClick={fetchAndSeedMetadata} disabled={metaLoading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-zinc-400 hover:bg-zinc-900">
+            {metaLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            Sync Structural Metadata
+          </Button>
           <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-zinc-400 hover:bg-zinc-900">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CloudDownload className="w-4 h-4 mr-2" />}
-            Seed Registry from Cloud
+            Seed Edition Registry
           </Button>
         </div>
       </div>
 
       <div className="space-y-4">
-        {/* Search Bar - Single Line */}
         <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
@@ -316,7 +342,6 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
           />
         </div>
 
-        {/* Filters - All in One Line */}
         <div className="flex flex-wrap md:flex-nowrap gap-4 items-center">
           <Select value={filterFormat} onValueChange={setFilterFormat}>
             <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white flex-1">
