@@ -280,7 +280,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
               Browse API Editions
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[750px] p-0 h-[85vh] flex flex-col rounded-3xl">
+          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[750px] p-0 h-[85vh] flex flex-col rounded-3xl overflow-hidden">
             <DialogHeader className="p-8 border-b border-zinc-800 shrink-0 space-y-4 text-left">
               <DialogTitle className="text-white font-bold text-xl">Available Editions</DialogTitle>
               <DialogDescription className="text-zinc-500 text-sm">
