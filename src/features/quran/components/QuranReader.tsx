@@ -192,18 +192,11 @@ export function QuranReader() {
   };
 
   const BismillahHeader = () => (
-    <div className="w-full flex flex-col items-center justify-center py-24 mb-12 relative">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.08)_0%,_transparent_70%)] pointer-events-none" />
-      <div className="flex items-center gap-6 md:gap-12 relative">
-        <span className="text-4xl md:text-6xl font-arabic text-white select-none drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
-          {BISMILLAH_TEXT}
-        </span>
-      </div>
-      <div className="mt-12 flex gap-4">
-        <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
-        <div className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
-        <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
-      </div>
+    <div className="w-full flex flex-col items-center justify-center py-12 mb-6 relative">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_0%,_transparent_70%)] pointer-events-none" />
+      <span className="text-4xl md:text-5xl font-arabic text-white select-none drop-shadow-[0_0_15px_rgba(255,255,255,0.15)] relative">
+        {BISMILLAH_TEXT}
+      </span>
     </div>
   );
 
@@ -376,21 +369,21 @@ export function QuranReader() {
             <Loader2 className="animate-spin text-zinc-800 w-12 h-12" />
           </div>
         ) : (
-          <div className="p-8 md:p-20">
+          <div className="p-8 md:p-16">
             {viewMode === 'ayat' ? (
-              <div className="space-y-24">
+              <div className="space-y-12">
                 {groupedAyats.map(group => (
-                  <div key={group.surah.number} className="space-y-24">
+                  <div key={group.surah.number} className="space-y-12">
                     {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                     {group.ayats.map((a: any) => (
-                      <div key={a.number} className="space-y-8">
+                      <div key={a.number} className="space-y-6">
                         <div className="text-left">
                           <span className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.2em] select-none">
                             {group.surah.number}:{a.numberInSurah}
                           </span>
                         </div>
                         
-                        <p className="text-right text-4xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
+                        <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
                           {a.text}
                           <span className="inline-block ms-6 align-middle select-none">
                             <AyatFrame 
@@ -404,18 +397,14 @@ export function QuranReader() {
                         </p>
                         
                         {a.trans && (
-                          <div className="mt-8 py-1 flex items-start justify-start">
+                          <div className="py-1 flex items-start justify-start">
                             <p className="text-zinc-400 text-sm md:text-base font-medium leading-relaxed text-left max-w-3xl">
                               {a.trans}
                             </p>
                           </div>
                         )}
                         
-                        <div className="pt-16 pb-8 flex items-center justify-center gap-4">
-                          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-zinc-900" />
-                          <div className="w-2 h-2 rounded-full bg-zinc-800" />
-                          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-zinc-900" />
-                        </div>
+                        <div className="h-px bg-zinc-900 w-full my-8" />
                       </div>
                     ))}
                   </div>
