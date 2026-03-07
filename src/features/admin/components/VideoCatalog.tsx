@@ -81,7 +81,7 @@ export function VideoCatalog() {
     isTrending: false
   });
 
-  // Fetch Videos (fetching more than page limit to allow local filtering/paging)
+  // Fetch Videos
   const videosQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     orderBy('publishedAt', 'desc'),
@@ -167,7 +167,7 @@ export function VideoCatalog() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-full">
+    <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden">
       <div className="flex flex-col xl:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2.5rem] border border-zinc-900 shadow-xl">
         <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto flex-1">
           <div className="relative w-full md:w-80">
@@ -307,41 +307,43 @@ export function VideoCatalog() {
       </div>
 
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
-        <div className="overflow-x-auto scrollbar-hide">
+        <div className="w-full overflow-hidden">
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[180px]">Video Details</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-24">Engagement</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-24">Published</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-24">Status</TableHead>
-                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-24">Actions</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[30%]">Video Details</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-[15%]">Engagement</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-[15%]">Published</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-[20%]">Status</TableHead>
+                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-[20%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedVideos.map((video) => (
                 <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
-                  <TableCell className="pl-6 max-w-0 w-[180px]">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative w-14 h-9 rounded-md overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
+                  <TableCell className="pl-6 max-w-0">
+                    <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+                      <div className="relative w-12 h-8 rounded-md overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
                         {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                       </div>
                       <div className="flex flex-col min-w-0 overflow-hidden">
-                        <span className="font-bold text-zinc-100 truncate text-[11px] leading-tight block w-full" title={video.title}>{video.title}</span>
+                        <span className="font-bold text-zinc-100 truncate text-[11px] leading-tight block w-full" title={video.title}>
+                          {video.title}
+                        </span>
                         <span className="text-[8px] text-zinc-600 truncate uppercase mt-0.5 block w-full">
                           {channels?.find(c => c.id === video.channelId)?.title || video.channelId}
                         </span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <div className="flex flex-col items-center gap-0.5">
                       <div className="flex items-center gap-1 text-zinc-400">
-                        <Smartphone className="w-2 h-2 text-zinc-600" />
+                        <Smartphone className="w-2.5 h-2.5 text-zinc-600" />
                         <span className="text-[9px] font-bold">{video.appViewCount?.toLocaleString() || 0}</span>
                       </div>
                       <div className="flex items-center gap-1 text-zinc-600">
-                        <Eye className="w-2 h-2" />
+                        <Eye className="w-2.5 h-2.5" />
                         <span className="text-[7px] font-medium">{video.youtubeViewCount?.toLocaleString() || 0}</span>
                       </div>
                     </div>
@@ -414,7 +416,6 @@ export function VideoCatalog() {
               <div className="flex items-center gap-1 mx-2">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum = i + 1;
-                  // Simple window logic for many pages
                   if (totalPages > 5 && currentPage > 3) {
                     pageNum = currentPage - 3 + i;
                     if (pageNum > totalPages) pageNum = totalPages - (4 - i);
