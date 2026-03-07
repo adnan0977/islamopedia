@@ -183,8 +183,8 @@ export function QuranReader() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           <AyatFrame 
             number={viewMode === 'index' ? (indexType === 'surah' ? '١' : '٣٠') : (groupedAyats[0]?.surah.number || currentPage)} 
             frameId={ayatFrameId} 
@@ -192,21 +192,21 @@ export function QuranReader() {
             customImageUrl={frameImageUrl}
             size="md" 
           />
-          <div>
-            <h1 className="text-2xl font-headline font-bold text-white">
-              {viewMode === 'index' 
-                ? (indexType === 'surah' ? 'Surah Index' : 'Juz Index') 
-                : (groupedAyats[0]?.surah.englishName || 'Quran Reader')}
+          <div className="hidden md:block">
+            <h1 className="text-xl md:text-2xl font-headline font-bold text-white">
+              {viewMode === 'index' ? 'Quran' : (groupedAyats[0]?.surah.englishName || 'Quran')}
             </h1>
-            <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">
-              {viewMode === 'index' ? 'Navigation Hub' : `Page ${currentPage} / 604`}
-            </p>
+            {viewMode !== 'index' && (
+              <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">
+                Page {currentPage} / 604
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-          {/* Main List Navigation - Always present */}
-          <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
+        <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide no-scrollbar">
+          {/* Main List Navigation - Always present on same line */}
+          <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900 shrink-0">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -225,10 +225,10 @@ export function QuranReader() {
             </Button>
           </div>
 
-          {/* Reading Controls - Hidden in Index mode on mobile, always hidden in index mode overall */}
+          {/* Reading Controls - Added when viewing scripture */}
           {viewMode !== 'index' && (
-            <>
-              <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="hidden lg:flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -247,11 +247,11 @@ export function QuranReader() {
                 </Button>
               </div>
 
-              <div className="flex-1 md:flex-none md:w-48">
+              <div className="w-32 md:w-48">
                 <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-zinc-300 text-xs font-bold">
+                  <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[10px] md:text-xs font-bold">
                     <div className="flex items-center gap-2">
-                      <Languages className="w-3.5 h-3.5 text-zinc-500" />
+                      <Languages className="w-3 h-3 text-zinc-500" />
                       <SelectValue placeholder="Translation" />
                     </div>
                   </SelectTrigger>
@@ -265,30 +265,30 @@ export function QuranReader() {
                 </Select>
               </div>
 
-              <div className="flex items-center gap-3 ml-auto">
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="rounded-xl border-zinc-800 h-10 w-10"
+                  className="rounded-xl border-zinc-800 h-10 w-10 shrink-0"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
                   disabled={currentPage <= 1}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <div className="bg-zinc-900 px-4 h-10 flex items-center justify-center rounded-xl font-bold text-xs text-zinc-400 min-w-[80px] border border-zinc-800">
-                  {currentPage} / ٦٠٤
+                <div className="bg-zinc-900 px-3 h-10 flex items-center justify-center rounded-xl font-bold text-[10px] text-zinc-400 min-w-[60px] border border-zinc-800 shrink-0">
+                  {currentPage}
                 </div>
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="rounded-xl border-zinc-800 h-10 w-10"
+                  className="rounded-xl border-zinc-800 h-10 w-10 shrink-0"
                   onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
                   disabled={currentPage >= 604}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
