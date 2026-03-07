@@ -57,13 +57,7 @@ export default function QuranPage() {
     init();
   }, []);
 
-  // Update surah content if translation changes
-  useEffect(() => {
-    if (selectedSurah) {
-      selectSurah(selectedSurah.info.number);
-    }
-  }, [selectedEdition]);
-
+  // Update surah content if translation or Surah selection changes
   const selectSurah = async (id: number) => {
     setLoadingDetails(true);
     setAiContext(null);
@@ -84,6 +78,12 @@ export default function QuranPage() {
       setLoadingDetails(false);
     }
   };
+
+  useEffect(() => {
+    if (selectedSurah) {
+      selectSurah(selectedSurah.info.number);
+    }
+  }, [selectedEdition]);
 
   const fetchAiContext = async (number: number, name: string) => {
     setLoadingAi(true);
@@ -108,6 +108,7 @@ export default function QuranPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 h-auto md:h-[calc(100vh-120px)] flex flex-col space-y-6 pb-24 md:pb-0">
+      {/* Dynamic Header Action Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-3">
           {selectedSurah && (
@@ -133,7 +134,7 @@ export default function QuranPage() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Translation Selector in Header */}
+          {/* Translation Selection Trigger */}
           <div className="relative">
             <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
               <SelectTrigger className="bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white min-w-[140px] md:min-w-[180px] shadow-lg hover:border-zinc-700 transition-colors">
@@ -155,6 +156,7 @@ export default function QuranPage() {
             </Select>
           </div>
 
+          {/* View Mode Switcher (Page vs Ayat) */}
           <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as ViewMode)} className="flex-1 md:flex-none">
             <TabsList className="bg-zinc-950 border border-zinc-900 h-11 p-1 rounded-xl w-full md:w-auto">
               <TabsTrigger value="ayat" className="flex-1 md:flex-none rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
@@ -168,6 +170,7 @@ export default function QuranPage() {
             </TabsList>
           </Tabs>
 
+          {/* Search Trigger/Input */}
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
             <Input 
@@ -181,7 +184,7 @@ export default function QuranPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
-        {/* Surah List */}
+        {/* Surah List Column */}
         <div className={cn(
           "md:col-span-4 flex flex-col space-y-4 h-full",
           selectedSurah ? "hidden md:flex" : "flex"
@@ -224,7 +227,7 @@ export default function QuranPage() {
           </ScrollArea>
         </div>
 
-        {/* Content Viewer */}
+        {/* Content Viewer Column */}
         <div className={cn(
           "md:col-span-8 flex flex-col min-h-0 h-full",
           selectedSurah ? "flex" : "hidden md:flex"
@@ -260,7 +263,7 @@ export default function QuranPage() {
                 <ScrollArea className="flex-1">
                   <div className="p-4 md:p-6 space-y-10">
                     
-                    {/* AI Story Section (Always shown at top) */}
+                    {/* AI Historical Insight Section */}
                     <div className="bg-zinc-900/40 rounded-3xl border border-zinc-900 p-6 md:p-8 space-y-6">
                       <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
                         <div className="flex items-center gap-3">
