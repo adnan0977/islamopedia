@@ -370,7 +370,6 @@ export function QuranReader() {
                   {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                   
                   {viewMode === 'page' ? (
-                    /* Page View: Continuous Arabic Text Flow */
                     <div className="text-right leading-[2.5] md:leading-[3] animate-in fade-in duration-700" dir="rtl">
                       {group.ayats.map((a: any) => (
                         <span key={a.number} className="inline transition-all duration-300">
@@ -388,7 +387,6 @@ export function QuranReader() {
                       ))}
                     </div>
                   ) : (
-                    /* Ayat View: Vertical study layout with translations */
                     <div className="space-y-12 animate-in fade-in duration-700">
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="space-y-4">
@@ -412,7 +410,7 @@ export function QuranReader() {
                           <div className="space-y-2">
                             {localSettings.showTransliteration && a.translit && (
                               <p 
-                                className="text-left max-w-3xl text-zinc-500 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
+                                className="text-left max-w-3xl text-zinc-500 font-medium leading-relaxed italic" 
                                 style={{ fontSize: `${transFontSize - 2}px` }}
                               >
                                 {a.translit}
@@ -420,7 +418,7 @@ export function QuranReader() {
                             )}
                             {localSettings.showTranslation && a.trans && (
                               <p 
-                                className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
+                                className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic" 
                                 style={{ fontSize: `${transFontSize}px` }}
                               >
                                 {a.trans}
@@ -440,7 +438,6 @@ export function QuranReader() {
         )}
       </Card>
 
-      {/* Audio Section */}
       {isReading && localSettings.showAudio && localSettings.preferredAudioId !== 'none' && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl z-50 animate-in slide-in-from-bottom-8 duration-500">
           <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-4 shadow-2xl flex items-center gap-6">

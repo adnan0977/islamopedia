@@ -400,7 +400,7 @@ export default function QuranSettingsPage() {
                 <div className="space-y-4">
                   {localSettings.showTransliteration && localSettings.preferredTransliterationId !== 'none' && (
                     <p 
-                      className="font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left text-zinc-500"
+                      className="font-medium leading-relaxed italic transition-all duration-300 text-left text-zinc-500"
                       style={{ fontSize: `${localSettings.translationFontSize - 2}px` }}
                     >
                       al-ḥamdu lillāhi rabbi l-ʿālamīn
@@ -408,7 +408,7 @@ export default function QuranSettingsPage() {
                   )}
                   {localSettings.showTranslation && (
                     <p 
-                      className="font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left text-zinc-400"
+                      className="font-medium leading-relaxed italic transition-all duration-300 text-left text-zinc-400"
                       style={{ fontSize: `${localSettings.translationFontSize}px` }}
                     >
                       {currentTranslation?.type === 'transliteration' ? 'al-ḥamdu lillāhi rabbi l-ʿālamīn' : '[All] praise is [due] to Allah, Lord of the worlds -'}
