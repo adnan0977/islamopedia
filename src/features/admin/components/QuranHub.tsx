@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -28,7 +29,7 @@ import {
   DialogDescription
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Label } from "@/label"
 import { 
   Select, 
   SelectContent, 
@@ -280,7 +281,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[750px] p-0 h-[85vh] flex flex-col rounded-3xl">
-            <DialogHeader className="p-8 border-b border-zinc-800 shrink-0 space-y-4">
+            <DialogHeader className="p-8 border-b border-zinc-800 shrink-0 space-y-4 text-left">
               <DialogTitle className="text-white font-bold text-xl">Available Editions</DialogTitle>
               <DialogDescription className="text-zinc-500 text-sm">
                 Browse and activate new translations from the global repository.
@@ -373,7 +374,11 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                 <TableCell className="font-bold text-white pl-8">{t.name}</TableCell>
                 <TableCell className="text-zinc-500 font-medium">{t.language}</TableCell>
                 <TableCell>
-                  {t.dataSync === 'yes' ? <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[9px] font-black uppercase">Yes</Badge> : <Badge variant="outline" className="border-zinc-800 text-zinc-600 rounded-lg text-[9px] font-black uppercase">No</Badge>}
+                  {t.dataSync === 'yes' ? (
+                    <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[9px] font-black uppercase">Synced</Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-zinc-800 text-zinc-600 rounded-lg text-[9px] font-black uppercase">Pending Sync</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right pr-8">
                   <Button variant="ghost" size="icon" onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_editions', t.id))} className="text-destructive hover:bg-destructive/10 rounded-xl">
