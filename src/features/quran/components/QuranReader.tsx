@@ -83,9 +83,9 @@ export function QuranReader() {
     }
   }, [user]);
 
-  // Update URL
+  // Update URL - Using a separate effect to update URL based on state
   useEffect(() => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams.toString());
     params.set('mode', viewMode);
     if (viewMode === 'index') {
       params.set('type', indexType);
@@ -94,7 +94,10 @@ export function QuranReader() {
       params.delete('type');
       params.set('page', visiblePage.toString());
     }
-    router.replace(`/quran?${params.toString()}`, { scroll: false });
+    const newUrl = `/quran?${params.toString()}`;
+    if (window.location.search !== `?${params.toString()}`) {
+      router.replace(newUrl, { scroll: false });
+    }
   }, [viewMode, indexType, visiblePage, router, searchParams]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
@@ -145,21 +148,24 @@ export function QuranReader() {
         setIsOfflineMode(true);
         const uthmaniDocs = docsByEdition['quran-uthmani'];
         uthmaniDocs.forEach((s: any) => {
-          s.ayahs.forEach((a: any) => {
+          const ayats = s.ayahs || s.ayats || [];
+          ayats.forEach((a: any) => {
             if (a.page === pageNum) {
-              arabicData.push({ ...a, text: cleanAyatText(a.text, s.number, a.numberInSurah), surah: { number: s.number, name: s.name, englishName: s.englishName } });
+              arabicData.push({ ...a, text: cleanAyatText(a.text, s.number || s.surahNumber, a.numberInSurah), surah: { number: s.number || s.surahNumber, name: s.name, englishName: s.englishName } });
             }
           });
         });
         
         arabicData.sort((a, b) => a.number - b.number);
         arabicData.forEach(aa => {
-          const trSurah = docsByEdition[localSettings.preferredTranslationId]?.find((s: any) => s.number === aa.surah.number);
-          const trAyat = trSurah?.ayahs.find((ta: any) => ta.number === aa.number);
+          const trSurah = docsByEdition[localSettings.preferredTranslationId]?.find((s: any) => (s.number || s.surahNumber) === aa.surah.number);
+          const trAyats = trSurah?.ayahs || trSurah?.ayats || [];
+          const trAyat = trAyats.find((ta: any) => ta.number === aa.number);
           transData.push(trAyat || null);
 
-          const tlSurah = docsByEdition[localSettings.preferredTransliterationId]?.find((s: any) => s.number === aa.surah.number);
-          const tlAyat = tlSurah?.ayahs.find((ta: any) => ta.number === aa.number);
+          const tlSurah = docsByEdition[localSettings.preferredTransliterationId]?.find((s: any) => (s.number || s.surahNumber) === aa.surah.number);
+          const tlAyats = tlSurah?.ayahs || tlSurah?.ayats || [];
+          const tlAyat = tlAyats.find((ta: any) => ta.number === aa.number);
           translitData.push(tlAyat || null);
         });
       } else {
@@ -207,9 +213,9 @@ export function QuranReader() {
       setPagedData(prev => [...prev, data]);
     }
     setLoadingContent(false);
-  }, [loadingContent, pagedData]);
+  }, [loadingContent, pagedData, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
-  // Initial fetch
+  // Initial fetch - Only on mount or major mode change
   useEffect(() => {
     if (viewMode === 'index') {
       setPagedData([]);
@@ -228,7 +234,7 @@ export function QuranReader() {
     initFetch();
   }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
-  // Observer for infinite scroll and current ayat tracking
+  // Observer for infinite scroll and header updates
   useEffect(() => {
     if (viewMode !== 'ayat' || !ayatScrollContainerRef.current || pagedData.length === 0) return;
 
@@ -238,28 +244,29 @@ export function QuranReader() {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const ayatIndex = parseInt(entry.target.getAttribute('data-ayat-index') || '0');
+          const pageNum = parseInt(entry.target.getAttribute('data-page-number') || visiblePage.toString());
           
+          // Update visual states only
           setCurrentAyatIndex(ayatIndex);
+          setVisiblePage(pageNum);
 
           // Trigger infinite load if near end
-          if (ayatIndex >= flattenedAyats.length - 5) {
+          if (ayatIndex >= flattenedAyats.length - 3) {
             loadMorePages();
           }
         }
       });
     }, { 
       root: ayatScrollContainerRef.current,
-      threshold: 0.5,
-      rootMargin: '0px'
+      threshold: 0.5
     });
 
     const blocks = ayatScrollContainerRef.current.querySelectorAll('.ayat-block');
     blocks.forEach(b => observerRef.current?.observe(b));
 
     return () => observerRef.current?.disconnect();
-  }, [viewMode, pagedData, loadMorePages]);
+  }, [viewMode, pagedData, loadMorePages, flattenedAyats.length]);
 
-  // Flattened Ayats for indexed access
   const flattenedAyats = useMemo(() => {
     const ayats: any[] = [];
     pagedData.forEach(page => {
@@ -268,7 +275,7 @@ export function QuranReader() {
           ...a,
           trans: page.trans[idx]?.text || page.trans[idx]?.translationText,
           translit: page.translit[idx]?.text || page.translit[idx]?.translationText,
-          pageNumber: page.pageNumber
+          pageNumber: a.page || page.pageNumber
         });
       });
     });
@@ -502,9 +509,13 @@ export function QuranReader() {
             variant="ghost" 
             className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
             onClick={() => {
-              const next = Math.min(604, visiblePage + 1);
-              setVisiblePage(next);
-              setPagedData([]); 
+              const next = Math.max(1, visiblePage - 1); // RTL Logic: Left button goes "Next" in Arabic flow which is decrementing page numbers towards 1 in most Mushafs or incrementing?
+              // Standard behavior: Left button should move to next page. In RTL, if Page 1 is on right, Page 2 is on left. 
+              // The user said: "left border from translation", "reverse the slide page".
+              // If we are at page 1, clicking left should go to page 2.
+              const nextVal = Math.min(604, visiblePage + 1);
+              setVisiblePage(nextVal);
+              setPagedData([]);
             }} 
             disabled={visiblePage >= 604}
           >
