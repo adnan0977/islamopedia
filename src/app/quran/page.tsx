@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -31,18 +32,24 @@ export default function QuranPage() {
   
   // Translation State
   const translationsRef = useMemoFirebase(() => collection(db, 'quran_translations'), [db]);
-  const { data: activatedTranslations } = useCollection(translationsRef);
+  const { data: activatedTranslations, isLoading: isTranslationsLoading } = useCollection(translationsRef);
   const [selectedEdition, setSelectedEdition] = useState<string>('en.sahih');
 
-  // AI Context State
-  const [aiContext, setAiContext] = useState<SurahContextOutput | null>(null);
-  const [loadingAi, setLoadingAi] = useState(false);
+  // Fallback translation if none activated
+  const displayTranslations = activatedTranslations && activatedTranslations.length > 0 
+    ? activatedTranslations 
+    : [{ id: 'en.sahih', name: 'Sahih International', language: 'English' }];
 
   useEffect(() => {
     async function init() {
-      const data = await getQuranSurahs();
-      setSurahs(data.data);
-      setLoading(false);
+      try {
+        const data = await getQuranSurahs();
+        setSurahs(data.data);
+      } catch (e) {
+        console.error("Failed to fetch surahs", e);
+      } finally {
+        setLoading(false);
+      }
     }
     init();
   }, []);
@@ -87,6 +94,10 @@ export default function QuranPage() {
     }
   };
 
+  // AI Context State
+  const [aiContext, setAiContext] = useState<SurahContextOutput | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+
   const filteredSurahs = surahs.filter(s => 
     s.englishName.toLowerCase().includes(search.toLowerCase()) || 
     s.name.includes(search)
@@ -112,21 +123,23 @@ export default function QuranPage() {
           </div>
         </div>
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-          {activatedTranslations && activatedTranslations.length > 0 && (
-            <div className="w-full md:w-56">
-              <Select value={selectedEdition} onValueChange={setSelectedEdition}>
-                <SelectTrigger className="bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white">
-                  <Languages className="w-4 h-4 mr-2 text-zinc-500" />
-                  <SelectValue placeholder="Language" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-950 border-zinc-800">
-                  {activatedTranslations.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.language})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="w-full md:w-64">
+            <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
+              <SelectTrigger className="bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white">
+                <div className="flex items-center gap-2 truncate">
+                  <Languages className="w-4 h-4 text-zinc-500 shrink-0" />
+                  <SelectValue placeholder="Select Translation" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800">
+                {displayTranslations.map(t => (
+                  <SelectItem key={t.id} value={t.id} className="text-zinc-300 focus:bg-zinc-900">
+                    {t.name} <span className="text-[10px] text-zinc-600 ml-2 uppercase">({t.language})</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
             <Input 
