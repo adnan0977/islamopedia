@@ -40,16 +40,15 @@ import { fetchYouTubeChannels } from '@/services/youtube-server';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 
-// Pre-loaded prioritized IDs from the user
 const DEFAULT_IDS = [
-  "UCsaR6SnAv97_9MI2JPLcyRA", // Islamic History Plus
-  "UC1mNByYnDzhPesq4RF-jGLQ", // Islamic History (Official)
-  "UCCBGUffdWwRV0gUqgElkCfw", // The Kohistani
-  "UCybKAapNVFBeZyn6DJHQaGA", // Islamic Bayan 2026
-  "UCBMHtZeFf0EJeYr7CXnO5xQ", // Deen Squad
-  "UC8m7_p6_qD8zU_x7S8F8_xA", // iLovUAllah
-  "UCp4Vf-IOn66Xv_Xf7oN7tLg", // Duroos.org
-  "UCv9u_K37S6v3m3N_5fV3DPA"  // Masjid Ribat
+  "UCsaR6SnAv97_9MI2JPLcyRA", 
+  "UC1mNByYnDzhPesq4RF-jGLQ", 
+  "UCCBGUffdWwRV0gUqgElkCfw", 
+  "UCybKAapNVFBeZyn6DJHQaGA", 
+  "UCBMHtZeFf0EJeYr7CXnO5xQ", 
+  "UC8m7_p6_qD8zU_x7S8F8_xA", 
+  "UCp4Vf-IOn66Xv_Xf7oN7tLg", 
+  "UCv9u_K37S6v3m3N_5fV3DPA"
 ].join('\n');
 
 export function ChannelHub() {
@@ -62,7 +61,6 @@ export function ChannelHub() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch already linked channels
   const channelsQuery = useMemoFirebase(() => query(
     collection(db, 'channels'),
     orderBy('title', 'asc'),
@@ -119,13 +117,12 @@ export function ChannelHub() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Search & Add Button Row */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-2xl">
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
             placeholder="Search linked channels..."
-            className="bg-zinc-950 border-zinc-900 pl-10 rounded-xl h-12 text-white focus:ring-zinc-800"
+            className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14 text-white focus:ring-zinc-700"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -134,40 +131,43 @@ export function ChannelHub() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              className="bg-zinc-100 text-black hover:bg-white rounded-2xl font-bold h-12 px-8 shadow-xl transition-all active:scale-95 flex items-center gap-2 w-full md:w-auto"
+              className="bg-white text-black hover:bg-zinc-200 rounded-2xl font-bold h-14 px-10 shadow-xl transition-all active:scale-95 flex items-center gap-2 w-full md:w-auto text-base"
             >
               <Plus className="w-5 h-5" /> Add New Channels
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-0 overflow-hidden outline-none shadow-2xl">
-            <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
-              <DialogTitle className="text-2xl font-bold">Import Channels</DialogTitle>
-              <DialogDescription className="text-zinc-500">Persist spiritual creators from YouTube to your feed.</DialogDescription>
+            <DialogHeader className="p-10 border-b border-zinc-900 bg-zinc-900/40">
+              <DialogTitle className="text-2xl font-bold">Import Creators</DialogTitle>
+              <DialogDescription className="text-zinc-500 text-sm mt-2">Add YouTube channels to your directory to sync spiritual content.</DialogDescription>
             </DialogHeader>
             
             <Tabs defaultValue="bulk" className="w-full">
-              <div className="px-8 pt-6">
-                <TabsList className="bg-zinc-900 p-1 rounded-xl h-12 w-full border border-zinc-800">
-                  <TabsTrigger value="bulk" className="flex-1 rounded-lg font-bold">Bulk Sync</TabsTrigger>
-                  <TabsTrigger value="single" className="flex-1 rounded-lg font-bold">Single ID</TabsTrigger>
+              <div className="px-10 pt-8">
+                <TabsList className="bg-zinc-900 p-1 rounded-2xl h-14 w-full border border-zinc-800">
+                  <TabsTrigger value="bulk" className="flex-1 rounded-xl font-bold h-full data-[state=active]:bg-zinc-800">Bulk Sync</TabsTrigger>
+                  <TabsTrigger value="single" className="flex-1 rounded-xl font-bold h-full data-[state=active]:bg-zinc-800">Single ID</TabsTrigger>
                 </TabsList>
               </div>
 
-              <div className="p-8">
-                <TabsContent value="bulk" className="m-0 space-y-6">
+              <div className="p-10">
+                <TabsContent value="bulk" className="m-0 space-y-8">
                   <div className="space-y-4">
-                    <label className="text-xs font-black uppercase tracking-widest text-zinc-600">
-                      Channel IDs Found: <span className="text-zinc-300 ml-1">{extractIds(bulkIds).length}</span>
-                    </label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Detected IDs</label>
+                      <span className="bg-zinc-900 px-3 py-1 rounded-full text-[10px] font-bold text-zinc-300 border border-zinc-800">
+                        {extractIds(bulkIds).length} Unique
+                      </span>
+                    </div>
                     <Textarea 
-                      placeholder="Paste list of IDs or links..."
-                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-[11px] min-h-[200px] rounded-2xl p-4 focus:ring-zinc-700 resize-none scrollbar-hide"
+                      placeholder="Paste list of YouTube Channel IDs..."
+                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-xs min-h-[220px] rounded-[1.5rem] p-6 focus:ring-zinc-700 resize-none scrollbar-hide"
                       value={bulkIds}
                       onChange={(e) => setBulkBulkIds(e.target.value)}
                     />
                   </div>
                   <Button 
-                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md flex items-center justify-center gap-2"
+                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl"
                     disabled={isSyncing || extractIds(bulkIds).length === 0}
                     onClick={() => handleSync(extractIds(bulkIds))}
                   >
@@ -176,18 +176,18 @@ export function ChannelHub() {
                   </Button>
                 </TabsContent>
 
-                <TabsContent value="single" className="m-0 space-y-6">
+                <TabsContent value="single" className="m-0 space-y-8">
                   <div className="space-y-4">
-                    <label className="text-xs font-black uppercase tracking-widest text-zinc-600">YouTube Channel ID</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Channel ID</label>
                     <Input 
-                      placeholder="e.g. UCp4Vf-IOn66Xv_Xf7oN7tLg"
-                      className="bg-zinc-900 border-zinc-800 text-white rounded-xl h-14"
+                      placeholder="UC..."
+                      className="bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 px-6"
                       value={singleId}
                       onChange={(e) => setSingleId(e.target.value)}
                     />
                   </div>
                   <Button 
-                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md flex items-center justify-center gap-2"
+                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl"
                     disabled={isSyncing || !singleId.startsWith('UC')}
                     onClick={() => handleSync([singleId])}
                   >
@@ -201,59 +201,58 @@ export function ChannelHub() {
         </Dialog>
       </div>
 
-      {/* Linked Channels Registry */}
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
-        <div className="p-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/20">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Youtube className="w-4 h-4 text-red-500" />
-            Linked Channels Registry
-          </h3>
-          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-            {linkedChannels?.length || 0} Entries
-          </span>
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
+        <div className="p-8 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/20">
+          <div className="flex items-center gap-3">
+            <Youtube className="w-5 h-5 text-red-500" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Linked Channels Registry</h3>
+          </div>
+          <Badge variant="outline" className="border-zinc-800 text-[10px] font-black text-zinc-500 rounded-lg px-3 py-1">
+            {linkedChannels?.length || 0} Registered
+          </Badge>
         </div>
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900 hover:bg-transparent">
-              <TableHead className="text-[10px] font-black uppercase tracking-widest py-5 text-zinc-500 pl-8">Creator Identity</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Engagement</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500 pr-8">Actions</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] py-6 text-zinc-600 pl-10">Creator branding</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Statistics</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 pr-10">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoadingChannels ? (
               <TableRow>
-                <TableCell colSpan={3} className="h-60 text-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-zinc-800 mx-auto" />
+                <TableCell colSpan={3} className="h-64 text-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-zinc-800 mx-auto" />
                 </TableCell>
               </TableRow>
             ) : filteredChannels?.length ? (
               filteredChannels.map((channel) => (
-                <TableRow key={channel.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-20">
-                  <TableCell className="pl-8">
-                    <div className="flex items-center gap-4">
-                      <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-zinc-800 bg-black shrink-0">
+                <TableRow key={channel.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
+                  <TableCell className="pl-10">
+                    <div className="flex items-center gap-5">
+                      <div className="relative w-12 h-12 rounded-2xl overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
                         {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-zinc-100 truncate flex items-center gap-1.5">
+                        <span className="font-bold text-zinc-100 truncate text-base flex items-center gap-2">
                           {channel.title}
-                          <CheckCircle2 className="w-3 h-3 text-zinc-600 fill-zinc-600" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-zinc-600 fill-zinc-600" />
                         </span>
-                        <code className="text-[9px] text-zinc-700 truncate">{channel.id}</code>
+                        <code className="text-[10px] text-zinc-600 font-mono truncate tracking-tight">{channel.id}</code>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 text-zinc-400 font-bold text-xs">
-                      <Users className="w-3.5 h-3.5 text-zinc-600" />
-                      {(channel.subscribersCount / 1000).toFixed(1)}K
+                    <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm">
+                      <Users className="w-4 h-4 text-zinc-700" />
+                      {(channel.subscribersCount / 1000).toFixed(1)}K Subscribers
                     </div>
                   </TableCell>
-                  <TableCell className="text-right pr-8">
+                  <TableCell className="text-right pr-10">
                     <a href={channel.externalUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-zinc-600 hover:text-white hover:bg-zinc-900">
-                        <ExternalLink className="w-4 h-4" />
+                      <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-all">
+                        <ExternalLink className="w-5 h-5" />
                       </Button>
                     </a>
                   </TableCell>
@@ -261,10 +260,10 @@ export function ChannelHub() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-60 text-center">
+                <TableCell colSpan={3} className="h-64 text-center">
                   <div className="flex flex-col items-center justify-center space-y-4">
-                     <Youtube className="w-12 h-12 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">No linked channels found.</p>
+                     <Youtube className="w-16 h-16 text-zinc-900" />
+                     <p className="text-zinc-600 font-medium">No spiritual creators found in your directory.</p>
                   </div>
                 </TableCell>
               </TableRow>
