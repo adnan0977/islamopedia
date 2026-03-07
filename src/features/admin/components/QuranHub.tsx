@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { useFirestore } from '@/firebase';
+import { collection, doc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,12 +11,9 @@ import {
   Trash2, 
   Loader2, 
   Search, 
-  Languages, 
   Download, 
-  Book,
   AlertCircle,
-  CheckCircle2,
-  Database
+  CheckCircle2
 } from 'lucide-react';
 import { 
   Dialog,
@@ -63,7 +60,6 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
   const isStandardSynced = standardEdition?.dataSync === 'yes';
 
   const handleStandardSync = async () => {
-    // Ensure the edition exists in the tracking collection first
     if (!standardEdition) {
       setDocumentNonBlocking(doc(db, 'quran_editions', 'quran-uthmani'), {
         id: 'quran-uthmani',
@@ -75,8 +71,6 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         dataSync: 'no'
       }, { merge: true });
     }
-    
-    // Trigger the sync process for the standard edition
     await performSync('quran-uthmani');
   };
 
@@ -141,14 +135,13 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Auto-Sync Alert for Standard Edition */}
       {!isStandardSynced && !syncing && (
         <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-200 rounded-3xl p-6">
           <AlertCircle className="h-5 w-5 text-amber-500" />
-          <AlertTitle className="font-bold text-lg mb-2">Standard Quran Required</AlertTitle>
+          <AlertTitle className="font-bold text-lg mb-2">Standard Quran Missing</AlertTitle>
           <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <p className="text-amber-200/70 text-sm">
-              The foundational Arabic Uthmani text has not been synchronized. This is required for the Quran Reader to function correctly.
+              The foundational Arabic Uthmani text has not been synchronized. This is required for the platform to function correctly.
             </p>
             <Button 
               onClick={handleStandardSync}
@@ -163,7 +156,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
       {isStandardSynced && (
          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Standard Arabic Text Synchronized</span>
+            <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Standard Arabic Text Ready</span>
          </div>
       )}
 
@@ -171,7 +164,6 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
           <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Edition Directory</TabsTrigger>
           <TabsTrigger value="sync" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Database Sync</TabsTrigger>
-          <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Data Viewer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory">
@@ -182,10 +174,9 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
             editions={editions} 
             syncing={syncing} 
             performSync={performSync}
+            handleStandardSync={handleStandardSync}
+            isStandardSynced={isStandardSynced}
           />
-        </TabsContent>
-        <TabsContent value="viewer">
-          <DatabaseViewer editions={editions} />
         </TabsContent>
       </Tabs>
     </div>
@@ -240,7 +231,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
           <h3 className="font-bold text-lg text-white">Edition Directory</h3>
-          <p className="text-xs text-zinc-500 font-medium">Control translation editions available on the platform.</p>
+          <p className="text-xs text-zinc-500 font-medium">Manage translation editions available for sync.</p>
         </div>
         <Dialog open={openAdd} onOpenChange={setOpenAdd}>
           <DialogTrigger asChild>
@@ -315,94 +306,60 @@ function EditionDirectory({ editions }: { editions: any[] }) {
   );
 }
 
-function SyncTool({ editions, syncing, performSync }: { editions: any[], syncing: boolean, performSync: (id: string) => Promise<void> }) {
+function SyncTool({ editions, syncing, performSync, handleStandardSync, isStandardSynced }: { 
+  editions: any[], 
+  syncing: boolean, 
+  performSync: (id: string) => Promise<void>,
+  handleStandardSync: () => Promise<void>,
+  isStandardSynced: boolean
+}) {
   const [selectedEdition, setSelectedEdition] = useState('');
-
-  return (
-    <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
-      <div className="flex flex-col md:flex-row gap-6 items-end">
-        <div className="flex-1 space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Edition</Label>
-          <Select value={selectedEdition} onValueChange={setSelectedEdition}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-              <SelectValue placeholder="Select edition to sync..." />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-              {editions.map((t) => (
-                <SelectItem key={t.id} value={t.id} disabled={t.dataSync === 'yes'}>
-                  {t.name} {t.dataSync === 'yes' && '✓'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button 
-          className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold" 
-          onClick={() => performSync(selectedEdition)} 
-          disabled={syncing || !selectedEdition}
-        >
-          <Download className="mr-2 w-4 h-4" /> Start Sync
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function DatabaseViewer({ editions }: { editions: any[] }) {
-  const db = useFirestore();
-  const [selectedEdition, setSelectedEdition] = useState('');
-  const [filterMode, setFilterMode] = useState<'surah' | 'page'>('surah');
-  const [currentNumber, setCurrentNumber] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [surahData, setSurahData] = useState<any[]>([]);
-
-  const fetchFromDB = async () => {
-    if (!selectedEdition) return;
-    setIsLoading(true);
-    try {
-      if (filterMode === 'surah') {
-        const snap = await getDoc(doc(db, 'quran', `${selectedEdition}_surah_${currentNumber}`));
-        setSurahData(snap.exists() ? [snap.data()] : []);
-      } else {
-        const q = query(collection(db, 'quran'), where('editionId', '==', selectedEdition), where('pages', 'array-contains', currentNumber));
-        const snap = await getDocs(q);
-        setSurahData(snap.docs.map(d => d.data()).sort((a, b) => a.surahNumber - b.surahNumber));
-      }
-    } catch (e) { console.error(e); } finally { setIsLoading(false); }
-  };
-
-  useEffect(() => { fetchFromDB(); }, [selectedEdition, currentNumber, filterMode]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
-        <div className="space-y-1">
-          <h3 className="font-bold text-lg text-white">Database Viewer</h3>
-          <p className="text-xs text-zinc-500 font-medium">Inspect synchronized data directly from Firestore.</p>
-        </div>
-        <div className="flex gap-4 w-full md:auto">
-          <Select value={selectedEdition} onValueChange={setSelectedEdition}><SelectTrigger className="bg-zinc-900 text-white rounded-xl"><SelectValue placeholder="Edition"/></SelectTrigger><SelectContent className="bg-zinc-950 text-white">{editions.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>
-          <Select value={filterMode} onValueChange={(v: any) => setFilterMode(v)}><SelectTrigger className="bg-zinc-900 text-white rounded-xl"><SelectValue/></SelectTrigger><SelectContent className="bg-zinc-950 text-white"><SelectItem value="surah">Surah</SelectItem><SelectItem value="page">Page</SelectItem></SelectContent></Select>
-          <Input type="number" value={currentNumber} onChange={(e) => setCurrentNumber(parseInt(e.target.value) || 1)} className="bg-zinc-900 border-zinc-800 text-white rounded-xl w-24" />
-        </div>
-      </div>
+      {!isStandardSynced && (
+        <Card className="bg-amber-500/5 border-amber-500/20 p-8 rounded-3xl">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+             <div className="space-y-2">
+                <h4 className="font-bold text-white">Initialize Foundation</h4>
+                <p className="text-sm text-zinc-500">The Standard Arabic (Uthmani) text is required before translations can be effectively used.</p>
+             </div>
+             <Button 
+                onClick={handleStandardSync}
+                disabled={syncing}
+                className="bg-amber-500 text-black hover:bg-amber-400 font-bold rounded-xl h-12 px-8"
+              >
+                <Download className="mr-2 h-4 w-4" /> Sync Standard Now
+             </Button>
+          </div>
+        </Card>
+      )}
 
-      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl min-h-[400px]">
-        {isLoading ? <div className="flex items-center justify-center h-full py-20"><Loader2 className="animate-spin text-zinc-500" /></div> : surahData.length > 0 ? (
-          <ScrollArea className="h-[500px] p-8">
-            {surahData.map(s => (
-              <div key={s.id} className="space-y-6 mb-12">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700 border-b border-zinc-900 pb-2">Surah {s.surahNumber}. {s.englishName}</h4>
-                <div className="space-y-6">{s.ayats.filter((a: any) => filterMode === 'surah' || a.page === currentNumber).map((a: any, i: number) => (
-                  <div key={i} className="p-6 bg-zinc-900/30 rounded-2xl border border-zinc-900 space-y-4">
-                    <div className="flex justify-between items-start"><Badge variant="outline" className="text-[9px] font-black border-zinc-800 text-zinc-600">AYAT {a.numberInSurah}</Badge><p className="flex-1 text-right text-2xl font-arabic text-zinc-100">{a.text}</p></div>
-                    {a.translationText && <p className="text-zinc-500 text-sm italic">{a.translationText}</p>}
-                  </div>
-                ))}</div>
-              </div>
-            ))}
-          </ScrollArea>
-        ) : <div className="flex items-center justify-center py-20 text-zinc-600">No synchronized data found.</div>}
+      <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
+        <div className="flex flex-col md:flex-row gap-6 items-end">
+          <div className="flex-1 space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Available Editions</Label>
+            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                <SelectValue placeholder="Select edition to sync..." />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                {editions.map((t) => (
+                  <SelectItem key={t.id} value={t.id} disabled={t.dataSync === 'yes'}>
+                    {t.name} {t.dataSync === 'yes' && '✓'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button 
+            className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold" 
+            onClick={() => performSync(selectedEdition)} 
+            disabled={syncing || !selectedEdition}
+          >
+            <Download className="mr-2 w-4 h-4" /> Start Sync
+          </Button>
+        </div>
       </Card>
     </div>
   );
