@@ -48,7 +48,8 @@ import {
   Database,
   ArrowRight,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  BookOpen
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -376,6 +377,10 @@ function QuranToolsView({ translations }: { translations: any[] }) {
             <Database className="w-4 h-4 mr-2" />
             Index Pages
           </TabsTrigger>
+          <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black font-bold">
+            <BookOpen className="w-4 h-4 mr-2" />
+            View Indexed Quran
+          </TabsTrigger>
         </TabsList>
       </div>
 
@@ -385,6 +390,10 @@ function QuranToolsView({ translations }: { translations: any[] }) {
 
       <TabsContent value="indexing" className="mt-0">
         <QuranIndexing translations={translations} />
+      </TabsContent>
+
+      <TabsContent value="viewer" className="mt-0">
+        <QuranDatabaseViewer translations={translations} />
       </TabsContent>
     </Tabs>
   );
@@ -1162,6 +1171,138 @@ function QuranIndexing({ translations }: { translations: any[] }) {
           </ScrollArea>
         </Card>
       )}
+    </div>
+  );
+}
+
+function QuranDatabaseViewer({ translations }: { translations: any[] }) {
+  const db = useFirestore();
+  const [selectedEdition, setSelectedEdition] = useState<string>('');
+  const [selectedPage, setSelectedPage] = useState<number>(1);
+  const [pageData, setPageData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [indexedEditions, setIndexedEditions] = useState<string[]>([]);
+
+  // Find which translations have been indexed by checking page 1 existence
+  useEffect(() => {
+    async function findIndexed() {
+      const indexed: string[] = [];
+      for (const t of translations) {
+        const docRef = doc(db, 'quran_pages', `${t.id}_1`);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          indexed.push(t.id);
+        }
+      }
+      setIndexedEditions(indexed);
+    }
+    findIndexed();
+  }, [db, translations]);
+
+  useEffect(() => {
+    async function fetchPage() {
+      if (!selectedEdition) return;
+      setLoading(true);
+      const docRef = doc(db, 'quran_pages', `${selectedEdition}_${selectedPage}`);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setPageData(docSnap.data());
+      } else {
+        setPageData(null);
+      }
+      setLoading(false);
+    }
+    fetchPage();
+  }, [db, selectedEdition, selectedPage]);
+
+  const indexedList = translations.filter(t => indexedEditions.includes(t.id));
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-8 shadow-2xl space-y-8">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-1 space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Select Indexed Translation</Label>
+            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                <SelectValue placeholder="Choose indexed edition..." />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                {indexedList.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
+                ))}
+                {indexedList.length === 0 && (
+                  <SelectItem value="none" disabled>No indexed translations found</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full md:w-32 space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Page Number</Label>
+            <Select value={selectedPage.toString()} onValueChange={(v) => setSelectedPage(parseInt(v))}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                <SelectValue placeholder="Page" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                {Array.from({ length: 604 }, (_, i) => i + 1).map((p) => (
+                  <SelectItem key={p} value={p.toString()}>Page {p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {!selectedEdition ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 border-2 border-dashed border-zinc-900 rounded-2xl">
+            <BookOpen className="w-12 h-12 text-zinc-800" />
+            <p className="text-zinc-600 font-medium">Select an indexed translation to view synchronized content.</p>
+          </div>
+        ) : loading ? (
+          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-zinc-500" /></div>
+        ) : pageData ? (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
+               <div className="flex items-center gap-3">
+                 <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                 <h4 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-100">Synchronized Content: Page {selectedPage}</h4>
+               </div>
+               <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-4 py-1.5 rounded-xl font-black uppercase tracking-widest text-[10px]">VERIFIED IN DATABASE</Badge>
+            </div>
+
+            <div className="space-y-16">
+              {pageData.content.map((ayat: any, idx: number) => (
+                <div key={idx} className="space-y-8 pb-16 border-b border-zinc-900 last:border-none">
+                  <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+                     <div className="shrink-0 flex md:flex-col gap-3">
+                        <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-[10px] font-black text-zinc-600">
+                          {ayat.numberInSurah}
+                        </div>
+                        <div className="text-[8px] font-black text-zinc-700 uppercase tracking-tighter mt-1 text-center hidden md:block">
+                          AYAT
+                        </div>
+                     </div>
+                     <div className="flex-1 space-y-6">
+                        <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-200" style={{ direction: 'rtl' }}>
+                          {ayat.text}
+                        </p>
+                        <div className="bg-zinc-900/40 p-6 md:p-8 rounded-2xl md:rounded-3xl border border-zinc-900/50">
+                          <p className="text-sm md:text-lg text-zinc-400 leading-relaxed font-medium italic">
+                            {ayat.text}
+                          </p>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 border-2 border-dashed border-zinc-900 rounded-2xl">
+            <AlertCircle className="w-12 h-12 text-destructive opacity-50" />
+            <p className="text-destructive font-medium">Page {selectedPage} not found in database for this edition. Please index it first.</p>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
