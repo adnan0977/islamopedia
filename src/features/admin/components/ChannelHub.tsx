@@ -46,7 +46,7 @@ Islamic History (Official),UC1mNByYnDzhPesq4RF-jGLQ,English,Pivotal Events & Jou
 The Kohistani,UCCBGUffdWwRV0gUqgElkCfw,Urdu/English,History & Documentary
 Islamic Bayan 2026,UCybKAapNVFBeZyn6DJHQaGA,Urdu,Contemporary Sermons & History
 Duroos.org,UCp4Vf-IOn66Xv_Xf7oN7tLg,Arabic/English,Classical Scholarly Lectures
-Masjid Ribat,UCv9u_K37S6v3m3N_5fV3DPA,English,Detailed Seerah & History`;
+Masjid Ribat,UCv9u_K37S6v3m,English,Detailed Seerah & History`;
 
 export function ChannelHub() {
   const db = useFirestore();

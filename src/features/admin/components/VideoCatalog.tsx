@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -121,7 +121,7 @@ export function VideoCatalog() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <input 
+          <Input 
             placeholder="Search titles or channels..." 
             className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner w-full outline-none focus:ring-1 focus:ring-zinc-800"
             value={searchTerm}
