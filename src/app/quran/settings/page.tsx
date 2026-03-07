@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -108,7 +109,6 @@ export default function QuranSettingsPage() {
   const downloadEdition = async (editionId: string) => {
     if (!editionId || editionId === 'none') return;
     
-    // Check if already synced in IndexedDB
     const isSynced = await getOfflineEditionStatus(editionId);
     if (isSynced) return;
 
@@ -343,7 +343,7 @@ export default function QuranSettingsPage() {
                 dir="rtl"
               >
                 ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ
-                <span className="inline-block ms-4 align-middle">
+                <span className="inline-block mx-8 align-middle">
                   <AyatFrame number={2} frameId={localSettings.ayatFrameId} size="md" />
                 </span>
               </p>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -109,15 +110,12 @@ export function QuranReader() {
       setIsOfflineMode(false);
       
       try {
-        // First attempt: Try to load from Offline DB (IndexedDB)
         const preferredIds = ['quran-uthmani', localSettings.preferredTranslationId, localSettings.preferredTransliterationId]
           .filter(id => id && id !== 'none');
         
         let offlineWorks = false;
         const docsByEdition: Record<string, any> = {};
 
-        // Find which surahs are on this page (Using Firestore as a metadata index, or a fixed map)
-        // For simplicity, we query Firestore first to know which Surahs to look for in Offline DB
         const q = query(collection(db, 'quran'), where('pages', 'array-contains', currentPage));
         const snapshots = await getDocs(q);
         
@@ -138,7 +136,6 @@ export function QuranReader() {
         let transData: any[] = [];
         let translitData: any[] = [];
 
-        // If IndexedDB had data, use it. Otherwise, use Firestore snapshots.
         if (offlineWorks && docsByEdition['quran-uthmani']?.length > 0) {
           setIsOfflineMode(true);
           const uthmaniDocs = docsByEdition['quran-uthmani'];
@@ -163,7 +160,6 @@ export function QuranReader() {
             });
           }
         } else {
-          // Fallback to Firestore directly if offline not found
           const firestoreDocs: Record<string, any> = {};
           snapshots.forEach(d => {
             const data = d.data();
@@ -346,7 +342,7 @@ export function QuranReader() {
                       {group.ayats.map((a: any) => (
                         <span key={a.number} className="inline transition-all">
                           <span className="text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }}>{a.text}</span>
-                          <span className="inline-block mx-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                          <span className="inline-block mx-8 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
                         </span>
                       ))}
                     </div>
@@ -356,7 +352,7 @@ export function QuranReader() {
                         <div key={a.number} className="space-y-4">
                           <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                             {a.text}
-                            <span className="inline-block ms-6 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                            <span className="inline-block mx-8 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
                           </p>
                           <div className="space-y-2">
                             {localSettings.showTransliteration && a.translit && (
