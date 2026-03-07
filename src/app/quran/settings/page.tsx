@@ -33,7 +33,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/area"; // Corrected import path
 import { Badge } from "@/components/ui/badge";
 import { 
   Select, 
@@ -209,14 +209,14 @@ export default function QuranSettingsPage() {
               <div className="space-y-4">
                 <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">3. Transliteration Edition</Label>
                 <Select 
-                  value={localSettings.preferredTransliterationId} 
-                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredTransliterationId: val }))}
+                  value={localSettings.preferredTransliterationId || "none"} 
+                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredTransliterationId: val === 'none' ? '' : val }))}
                 >
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                     <SelectValue placeholder="Choose Transliteration" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {transliterationEditions.map((e) => (
                       <SelectItem key={e.id} value={e.id}>
                         {e.name}
@@ -232,14 +232,14 @@ export default function QuranSettingsPage() {
               <div className="space-y-4">
                 <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">4. Audio Recitation</Label>
                 <Select 
-                  value={localSettings.preferredAudioId} 
-                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredAudioId: val }))}
+                  value={localSettings.preferredAudioId || "none"} 
+                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredAudioId: val === 'none' ? '' : val }))}
                 >
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                     <SelectValue placeholder="Choose Qari" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {audioEditions.map((e) => (
                       <SelectItem key={e.id} value={e.id}>
                         {e.name}

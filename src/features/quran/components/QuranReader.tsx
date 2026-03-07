@@ -385,12 +385,12 @@ export function QuranReader() {
                         <TransliterationIcon className="w-3 h-3 text-zinc-500" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">3. Transliteration</span>
                       </div>
-                      <Select value={selectedTranslitId} onValueChange={setSelectedTranslitId}>
+                      <Select value={selectedTranslitId || "none"} onValueChange={(val) => setSelectedTranslitId(val === 'none' ? '' : val)}>
                         <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
-                          <SelectValue placeholder="Choose Translit" />
+                          <SelectValue placeholder="Choose Transliteration" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {transliterationEditions.map(e => (
                             <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                           ))}
@@ -403,12 +403,12 @@ export function QuranReader() {
                         <Volume2 className="w-3 h-3 text-zinc-500" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">4. Audio Reciter</span>
                       </div>
-                      <Select value={selectedAudioId} onValueChange={setSelectedAudioId}>
+                      <Select value={selectedAudioId || "none"} onValueChange={(val) => setSelectedAudioId(val === 'none' ? '' : val)}>
                         <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
                           <SelectValue placeholder="Choose Qari" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {audioEditions.map(e => (
                             <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                           ))}
