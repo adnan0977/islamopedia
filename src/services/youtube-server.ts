@@ -14,6 +14,16 @@ interface YouTubeChannelData {
   subscribersCount: number;
   videoCount: number;
   viewCount: number;
+  uploadsPlaylistId: string;
+}
+
+interface YouTubeVideoData {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  publishedAt: string;
+  channelId: string;
 }
 
 /**
@@ -29,6 +39,7 @@ function mapChannelItem(item: any): YouTubeChannelData {
     subscribersCount: parseInt(item.statistics.subscriberCount) || 0,
     videoCount: parseInt(item.statistics.videoCount) || 0,
     viewCount: parseInt(item.statistics.viewCount) || 0,
+    uploadsPlaylistId: item.contentDetails?.relatedPlaylists?.uploads || '',
   };
 }
 
@@ -42,7 +53,7 @@ export async function fetchYouTubeChannels(ids: string[]): Promise<YouTubeChanne
   }
 
   const idString = ids.join(',');
-  const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${idString}&key=${apiKey}`;
+  const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${idString}&key=${apiKey}`;
 
   try {
     const response = await fetch(url);
@@ -75,7 +86,7 @@ export async function fetchYouTubeChannelByHandle(handle: string): Promise<YouTu
 
   // Ensure handle starts with @
   const formattedHandle = handle.startsWith('@') ? handle : `@${handle}`;
-  const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${encodeURIComponent(formattedHandle)}&key=${apiKey}`;
+  const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&forHandle=${encodeURIComponent(formattedHandle)}&key=${apiKey}`;
 
   try {
     const response = await fetch(url);
@@ -94,5 +105,42 @@ export async function fetchYouTubeChannelByHandle(handle: string): Promise<YouTu
   } catch (error: any) {
     console.error('Error fetching YouTube channel by handle:', error);
     throw new Error(error.message || 'Failed to fetch handle from YouTube API.');
+  }
+}
+
+/**
+ * Fetches all videos from a specific YouTube channel's "Uploads" playlist.
+ */
+export async function fetchPlaylistVideos(playlistId: string, maxResults = 50): Promise<YouTubeVideoData[]> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
+    throw new Error('YOUTUBE_API_KEY is not configured.');
+  }
+
+  if (!playlistId) return [];
+
+  const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=${maxResults}&key=${apiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(`YouTube API Error (Playlist): ${data.error.message}`);
+    }
+
+    if (!data.items) return [];
+
+    return data.items.map((item: any) => ({
+      id: item.snippet.resourceId.videoId,
+      title: item.snippet.title,
+      description: item.snippet.description,
+      thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+      publishedAt: item.snippet.publishedAt,
+      channelId: item.snippet.channelId,
+    }));
+  } catch (error: any) {
+    console.error('Error fetching playlist videos:', error);
+    throw new Error(error.message || 'Failed to fetch videos from YouTube.');
   }
 }

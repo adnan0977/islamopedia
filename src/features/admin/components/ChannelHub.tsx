@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { fetchYouTubeChannels, fetchYouTubeChannelByHandle } from '@/services/youtube-server';
+import { fetchYouTubeChannels, fetchYouTubeChannelByHandle, fetchPlaylistVideos } from '@/services/youtube-server';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -65,6 +65,7 @@ export function ChannelHub() {
   const { toast } = useToast();
   
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncingVideosFor, setSyncingVideosFor] = useState<string | null>(null);
   const [bulkIds, setBulkBulkIds] = useState(DEFAULT_IDS);
   const [singleId, setSingleId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,14 +162,66 @@ export function ChannelHub() {
     }
   };
 
+  const handleSyncVideos = async (channel: any) => {
+    if (!channel.uploadsPlaylistId) {
+      toast({ variant: 'destructive', title: 'Missing Playlist', description: 'Cannot find uploads playlist for this channel.' });
+      return;
+    }
+
+    setSyncingVideosFor(channel.id);
+    try {
+      // 1. Fetch latest videos from YouTube
+      const ytVideos = await fetchPlaylistVideos(channel.uploadsPlaylistId);
+      if (ytVideos.length === 0) {
+        toast({ title: "No Videos", description: "No public uploads found for this channel." });
+        return;
+      }
+
+      // 2. Get existing video IDs from Firestore for this channel
+      const existingVideosQ = query(collection(db, 'videos'), where('channelId', '==', channel.id));
+      const existingSnap = await getDocs(existingVideosQ);
+      const existingIds = new Set(existingSnap.docs.map(d => d.id));
+
+      // 3. Filter for new videos
+      const newVideos = ytVideos.filter(v => !existingIds.has(v.id));
+
+      if (newVideos.length === 0) {
+        toast({ title: "Up to Date", description: "All latest videos are already in the catalog." });
+        return;
+      }
+
+      // 4. Batch add new videos
+      const batch = writeBatch(db);
+      newVideos.forEach(v => {
+        const vRef = doc(db, 'videos', v.id);
+        batch.set(vRef, {
+          ...v,
+          externalUrl: `https://youtube.com/watch?v=${v.id}`,
+          isActive: !!channel.isActive,
+          isTrending: false,
+          appViewCount: 0,
+          youtubeViewCount: 0,
+          likeCount: 0,
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
+      });
+
+      await batch.commit();
+      toast({ title: "Sync Successful", description: `Added ${newVideos.length} new videos from ${channel.title}.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Sync Failed', description: error.message });
+    } finally {
+      setSyncingVideosFor(null);
+    }
+  };
+
   const toggleChannelActivation = async (channelId: string, currentStatus: boolean) => {
     const newStatus = !currentStatus;
     const channelRef = doc(db, 'channels', channelId);
     
-    // Update parent channel
     updateDocumentNonBlocking(channelRef, { isActive: newStatus, updatedAt: new Date().toISOString() });
 
-    // Propagate to all videos from this channel
     try {
       const videosQ = query(collection(db, 'videos'), where('channelId', '==', channelId));
       const videoSnaps = await getDocs(videosQ);
@@ -362,6 +415,16 @@ export function ChannelHub() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
+                        disabled={syncingVideosFor === channel.id}
+                        className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-emerald-500 hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
+                        onClick={() => handleSyncVideos(channel)}
+                        title="Sync All Channel Videos"
+                      >
+                        <RefreshCw className={cn("w-5 h-5", syncingVideosFor === channel.id && "animate-spin")} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
                         className={cn("rounded-2xl h-12 w-12 text-zinc-600 hover:bg-zinc-900 border border-transparent hover:border-zinc-800", channel.isActive ? "text-emerald-500" : "text-zinc-700")}
                         onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)}
                         title={channel.isActive ? "Deactivate Channel" : "Activate Channel"}
@@ -442,7 +505,7 @@ export function ChannelHub() {
             </div>
           </div>
           <DialogFooter className="gap-3">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold h-12 px-6">Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold h-12 px-6 border border-zinc-800">Cancel</Button>
             <Button 
               className="rounded-xl h-12 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 shadow-xl"
               onClick={handleEditSave}
