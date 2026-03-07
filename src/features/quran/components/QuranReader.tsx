@@ -13,7 +13,8 @@ import {
   Type, 
   Book as BookIcon,
   Languages,
-  ArrowLeft
+  ArrowLeft,
+  Database
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -208,7 +209,6 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // RTL Swipe Navigation reversed per user request:
     // Swiping right advances to next page
     if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
@@ -222,7 +222,12 @@ export function QuranReader() {
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex items-center gap-4">
           {!isReading ? (
-            <h1 className="text-xl md:text-2xl font-headline font-bold text-white">Quran</h1>
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800">
+                  <Database className="w-5 h-5 text-zinc-500" />
+               </div>
+               <h1 className="text-xl md:text-2xl font-headline font-bold text-white">Quran Index</h1>
+            </div>
           ) : (
             <div className="flex items-center gap-3">
               <Button 
@@ -252,7 +257,7 @@ export function QuranReader() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setIndexType('surah')} 
-                className={cn("rounded-xl font-bold h-10 px-4 md:px-6", indexType === 'surah' ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                className={cn("rounded-xl font-bold h-10 px-4 md:px-6 transition-all", indexType === 'surah' ? "bg-white text-black" : "text-zinc-500")}
               >
                 <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
               </Button>
@@ -260,7 +265,7 @@ export function QuranReader() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setIndexType('juz')} 
-                className={cn("rounded-xl font-bold h-10 px-4 md:px-6", indexType === 'juz' ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                className={cn("rounded-xl font-bold h-10 px-4 md:px-6 transition-all", indexType === 'juz' ? "bg-white text-black" : "text-zinc-500")}
               >
                 <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
               </Button>
@@ -272,7 +277,7 @@ export function QuranReader() {
                   <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[9px] md:text-[10px] font-bold">
                     <div className="flex items-center gap-2">
                       <Languages className="w-3 h-3 text-zinc-500 hidden md:inline" />
-                      <SelectValue placeholder="Trans" />
+                      <SelectValue placeholder="Translation" />
                     </div>
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
@@ -496,4 +501,3 @@ export function QuranReader() {
     </div>
   );
 }
-

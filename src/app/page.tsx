@@ -4,11 +4,14 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Loader2, Sparkles, ChevronRight, Users, TrendingUp, MapPin, Smartphone } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Play, Loader2, Sparkles, ChevronRight, Users, TrendingUp, MapPin, Smartphone, BookOpen, Quote, Heart } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { aiTodaysAyats, type AiTodaysAyatsOutput } from '@/ai/flows/ai-todays-ayats';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { AyatFrame } from '@/components/quran/AyatFrame';
 import {
   Carousel,
   CarouselContent,
@@ -20,6 +23,8 @@ import {
 export default function Home() {
   const db = useFirestore();
   const [prayerTimes, setPrayerTimes] = useState<any>(null);
+  const [reflection, setReflection] = useState<AiTodaysAyatsOutput | null>(null);
+  const [isReflectionLoading, setIsReflectionLoading] = useState(true);
   const [location] = useState({ city: 'London', country: 'UK' });
 
   // Firestore Queries
@@ -30,30 +35,38 @@ export default function Home() {
   ), [db]);
   const { data: trendingVideos, isLoading: isTrendingLoading } = useCollection(trendingQuery);
 
-  const latestQuery = useMemoFirebase(() => query(
+  const recommendedQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     orderBy('publishedAt', 'desc'),
     limit(12)
   ), [db]);
-  const { data: latestVideos, isLoading: isLatestLoading } = useCollection(latestQuery);
+  const { data: recommendedVideos, isLoading: isRecommendedLoading } = useCollection(recommendedQuery);
 
   const speakersQuery = useMemoFirebase(() => query(collection(db, 'speakers'), limit(12)), [db]);
   const { data: speakers } = useCollection(speakersQuery);
 
+  const reflectionBg = PlaceHolderImages.find(img => img.id === 'reflection-bg')?.imageUrl;
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const pt = await getPrayerTimes(location.city, location.country);
+        const [pt, ayats] = await Promise.all([
+          getPrayerTimes(location.city, location.country),
+          aiTodaysAyats({ currentDate: new Date().toISOString().split('T')[0] })
+        ]);
         setPrayerTimes(pt.data);
+        setReflection(ayats);
       } catch (error) {
         console.error("Data fetching error:", error);
+      } finally {
+        setIsReflectionLoading(false);
       }
     }
     fetchData();
   }, [location]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-16 pb-32">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-20 pb-32">
       {/* Header Info */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-950/50 backdrop-blur-md p-8 rounded-[2rem] border border-zinc-900 shadow-2xl">
         <div className="space-y-3">
@@ -83,7 +96,77 @@ export default function Home() {
         )}
       </section>
 
-      <div className="space-y-20">
+      {/* Daily Reflection Section */}
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-zinc-900 bg-zinc-950 shadow-2xl">
+        <div className="absolute inset-0 opacity-20">
+          {reflectionBg && (
+            <Image 
+              src={reflectionBg} 
+              alt="Reflection Background" 
+              fill 
+              className="object-cover grayscale"
+              data-ai-hint="mosque interior"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-zinc-950/80 to-transparent" />
+        </div>
+        
+        <div className="relative p-8 md:p-12 space-y-10">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-headline font-bold text-zinc-100 flex items-center gap-3">
+                <Quote className="w-6 h-6 text-zinc-500" />
+                Daily Reflection
+              </h2>
+              <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Today's Wisdom from the Quran</p>
+            </div>
+            <Link href="/quran" className="hidden md:flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-white transition-colors">
+              Open Quran <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {isReflectionLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-zinc-800" /></div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="space-y-8">
+                {reflection?.ayats.slice(0, 1).map((ayat, idx) => (
+                  <div key={idx} className="space-y-6 animate-in fade-in slide-in-from-left duration-700">
+                    <p className="text-right text-3xl md:text-4xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
+                      {ayat.text}
+                    </p>
+                    <div className="border-l-2 border-zinc-800 pl-6 space-y-2">
+                      <p className="text-sm md:text-base text-zinc-400 font-medium italic leading-relaxed">
+                        "{ayat.translation}"
+                      </p>
+                      <div className="flex items-center gap-2 pt-2">
+                         <AyatFrame number={ayat.ayatNumber} size="sm" />
+                         <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">Surah {ayat.surahNumber}:{ayat.ayatNumber}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="bg-zinc-900/40 backdrop-blur-md rounded-[2rem] p-8 border border-zinc-800/50 space-y-4">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                   <Sparkles className="w-3 h-3" /> Spiritual Insight
+                </div>
+                <p className="text-sm text-zinc-300 leading-relaxed font-medium">
+                  {reflection?.ayats[0]?.importanceReason}
+                </p>
+                <Link href="/quran">
+                  <Button variant="outline" className="w-full mt-4 rounded-xl border-zinc-800 text-zinc-400 font-bold hover:bg-zinc-900 h-11">
+                    Continue Reading
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="space-y-24">
         {/* Trending Now Slider */}
         <section className="space-y-8 relative">
           <div className="flex items-center justify-between px-2">
@@ -105,7 +188,7 @@ export default function Home() {
             <Carousel opts={{ align: "start", loop: false }} className="w-full">
               <CarouselContent className="-ml-1">
                 {trendingVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-1 basis-1/4 sm:basis-1/4 lg:basis-1/4">
+                  <CarouselItem key={video.id} className="pl-1 basis-full sm:basis-1/2 lg:basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
@@ -115,6 +198,29 @@ export default function Home() {
                 <CarouselNext className="static translate-y-0 h-10 w-10 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-500" />
               </div>
             </Carousel>
+          )}
+        </section>
+
+        {/* Recommended & Personalized Feed */}
+        <section className="space-y-8 relative">
+          <div className="flex items-center justify-between px-2">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-headline font-bold flex items-center gap-3 text-zinc-100">
+                <Sparkles className="w-6 h-6 text-zinc-500" />
+                Personalized For You
+              </h2>
+              <p className="text-xs text-zinc-500 font-medium">Organized based on your viewing patterns</p>
+            </div>
+          </div>
+          
+          {isRecommendedLoading ? (
+            <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+               {recommendedVideos?.slice(0, 4).map(video => (
+                 <VideoCard key={video.id} video={video} />
+               ))}
+            </div>
           )}
         </section>
 
@@ -128,6 +234,9 @@ export default function Home() {
               </h2>
               <p className="text-xs text-zinc-500 font-medium">Profiles of leading spiritual teachers</p>
             </div>
+            <Link href="/speakers" className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-zinc-100 flex items-center gap-2 transition-all">
+              View Directory <ChevronRight className="w-3 h-3" />
+            </Link>
           </div>
           <div className="flex gap-8 overflow-x-auto pb-6 scrollbar-hide -mx-4 px-4">
             {speakers?.map((speaker) => (
@@ -146,38 +255,29 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Latest Uploads Slider */}
-        <section className="space-y-8 relative">
+        {/* My Favorites Section */}
+        <section className="space-y-8">
           <div className="flex items-center justify-between px-2">
             <div className="space-y-1">
               <h2 className="text-2xl font-headline font-bold flex items-center gap-3 text-zinc-100">
-                <Play className="w-6 h-6 text-zinc-500" />
-                Latest Uploads
+                <Heart className="w-6 h-6 text-zinc-500" />
+                Saved Favorites
               </h2>
-              <p className="text-xs text-zinc-500 font-medium">Newly cataloged insights and recitations</p>
+              <p className="text-xs text-zinc-500 font-medium">Your most cherished reflections in one place</p>
             </div>
-            <Link href="/videos" className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-zinc-100 flex items-center gap-2 transition-all group">
-              See History <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-            </Link>
           </div>
           
-          {isLatestLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
-          ) : (
-            <Carousel opts={{ align: "start", loop: false }} className="w-full">
-              <CarouselContent className="-ml-1">
-                {latestVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-1 basis-1/4 sm:basis-1/4 lg:basis-1/4">
-                    <VideoCard video={video} />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <div className="hidden md:flex gap-2 absolute -top-12 right-4">
-                <CarouselPrevious className="static translate-y-0 h-10 w-10 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-500" />
-                <CarouselNext className="static translate-y-0 h-10 w-10 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-500" />
-              </div>
-            </Carousel>
-          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+             {trendingVideos?.slice(4, 10).map((video, idx) => (
+               <Link key={video.id} href={`/watch?v=${video.id}`} className="group space-y-3">
+                 <div className="relative aspect-video rounded-xl overflow-hidden border border-zinc-900 bg-zinc-950">
+                    <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                 </div>
+                 <h3 className="text-[10px] font-bold text-zinc-400 group-hover:text-white transition-colors line-clamp-1 leading-tight">{video.title}</h3>
+               </Link>
+             ))}
+          </div>
         </section>
       </div>
     </div>
@@ -192,7 +292,7 @@ function VideoCard({ video }: { video: any }) {
   }, []);
 
   return (
-    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-xl md:rounded-3xl h-full">
+    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-2xl md:rounded-3xl h-full">
       <Link href={`/watch?v=${video.id}`} className="flex flex-col h-full">
         <div className="relative aspect-video overflow-hidden">
           <Image 
@@ -202,13 +302,13 @@ function VideoCard({ video }: { video: any }) {
             className="object-cover group-hover:scale-105 transition-transform duration-1000"
           />
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-lg md:rounded-2xl w-8 h-8 md:w-14 md:h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
-              <Play className="text-zinc-300 fill-zinc-300 ml-0.5 w-3 h-3 md:w-6 md:h-6" />
+            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-xl md:rounded-2xl w-10 h-10 md:w-14 md:h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
+              <Play className="text-zinc-300 fill-zinc-300 ml-0.5 w-4 h-4 md:w-6 md:h-6" />
             </div>
           </div>
         </div>
-        <CardHeader className="p-3 md:p-5 flex-1 flex flex-col justify-between">
-          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-[10px] md:text-sm tracking-tight mb-2 md:mb-4">
+        <CardHeader className="p-4 md:p-5 flex-1 flex flex-col justify-between">
+          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-xs md:text-sm tracking-tight mb-2 md:mb-4">
             {video.title}
           </CardTitle>
           <div className="flex items-center justify-between text-[8px] md:text-[9px] text-zinc-600 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] pt-2 md:pt-4 border-t border-zinc-900">

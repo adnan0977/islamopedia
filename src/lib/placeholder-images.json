@@ -41,6 +41,12 @@
       "description": "Bismillah Islamic Calligraphy Header",
       "imageUrl": "https://picsum.photos/seed/bismillah/800/200",
       "imageHint": "islamic calligraphy"
+    },
+    {
+      "id": "reflection-bg",
+      "description": "Calm mosque interior light",
+      "imageUrl": "https://images.unsplash.com/photo-1542751371-adc38448a05e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtb3NxdWUlMjBpbnRlcmlvcnxlbnwwfHx8fDE3NzI1NjI4NTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mosque interior"
     }
   ]
 }
