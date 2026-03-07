@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -1154,7 +1153,7 @@ function QuranIndexing({ translations }: { translations: any[] }) {
 
           <ScrollArea className="h-[250px] w-full pr-4">
             <div className="space-y-10">
-              {previewData.arabicContent.slice(0, 3).map((ayat: any, idx: number) => (
+              {previewData?.arabicContent?.slice(0, 3).map((ayat: any, idx: number) => (
                 <div key={idx} className="space-y-4 border-b border-zinc-900 pb-6 last:border-none">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Ayat {ayat.numberInSurah}</span>
@@ -1164,7 +1163,7 @@ function QuranIndexing({ translations }: { translations: any[] }) {
                     {ayat.text}
                   </p>
                   <p className="text-xs text-zinc-500 leading-relaxed italic border-l-2 border-zinc-800 pl-4">
-                    {previewData.translationContent[idx]?.text}
+                    {previewData?.translationContent?.[idx]?.text}
                   </p>
                 </div>
               ))}
@@ -1274,7 +1273,7 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
             </div>
 
             <div className="space-y-16">
-              {pageData.arabicContent.map((ayat: any, idx: number) => (
+              {pageData?.arabicContent?.map((ayat: any, idx: number) => (
                 <div key={idx} className="space-y-8 pb-16 border-b border-zinc-900 last:border-none">
                   <div className="flex flex-col md:flex-row items-start justify-between gap-8">
                      <div className="shrink-0 flex md:flex-col gap-3">
@@ -1291,13 +1290,19 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
                         </p>
                         <div className="bg-zinc-900/40 p-6 md:p-8 rounded-2xl md:rounded-3xl border border-zinc-900/50">
                           <p className="text-sm md:text-lg text-zinc-400 leading-relaxed font-medium italic">
-                            {pageData.translationContent[idx]?.text}
+                            {pageData?.translationContent?.[idx]?.text || 'Translation missing for this ayat.'}
                           </p>
                         </div>
                      </div>
                   </div>
                 </div>
               ))}
+              {(!pageData?.arabicContent || pageData.arabicContent.length === 0) && (
+                <div className="text-center py-12">
+                   <AlertCircle className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
+                   <p className="text-zinc-500">No content found in this page record.</p>
+                </div>
+              )}
             </div>
           </div>
         ) : (
