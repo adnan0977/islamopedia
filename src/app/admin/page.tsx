@@ -55,16 +55,16 @@ import {
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/input"
+import { Label } from "@/label"
+import { Textarea } from "@/textarea"
 import { 
   Select, 
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
   SelectValue 
-} from "@/components/ui/select"
+} from "@/select"
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -96,6 +96,11 @@ export default function AdminPanel() {
   const [copied, setCopied] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Global sync state to prevent tab switching from hiding the loader
+  const [globalSyncing, setGlobalSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'fetching' | 'saving' | 'success' | 'error'>('idle');
 
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData, isLoading: isAdminLoading } = useDoc(adminRef);
@@ -216,6 +221,7 @@ export default function AdminPanel() {
                       <SidebarMenuButton 
                         onClick={() => setActiveTab(item.id as AdminTab)}
                         isActive={activeTab === item.id}
+                        disabled={globalSyncing}
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all h-12",
                           activeTab === item.id ? "bg-zinc-900 text-white font-bold" : "text-zinc-500 hover:bg-zinc-900/50"
@@ -235,6 +241,7 @@ export default function AdminPanel() {
               variant="ghost" 
               className="w-full justify-start text-destructive hover:bg-destructive/10 rounded-xl font-bold"
               onClick={handleSignOut}
+              disabled={globalSyncing}
             >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
@@ -296,9 +303,45 @@ export default function AdminPanel() {
             {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} />}
             {activeTab === 'scholars' && <SpeakerManagement speakers={speakers || []} />}
-            {activeTab === 'quran-tools' && <QuranToolsView editions={editions || []} />}
+            {activeTab === 'quran-tools' && (
+              <QuranToolsView 
+                editions={editions || []} 
+                globalSyncing={globalSyncing}
+                setGlobalSyncing={setGlobalSyncing}
+                syncProgress={syncProgress}
+                setSyncProgress={setSyncProgress}
+                syncStatus={syncStatus}
+                setSyncStatus={setSyncStatus}
+              />
+            )}
           </main>
         </SidebarInset>
+
+        <Dialog open={globalSyncing}>
+          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl sm:max-w-md p-10 outline-none">
+            <div className="flex flex-col items-center text-center space-y-8">
+               <div className="w-20 h-20 bg-zinc-900 border border-zinc-800 rounded-3xl flex items-center justify-center animate-pulse">
+                 <Database className="w-10 h-10 text-white" />
+               </div>
+               <div className="space-y-2">
+                 <h3 className="text-xl font-bold">Synchronizing Database</h3>
+                 <p className="text-zinc-500 text-sm leading-relaxed">
+                   Fetching the complete Quran text and committing thousands of verses to your Firestore 'quran' table. Please do not close or switch tabs.
+                 </p>
+               </div>
+               <div className="w-full space-y-4">
+                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                   <span>
+                    {syncStatus === 'fetching' ? 'Downloading from AlQuran Cloud API...' : 'Writing Batch to Firestore...'}
+                   </span>
+                   <span className="text-white">{syncProgress}%</span>
+                 </div>
+                 <Progress value={syncProgress} className="h-2 bg-zinc-900" />
+               </div>
+               <Loader2 className="animate-spin text-zinc-500 w-6 h-6" />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarProvider>
   );
@@ -742,7 +785,25 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
   );
 }
 
-function QuranToolsView({ editions }: { editions: any[] }) {
+interface QuranToolsViewProps {
+  editions: any[];
+  globalSyncing: boolean;
+  setGlobalSyncing: (val: boolean) => void;
+  syncProgress: number;
+  setSyncProgress: (val: number) => void;
+  syncStatus: 'idle' | 'fetching' | 'saving' | 'success' | 'error';
+  setSyncStatus: (val: 'idle' | 'fetching' | 'saving' | 'success' | 'error') => void;
+}
+
+function QuranToolsView({ 
+  editions, 
+  globalSyncing, 
+  setGlobalSyncing, 
+  syncProgress, 
+  setSyncProgress, 
+  syncStatus, 
+  setSyncStatus 
+}: QuranToolsViewProps) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <Tabs defaultValue="directory" className="w-full">
@@ -756,7 +817,15 @@ function QuranToolsView({ editions }: { editions: any[] }) {
           <TranslationManagement editions={editions} />
         </TabsContent>
         <TabsContent value="sync">
-          <QuranDatabaseSync editions={editions} />
+          <QuranDatabaseSync 
+            editions={editions} 
+            syncing={globalSyncing}
+            setSyncing={setGlobalSyncing}
+            progress={syncProgress}
+            setProgress={setSyncProgress}
+            syncStatus={syncStatus}
+            setSyncStatus={setSyncStatus}
+          />
         </TabsContent>
         <TabsContent value="viewer">
           <QuranDatabaseViewer editions={editions} />
@@ -996,13 +1065,28 @@ function TranslationManagement({ editions }: { editions: any[] }) {
   );
 }
 
-function QuranDatabaseSync({ editions }: { editions: any[] }) {
+interface QuranDatabaseSyncProps {
+  editions: any[];
+  syncing: boolean;
+  setSyncing: (val: boolean) => void;
+  progress: number;
+  setProgress: (val: number) => void;
+  syncStatus: 'idle' | 'fetching' | 'saving' | 'success' | 'error';
+  setSyncStatus: (val: 'idle' | 'fetching' | 'saving' | 'success' | 'error') => void;
+}
+
+function QuranDatabaseSync({ 
+  editions, 
+  syncing, 
+  setSyncing, 
+  progress, 
+  setProgress, 
+  syncStatus, 
+  setSyncStatus 
+}: QuranDatabaseSyncProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [selectedEdition, setSelectedEdition] = useState('');
-  const [syncing, setSyncing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'fetching' | 'saving' | 'success' | 'error'>('idle');
 
   const handleSync = async () => {
     if (!selectedEdition) return;
@@ -1111,32 +1195,6 @@ function QuranDatabaseSync({ editions }: { editions: any[] }) {
             {syncing ? 'Syncing...' : 'Start Data Sync'}
           </Button>
         </div>
-
-        <Dialog open={syncing}>
-          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl sm:max-w-md p-10 outline-none">
-            <div className="flex flex-col items-center text-center space-y-8">
-               <div className="w-20 h-20 bg-zinc-900 border border-zinc-800 rounded-3xl flex items-center justify-center animate-pulse">
-                 <Database className="w-10 h-10 text-white" />
-               </div>
-               <div className="space-y-2">
-                 <h3 className="text-xl font-bold">Synchronizing Database</h3>
-                 <p className="text-zinc-500 text-sm leading-relaxed">
-                   Fetching the complete Quran text and committing thousands of verses to your Firestore 'quran' table. Please do not close or switch tabs.
-                 </p>
-               </div>
-               <div className="w-full space-y-4">
-                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                   <span>
-                    {syncStatus === 'fetching' ? 'Downloading from AlQuran Cloud API...' : 'Writing Batch to Firestore...'}
-                   </span>
-                   <span className="text-white">{progress}%</span>
-                 </div>
-                 <Progress value={progress} className="h-2 bg-zinc-900" />
-               </div>
-               <Loader2 className="animate-spin text-zinc-500 w-6 h-6" />
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {syncStatus === 'success' && !syncing && (
           <div className="mt-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3 animate-in zoom-in-95">
@@ -1248,11 +1306,11 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
                  <div className="flex-1 h-px bg-zinc-900" />
                </div>
                <div className="space-y-8">
-                 {pageData.ayats?.map((ayat: any, idx: number) => (
+                 {pageData?.ayats?.map((ayat: any, idx: number) => (
                    <div key={idx} className="group p-8 bg-zinc-900/30 rounded-3xl border border-zinc-900/50 hover:border-zinc-800 transition-all space-y-8">
                       <div className="flex justify-between items-start gap-8">
                          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-zinc-900 text-zinc-600 shrink-0">
-                           {ayat.surah.englishName} • {ayat.numberInSurah}
+                           {ayat.surah?.englishName} • {ayat.numberInSurah}
                          </Badge>
                          <p className="flex-1 text-right text-3xl font-arabic leading-relaxed text-zinc-100">
                            {ayat.text}
