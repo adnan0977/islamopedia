@@ -36,7 +36,7 @@ interface PageContent {
   translit: any[];
 }
 
-type QuranViewMode = 'surah' | 'juz' | 'page' | 'index';
+type QuranViewMode = 'surah' | 'juz' | 'page';
 
 export function QuranReader() {
   const db = useFirestore();
@@ -45,8 +45,7 @@ export function QuranReader() {
   const { user } = useUser();
   
   // Initial State from URL
-  const initialMode = (searchParams.get('mode') as QuranViewMode) || 'index';
-  const initialIndexType = (searchParams.get('type') as 'surah' | 'juz') || 'surah';
+  const initialMode = (searchParams.get('mode') as QuranViewMode) || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
   const initialSurah = searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null;
   const initialJuz = searchParams.get('juz') ? parseInt(searchParams.get('juz')!) : null;
@@ -67,13 +66,15 @@ export function QuranReader() {
   const [selectedSurah, setSelectedSurah] = useState<number | null>(initialSurah);
   const [selectedJuz, setSelectedJuz] = useState<number | null>(initialJuz);
   const [viewMode, setViewMode] = useState<QuranViewMode>(initialMode);
-  const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
   const [pagedData, setPagedData] = useState<PageContent[]>([]);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [currentAyatIndex, setCurrentAyatIndex] = useState(0);
   
-  const isReading = viewMode !== 'index';
+  // Derived state for reading status
+  const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
+                    (viewMode === 'juz' && selectedJuz !== null) || 
+                    viewMode === 'page';
   
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -113,9 +114,7 @@ export function QuranReader() {
     const params = new URLSearchParams();
     params.set('mode', viewMode);
     
-    if (viewMode === 'index') {
-      params.set('type', indexType);
-    } else if (viewMode === 'surah' && selectedSurah) {
+    if (viewMode === 'surah' && selectedSurah) {
       params.set('surah', selectedSurah.toString());
     } else if (viewMode === 'juz' && selectedJuz) {
       params.set('juz', selectedJuz.toString());
@@ -129,7 +128,7 @@ export function QuranReader() {
     if (currentQuery !== nextUrl) {
       router.replace(`/quran${nextUrl}`, { scroll: false });
     }
-  }, [viewMode, indexType, visiblePage, selectedSurah, selectedJuz, router]);
+  }, [viewMode, visiblePage, selectedSurah, selectedJuz, router]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
@@ -249,11 +248,9 @@ export function QuranReader() {
   }, [loadingContent, pagedData, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
   useEffect(() => {
-    if (viewMode === 'index') {
+    if (!isReading) {
       setPagedData([]);
       setCurrentAyatIndex(0);
-      setSelectedSurah(null);
-      setSelectedJuz(null);
       return;
     }
     
@@ -268,7 +265,6 @@ export function QuranReader() {
           pageToLoad = snap.docs[0].data().pages[0];
         }
       } else if (viewMode === 'juz' && initialJuz) {
-        // Juz to Page Mapping
         const juzToPageMap: Record<number, number> = { 1: 1, 2: 22, 3: 42, 4: 62, 5: 82, 6: 102, 7: 121, 8: 142, 9: 162, 10: 182, 11: 201, 12: 222, 13: 242, 14: 262, 15: 282, 16: 302, 17: 322, 18: 342, 19: 362, 20: 382, 21: 402, 22: 422, 23: 442, 24: 462, 25: 482, 26: 502, 27: 522, 28: 542, 29: 562, 30: 582 };
         pageToLoad = juzToPageMap[initialJuz] || initialPage;
       }
@@ -282,7 +278,7 @@ export function QuranReader() {
       setLoadingContent(false);
     }
     initFetch();
-  }, [viewMode, initialSurah, initialJuz, initialPage, db]);
+  }, [viewMode, initialSurah, initialJuz, initialPage, db, isReading]);
 
   useEffect(() => {
     if (!isReading || !ayatScrollContainerRef.current || pagedData.length === 0) return;
@@ -348,11 +344,10 @@ export function QuranReader() {
                   variant="ghost" size="icon" 
                   className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
                   onClick={() => {
-                    setViewMode('index');
-                    setPagedData([]);
-                    setCurrentAyatIndex(0);
                     setSelectedSurah(null);
                     setSelectedJuz(null);
+                    setPagedData([]);
+                    setCurrentAyatIndex(0);
                   }}
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -376,10 +371,10 @@ export function QuranReader() {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={() => setIndexType('surah')} 
+                  onClick={() => setViewMode('surah')} 
                   className={cn(
                     "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
-                    indexType === 'surah' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                    viewMode === 'surah' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                   )}
                 >
                   Surah
@@ -387,10 +382,10 @@ export function QuranReader() {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={() => setIndexType('juz')} 
+                  onClick={() => setViewMode('juz')} 
                   className={cn(
                     "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
-                    indexType === 'juz' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                    viewMode === 'juz' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                   )}
                 >
                   Juz
@@ -418,11 +413,11 @@ export function QuranReader() {
       </div>
 
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] mt-4 min-h-[60vh] flex flex-col">
-        {viewMode === 'index' ? (
+        {!isReading ? (
           <div className="p-8 md:p-12 space-y-8">
             {isMetaLoading ? (
               <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-zinc-800 w-10 h-10" /></div>
-            ) : indexType === 'surah' ? (
+            ) : viewMode === 'surah' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {metadata?.surahs?.references?.map((surah: any) => (
                   <button 
@@ -436,7 +431,6 @@ export function QuranReader() {
                           setSelectedSurah(surah.number);
                           setVisiblePage(startPage);
                           setCurrentAyatIndex(0);
-                          setViewMode('surah');
                         }
                       }).finally(() => setLoadingContent(false));
                     }}
@@ -461,7 +455,6 @@ export function QuranReader() {
                     onClick={() => { 
                       setSelectedJuz(idx + 1);
                       setCurrentAyatIndex(0);
-                      setViewMode('juz'); 
                     }}
                     className="group flex items-center justify-between p-6 bg-zinc-900/30 rounded-3xl border border-zinc-900 hover:border-zinc-700 transition-all text-left"
                   >
