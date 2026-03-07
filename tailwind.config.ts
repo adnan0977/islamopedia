@@ -1,4 +1,3 @@
-
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -14,7 +13,7 @@ export default {
         body: ['PT Sans', 'sans-serif'],
         headline: ['PT Sans', 'sans-serif'],
         code: ['monospace'],
-        arabic: ['"Noto Naskh Arabic"', 'Amiri', 'Traditional Arabic', 'serif'],
+        arabic: ['Uthmani', '"Noto Naskh Arabic"', 'Amiri', 'Traditional Arabic', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
