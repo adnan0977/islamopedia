@@ -95,10 +95,14 @@ export function QuranReader() {
   const frameImageUrl = settings?.frameImageUrl;
 
   const cleanAyatText = (text: string, surahNumber: number, ayatNumberInSurah: number) => {
-    // AlQuran Cloud prefixes the Bismillah to the first ayat of most surahs
-    if (surahNumber !== 1 && surahNumber !== 9 && ayatNumberInSurah === 1) {
+    // AlQuran Cloud often prefixes the Bismillah to the first ayat of most surahs
+    // We remove it from the text if we're showing it as a header
+    if (surahNumber !== 9 && ayatNumberInSurah === 1) {
       if (text.startsWith(BISMILLAH_TEXT)) {
-        return text.substring(BISMILLAH_TEXT.length).trim();
+        const cleaned = text.substring(BISMILLAH_TEXT.length).trim();
+        // If removing it makes the verse empty (like in Fatihah sometimes), we might need to be careful
+        // but usually Fatihah 1 *is* Bismillah.
+        return cleaned || text; 
       }
     }
     return text;
@@ -381,7 +385,7 @@ export function QuranReader() {
                 <div className="space-y-12">
                   {groupedAyats.map(group => (
                     <div key={group.surah.number} className="space-y-10">
-                      {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 1 && group.surah.number !== 9 && (
+                      {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && (
                         <div className="flex justify-center py-10 mb-8 border-b border-zinc-900/50">
                           {bismillahImageUrl ? (
                             <div className="relative w-full max-w-[450px] aspect-[4/1]">
@@ -389,12 +393,13 @@ export function QuranReader() {
                                 src={bismillahImageUrl} 
                                 alt="Bismillah" 
                                 fill 
-                                className="object-contain invert brightness-150"
+                                className="object-contain invert brightness-[2]"
+                                style={{ filter: 'invert(1) brightness(2)' }}
                                 data-ai-hint="islamic calligraphy"
                               />
                             </div>
                           ) : (
-                            <p className="text-4xl md:text-6xl font-arabic text-zinc-100 leading-none">
+                            <p className="text-4xl md:text-6xl font-arabic text-white leading-none">
                               {BISMILLAH_TEXT}
                             </p>
                           )}
@@ -430,7 +435,7 @@ export function QuranReader() {
               ) : (
                 <div className="text-right font-arabic leading-[2.5] text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => {
-                    const isNewSurah = a.numberInSurah === 1 && a.surah.number !== 1 && a.surah.number !== 9;
+                    const isNewSurah = a.numberInSurah === 1 && a.surah.number !== 9;
                     return (
                       <span key={a.number} className="inline">
                         {isNewSurah && (
@@ -441,12 +446,13 @@ export function QuranReader() {
                                   src={bismillahImageUrl} 
                                   alt="Bismillah" 
                                   fill 
-                                  className="object-contain invert brightness-150"
+                                  className="object-contain invert brightness-[2]"
+                                  style={{ filter: 'invert(1) brightness(2)' }}
                                   data-ai-hint="islamic calligraphy"
                                 />
                               </div>
                             ) : (
-                              <span className="text-4xl md:text-6xl">
+                              <span className="text-4xl md:text-6xl text-white">
                                 {BISMILLAH_TEXT}
                               </span>
                             )}
