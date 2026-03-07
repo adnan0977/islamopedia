@@ -651,16 +651,16 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
         setCurrentSyncCount(0);
       }
     }}>
-      <DialogContent className={cn("bg-zinc-950 border-zinc-800 p-0 overflow-hidden flex flex-col h-[90vh] md:h-[80vh]", view === 'videos' ? "sm:max-w-[900px]" : "sm:max-w-[450px]")}>
-          <DialogHeader className="px-6 py-6 border-b border-zinc-800 bg-zinc-950/50">
+      <DialogContent className={cn("bg-zinc-950 border-zinc-800 p-0 overflow-hidden flex flex-col h-[90vh]", view === 'videos' ? "sm:max-w-[900px] w-[95vw]" : "sm:max-w-[450px] w-[95vw]")}>
+          <DialogHeader className="px-6 py-6 border-b border-zinc-800 bg-zinc-950/50 shrink-0">
             <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
               {view === 'search' ? <Youtube className="w-5 h-5 text-primary" /> : <RefreshCw className={cn("w-5 h-5 text-primary", isBulkImporting && "animate-spin")} />}
               {view === 'search' ? 'Link Channel' : `Syncing ${fetchedData?.title}`}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 relative bg-zinc-950 overflow-hidden">
-            <ScrollArea className="h-full w-full">
+          <div className="flex-1 min-h-0 bg-zinc-950">
+            <ScrollArea className="h-full">
               {view === 'search' ? (
                 <div className="grid gap-8 p-8">
                   <div className="space-y-4">
@@ -884,8 +884,8 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
           Add Video
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 sm:max-w-[800px] p-0 overflow-hidden flex flex-col max-h-[95vh] border-zinc-800 shadow-2xl">
-        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50">
+      <DialogContent className="bg-zinc-950 sm:max-w-[800px] w-[95vw] p-0 overflow-hidden flex flex-col h-[90vh] border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50 shrink-0">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white flex items-center gap-3">
             <VideoIcon className="w-6 h-6 text-primary" />
             Catalog New Content
@@ -1075,8 +1075,8 @@ function AddSpeakerDialog() {
           Add Scholar
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800 shadow-2xl">
-        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50">
+      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col h-[90vh] w-[95vw] sm:max-w-[600px] p-0 border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50 shrink-0">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">New Scholar Profile</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
@@ -1148,8 +1148,8 @@ function EditSpeakerDialog({ speaker }: { speaker: any }) {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col max-h-[90vh] p-0 border-zinc-800 shadow-2xl">
-        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50">
+      <DialogContent className="bg-zinc-950 overflow-hidden flex flex-col h-[90vh] w-[95vw] sm:max-w-[600px] p-0 border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50 shrink-0">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">Edit Profile: {speaker.name}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
@@ -1216,8 +1216,8 @@ function EditChannelDialog({ channel }: { channel: any }) {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 flex flex-col p-0 overflow-hidden max-h-[90vh] border-zinc-800 shadow-2xl">
-        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50"><DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">Edit: {channel.title}</DialogTitle></DialogHeader>
+      <DialogContent className="bg-zinc-950 flex flex-col h-auto max-h-[90vh] w-[95vw] sm:max-w-[500px] p-0 overflow-hidden border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50 shrink-0"><DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">Edit: {channel.title}</DialogTitle></DialogHeader>
         <div className="flex-1 min-h-0 bg-zinc-950">
           <ScrollArea className="h-full">
             <div className="grid gap-8 p-8">
@@ -1270,8 +1270,8 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:text-primary transition-colors rounded-xl text-white"><Edit3 className="w-4 h-4" /></Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-950 sm:max-w-[800px] p-0 overflow-hidden flex flex-col max-h-[95vh] border-zinc-800 shadow-2xl">
-        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50">
+      <DialogContent className="bg-zinc-950 sm:max-w-[800px] w-[95vw] p-0 overflow-hidden flex flex-col h-[90vh] border-zinc-800 shadow-2xl">
+        <DialogHeader className="px-8 py-6 border-b border-zinc-800 bg-zinc-950/50 shrink-0">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white flex items-center gap-3">
             <Edit3 className="w-6 h-6 text-primary" />
             Edit Video Entry
