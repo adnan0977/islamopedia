@@ -69,7 +69,7 @@ export default function AdminPanel() {
 
   const isVerifiedAdmin = !!adminData;
 
-  // Real Data Queries for Dashboard - increased limits to show full catalog
+  // Real Data Queries for Dashboard
   const channelsQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'channels'), limit(1000)) : null), [db, isVerifiedAdmin]);
   const { data: channels } = useCollection(channelsQuery);
 
@@ -196,7 +196,7 @@ export default function AdminPanel() {
           </main>
         </SidebarInset>
 
-        {/* Global Sync Dialog for Quran Hub */}
+        {/* Global Sync Dialog */}
         <Dialog open={sync.isSyncing}>
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl p-10 outline-none">
             <DialogHeader className="flex flex-col items-center text-center space-y-6">

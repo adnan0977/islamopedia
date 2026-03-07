@@ -14,8 +14,8 @@ import {
   ThumbsDown, 
   MoreHorizontal,
   CheckCircle2,
-  Sparkles,
-  Smartphone
+  Smartphone,
+  Play
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ export default function WatchPage() {
   const channelRef = useMemoFirebase(() => (video?.channelId ? doc(db, 'channels', video.channelId) : null), [db, video?.channelId]);
   const { data: channel } = useDoc(channelRef);
 
-  // Smart suggestions pool (speaker/tag matching)
+  // Suggestions pool
   const allVideosQuery = useMemoFirebase(() => query(collection(db, 'videos'), limit(40)), [db]);
   const { data: allVideos } = useCollection(allVideosQuery);
 
@@ -56,13 +56,13 @@ export default function WatchPage() {
     return allVideos
       .filter(v => v.id !== video.id)
       .sort((a, b) => {
-        // Boost score if same speaker
+        // Same speaker
         const aHasSpeaker = a.speakerIds?.some((id: string) => video.speakerIds?.includes(id));
         const bHasSpeaker = b.speakerIds?.some((id: string) => video.speakerIds?.includes(id));
         if (aHasSpeaker && !bHasSpeaker) return -1;
         if (!aHasSpeaker && bHasSpeaker) return 1;
         
-        // Boost score if same channel
+        // Same channel
         if (a.channelId === video.channelId) return -1;
         if (b.channelId === video.channelId) return 1;
 
@@ -202,8 +202,8 @@ export default function WatchPage() {
         <div className="w-full lg:w-[400px] shrink-0 space-y-4 px-4 md:px-0">
           <div className="flex items-center justify-between pb-2 border-b border-border/50">
             <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-muted-foreground">
-              <Sparkles className="w-4 h-4 text-primary" />
-              Up Next
+              <Play className="w-4 h-4 text-primary fill-primary" />
+              Related Content
             </h2>
           </div>
 

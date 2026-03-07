@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { query, collection, where, doc } from 'firebase/firestore';
 import { 
   Settings, 
@@ -12,32 +12,15 @@ import {
   Languages, 
   Hash, 
   Loader2, 
-  Sparkles,
-  BookOpen,
   CheckCircle2,
-  Search,
-  FilterX,
   Globe,
-  Book,
-  Volume2,
-  Mic2,
-  Languages as TransliterationIcon,
-  Eye,
-  EyeOff
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { 
   Select, 
   SelectContent, 
@@ -212,9 +195,6 @@ export default function QuranSettingsPage() {
                         {e.name}
                       </SelectItem>
                     ))}
-                    {translationEditions.length === 0 && (
-                      <div className="p-4 text-center text-xs text-zinc-500">No translations found for this language</div>
-                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -377,7 +357,7 @@ export default function QuranSettingsPage() {
           <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl sticky top-32">
             <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
               <CardTitle className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                <Sparkles className="w-3 h-3" />
+                <Eye className="w-3 h-3" />
                 Live Preview
               </CardTitle>
             </CardHeader>

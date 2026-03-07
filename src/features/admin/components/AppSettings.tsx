@@ -25,8 +25,7 @@ import {
   Plus, 
   Code,
   CheckCircle2,
-  FileImage,
-  Sparkles
+  FileImage
 } from 'lucide-react';
 import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
 import { cn } from '@/lib/utils';
@@ -357,7 +356,7 @@ export function AppSettings() {
               ))}
             </div>
 
-            {/* Custom Design Management hub */}
+            {/* Custom Design Hub */}
             <Card className="bg-zinc-900/20 border-zinc-900 rounded-3xl p-8 border-dashed border-2">
               <div className="flex flex-col md:flex-row gap-10">
                 <div className="flex-1 space-y-6">

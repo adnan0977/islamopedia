@@ -4,14 +4,11 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Play, Loader2, Sparkles, ChevronRight, Users, TrendingUp, MapPin, Smartphone, BookOpen, Quote, Heart } from 'lucide-react';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Play, Loader2, ChevronRight, Users, TrendingUp, MapPin, Smartphone, Heart } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
-import { aiTodaysAyats, type AiTodaysAyatsOutput } from '@/ai/flows/ai-todays-ayats';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { AyatFrame } from '@/components/quran/AyatFrame';
 import {
   Carousel,
   CarouselContent,
@@ -23,8 +20,6 @@ import {
 export default function Home() {
   const db = useFirestore();
   const [prayerTimes, setPrayerTimes] = useState<any>(null);
-  const [reflection, setReflection] = useState<AiTodaysAyatsOutput | null>(null);
-  const [isReflectionLoading, setIsReflectionLoading] = useState(true);
   const [location] = useState({ city: 'London', country: 'UK' });
 
   // Firestore Queries
@@ -45,21 +40,13 @@ export default function Home() {
   const speakersQuery = useMemoFirebase(() => query(collection(db, 'speakers'), limit(12)), [db]);
   const { data: speakers } = useCollection(speakersQuery);
 
-  const reflectionBg = PlaceHolderImages.find(img => img.id === 'reflection-bg')?.imageUrl;
-
   useEffect(() => {
     async function fetchData() {
       try {
-        const [pt, ayats] = await Promise.all([
-          getPrayerTimes(location.city, location.country),
-          aiTodaysAyats({ currentDate: new Date().toISOString().split('T')[0] })
-        ]);
+        const pt = await getPrayerTimes(location.city, location.country);
         setPrayerTimes(pt.data);
-        setReflection(ayats);
       } catch (error) {
         console.error("Data fetching error:", error);
-      } finally {
-        setIsReflectionLoading(false);
       }
     }
     fetchData();
@@ -72,7 +59,7 @@ export default function Home() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles className="w-5 h-5 text-zinc-500" />
+              <Play className="w-4 h-4 text-zinc-500 fill-zinc-500" />
             </div>
             <h1 className="text-3xl font-headline font-bold text-zinc-100 tracking-tight">
               VlogNest
@@ -94,76 +81,6 @@ export default function Home() {
             ))}
           </div>
         )}
-      </section>
-
-      {/* Daily Reflection Section */}
-      <section className="relative overflow-hidden rounded-[2.5rem] border border-zinc-900 bg-zinc-950 shadow-2xl">
-        <div className="absolute inset-0 opacity-20">
-          {reflectionBg && (
-            <Image 
-              src={reflectionBg} 
-              alt="Reflection Background" 
-              fill 
-              className="object-cover grayscale"
-              data-ai-hint="mosque interior"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-zinc-950/80 to-transparent" />
-        </div>
-        
-        <div className="relative p-8 md:p-12 space-y-10">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-headline font-bold text-zinc-100 flex items-center gap-3">
-                <Quote className="w-6 h-6 text-zinc-500" />
-                Daily Reflection
-              </h2>
-              <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Today's Wisdom from the Quran</p>
-            </div>
-            <Link href="/quran" className="hidden md:flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-white transition-colors">
-              Open Quran <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {isReflectionLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-zinc-800" /></div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-8">
-                {reflection?.ayats.slice(0, 1).map((ayat, idx) => (
-                  <div key={idx} className="space-y-6 animate-in fade-in slide-in-from-left duration-700">
-                    <p className="text-right text-3xl md:text-4xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
-                      {ayat.text}
-                    </p>
-                    <div className="border-l-2 border-zinc-800 pl-6 space-y-2">
-                      <p className="text-sm md:text-base text-zinc-400 font-medium italic leading-relaxed">
-                        "{ayat.translation}"
-                      </p>
-                      <div className="flex items-center gap-2 pt-2">
-                         <AyatFrame number={ayat.ayatNumber} size="sm" />
-                         <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">Surah {ayat.surahNumber}:{ayat.ayatNumber}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="bg-zinc-900/40 backdrop-blur-md rounded-[2rem] p-8 border border-zinc-800/50 space-y-4">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                   <Sparkles className="w-3 h-3" /> Spiritual Insight
-                </div>
-                <p className="text-sm text-zinc-300 leading-relaxed font-medium">
-                  {reflection?.ayats[0]?.importanceReason}
-                </p>
-                <Link href="/quran">
-                  <Button variant="outline" className="w-full mt-4 rounded-xl border-zinc-800 text-zinc-400 font-bold hover:bg-zinc-900 h-11">
-                    Continue Reading
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
       </section>
 
       <div className="space-y-24">
@@ -206,10 +123,10 @@ export default function Home() {
           <div className="flex items-center justify-between px-2">
             <div className="space-y-1">
               <h2 className="text-2xl font-headline font-bold flex items-center gap-3 text-zinc-100">
-                <Sparkles className="w-6 h-6 text-zinc-500" />
-                Personalized For You
+                <Play className="w-6 h-6 text-zinc-500 fill-zinc-500" />
+                Recommended For You
               </h2>
-              <p className="text-xs text-zinc-500 font-medium">Organized based on your viewing patterns</p>
+              <p className="text-xs text-zinc-500 font-medium">Curated based on trending spiritual content</p>
             </div>
           </div>
           

@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, PlusSquare, BookOpen, User, Sparkles, ShieldCheck, Mic2, ChevronDown } from 'lucide-react';
+import { Home, PlusSquare, BookOpen, User, Play, ShieldCheck, Mic2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -65,7 +65,7 @@ export function Navbar() {
                {logoUrl ? (
                  <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
                ) : (
-                 <Sparkles className="text-zinc-500 group-hover:text-zinc-300 w-6 h-6 transition-colors" />
+                 <Play className="text-zinc-500 group-hover:text-zinc-300 w-6 h-6 transition-colors fill-zinc-500 group-hover:fill-zinc-300" />
                )}
             </div>
             <div className="flex flex-col justify-center">
