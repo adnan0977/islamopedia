@@ -97,10 +97,11 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "language": { "type": "string", "description": "The full name of the language (e.g. English)." },
-        "languageCode": { "type": "string", "description": "The ISO code of the language (e.g. en)." },
+        "language": { "type": "string" },
+        "languageCode": { "type": "string" },
         "isDefault": { "type": "boolean" },
-        "isActive": { "type": "boolean" }
+        "isActive": { "type": "boolean" },
+        "dataSync": { "type": "string", "enum": ["yes", "no"] }
       },
       "required": ["id", "name", "language", "languageCode"]
     },

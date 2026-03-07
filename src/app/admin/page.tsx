@@ -946,7 +946,8 @@ function TranslationManagement({ editions }: { editions: any[] }) {
         language: languageNameMap[edition.language] || edition.language.toUpperCase(),
         languageCode: edition.language,
         isActive: true,
-        isDefault: editions.length === 0
+        isDefault: editions.length === 0,
+        dataSync: 'no'
       }, { merge: true });
       toast({ title: "Edition Activated" });
     }
@@ -1043,6 +1044,7 @@ function TranslationManagement({ editions }: { editions: any[] }) {
               <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 text-zinc-500 pl-8">Edition Name</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Language</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Identifier</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Synced</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500 pr-8">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -1054,6 +1056,13 @@ function TranslationManagement({ editions }: { editions: any[] }) {
                   {t.language}
                 </TableCell>
                 <TableCell className="text-zinc-500 font-mono text-xs">{t.id}</TableCell>
+                <TableCell>
+                  {t.dataSync === 'yes' ? (
+                    <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[9px] font-black uppercase tracking-widest">Yes</Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-zinc-800 text-zinc-600 rounded-lg text-[9px] font-black uppercase tracking-widest">No</Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-right pr-8">
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteEdition(t.id)} className="text-destructive hover:bg-destructive/10 rounded-xl">
                     <Trash2 className="w-4 h-4" />
@@ -1171,7 +1180,7 @@ function QuranDatabaseSync({
         setProgress(Math.round(((i + chunk.length) / pages.length) * 100));
       }
 
-      // Also ensure it's in the quran_editions table
+      // Mark edition as synced
       if (isArabicBase) {
         setDocumentNonBlocking(doc(db, 'quran_editions', 'quran-uthmani'), {
           id: 'quran-uthmani',
@@ -1179,8 +1188,13 @@ function QuranDatabaseSync({
           language: 'Arabic',
           languageCode: 'ar',
           isActive: true,
-          isDefault: false
+          isDefault: false,
+          dataSync: 'yes'
         }, { merge: true });
+      } else {
+        updateDocumentNonBlocking(doc(db, 'quran_editions', targetId), {
+          dataSync: 'yes'
+        });
       }
 
       setSyncStatus('success');
@@ -1194,36 +1208,55 @@ function QuranDatabaseSync({
     }
   };
 
-  const isArabicSynced = editions.some(e => e.id === 'quran-uthmani');
+  const isArabicSynced = editions.find(e => e.id === 'quran-uthmani')?.dataSync === 'yes';
+  const currentEditionData = editions.find(e => e.id === selectedEdition);
+  const isSelectedSynced = currentEditionData?.dataSync === 'yes';
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
         <div className="flex flex-col md:flex-row gap-6 items-end">
           <div className="flex-1 space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Edition</Label>
+            <div className="flex justify-between">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Edition</Label>
+              {isSelectedSynced && (
+                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1">
+                  <CheckCircle className="w-2.5 h-2.5" /> Already Synced
+                </span>
+              )}
+            </div>
             <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={syncing}>
               <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                 <SelectValue placeholder="Select edition to sync..." />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                 {editions.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.language})</SelectItem>
+                  <SelectItem key={t.id} value={t.id} disabled={t.dataSync === 'yes'}>
+                    <div className="flex items-center gap-2">
+                      {t.name} ({t.language})
+                      {t.dataSync === 'yes' && <CheckCircle className="w-3 h-3 text-emerald-500 ml-1" />}
+                    </div>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <Button 
-            className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold min-w-[160px]"
+            className={cn(
+              "rounded-xl h-12 px-8 font-bold min-w-[160px] transition-all",
+              isSelectedSynced ? "bg-zinc-900 text-zinc-500" : "bg-white text-black hover:bg-zinc-200"
+            )}
             onClick={() => handleSync()}
-            disabled={syncing || !selectedEdition}
+            disabled={syncing || !selectedEdition || isSelectedSynced}
           >
             {syncing ? (
               <Loader2 className="animate-spin w-4 h-4 mr-2" />
+            ) : isSelectedSynced ? (
+              <CheckCircle className="w-4 h-4 mr-2" />
             ) : (
               <Download className="w-4 h-4 mr-2" />
             )}
-            {syncing ? 'Syncing...' : 'Start Data Sync'}
+            {syncing ? 'Syncing...' : isSelectedSynced ? 'Synced' : 'Start Data Sync'}
           </Button>
         </div>
 
@@ -1234,7 +1267,10 @@ function QuranDatabaseSync({
           </div>
           <Button 
             variant="outline" 
-            className="rounded-xl border-zinc-800 font-bold hover:bg-zinc-900 text-zinc-400"
+            className={cn(
+              "rounded-xl border-zinc-800 font-bold hover:bg-zinc-900",
+              isArabicSynced ? "text-emerald-500 border-emerald-500/20" : "text-zinc-400"
+            )}
             disabled={syncing || isArabicSynced}
             onClick={() => handleSync('quran-uthmani')}
           >
