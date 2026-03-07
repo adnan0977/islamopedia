@@ -382,12 +382,12 @@ export function QuranReader() {
           <ScrollArea className="flex-1">
             <div className="p-8 md:p-20">
               {viewMode === 'ayat' ? (
-                <div className="space-y-24">
+                <div className="space-y-12">
                   {groupedAyats.map(group => (
-                    <div key={group.surah.number} className="space-y-24">
+                    <div key={group.surah.number} className="space-y-12">
                       {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                       {group.ayats.map((a: any) => (
-                        <div key={a.number} className="space-y-12 pb-12">
+                        <div key={a.number} className="space-y-12">
                           <p className="text-right text-4xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
                             {a.text}
                             <span className="inline-block ms-6 align-middle select-none">
@@ -407,6 +407,10 @@ export function QuranReader() {
                               </p>
                             </div>
                           )}
+                          {/* Horizontal separator line after each verse */}
+                          <div className="pt-12">
+                            <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-900 to-transparent opacity-50" />
+                          </div>
                         </div>
                       ))}
                     </div>
