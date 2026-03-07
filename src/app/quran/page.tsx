@@ -156,20 +156,6 @@ export default function QuranPage() {
             </Select>
           </div>
 
-          {/* View Mode Switcher (Page vs Ayat) */}
-          <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as ViewMode)} className="flex-1 md:flex-none">
-            <TabsList className="bg-zinc-950 border border-zinc-900 h-11 p-1 rounded-xl w-full md:w-auto">
-              <TabsTrigger value="ayat" className="flex-1 md:flex-none rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
-                <LayoutList className="w-4 h-4" />
-                Ayat
-              </TabsTrigger>
-              <TabsTrigger value="page" className="flex-1 md:flex-none rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
-                <BookOpen className="w-4 h-4" />
-                Page
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
           {/* Search Trigger/Input */}
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
@@ -241,7 +227,7 @@ export default function QuranPage() {
             ) : (
               <>
                 <CardHeader className="border-b border-zinc-900 bg-zinc-950/50 p-4 md:p-6 shrink-0">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
                         <CardTitle className="text-xl md:text-2xl text-zinc-100">{selectedSurah.info.englishName}</CardTitle>
@@ -254,8 +240,22 @@ export default function QuranPage() {
                       </div>
                       <CardDescription className="text-xs md:text-sm text-zinc-500">{selectedSurah.info.englishNameTranslation}</CardDescription>
                     </div>
-                    <div className="text-right">
+                    <div className="flex flex-col items-end gap-3">
                       <p className="text-2xl md:text-3xl font-arabic text-zinc-100">{selectedSurah.info.name}</p>
+                      
+                      {/* View Mode Switcher Moved Inside Ayat Page */}
+                      <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as ViewMode)} className="mt-2">
+                        <TabsList className="bg-zinc-900 border border-zinc-800 h-9 p-1 rounded-lg">
+                          <TabsTrigger value="ayat" className="h-7 rounded-md data-[state=active]:bg-zinc-800 text-[10px] font-bold gap-1.5 px-3">
+                            <LayoutList className="w-3.5 h-3.5" />
+                            Ayat
+                          </TabsTrigger>
+                          <TabsTrigger value="page" className="h-7 rounded-md data-[state=active]:bg-zinc-800 text-[10px] font-bold gap-1.5 px-3">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            Page
+                          </TabsTrigger>
+                        </TabsList>
+                      </Tabs>
                     </div>
                   </div>
                 </CardHeader>
