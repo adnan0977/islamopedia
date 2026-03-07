@@ -32,7 +32,10 @@ import {
   AlertCircle,
   BookOpen,
   Eye,
-  ArrowRight
+  ArrowRight,
+  Settings,
+  Image as ImageIcon,
+  Check
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -61,6 +64,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { 
   Select, 
   SelectContent, 
@@ -88,7 +92,7 @@ import { getAvailableTranslations, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 
-type AdminTab = 'dashboard' | 'channels' | 'videos' | 'scholars' | 'quran-tools';
+type AdminTab = 'dashboard' | 'channels' | 'videos' | 'scholars' | 'quran-tools' | 'settings';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
@@ -100,7 +104,7 @@ export default function AdminPanel() {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Global sync state to prevent tab switching from hiding the loader
+  // Global sync state
   const [globalSyncing, setGlobalSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'fetching' | 'saving' | 'success' | 'error'>('idle');
@@ -171,7 +175,7 @@ export default function AdminPanel() {
         <div className="space-y-2">
           <h1 className="text-3xl font-headline font-bold text-white">Access Denied</h1>
           <p className="text-zinc-500 text-sm leading-relaxed">
-            Administrative access required. Copy your UID and add it to the <code className="bg-zinc-900 px-1 rounded text-white">roles_admin</code> collection in Firestore.
+            Administrative access required. Copy your UID and add it to the <code className="bg-zinc-900 px-1 rounded text-white">roles_admin</code> collection.
           </p>
         </div>
 
@@ -219,6 +223,7 @@ export default function AdminPanel() {
                     { id: 'videos', label: 'Video Catalog', icon: VideoIcon },
                     { id: 'scholars', label: 'Scholars', icon: Mic2 },
                     { id: 'quran-tools', label: 'Quran Tools', icon: Book },
+                    { id: 'settings', label: 'App Settings', icon: Settings },
                   ].map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton 
@@ -261,6 +266,7 @@ export default function AdminPanel() {
                   {activeTab === 'videos' && 'Video Catalog'}
                   {activeTab === 'scholars' && 'Scholar Management'}
                   {activeTab === 'quran-tools' && 'Quran Tools Hub'}
+                  {activeTab === 'settings' && 'Platform Settings'}
                 </h2>
              </div>
 
@@ -317,6 +323,7 @@ export default function AdminPanel() {
                 setSyncStatus={setSyncStatus}
               />
             )}
+            {activeTab === 'settings' && <AppSettingsView />}
           </main>
         </SidebarInset>
 
@@ -329,7 +336,7 @@ export default function AdminPanel() {
                <div className="space-y-2">
                  <DialogTitle className="text-xl font-bold">Synchronizing Database</DialogTitle>
                  <DialogDescription className="text-zinc-500 text-sm leading-relaxed">
-                   Pulling thousands of verses from AlQuran Cloud and committing them to your Firestore storage. Please do not close this window.
+                   Persisting spiritual content to your database. Please do not close this window.
                  </DialogDescription>
                </div>
             </DialogHeader>
@@ -470,6 +477,136 @@ function DashboardOverview({ channels, videos, speakers, editions }: { channels:
   );
 }
 
+function AppSettingsView() {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
+  const { data: settings, isLoading } = useDoc(settingsRef);
+
+  const [logoUrl, setLogoUrl] = useState('');
+  const [navVisibility, setNavVisibility] = useState({
+    home: true,
+    upload: true,
+    quran: true,
+    speakers: true
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setLogoUrl(settings.logoUrl || '');
+      if (settings.navigationVisibility) {
+        setNavVisibility(settings.navigationVisibility);
+      }
+    }
+  }, [settings]);
+
+  const handleSaveSettings = () => {
+    setDocumentNonBlocking(settingsRef, {
+      logoUrl,
+      navigationVisibility: navVisibility,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    
+    toast({
+      title: "Settings Saved",
+      description: "Platform configuration has been updated successfully.",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-20">
+        <Loader2 className="animate-spin text-zinc-500 w-10 h-10" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
+      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
+        <CardHeader className="border-b border-zinc-900 p-8 bg-zinc-900/20">
+          <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+            <ImageIcon className="w-5 h-5 text-zinc-500" />
+            Branding & Assets
+          </CardTitle>
+          <CardDescription className="text-zinc-500">Manage the visual identity of your application.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-8 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-4">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Web App Logo URL</Label>
+              <div className="relative">
+                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                <Input 
+                  placeholder="https://..." 
+                  className="pl-10 bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white" 
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                />
+              </div>
+              <p className="text-[10px] text-zinc-600 italic">Enter the URL of your hosted logo image (PNG/SVG recommended).</p>
+            </div>
+            <div className="space-y-4">
+               <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Logo Preview</Label>
+               <div className="h-32 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center overflow-hidden">
+                 {logoUrl ? (
+                   <img src={logoUrl} alt="Logo Preview" className="max-h-20 object-contain p-4" onError={() => setLogoUrl('')} />
+                 ) : (
+                   <div className="text-zinc-700 text-xs flex flex-col items-center gap-2">
+                     <ImageIcon className="w-8 h-8 opacity-20" />
+                     <span>No logo specified</span>
+                   </div>
+                 )}
+               </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
+        <CardHeader className="border-b border-zinc-900 p-8 bg-zinc-900/20">
+          <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+            <LayoutDashboard className="w-5 h-5 text-zinc-500" />
+            Navigation Management
+          </CardTitle>
+          <CardDescription className="text-zinc-500">Enable or disable menus on the live site's header.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { id: 'home', label: 'Home Page' },
+              { id: 'upload', label: 'Upload Content' },
+              { id: 'quran', label: 'Quran Reader' },
+              { id: 'speakers', label: 'Scholar Directory' }
+            ].map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-6 bg-zinc-900/50 rounded-2xl border border-zinc-900 hover:border-zinc-800 transition-colors">
+                <div className="space-y-1">
+                  <span className="text-sm font-bold text-white">{item.label}</span>
+                  <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Visibility</p>
+                </div>
+                <Switch 
+                  checked={navVisibility[item.id as keyof typeof navVisibility]}
+                  onCheckedChange={(val) => setNavVisibility({...navVisibility, [item.id]: val})}
+                  className="data-[state=checked]:bg-white"
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+        <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex justify-end">
+          <Button 
+            className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold h-12 px-10 transition-transform active:scale-95 flex items-center gap-2"
+            onClick={handleSaveSettings}
+          >
+            <Check className="w-4 h-4" />
+            Save Configuration
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
 function ChannelManagement({ channels }: { channels: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
@@ -492,9 +629,9 @@ function ChannelManagement({ channels }: { channels: any[] }) {
       };
       setDocumentNonBlocking(doc(db, 'channels', channelIdInput), newChannel, { merge: true });
       setChannelIdInput('');
-      toast({ title: "Channel Linked", description: "The YouTube channel has been added to your studio." });
+      toast({ title: "Channel Linked" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to link channel." });
+      toast({ variant: "destructive", title: "Error" });
     } finally {
       setLoading(false);
     }
@@ -841,50 +978,12 @@ function QuranToolsView({
 }
 
 const languageNameMap: Record<string, string> = {
-  ar: 'Arabic',
-  en: 'English',
-  ur: 'Urdu',
-  fr: 'French',
-  es: 'Spanish',
-  de: 'German',
-  id: 'Indonesian',
-  tr: 'Turkish',
-  zh: 'Chinese',
-  ru: 'Russian',
-  fa: 'Persian',
-  bn: 'Bengali',
-  hi: 'Hindi',
-  ml: 'Malayalam',
-  ta: 'Tamil',
-  te: 'Telugu',
-  kn: 'Kannada',
-  mr: 'Marathi',
-  gu: 'Gujarati',
-  pa: 'Punjabi',
-  sw: 'Swahili',
-  ha: 'Hausa',
-  yo: 'Yoruba',
-  am: 'Amharic',
-  so: 'Somali',
-  sq: 'Albanian',
-  bs: 'Bosnian',
-  nl: 'Dutch',
-  it: 'Italian',
-  pt: 'Portuguese',
-  th: 'Thai',
-  vi: 'Vietnamese',
-  ko: 'Korean',
-  ja: 'Japanese',
-  az: 'Azerbaijani',
-  ku: 'Kurdish',
-  ps: 'Pashto',
-  sd: 'Sindhi',
-  tg: 'Tajik',
-  uz: 'Uzbek',
-  tt: 'Tatar',
-  kk: 'Kazakh',
-  ky: 'Kyrgyz',
-  ug: 'Uyghur',
+  ar: 'Arabic', en: 'English', ur: 'Urdu', fr: 'French', es: 'Spanish', de: 'German', id: 'Indonesian', tr: 'Turkish',
+  zh: 'Chinese', ru: 'Russian', fa: 'Persian', bn: 'Bengali', hi: 'Hindi', ml: 'Malayalam', ta: 'Tamil', te: 'Telugu',
+  kn: 'Kannada', mr: 'Marathi', gu: 'Gujarati', pa: 'Punjabi', sw: 'Swahili', ha: 'Hausa', yo: 'Yoruba', am: 'Amharic',
+  so: 'Somali', sq: 'Albanian', bs: 'Bosnian', nl: 'Dutch', it: 'Italian', pt: 'Portuguese', th: 'Thai', vi: 'Vietnamese',
+  ko: 'Korean', ja: 'Japanese', az: 'Azerbaijani', ku: 'Kurdish', ps: 'Pashto', sd: 'Sindhi', tg: 'Tajik', uz: 'Uzbek',
+  tt: 'Tatar', kk: 'Kazakh', ky: 'Kyrgyz', ug: 'Uyghur',
 };
 
 function EditionManagement({ editions }: { editions: any[] }) {
@@ -902,7 +1001,7 @@ function EditionManagement({ editions }: { editions: any[] }) {
       const data = await getAvailableTranslations();
       setAvailable(data.data || []);
     } catch (e) {
-      toast({ variant: "destructive", title: "API Error", description: "Could not fetch translation editions." });
+      toast({ variant: "destructive", title: "API Error" });
     } finally {
       setLoading(false);
     }
@@ -925,18 +1024,13 @@ function EditionManagement({ editions }: { editions: any[] }) {
   }, [available]);
 
   const handleDeleteEdition = async (id: string) => {
-    // Delete all associated surah data in Firestore first
     const q = query(collection(db, 'quran'), where('editionId', '==', id));
     const snapshots = await getDocs(q);
     const batch = writeBatch(db);
-    snapshots.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
+    snapshots.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
-
-    // Remove the edition from editions table
     deleteDocumentNonBlocking(doc(db, 'quran_editions', id));
-    toast({ title: "Edition & Content Deleted" });
+    toast({ title: "Edition Deleted" });
   };
 
   const toggleEdition = (edition: any) => {
@@ -958,8 +1052,7 @@ function EditionManagement({ editions }: { editions: any[] }) {
   };
 
   const filtered = available.filter(a => {
-    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
-                         a.language.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase());
     const matchesLanguage = selectedLanguage === 'all' || a.language === selectedLanguage;
     return matchesSearch && matchesLanguage;
   });
@@ -969,12 +1062,11 @@ function EditionManagement({ editions }: { editions: any[] }) {
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
           <h3 className="font-bold text-lg text-white">Edition Directory</h3>
-          <p className="text-xs text-zinc-500 font-medium">Control which translation editions are available on the Quran page.</p>
+          <p className="text-xs text-zinc-500 font-medium">Control translation editions available on the Quran page.</p>
         </div>
         <Dialog open={openAdd} onOpenChange={setOpenAdd}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl h-11 px-6 font-bold bg-white text-black hover:bg-zinc-200 flex items-center gap-2">
-              <Plus className="w-4 h-4" />
+            <Button className="rounded-xl h-11 px-6 font-bold bg-white text-black hover:bg-zinc-200">
               Activate New Edition
             </Button>
           </DialogTrigger>
@@ -1004,39 +1096,24 @@ function EditionManagement({ editions }: { editions: any[] }) {
                 </Select>
               </div>
             </DialogHeader>
-            <div className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full">
-                <div className="p-6">
-                  {loading ? (
-                    <div className="flex justify-center p-12"><Loader2 className="animate-spin text-zinc-500" /></div>
-                  ) : (
-                    <div className="grid gap-2">
-                      {filtered.map((item) => {
-                        const isActivated = editions.some(t => t.id === item.identifier);
-                        return (
-                          <div key={item.identifier} className="flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors">
-                            <div className="flex flex-col">
-                              <span className="text-white font-bold text-sm">{item.name}</span>
-                              <span className="text-zinc-500 text-[10px] uppercase font-black tracking-widest">
-                                {languageNameMap[item.language] || item.language.toUpperCase()} • {item.identifier}
-                              </span>
-                            </div>
-                            <Button 
-                              size="sm" 
-                              variant={isActivated ? "destructive" : "secondary"}
-                              className="rounded-xl font-bold min-w-[100px]"
-                              onClick={() => toggleEdition(item)}
-                            >
-                              {isActivated ? <Trash2 className="w-4 h-4" /> : 'Activate'}
-                            </Button>
-                          </div>
-                        )
-                      })}
+            <ScrollArea className="flex-1 p-6">
+              <div className="grid gap-2">
+                {loading ? <Loader2 className="animate-spin text-zinc-500 mx-auto" /> : filtered.map((item) => {
+                  const isActivated = editions.some(t => t.id === item.identifier);
+                  return (
+                    <div key={item.identifier} className="flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800">
+                      <div className="flex flex-col">
+                        <span className="text-white font-bold text-sm">{item.name}</span>
+                        <span className="text-zinc-500 text-[10px] uppercase font-black tracking-widest">{languageNameMap[item.language] || item.language}</span>
+                      </div>
+                      <Button size="sm" variant={isActivated ? "destructive" : "secondary"} className="rounded-xl font-bold min-w-[100px]" onClick={() => toggleEdition(item)}>
+                        {isActivated ? <Trash2 className="w-4 h-4" /> : 'Activate'}
+                      </Button>
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </div>
+                  )
+                })}
+              </div>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>
@@ -1056,16 +1133,10 @@ function EditionManagement({ editions }: { editions: any[] }) {
             {editions.map((t) => (
               <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-20">
                 <TableCell className="font-bold text-white pl-8">{t.name}</TableCell>
-                <TableCell className="text-zinc-500 font-medium">
-                  {t.language}
-                </TableCell>
+                <TableCell className="text-zinc-500 font-medium">{t.language}</TableCell>
                 <TableCell className="text-zinc-500 font-mono text-xs">{t.id}</TableCell>
                 <TableCell>
-                  {t.dataSync === 'yes' ? (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[9px] font-black uppercase tracking-widest">Yes</Badge>
-                  ) : (
-                    <Badge variant="outline" className="border-zinc-800 text-zinc-600 rounded-lg text-[9px] font-black uppercase tracking-widest">No</Badge>
-                  )}
+                  {t.dataSync === 'yes' ? <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[9px] font-black uppercase">Yes</Badge> : <Badge variant="outline" className="border-zinc-800 text-zinc-600 rounded-lg text-[9px] font-black uppercase">No</Badge>}
                 </TableCell>
                 <TableCell className="text-right pr-8">
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteEdition(t.id)} className="text-destructive hover:bg-destructive/10 rounded-xl">
@@ -1081,31 +1152,13 @@ function EditionManagement({ editions }: { editions: any[] }) {
   );
 }
 
-interface QuranDatabaseSyncProps {
-  editions: any[];
-  syncing: boolean;
-  setSyncing: (val: boolean) => void;
-  progress: number;
-  setProgress: (val: number) => void;
-  syncStatus: 'idle' | 'fetching' | 'saving' | 'success' | 'error';
-  setSyncStatus: (val: 'idle' | 'fetching' | 'saving' | 'success' | 'error') => void;
-}
-
-function QuranDatabaseSync({ 
-  editions, 
-  syncing, 
-  setSyncing, 
-  progress, 
-  setProgress, 
-  syncStatus, 
-  setSyncStatus 
-}: QuranDatabaseSyncProps) {
+function QuranDatabaseSync({ editions, syncing, setSyncing, progress, setProgress, syncStatus, setSyncStatus }: QuranToolsViewProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [selectedEdition, setSelectedEdition] = useState('');
 
-  const handleSync = async (editionIdToSync?: string) => {
-    const targetId = editionIdToSync || selectedEdition;
+  const handleSync = async (id?: string) => {
+    const targetId = id || selectedEdition;
     if (!targetId) return;
 
     setSyncing(true);
@@ -1113,59 +1166,37 @@ function QuranDatabaseSync({
     setProgress(0);
     
     try {
-      const isArabicBase = targetId === 'quran-uthmani';
-      
-      let arabicRes, transRes;
-      
-      if (isArabicBase) {
-        arabicRes = await getFullQuran('quran-uthmani');
-        transRes = arabicRes;
-      } else {
-        const [a, t] = await Promise.all([
-          getFullQuran('quran-uthmani'),
-          getFullQuran(targetId)
-        ]);
-        arabicRes = a;
-        transRes = t;
-      }
+      const isArabic = targetId === 'quran-uthmani';
+      const arabicPayload = await getFullQuran('quran-uthmani');
+      const transPayload = isArabic ? arabicPayload : await getFullQuran(targetId);
 
       setSyncStatus('saving');
-      
-      const arabicSurahs = arabicRes.data.surahs;
-      const transSurahs = transRes.data.surahs;
+      const arabicSurahs = arabicPayload.data.surahs;
+      const transSurahs = transPayload.data.surahs;
 
       const batchSize = 10;
       for (let i = 0; i < arabicSurahs.length; i += batchSize) {
         const chunk = arabicSurahs.slice(i, i + batchSize);
         const batch = writeBatch(db);
         
-        chunk.forEach((surah: any, idxWithinChunk: number) => {
-          const sIdx = i + idxWithinChunk;
-          const surahNumber = surah.number;
-          const transSurah = transSurahs[sIdx];
-          const surahId = `${targetId}_surah_${surahNumber}`;
+        chunk.forEach((s: any, idx: number) => {
+          const sNum = s.number;
+          const tSurah = transSurahs[i + idx];
+          const surahId = `${targetId}_surah_${sNum}`;
           
-          const ayats = surah.ayahs.map((ayah: any, aIdx: number) => ({
-            number: ayah.number,
-            numberInSurah: ayah.numberInSurah,
-            text: ayah.text,
-            translationText: isArabicBase ? null : transSurah.ayahs[aIdx].text,
-            page: ayah.page,
-            juz: ayah.juz
+          const ayats = s.ayahs.map((a: any, aIdx: number) => ({
+            number: a.number,
+            numberInSurah: a.numberInSurah,
+            text: a.text,
+            translationText: isArabic ? null : tSurah.ayahs[aIdx].text,
+            page: a.page,
+            juz: a.juz
           }));
 
           const uniquePages = Array.from(new Set(ayats.map((a: any) => a.page)));
 
-          const surahRef = doc(db, 'quran', surahId);
-          batch.set(surahRef, {
-            id: surahId,
-            editionId: targetId,
-            surahNumber: surahNumber,
-            name: surah.name,
-            englishName: surah.englishName,
-            ayats: ayats,
-            pages: uniquePages,
-            updatedAt: new Date().toISOString()
+          batch.set(doc(db, 'quran', surahId), {
+            id: surahId, editionId: targetId, surahNumber: sNum, name: s.name, englishName: s.englishName, ayats, pages: uniquePages, updatedAt: new Date().toISOString()
           }, { merge: true });
         });
 
@@ -1173,50 +1204,31 @@ function QuranDatabaseSync({
         setProgress(Math.round(((i + chunk.length) / arabicSurahs.length) * 100));
       }
 
-      if (isArabicBase) {
-        setDocumentNonBlocking(doc(db, 'quran_editions', 'quran-uthmani'), {
-          id: 'quran-uthmani',
-          name: 'Standard Arabic text',
-          language: 'Arabic',
-          languageCode: 'ar',
-          isActive: true,
-          isDefault: false,
-          dataSync: 'yes'
-        }, { merge: true });
+      const edRef = doc(db, 'quran_editions', targetId);
+      if (isArabic) {
+        setDocumentNonBlocking(edRef, { id: 'quran-uthmani', name: 'Standard Arabic text', language: 'Arabic', languageCode: 'ar', isActive: true, dataSync: 'yes' }, { merge: true });
       } else {
-        updateDocumentNonBlocking(doc(db, 'quran_editions', targetId), {
-          dataSync: 'yes'
-        });
+        updateDocumentNonBlocking(edRef, { dataSync: 'yes' });
       }
 
       setSyncStatus('success');
-      toast({ title: "Database Synchronized", description: `Successfully synced ${arabicSurahs.length} surahs of ${targetId} to your database.` });
-    } catch (error) {
-      console.error(error);
+      toast({ title: "Database Synced" });
+    } catch (e) {
       setSyncStatus('error');
-      toast({ variant: "destructive", title: "Sync Failed", description: "Could not synchronize edition to database." });
+      toast({ variant: "destructive", title: "Sync Failed" });
     } finally {
       setSyncing(false);
     }
   };
 
-  const isArabicSynced = editions.find(e => e.id === 'quran-uthmani')?.dataSync === 'yes';
-  const currentEditionData = editions.find(e => e.id === selectedEdition);
-  const isSelectedSynced = currentEditionData?.dataSync === 'yes';
+  const isSelectedSynced = editions.find(e => e.id === selectedEdition)?.dataSync === 'yes';
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
         <div className="flex flex-col md:flex-row gap-6 items-end">
           <div className="flex-1 space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Edition</Label>
-              {isSelectedSynced && (
-                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1">
-                  <CheckCircle className="w-2.5 h-2.5" /> Already Synced
-                </span>
-              )}
-            </div>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Edition</Label>
             <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={syncing}>
               <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                 <SelectValue placeholder="Select edition to sync..." />
@@ -1224,50 +1236,15 @@ function QuranDatabaseSync({
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                 {editions.map((t) => (
                   <SelectItem key={t.id} value={t.id} disabled={t.dataSync === 'yes'}>
-                    <div className="flex items-center gap-2">
-                      {t.name} ({t.language})
-                      {t.dataSync === 'yes' && <CheckCircle className="w-3 h-3 text-emerald-500 ml-1" />}
-                    </div>
+                    {t.name} ({t.language}) {t.dataSync === 'yes' && '✓'}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <Button 
-            className={cn(
-              "rounded-xl h-12 px-8 font-bold min-w-[160px] transition-all",
-              isSelectedSynced ? "bg-zinc-900 text-zinc-500" : "bg-white text-black hover:bg-zinc-200"
-            )}
-            onClick={() => handleSync()}
-            disabled={syncing || !selectedEdition || isSelectedSynced}
-          >
-            {syncing ? (
-              <Loader2 className="animate-spin w-4 h-4 mr-2" />
-            ) : isSelectedSynced ? (
-              <CheckCircle className="w-4 h-4 mr-2" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            {syncing ? 'Syncing...' : isSelectedSynced ? 'Synced' : 'Start Data Sync'}
-          </Button>
-        </div>
-
-        <div className="mt-8 border-t border-zinc-900 pt-8 flex items-center justify-between">
-          <div className="space-y-1">
-            <h4 className="text-sm font-bold text-white">Standard Arabic Base</h4>
-            <p className="text-xs text-zinc-500">Fetch and store the master Uthmani text in your database chapter-by-chapter.</p>
-          </div>
-          <Button 
-            variant="outline" 
-            className={cn(
-              "rounded-xl border-zinc-800 font-bold hover:bg-zinc-900",
-              isArabicSynced ? "text-emerald-500 border-emerald-500/20" : "text-zinc-400"
-            )}
-            disabled={syncing || isArabicSynced}
-            onClick={() => handleSync('quran-uthmani')}
-          >
-            {isArabicSynced ? <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" /> : <Download className="w-4 h-4 mr-2" />}
-            {isArabicSynced ? 'Base Synced' : 'Sync Standard Arabic Base'}
+          <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold" onClick={() => handleSync()} disabled={syncing || !selectedEdition || isSelectedSynced}>
+            {syncing ? <Loader2 className="animate-spin mr-2" /> : <Download className="mr-2" />}
+            Start Data Sync
           </Button>
         </div>
       </Card>
@@ -1285,8 +1262,7 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
 
   useEffect(() => {
     if (!selectedEdition && editions.length > 0) {
-      const hasArabic = editions.find(e => e.id === 'quran-uthmani');
-      setSelectedEdition(hasArabic ? 'quran-uthmani' : editions[0].id);
+      setSelectedEdition(editions[0].id);
     }
   }, [editions, selectedEdition]);
 
@@ -1295,136 +1271,57 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
     setIsLoading(true);
     try {
       if (filterMode === 'surah') {
-        const surahId = `${selectedEdition}_surah_${currentNumber}`;
-        const docRef = doc(db, 'quran', surahId);
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
-          setSurahData([snap.data()]);
-        } else {
-          setSurahData([]);
-        }
+        const snap = await getDoc(doc(db, 'quran', `${selectedEdition}_surah_${currentNumber}`));
+        setSurahData(snap.exists() ? [snap.data()] : []);
       } else {
-        // Page mode - Find all surahs that cover this page
-        const q = query(
-          collection(db, 'quran'), 
-          where('editionId', '==', selectedEdition), 
-          where('pages', 'array-contains', currentNumber)
-        );
+        const q = query(collection(db, 'quran'), where('editionId', '==', selectedEdition), where('pages', 'array-contains', currentNumber));
         const snap = await getDocs(q);
-        const results = snap.docs.map(d => d.data());
-        // Sort to maintain order if page spans surahs
-        setSurahData(results.sort((a, b) => a.surahNumber - b.surahNumber));
+        setSurahData(snap.docs.map(d => d.data()).sort((a, b) => a.surahNumber - b.surahNumber));
       }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (e) { console.error(e); } finally { setIsLoading(false); }
   };
 
-  useEffect(() => {
-    fetchFromDB();
-  }, [selectedEdition, currentNumber, filterMode]);
+  useEffect(() => { fetchFromDB(); }, [selectedEdition, currentNumber, filterMode]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
           <h3 className="font-bold text-lg text-white">Full Quran Viewer</h3>
-          <p className="text-xs text-zinc-500 font-medium">Inspect chapter-wise synchronized data from your database.</p>
+          <p className="text-xs text-zinc-500">Inspect synchronized data from Firestore.</p>
         </div>
-        <div className="flex flex-col md:flex-row gap-4 w-full md:auto">
+        <div className="flex gap-4 w-full md:auto">
           <div className="w-full md:w-64">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Edition</Label>
-            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white rounded-xl">
-                <SelectValue placeholder="Select edition..." />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                {editions.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-[10px] uppercase font-black tracking-widest text-zinc-500 mb-2 block">Edition</Label>
+            <Select value={selectedEdition} onValueChange={setSelectedEdition}><SelectTrigger className="bg-zinc-900 text-white rounded-xl"><SelectValue /></SelectTrigger><SelectContent className="bg-zinc-950 border-zinc-800 text-white">{editions.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>
           </div>
           <div className="w-full md:w-32">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Filter Mode</Label>
-            <Select value={filterMode} onValueChange={(val: any) => { setFilterMode(val); setCurrentNumber(1); }}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                <SelectItem value="surah">By Surah</SelectItem>
-                <SelectItem value="page">By Page</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="text-[10px] uppercase font-black tracking-widest text-zinc-500 mb-2 block">Filter Mode</Label>
+            <Select value={filterMode} onValueChange={(v: any) => { setFilterMode(v); setCurrentNumber(1); }}><SelectTrigger className="bg-zinc-900 text-white rounded-xl"><SelectValue /></SelectTrigger><SelectContent className="bg-zinc-950 border-zinc-800 text-white"><SelectItem value="surah">By Surah</SelectItem><SelectItem value="page">By Page</SelectItem></SelectContent></Select>
           </div>
           <div className="w-full md:w-32">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">
-              {filterMode === 'surah' ? 'Surah Number' : 'Page Number'}
-            </Label>
-            <Input 
-              type="number" 
-              min={1} 
-              max={filterMode === 'surah' ? 114 : 604} 
-              value={currentNumber} 
-              onChange={(e) => setCurrentNumber(parseInt(e.target.value) || 1)}
-              className="bg-zinc-900 border-zinc-800 rounded-xl"
-            />
+            <Label className="text-[10px] uppercase font-black tracking-widest text-zinc-500 mb-2 block">{filterMode === 'surah' ? 'Surah' : 'Page'}</Label>
+            <Input type="number" min={1} value={currentNumber} onChange={(e) => setCurrentNumber(parseInt(e.target.value) || 1)} className="bg-zinc-900 border-zinc-800 text-white rounded-xl" />
           </div>
         </div>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl min-h-[500px] flex flex-col">
-        {isLoading ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-zinc-800 space-y-4">
-            <Loader2 className="animate-spin w-12 h-12" />
-            <p className="text-sm font-black uppercase tracking-widest">Querying Firestore Surah Table...</p>
-          </div>
-        ) : surahData.length > 0 ? (
-          <ScrollArea className="flex-1">
-            <div className="p-8 space-y-12">
-               {surahData.map((surah) => (
-                 <div key={surah.id} className="space-y-8">
-                   <div className="flex items-center gap-4 border-b border-zinc-900 pb-2">
-                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">
-                        Surah {surah.surahNumber}. {surah.englishName} • {surah.ayats.length} Ayats
-                     </span>
-                     <div className="flex-1 h-px bg-zinc-900" />
-                   </div>
-                   <div className="space-y-8">
-                     {surah.ayats
-                      .filter((a: any) => filterMode === 'surah' || a.page === currentNumber)
-                      .map((ayat: any, idx: number) => (
-                       <div key={idx} className="group p-8 bg-zinc-900/30 rounded-3xl border border-zinc-900/50 hover:border-zinc-800 transition-all space-y-8">
-                          <div className="flex justify-between items-start gap-8">
-                             <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-zinc-900 text-zinc-600 shrink-0">
-                               Ayat {ayat.numberInSurah} • Page {ayat.page}
-                             </Badge>
-                             <p className="flex-1 text-right text-3xl font-arabic leading-relaxed text-zinc-100">
-                               {ayat.text}
-                             </p>
-                          </div>
-                          {ayat.translationText && (
-                            <p className="text-zinc-500 text-sm md:text-lg font-medium leading-relaxed italic border-l-2 border-zinc-900 pl-6">
-                              {ayat.translationText}
-                            </p>
-                          )}
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-               ))}
-            </div>
+      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl min-h-[500px]">
+        {isLoading ? <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-zinc-500" /></div> : surahData.length > 0 ? (
+          <ScrollArea className="h-[600px] p-8">
+            {surahData.map(s => (
+              <div key={s.id} className="space-y-8">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700 border-b border-zinc-900 pb-2">Surah {s.surahNumber}. {s.englishName}</h4>
+                <div className="space-y-8">{s.ayats.filter((a: any) => filterMode === 'surah' || a.page === currentNumber).map((a: any, i: number) => (
+                  <div key={i} className="p-8 bg-zinc-900/30 rounded-3xl border border-zinc-900 space-y-8">
+                    <div className="flex justify-between items-start gap-8"><Badge variant="outline" className="text-[10px] uppercase font-black border-zinc-900 text-zinc-600">Ayat {a.numberInSurah}</Badge><p className="flex-1 text-right text-3xl font-arabic text-zinc-100">{a.text}</p></div>
+                    {a.translationText && <p className="text-zinc-500 text-sm leading-relaxed border-l-2 border-zinc-900 pl-6">{a.translationText}</p>}
+                  </div>
+                ))}</div>
+              </div>
+            ))}
           </ScrollArea>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 space-y-4">
-            <Eye className="w-12 h-12 opacity-10" />
-            <p className="font-bold text-center px-8">
-              {selectedEdition ? `No data found for ${filterMode} ${currentNumber} of ${selectedEdition} in your database. Please sync this edition first.` : 'Select an edition and surah to view synchronized data.'}
-            </p>
-          </div>
-        )}
+        ) : <div className="flex items-center justify-center h-full text-zinc-600">No data found in Firestore.</div>}
       </Card>
     </div>
   );

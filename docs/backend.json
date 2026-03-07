@@ -137,6 +137,23 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "editionId", "surahNumber", "name", "englishName", "ayats", "pages"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "type": "object",
+      "description": "Global configuration for the application, including UI branding and navigation.",
+      "properties": {
+        "logoUrl": { "type": "string", "format": "uri" },
+        "navigationVisibility": {
+          "type": "object",
+          "properties": {
+            "home": { "type": "boolean" },
+            "upload": { "type": "boolean" },
+            "quran": { "type": "boolean" },
+            "speakers": { "type": "boolean" }
+          }
+        }
+      }
     }
   },
   "auth": {
@@ -167,6 +184,10 @@
       {
         "path": "/roles_admin/{adminId}",
         "definition": { "entityName": "UserProfile" }
+      },
+      {
+        "path": "/settings/app_config",
+        "definition": { "entityName": "AppSettings" }
       }
     ]
   }

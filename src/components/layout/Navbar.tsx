@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -7,12 +8,13 @@ import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 
 const baseNavItems = [
-  { label: 'Home', icon: Home, href: '/' },
-  { label: 'Upload', icon: PlusSquare, href: '/upload', adminOnly: true },
-  { label: 'Quran', icon: BookOpen, href: '/quran' },
-  { label: 'Speakers', icon: Mic2, href: '/speakers' },
+  { id: 'home', label: 'Home', icon: Home, href: '/' },
+  { id: 'upload', label: 'Upload', icon: PlusSquare, href: '/upload', adminOnly: true },
+  { id: 'quran', label: 'Quran', icon: BookOpen, href: '/quran' },
+  { id: 'speakers', label: 'Speakers', icon: Mic2, href: '/speakers' },
 ];
 
 export function Navbar() {
@@ -24,11 +26,29 @@ export function Navbar() {
     return null;
   }
 
+  // Fetch Auth & Permissions
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData } = useDoc(adminRef);
   const isAdmin = !!adminData;
 
-  const filteredNavItems = baseNavItems.filter(item => !item.adminOnly || isAdmin);
+  // Fetch App Settings
+  const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
+  const { data: settings } = useDoc(settingsRef);
+
+  const filteredNavItems = baseNavItems.filter(item => {
+    // Basic filter for admin-only pages
+    if (item.adminOnly && !isAdmin) return false;
+
+    // Filter based on dynamic visibility settings from Firestore
+    if (settings?.navigationVisibility) {
+      const isVisible = settings.navigationVisibility[item.id as keyof typeof settings.navigationVisibility];
+      if (isVisible === false) return false;
+    }
+    
+    return true;
+  });
+
+  const logoUrl = settings?.logoUrl;
 
   return (
     <>
@@ -36,8 +56,12 @@ export function Navbar() {
       <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-black/80 backdrop-blur-xl border-b border-zinc-900 h-24 items-center">
         <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
-            <div className="w-12 h-12 bg-zinc-950 border border-zinc-900 rounded-2xl flex items-center justify-center group-hover:border-zinc-700 transition-all shadow-xl">
-               <Sparkles className="text-zinc-500 group-hover:text-zinc-300 w-6 h-6 transition-colors" />
+            <div className="w-12 h-12 bg-zinc-950 border border-zinc-900 rounded-2xl flex items-center justify-center group-hover:border-zinc-700 transition-all shadow-xl overflow-hidden">
+               {logoUrl ? (
+                 <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+               ) : (
+                 <Sparkles className="text-zinc-500 group-hover:text-zinc-300 w-6 h-6 transition-colors" />
+               )}
             </div>
             <div className="flex flex-col justify-center">
               <span className="font-headline tracking-tight text-2xl font-bold text-zinc-300 group-hover:text-white transition-colors">
