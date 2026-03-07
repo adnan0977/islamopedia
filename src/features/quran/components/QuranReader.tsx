@@ -16,7 +16,8 @@ import {
   ArrowLeft,
   Database,
   Check,
-  Search
+  Search,
+  Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -29,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
+import Link from 'next/link';
 
 const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
@@ -192,9 +194,9 @@ export function QuranReader() {
   };
 
   const BismillahHeader = () => (
-    <div className="w-full flex flex-col items-center justify-center py-4 mb-2 relative">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_0%,_transparent_70%)] pointer-events-none" />
-      <span className="text-3xl md:text-5xl font-arabic text-white select-none drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] relative">
+    <div className="w-full flex flex-col items-center justify-center py-6 mb-4 relative">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)] pointer-events-none" />
+      <span className="text-3xl md:text-5xl font-arabic text-zinc-100 select-none relative">
         {BISMILLAH_TEXT}
       </span>
     </div>
@@ -207,10 +209,6 @@ export function QuranReader() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* 
-          Sticky Header: 
-          Solid background color ensuring no content leakage behind.
-      */}
       <div className="sticky top-0 md:top-24 z-50 bg-background -mx-4 px-4 py-3">
         <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 rounded-2xl md:rounded-[2rem] border border-zinc-900 shadow-2xl gap-4">
           <div className="flex items-center gap-4">
@@ -274,7 +272,7 @@ export function QuranReader() {
                   </PopoverTrigger>
                   <PopoverContent className="w-80 bg-zinc-950 border-zinc-800 p-0 rounded-2xl overflow-hidden shadow-2xl z-[100]">
                     <div className="p-4 border-b border-zinc-900 bg-zinc-900/50 flex items-center justify-between">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Available Editions</h3>
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Editions</h3>
                       <Languages className="w-3 h-3 text-zinc-700" />
                     </div>
                     <ScrollArea className="h-72">
@@ -284,11 +282,11 @@ export function QuranReader() {
                             key={t.id}
                             onClick={() => setSelectedTranslation(t.id)}
                             className={cn(
-                              "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group relative overflow-hidden",
+                              "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group",
                               selectedTranslation === t.id ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:bg-zinc-900"
                             )}
                           >
-                            <div className="flex flex-col relative z-10">
+                            <div className="flex flex-col">
                               <span className="text-xs font-bold leading-none mb-1">{t.name}</span>
                               <span className={cn(
                                 "text-[9px] font-medium uppercase tracking-widest", 
@@ -298,15 +296,10 @@ export function QuranReader() {
                               </span>
                             </div>
                             {selectedTranslation === t.id && (
-                              <Check className="w-4 h-4 relative z-10" />
+                              <Check className="w-4 h-4" />
                             )}
                           </button>
                         ))}
-                        {translations.length === 0 && (
-                          <div className="p-6 text-center">
-                            <p className="text-xs text-zinc-600 font-medium italic">No translations synced.</p>
-                          </div>
-                        )}
                       </div>
                     </ScrollArea>
                   </PopoverContent>
@@ -318,25 +311,24 @@ export function QuranReader() {
                   onClick={() => setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat')} 
                   className="rounded-xl font-bold h-10 px-3 md:px-4 border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white"
                 >
-                  {viewMode === 'ayat' ? (
-                    <div className="flex items-center gap-2">
-                      <BookIcon className="w-4 h-4" />
-                      <span className="text-[10px] uppercase tracking-widest hidden md:inline">Page</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Type className="w-4 h-4" />
-                      <span className="text-[10px] uppercase tracking-widest hidden md:inline">Ayat</span>
-                    </div>
-                  )}
+                  {viewMode === 'ayat' ? <BookIcon className="w-4 h-4" /> : <Type className="w-4 h-4" />}
                 </Button>
               </div>
             )}
+            <Link href="/quran/settings">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
 
-      <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] mt-4">
+      <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] mt-4 min-h-[60vh]">
         {viewMode === 'index' ? (
           <div className="p-8 md:p-12 space-y-8">
             {isMetaLoading ? (

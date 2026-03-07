@@ -36,6 +36,18 @@
           "type": "string",
           "description": "The identifier of the user's preferred Quran translation edition."
         },
+        "arabicFontSize": {
+          "type": "number",
+          "description": "Preferred font size for Arabic text in pixels."
+        },
+        "translationFontSize": {
+          "type": "number",
+          "description": "Preferred font size for translation text in pixels."
+        },
+        "ayatFrameId": {
+          "type": "string",
+          "description": "Preferred ayat frame style identifier."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
