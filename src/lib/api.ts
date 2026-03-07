@@ -6,37 +6,12 @@ export async function getQuranSurahs() {
 }
 
 /**
- * Fetches surah details with specific editions.
- * @param id Surah number
- * @param translationEdition The identifier of the translation edition (e.g., 'en.sahih')
+ * Fetches the complete Quran for a specific edition.
+ * @param edition The identifier of the edition (e.g., 'en.sahih', 'quran-uthmani')
  */
-export async function getSurahDetails(id: number, translationEdition: string = 'en.sahih') {
-  const res = await fetch(`https://api.alquran.cloud/v1/surah/${id}/editions/quran-uthmani,${translationEdition}`);
-  if (!res.ok) throw new Error('Failed to fetch surah details');
-  return res.json();
-}
-
-/**
- * Fetches Quran content by page number with specific editions.
- * @param pageNumber Page number (1-604)
- * @param translationEdition The identifier of the translation edition (e.g., 'en.sahih')
- */
-export async function getPageDetails(pageNumber: number, translationEdition: string = 'en.sahih') {
-  // Use the combined editions endpoint for reading and indexing
-  // Removed ar.alafasy as it is an audio identifier and fails in the text editions endpoint
-  const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/editions/quran-uthmani,${translationEdition}`);
-  if (!res.ok) throw new Error('Failed to fetch page details');
-  return res.json();
-}
-
-/**
- * Fetches a single translation edition for a specific page.
- * @param pageNumber Page number (1-604)
- * @param edition The identifier of the translation edition (e.g., 'en.asad')
- */
-export async function getPageEdition(pageNumber: number, edition: string) {
-  const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/${edition}`);
-  if (!res.ok) throw new Error('Failed to fetch page edition data');
+export async function getFullQuran(edition: string) {
+  const res = await fetch(`https://api.alquran.cloud/v1/quran/${edition}`);
+  if (!res.ok) throw new Error(`Failed to fetch Quran for edition: ${edition}`);
   return res.json();
 }
 

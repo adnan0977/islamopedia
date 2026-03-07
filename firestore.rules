@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -21,11 +22,6 @@ service cloud.firestore {
     }
 
     match /quran_translations/{translationId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
-    }
-
-    match /quran_pages/{pageId} {
       allow read, list: if true;
       allow write: if isAdmin();
     }

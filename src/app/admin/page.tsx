@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, writeBatch, orderBy, limit, getDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,42 +14,19 @@ import {
   Video as VideoIcon, 
   Book, 
   Trash2, 
-  Edit3, 
   Plus, 
   Loader2, 
   LayoutDashboard,
   LogOut,
   Copy,
   CheckCircle2,
-  Users,
-  Eye,
   Search,
   Mic2,
-  ExternalLink,
-  ThumbsUp,
-  SearchCode,
-  Wand2,
-  Check,
-  Sparkles,
-  RefreshCw,
-  Info,
-  MoreVertical,
-  CheckSquare,
-  Square,
-  Image as ImageIcon,
-  Upload as UploadIcon,
   X,
-  Smartphone,
-  Globe,
   Languages,
-  LayoutList,
   TrendingUp,
   History,
-  Database,
-  ArrowRight,
-  CheckCircle,
-  AlertCircle,
-  BookOpen
+  ArrowRight
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -74,17 +51,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -104,34 +70,14 @@ import {
   XAxis, 
   YAxis, 
   ResponsiveContainer,
-  Line,
-  LineChart,
   Area,
   AreaChart,
   Tooltip as RechartsTooltip
 } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/switch';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { getAvailableTranslations, getPageDetails } from '@/lib/api';
-import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarSeparator,
-  MenubarShortcut,
-  MenubarTrigger,
-  MenubarSub,
-  MenubarSubContent,
-  MenubarSubTrigger,
-} from "@/components/ui/menubar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getAvailableTranslations } from '@/lib/api';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'translations';
 
@@ -344,46 +290,11 @@ export default function AdminPanel() {
             {activeTab === 'channels' && <ChannelManagement channels={channels || []} existingVideos={videos || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
             {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
-            {activeTab === 'translations' && <QuranToolsView translations={translations || []} />}
+            {activeTab === 'translations' && <TranslationManagement translations={translations || []} />}
           </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
-  );
-}
-
-function QuranToolsView({ translations }: { translations: any[] }) {
-  return (
-    <Tabs defaultValue="management" className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <TabsList className="bg-zinc-950 border border-zinc-900 p-1 rounded-2xl h-14">
-          <TabsTrigger value="management" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black font-bold">
-            <Languages className="w-4 h-4 mr-2" />
-            Active Translations
-          </TabsTrigger>
-          <TabsTrigger value="indexing" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black font-bold">
-            <Database className="w-4 h-4 mr-2" />
-            Index Pages
-          </TabsTrigger>
-          <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black font-bold">
-            <BookOpen className="w-4 h-4 mr-2" />
-            View Indexed Quran
-          </TabsTrigger>
-        </TabsList>
-      </div>
-
-      <TabsContent value="management" className="mt-0">
-        <TranslationManagement translations={translations} />
-      </TabsContent>
-
-      <TabsContent value="indexing" className="mt-0">
-        <QuranIndexing translations={translations} />
-      </TabsContent>
-
-      <TabsContent value="viewer" className="mt-0">
-        <QuranDatabaseViewer translations={translations} />
-      </TabsContent>
-    </Tabs>
   );
 }
 
@@ -641,7 +552,7 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
             {filtered.length} Indexed Videos
           </Badge>
           <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold h-11 px-6">
-            <UploadIcon className="w-4 h-4 mr-2" />
+            <VideoIcon className="w-4 h-4 mr-2" />
             Index New Video
           </Button>
         </div>
@@ -703,7 +614,7 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
                 <TableCell className="text-right pr-8">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" className="rounded-xl hover:bg-zinc-800 text-zinc-500">
-                      <Edit3 className="w-4 h-4" />
+                      <Plus className="w-4 h-4" />
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -807,7 +718,7 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
             <p className="mt-1 text-[9px] text-zinc-600 font-black uppercase tracking-widest">Scholar</p>
             <div className="mt-6 flex justify-center gap-2">
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-zinc-900">
-                <Edit3 className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5" />
               </Button>
               <Button 
                 variant="ghost" 
@@ -858,32 +769,8 @@ function TranslationManagement({ translations }: { translations: any[] }) {
   }, [available]);
 
   const handleDeleteTranslation = async (id: string) => {
-    // 1. Delete the translation record
     deleteDocumentNonBlocking(doc(db, 'quran_translations', id));
-
-    // 2. Cascade delete all 604 indexed pages in batches
-    toast({ title: "Removing Translation", description: "Cleaning up indexed pages..." });
-    
-    try {
-      // First batch (1-500)
-      const batch1 = writeBatch(db);
-      for (let p = 1; p <= 500; p++) {
-        batch1.delete(doc(db, 'quran_pages', `${id}_${p}`));
-      }
-      await batch1.commit();
-
-      // Second batch (501-604)
-      const batch2 = writeBatch(db);
-      for (let p = 501; p <= 604; p++) {
-        batch2.delete(doc(db, 'quran_pages', `${id}_${p}`));
-      }
-      await batch2.commit();
-      
-      toast({ title: "Deletion Complete", description: "Translation and all cached pages removed." });
-    } catch (e: any) {
-      console.error("Cleanup error:", e);
-      toast({ variant: "destructive", title: "Cleanup Error", description: "Some pages might not have been removed." });
-    }
+    toast({ title: "Translation Removed" });
   };
 
   const toggleTranslation = (edition: any) => {
@@ -911,7 +798,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
           <h3 className="font-bold text-lg text-white">Edition Directory</h3>
@@ -1010,308 +897,6 @@ function TranslationManagement({ translations }: { translations: any[] }) {
             ))}
           </TableBody>
         </Table>
-      </Card>
-    </div>
-  );
-}
-
-function QuranIndexing({ translations }: { translations: any[] }) {
-  const db = useFirestore();
-  const { toast } = useToast();
-  const [selectedEdition, setSelectedEdition] = useState<string>('');
-  const [isIndexing, setIsIndexing] = useState(false);
-  const [isDataSynced, setIsDataSynced] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState('');
-
-  const checkSyncStatus = async (editionId: string) => {
-    if (!editionId) return;
-    const docRef = doc(db, 'quran_pages', `${editionId}_1`);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      setIsDataSynced(true);
-      setPreviewData(docSnap.data());
-    } else {
-      setIsDataSynced(false);
-      setPreviewData(null);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedEdition) {
-      checkSyncStatus(selectedEdition);
-    }
-  }, [selectedEdition]);
-
-  const startIndexing = async () => {
-    if (!selectedEdition) return;
-    setIsIndexing(true);
-    setProgress(0);
-    setStatus('Initializing indexer...');
-
-    try {
-      for (let p = 1; p <= 604; p++) {
-        setStatus(`Fetching Page ${p} of 604...`);
-        const data = await getPageDetails(p, selectedEdition);
-        
-        if (!data || !data.data || !Array.isArray(data.data)) {
-          throw new Error(`Invalid response for page ${p}. Check edition identifier.`);
-        }
-
-        const pageId = `${selectedEdition}_${p}`;
-        setDocumentNonBlocking(doc(db, 'quran_pages', pageId), {
-          pageNumber: p,
-          translationId: selectedEdition,
-          arabicContent: data.data[0]?.ayahs || [],
-          translationContent: data.data[1]?.ayahs || [],
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-
-        setProgress((p / 604) * 100);
-        
-        if (p % 20 === 0) {
-           await new Promise(r => setTimeout(r, 200));
-        }
-      }
-      setStatus('Indexing Complete');
-      setIsDataSynced(true);
-      checkSyncStatus(selectedEdition);
-      toast({ title: "Indexing Finished", description: `Successfully stored 604 pages for ${selectedEdition}.` });
-    } catch (e: any) {
-      console.error(e);
-      setStatus('Indexing Failed');
-      toast({ variant: "destructive", title: "Error", description: e.message || "Failed during indexing loop." });
-    } finally {
-      setIsIndexing(false);
-    }
-  };
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-8 shadow-2xl space-y-8">
-        <div className="space-y-2">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <Database className="w-6 h-6 text-zinc-500" />
-            Content Sync Tool
-          </h3>
-          <p className="text-sm text-zinc-500">Fetch and cache Quranic pages (Arabic + Translation) in your local database for high-performance reading.</p>
-        </div>
-
-        <div className="grid gap-6">
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Select Translation to Index</Label>
-            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                <SelectValue placeholder="Choose edition..." />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                {translations.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isIndexing && (
-            <div className="space-y-4 animate-in fade-in duration-500">
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                <span>{status}</span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <Progress value={progress} className="h-2 bg-zinc-900" />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-4">
-            {isDataSynced && !isIndexing && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3 text-emerald-500">
-                <CheckCircle className="w-5 h-5 shrink-0" />
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold uppercase tracking-widest">Edition Synced</span>
-                  <span className="text-[10px] opacity-80">Arabic base and {selectedEdition} content are available in your database.</span>
-                </div>
-              </div>
-            )}
-
-            <Button 
-              className={cn(
-                "rounded-xl h-12 font-bold transition-all",
-                isDataSynced ? "bg-zinc-900 text-zinc-500 cursor-not-allowed" : "bg-white text-black hover:bg-zinc-200"
-              )}
-              onClick={startIndexing}
-              disabled={isIndexing || !selectedEdition || isDataSynced}
-            >
-              {isIndexing ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : isDataSynced ? (
-                <Check className="w-4 h-4 mr-2" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              {isDataSynced ? 'Already Synced' : 'Start Data Sync'}
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {previewData && (
-        <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-8 shadow-2xl space-y-6 animate-in slide-in-from-bottom-4 duration-700">
-          <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
-            <div className="flex items-center gap-3">
-              <Eye className="w-5 h-5 text-zinc-500" />
-              <h4 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-500">Live Data Validation (Page 1)</h4>
-            </div>
-            <Badge variant="outline" className="text-[9px] font-black border-zinc-800 text-zinc-600">PREVIEW MODE</Badge>
-          </div>
-
-          <ScrollArea className="h-[250px] w-full pr-4">
-            <div className="space-y-10">
-              {previewData?.arabicContent?.slice(0, 3).map((ayat: any, idx: number) => (
-                <div key={idx} className="space-y-4 border-b border-zinc-900 pb-6 last:border-none">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Ayat {ayat.numberInSurah}</span>
-                    <span className="text-[9px] font-medium text-zinc-800 italic">{ayat.surah?.englishName}</span>
-                  </div>
-                  <p className="text-right text-2xl font-arabic text-zinc-200 leading-relaxed" style={{ direction: 'rtl' }}>
-                    {ayat.text}
-                  </p>
-                  <p className="text-xs text-zinc-500 leading-relaxed italic border-l-2 border-zinc-800 pl-4">
-                    {previewData?.translationContent?.[idx]?.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function QuranDatabaseViewer({ translations }: { translations: any[] }) {
-  const db = useFirestore();
-  const [selectedEdition, setSelectedEdition] = useState<string>('');
-  const [selectedPage, setSelectedPage] = useState<number>(1);
-  const [pageData, setPageData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [indexedEditions, setIndexedEditions] = useState<string[]>([]);
-
-  useEffect(() => {
-    async function findIndexed() {
-      const indexed: string[] = [];
-      for (const t of translations) {
-        const docRef = doc(db, 'quran_pages', `${t.id}_1`);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          indexed.push(t.id);
-        }
-      }
-      setIndexedEditions(indexed);
-    }
-    findIndexed();
-  }, [db, translations]);
-
-  useEffect(() => {
-    async function fetchPage() {
-      if (!selectedEdition) return;
-      setLoading(true);
-      const docRef = doc(db, 'quran_pages', `${selectedEdition}_${selectedPage}`);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setPageData(docSnap.data());
-      } else {
-        setPageData(null);
-      }
-      setLoading(false);
-    }
-    fetchPage();
-  }, [db, selectedEdition, selectedPage]);
-
-  const indexedList = translations.filter(t => indexedEditions.includes(t.id));
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-8 shadow-2xl space-y-8">
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-1 space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Select Indexed Translation</Label>
-            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                <SelectValue placeholder="Choose indexed edition..." />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                {indexedList.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-full md:w-32 space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Page Number</Label>
-            <Select value={selectedPage.toString()} onValueChange={(v) => setSelectedPage(parseInt(v))}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                <SelectValue placeholder="Page" />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                {Array.from({ length: 604 }, (_, i) => i + 1).map((p) => (
-                  <SelectItem key={p} value={p.toString()}>Page {p}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {!selectedEdition ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 border-2 border-dashed border-zinc-900 rounded-2xl">
-            <BookOpen className="w-12 h-12 text-zinc-800" />
-            <p className="text-zinc-600 font-medium">Select an indexed translation to view synchronized content.</p>
-          </div>
-        ) : loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-zinc-500" /></div>
-        ) : pageData ? (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
-               <div className="flex items-center gap-3">
-                 <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                 <h4 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-100">Synchronized Content: Page {selectedPage}</h4>
-               </div>
-               <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-4 py-1.5 rounded-xl font-black uppercase tracking-widest text-[10px]">VERIFIED IN DATABASE</Badge>
-            </div>
-
-            <div className="space-y-16">
-              {pageData?.arabicContent?.map((ayat: any, idx: number) => (
-                <div key={idx} className="space-y-8 pb-16 border-b border-zinc-900 last:border-none">
-                  <div className="flex flex-col md:flex-row items-start justify-between gap-8">
-                     <div className="shrink-0 flex md:flex-col gap-3">
-                        <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-[10px] font-black text-zinc-600">
-                          {ayat.numberInSurah}
-                        </div>
-                        <div className="text-[8px] font-black text-zinc-700 uppercase tracking-tighter mt-1 text-center hidden md:block">
-                          AYAT
-                        </div>
-                     </div>
-                     <div className="flex-1 space-y-6">
-                        <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-200" style={{ direction: 'rtl' }}>
-                          {ayat.text}
-                        </p>
-                        <div className="bg-zinc-900/40 p-6 md:p-8 rounded-2xl md:rounded-3xl border border-zinc-900/50">
-                          <p className="text-sm md:text-lg text-zinc-400 leading-relaxed font-medium italic">
-                            {pageData?.translationContent?.[idx]?.text || 'Translation missing for this ayat.'}
-                          </p>
-                        </div>
-                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 border-2 border-dashed border-zinc-900 rounded-2xl">
-            <AlertCircle className="w-12 h-12 text-destructive opacity-50" />
-            <p className="text-destructive font-medium">Page {selectedPage} not found in database for this edition. Please index it first.</p>
-          </div>
-        )}
       </Card>
     </div>
   );

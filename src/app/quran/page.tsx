@@ -2,17 +2,17 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { getQuranSurahs, getPageDetails } from '@/lib/api';
+import { getQuranSurahs, getFullQuran } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Loader2, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight, Database } from 'lucide-react';
+import { Search, Loader2, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-context-flow';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   DropdownMenu,
@@ -33,14 +33,15 @@ export default function QuranPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchPage, setSearchPage] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedPageData, setSelectedPageData] = useState<any>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [playingAyat, setPlayingAyat] = useState<number | null>(null);
+  const [loadingSurahs, setLoadingSurahs] = useState(true);
+  const [loadingContent, setLoadingContent] = useState(false);
   const [viewMode, setViewMode] = useState('page' as ViewMode);
-  const [isUsingIndexedData, setIsUsingIndexedData] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
+  // Full Quran data states
+  const [fullArabic, setFullArabic] = useState<any>(null);
+  const [fullTranslation, setFullTranslation] = useState<any>(null);
+
   const userProfileRef = useMemoFirebase(() => (user ? doc(db, 'users', user.uid) : null), [db, user]);
   const { data: userProfile } = useDoc(userProfileRef);
 
@@ -74,72 +75,85 @@ export default function QuranPage() {
       } catch (e) {
         console.error("Failed to fetch surahs", e);
       } finally {
-        setLoading(false);
+        setLoadingSurahs(false);
       }
     }
     init();
   }, []);
 
-  const fetchPage = async (page: number) => {
-    setLoadingDetails(true);
-    setAiContext(null);
-    setIsUsingIndexedData(false);
-    
-    try {
-      const indexedDocRef = doc(db, 'quran_pages', `${selectedEdition}_${page}`);
-      const indexedDocSnap = await getDoc(indexedDocRef);
-      
-      if (indexedDocSnap.exists()) {
-        const indexedData = indexedDocSnap.data();
-        setSelectedPageData({
-          number: page,
-          ayats: indexedData.arabicContent || [],
-          translation: indexedData.translationContent || [],
-          audio: []
-        });
-        setIsUsingIndexedData(true);
-      } else {
-        const data = await getPageDetails(page, selectedEdition);
-        
-        if (data && data.data && Array.isArray(data.data)) {
-          const ayahs = data.data[0]?.ayahs || [];
-          const translation = data.data[1]?.ayahs || [];
-
-          setSelectedPageData({
-            number: page,
-            ayats: ayahs,
-            translation: translation,
-            audio: []
-          });
-        }
+  // Fetch full Quran content when selectedEdition changes
+  useEffect(() => {
+    async function fetchFullContent() {
+      if (!selectedEdition) return;
+      setLoadingContent(true);
+      try {
+        // Fetch Arabic base and selected Translation in parallel
+        const [arabicRes, transRes] = await Promise.all([
+          getFullQuran('quran-uthmani'),
+          getFullQuran(selectedEdition)
+        ]);
+        setFullArabic(arabicRes.data);
+        setFullTranslation(transRes.data);
+      } catch (error) {
+        console.error("Failed to fetch full Quran content", error);
+      } finally {
+        setLoadingContent(false);
       }
-      
-      const primarySurah = selectedPageData?.ayats?.[0]?.surah;
-      if (primarySurah) {
-        fetchAiContext(primarySurah.number, primarySurah.englishName);
-      }
-
-      if (userProfileRef) {
-        updateDocumentNonBlocking(userProfileRef, {
-          lastReadPage: page,
-          preferredTranslationId: selectedEdition
-        });
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingDetails(false);
     }
-  };
+    fetchFullContent();
+  }, [selectedEdition]);
+
+  // Derive page data from full Quran content
+  const selectedPageData = useMemo(() => {
+    if (!fullArabic || !fullTranslation) return null;
+
+    const pageAyahsArabic: any[] = [];
+    const pageAyahsTrans: any[] = [];
+
+    // Filter ayahs for the current page from all surahs
+    fullArabic.surahs.forEach((surah: any) => {
+      surah.ayahs.forEach((ayah: any) => {
+        if (ayah.page === currentPage) {
+          pageAyahsArabic.push({ ...ayah, surah: { number: surah.number, name: surah.name, englishName: surah.englishName } });
+        }
+      });
+    });
+
+    fullTranslation.surahs.forEach((surah: any) => {
+      surah.ayahs.forEach((ayah: any) => {
+        if (ayah.page === currentPage) {
+          pageAyahsTrans.push(ayah);
+        }
+      });
+    });
+
+    return {
+      number: currentPage,
+      ayats: pageAyahsArabic,
+      translation: pageAyahsTrans
+    };
+  }, [fullArabic, fullTranslation, currentPage]);
 
   useEffect(() => {
-    if (selectedEdition) {
-      fetchPage(currentPage);
+    if (selectedPageData?.ayats?.[0]?.surah) {
+      const primarySurah = selectedPageData.ayats[0].surah;
+      fetchAiContext(primarySurah.number, primarySurah.englishName);
     }
-  }, [currentPage, selectedEdition]);
+
+    if (userProfileRef) {
+      updateDocumentNonBlocking(userProfileRef, {
+        lastReadPage: currentPage,
+        preferredTranslationId: selectedEdition
+      });
+    }
+  }, [currentPage, selectedPageData]);
+
+  const [aiContext, setAiContext] = useState<SurahContextOutput | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   const fetchAiContext = async (number: number, name: string) => {
     setLoadingAi(true);
+    setAiContext(null);
     try {
       const result = await getSurahContext({ surahNumber: number, surahName: name });
       setAiContext(result);
@@ -149,9 +163,6 @@ export default function QuranPage() {
       setLoadingAi(false);
     }
   };
-
-  const [aiContext, setAiContext] = useState<SurahContextOutput | null>(null);
-  const [loadingAi, setLoadingAi] = useState(false);
 
   const groupedAyats = useMemo(() => {
     if (!selectedPageData?.ayats) return [];
@@ -193,11 +204,6 @@ export default function QuranPage() {
             <Badge variant="outline" className="bg-zinc-900 border-zinc-800 text-zinc-500 font-black tracking-widest text-[10px] h-6 px-3">
               PAGE {currentPage}
             </Badge>
-            {isUsingIndexedData && (
-              <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-500 font-black tracking-widest text-[8px] h-5 px-2 flex items-center gap-1">
-                <Database className="w-2.5 h-2.5" /> SYNCED
-              </Badge>
-            )}
           </div>
           <p className="text-zinc-500 text-xs md:text-sm truncate mt-1">
             Edition: {displayTranslations.find(t => t.id === selectedEdition)?.name || selectedEdition}
@@ -332,10 +338,10 @@ export default function QuranPage() {
 
         <div className="md:col-span-9 lg:col-span-10 flex flex-col min-h-0 h-full">
           <Card className="flex-1 bg-zinc-950 border-zinc-900 flex flex-col overflow-hidden shadow-2xl rounded-2xl">
-            {loadingDetails ? (
+            {loadingContent ? (
               <div className="flex-1 flex flex-col items-center justify-center text-zinc-800 space-y-4">
                 <Loader2 className="animate-spin w-12 h-12" />
-                <p className="text-sm font-black uppercase tracking-widest">Loading Page {currentPage}...</p>
+                <p className="text-sm font-black uppercase tracking-widest">Loading Quran Content...</p>
               </div>
             ) : selectedPageData ? (
               <ScrollArea className="flex-1">

@@ -103,18 +103,6 @@
         "isActive": { "type": "boolean" }
       },
       "required": ["id", "name", "language", "languageCode"]
-    },
-    "QuranPageData": {
-      "title": "QuranPageData",
-      "type": "object",
-      "description": "Stored Quran page content for fast loading.",
-      "properties": {
-        "pageNumber": { "type": "number" },
-        "translationId": { "type": "string" },
-        "content": { "type": "array", "items": { "type": "object" } },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["pageNumber", "translationId", "content"]
     }
   },
   "auth": {
@@ -137,10 +125,6 @@
       {
         "path": "/quran_translations/{translationId}",
         "definition": { "entityName": "QuranTranslation" }
-      },
-      {
-        "path": "/quran_pages/{pageId}",
-        "definition": { "entityName": "QuranPageData" }
       },
       {
         "path": "/roles_admin/{adminId}",
