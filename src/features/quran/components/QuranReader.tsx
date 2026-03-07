@@ -28,6 +28,7 @@ export function QuranReader() {
   const { data: settings } = useDoc(settingsRef);
   const ayatFrameId = settings?.ayatFrameId || 'royal-ornate';
   const customAyatFramePath = settings?.customAyatFramePath;
+  const frameImageUrl = settings?.frameImageUrl;
 
   useEffect(() => {
     async function fetchPage() {
@@ -78,6 +79,7 @@ export function QuranReader() {
             number={groupedAyats[0]?.surah.number || 1} 
             frameId={ayatFrameId} 
             customPath={customAyatFramePath} 
+            customImageUrl={frameImageUrl}
             size="md" 
           />
           <h1 className="text-3xl font-headline font-bold text-white">{groupedAyats[0]?.surah.englishName || 'Quran Reader'}</h1>
@@ -113,6 +115,7 @@ export function QuranReader() {
                               number={a.numberInSurah} 
                               frameId={ayatFrameId} 
                               customPath={customAyatFramePath} 
+                              customImageUrl={frameImageUrl}
                             />
                           </div>
                           <div className="flex-1 space-y-8">
@@ -141,6 +144,7 @@ export function QuranReader() {
                           size="lg" 
                           frameId={ayatFrameId} 
                           customPath={customAyatFramePath} 
+                          customImageUrl={frameImageUrl}
                         />
                       </span>
                     </span>

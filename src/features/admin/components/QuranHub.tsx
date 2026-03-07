@@ -544,6 +544,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
   const { data: settings } = useDoc(settingsRef);
   const ayatFrameId = settings?.ayatFrameId || 'royal-ornate';
   const customAyatFramePath = settings?.customAyatFramePath;
+  const frameImageUrl = settings?.frameImageUrl;
 
   useEffect(() => {
     async function fetchContent() {
@@ -647,6 +648,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
                       number={surah.surahNumber} 
                       frameId={ayatFrameId} 
                       customPath={customAyatFramePath} 
+                      customImageUrl={frameImageUrl}
                       size="md" 
                     />
                     <div>
@@ -665,6 +667,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
                            number={ayat.numberInSurah} 
                            frameId={ayatFrameId} 
                            customPath={customAyatFramePath} 
+                           customImageUrl={frameImageUrl}
                          />
                       </div>
                       <div className="flex-1 space-y-4">

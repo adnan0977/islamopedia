@@ -18,12 +18,16 @@ interface AyatFrameProps {
   number: number | string;
   frameId?: string;
   customPath?: string;
+  customImageUrl?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export function AyatFrame({ number, frameId = 'royal-ornate', customPath, size = "md", className }: AyatFrameProps) {
+export function AyatFrame({ number, frameId = 'royal-ornate', customPath, customImageUrl, size = "md", className }: AyatFrameProps) {
   const staticFrame = AYAT_FRAMES.find(f => f.id === frameId);
+  
+  // Decide what to render: Image or SVG
+  const isImage = !!customImageUrl;
   const pathData = staticFrame ? staticFrame.path : (customPath || AYAT_FRAMES[0].path);
   
   const dimensions = {
@@ -40,13 +44,21 @@ export function AyatFrame({ number, frameId = 'royal-ornate', customPath, size =
 
   return (
     <div className={cn("relative inline-flex items-center justify-center shrink-0 align-middle", dimensions[size], className)}>
-      <svg 
-        viewBox="0 0 100 100" 
-        className="absolute inset-0 w-full h-full text-zinc-800 fill-zinc-900/30 stroke-zinc-700 transition-all duration-500"
-        strokeWidth="2.5"
-      >
-        <path d={pathData} fillRule="evenodd" />
-      </svg>
+      {isImage ? (
+        <img 
+          src={customImageUrl} 
+          alt="" 
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none" 
+        />
+      ) : (
+        <svg 
+          viewBox="0 0 100 100" 
+          className="absolute inset-0 w-full h-full text-zinc-800 fill-zinc-900/30 stroke-zinc-700 transition-all duration-500"
+          strokeWidth="2.5"
+        >
+          <path d={pathData} fillRule="evenodd" />
+        </svg>
+      )}
       <span className={cn("relative z-10 font-bold font-arabic text-zinc-400 transition-colors leading-none", fontSizes[size])}>
         {toArabicNumerals(number)}
       </span>

@@ -164,6 +164,7 @@
         "logoUrl": { "type": "string", "format": "uri" },
         "ayatFrameId": { "type": "string" },
         "customAyatFramePath": { "type": "string" },
+        "frameImageUrl": { "type": "string", "description": "Base64 data URI of an uploaded frame image." },
         "savedCustomFrames": {
           "type": "array",
           "items": {
@@ -171,7 +172,8 @@
             "properties": {
               "id": { "type": "string" },
               "name": { "type": "string" },
-              "path": { "type": "string" }
+              "path": { "type": "string" },
+              "imageUrl": { "type": "string" }
             }
           }
         },
