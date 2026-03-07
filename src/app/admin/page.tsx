@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, writeBatch } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { collection, doc, query, where, getDocs, writeBatch, orderBy, limit } from 'firebase/firestore';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
@@ -42,7 +42,9 @@ import {
   Smartphone,
   Globe,
   Languages,
-  LayoutList
+  LayoutList,
+  TrendingUp,
+  History
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -98,7 +100,10 @@ import {
   YAxis, 
   ResponsiveContainer,
   Line,
-  LineChart
+  LineChart,
+  Area,
+  AreaChart,
+  Tooltip as RechartsTooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import Image from 'next/image';
@@ -367,7 +372,7 @@ export default function AdminPanel() {
           </header>
 
           <main className="p-8 pb-32">
-            {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} />}
+            {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} speakers={speakers || []} translations={translations || []} />}
             {activeTab === 'channels' && <ChannelManagement channels={channels || []} existingVideos={videos || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
             {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
@@ -376,6 +381,445 @@ export default function AdminPanel() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+function DashboardOverview({ channels, videos, speakers, translations }: { channels: any[], videos: any[], speakers: any[], translations: any[] }) {
+  const stats = [
+    { label: 'Total Videos', value: videos.length, icon: VideoIcon, color: 'text-blue-500' },
+    { label: 'Active Channels', value: channels.length, icon: Youtube, color: 'text-red-500' },
+    { label: 'Featured Scholars', value: speakers.length, icon: Mic2, color: 'text-amber-500' },
+    { label: 'Active Translations', value: translations.length, icon: Languages, color: 'text-emerald-500' },
+  ];
+
+  const chartData = [
+    { name: 'Mon', views: 4000 },
+    { name: 'Tue', views: 3000 },
+    { name: 'Wed', views: 2000 },
+    { name: 'Thu', views: 2780 },
+    { name: 'Fri', views: 1890 },
+    { name: 'Sat', views: 2390 },
+    { name: 'Sun', views: 3490 },
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, i) => (
+          <Card key={i} className="bg-zinc-950 border-zinc-900 rounded-2xl overflow-hidden shadow-xl hover:border-zinc-800 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                {stat.label}
+              </CardTitle>
+              <stat.icon className={cn("w-4 h-4", stat.color)} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-headline font-bold text-white">{stat.value}</div>
+              <p className="text-[10px] text-zinc-600 mt-1 font-medium flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" /> +12.5% from last month
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Card className="lg:col-span-2 bg-zinc-950 border-zinc-900 rounded-3xl p-6 shadow-2xl">
+          <CardHeader className="px-0 pt-0">
+            <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-zinc-500" />
+              Platform Engagement
+            </CardTitle>
+            <CardDescription className="text-xs text-zinc-500">View analytics across all cataloged videos</CardDescription>
+          </CardHeader>
+          <div className="h-[300px] w-full mt-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ffffff" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#ffffff" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#18181b" vertical={false} />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#3f3f46" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  dy={10}
+                />
+                <YAxis 
+                  stroke="#3f3f46" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  dx={-10}
+                />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '12px', fontSize: '10px' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="views" 
+                  stroke="#ffffff" 
+                  fillOpacity={1} 
+                  fill="url(#colorViews)" 
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-6 shadow-2xl">
+          <CardHeader className="px-0 pt-0">
+            <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <History className="w-5 h-5 text-zinc-500" />
+              Recent Cataloging
+            </CardTitle>
+            <CardDescription className="text-xs text-zinc-500">Latest additions to the video feed</CardDescription>
+          </CardHeader>
+          <ScrollArea className="h-[300px] mt-6">
+            <div className="space-y-4">
+              {videos.slice(0, 10).map((video) => (
+                <div key={video.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer group">
+                  <div className="relative w-12 h-8 rounded-md overflow-hidden shrink-0">
+                    <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-white truncate group-hover:text-zinc-300">{video.title}</span>
+                    <span className="text-[10px] text-zinc-500 truncate">{video.channelId}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function ChannelManagement({ channels, existingVideos }: { channels: any[], existingVideos: any[] }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [channelIdInput, setChannelIdInput] = useState('');
+
+  const addChannel = async () => {
+    if (!channelIdInput) return;
+    setLoading(true);
+    try {
+      // In a real app, this would fetch from YouTube API
+      const newChannel = {
+        id: channelIdInput,
+        title: `Channel ${channelIdInput}`,
+        thumbnailUrl: `https://picsum.photos/seed/${channelIdInput}/200`,
+        externalUrl: `https://youtube.com/channel/${channelIdInput}`,
+        subscribersCount: Math.floor(Math.random() * 1000000),
+        videoCount: Math.floor(Math.random() * 1000),
+        viewCount: Math.floor(Math.random() * 10000000),
+        createdAt: new Date().toISOString(),
+      };
+      setDocumentNonBlocking(doc(db, 'channels', channelIdInput), newChannel, { merge: true });
+      setChannelIdInput('');
+      toast({ title: "Channel Linked", description: "The YouTube channel has been added to your studio." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to link channel." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
+        <div className="flex flex-col md:flex-row gap-6 items-end">
+          <div className="flex-1 space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">YouTube Channel ID</Label>
+            <div className="relative">
+              <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+              <Input 
+                placeholder="UC..." 
+                className="pl-10 bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white" 
+                value={channelIdInput}
+                onChange={(e) => setChannelIdInput(e.target.value)}
+              />
+            </div>
+          </div>
+          <Button 
+            className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold"
+            onClick={addChannel}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+            Link Channel
+          </Button>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {channels.map((channel) => (
+          <Card key={channel.id} className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden group hover:border-zinc-800 transition-all shadow-xl">
+            <div className="h-24 bg-gradient-to-r from-zinc-900 to-zinc-950 relative">
+               <div className="absolute top-1/2 left-6 -translate-y-1/2 w-16 h-16 rounded-2xl border-4 border-black overflow-hidden shadow-2xl">
+                 <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />
+               </div>
+            </div>
+            <CardContent className="pt-10 pb-6 px-6 space-y-6">
+              <div className="space-y-1">
+                <h3 className="font-bold text-white text-lg">{channel.title}</h3>
+                <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Linked ID: {channel.id}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-zinc-900/50 p-2 rounded-xl text-center">
+                  <span className="block text-xs font-bold text-white">{(channel.subscribersCount / 1000).toFixed(1)}K</span>
+                  <span className="text-[8px] text-zinc-600 uppercase font-black">Subs</span>
+                </div>
+                <div className="bg-zinc-900/50 p-2 rounded-xl text-center">
+                  <span className="block text-xs font-bold text-white">{channel.videoCount}</span>
+                  <span className="text-[8px] text-zinc-600 uppercase font-black">Videos</span>
+                </div>
+                <div className="bg-zinc-900/50 p-2 rounded-xl text-center">
+                  <span className="block text-xs font-bold text-white">{(channel.viewCount / 1000000).toFixed(1)}M</span>
+                  <span className="text-[8px] text-zinc-600 uppercase font-black">Views</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 rounded-xl h-10 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 text-xs font-bold">
+                  Analytics
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-xl text-destructive hover:bg-destructive/10"
+                  onClick={() => deleteDocumentNonBlocking(doc(db, 'channels', channel.id))}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VideoManagement({ videos, channels, speakers }: { videos: any[], channels: any[], speakers: any[] }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [search, setSearch] = useState('');
+
+  const toggleTrending = (video: any) => {
+    updateDocumentNonBlocking(doc(db, 'videos', video.id), {
+      isTrending: !video.isTrending
+    });
+    toast({ title: video.isTrending ? "Removed from Trending" : "Added to Trending" });
+  };
+
+  const filtered = videos.filter(v => v.title.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+          <Input 
+            placeholder="Search catalog..." 
+            className="pl-10 bg-zinc-900 border-zinc-800 rounded-xl text-white" 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+          <Badge className="bg-zinc-900 border-zinc-800 text-zinc-500 py-1.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest">
+            {filtered.length} Indexed Videos
+          </Badge>
+          <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold h-11 px-6">
+            <UploadIcon className="w-4 h-4 mr-2" />
+            Index New Video
+          </Button>
+        </div>
+      </div>
+
+      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
+        <Table>
+          <TableHeader className="bg-zinc-900/50">
+            <TableRow className="border-zinc-900">
+              <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 text-zinc-500 pl-8">Video Details</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Channel</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Analytics</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Status</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500 pr-8">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((video) => (
+              <TableRow key={video.id} className="hover:bg-zinc-900/40 border-zinc-900 transition-colors h-24">
+                <TableCell className="pl-8">
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-20 aspect-video rounded-lg overflow-hidden border border-zinc-800">
+                      <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />
+                    </div>
+                    <div className="flex flex-col max-w-[300px]">
+                      <span className="text-sm font-bold text-white truncate">{video.title}</span>
+                      <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">ID: {video.id}</span>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs font-bold text-zinc-400">{video.channelId}</span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-4">
+                     <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white">{video.appViewCount || 0}</span>
+                        <span className="text-[8px] text-zinc-600 uppercase font-black">App Views</span>
+                     </div>
+                     <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white">{video.likeCount || 0}</span>
+                        <span className="text-[8px] text-zinc-600 uppercase font-black">Likes</span>
+                     </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                   <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={cn(
+                      "rounded-xl text-[9px] font-black uppercase tracking-widest",
+                      video.isTrending ? "bg-amber-500/10 text-amber-500" : "bg-zinc-900 text-zinc-600"
+                    )}
+                    onClick={() => toggleTrending(video)}
+                   >
+                     {video.isTrending ? 'Trending' : 'Regular'}
+                   </Button>
+                </TableCell>
+                <TableCell className="text-right pr-8">
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="icon" className="rounded-xl hover:bg-zinc-800 text-zinc-500">
+                      <Edit3 className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="rounded-xl text-destructive hover:bg-destructive/10"
+                      onClick={() => deleteDocumentNonBlocking(doc(db, 'videos', video.id))}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}
+
+function SpeakerManagement({ speakers }: { speakers: any[] }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: '', bio: '', imageUrl: '' });
+
+  const saveSpeaker = async () => {
+    if (!formData.name) return;
+    const id = formData.name.toLowerCase().replace(/\s+/g, '-');
+    setDocumentNonBlocking(doc(db, 'speakers', id), {
+      id,
+      name: formData.name,
+      bio: formData.bio,
+      profileImageUrl: formData.imageUrl || 'https://picsum.photos/seed/speaker/400',
+      createdAt: new Date().toISOString()
+    }, { merge: true });
+    setFormData({ name: '', bio: '', imageUrl: '' });
+    setOpen(false);
+    toast({ title: "Scholar Profile Updated" });
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
+        <div className="space-y-1">
+          <h3 className="font-bold text-lg text-white">Featured Scholars</h3>
+          <p className="text-xs text-zinc-500 font-medium">Manage the spiritual leaders featured across the platform.</p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl h-11 px-6 font-bold">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Scholar
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Scholar Profile</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+               <div className="space-y-2">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Full Name</Label>
+                 <Input 
+                   className="bg-zinc-900 border-zinc-800 rounded-xl" 
+                   value={formData.name}
+                   onChange={(e) => setFormData({...formData, name: e.target.value})}
+                 />
+               </div>
+               <div className="space-y-2">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Bio / Description</Label>
+                 <Textarea 
+                   className="bg-zinc-900 border-zinc-800 rounded-xl min-h-[100px]" 
+                   value={formData.bio}
+                   onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                 />
+               </div>
+               <div className="space-y-2">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Profile Image URL</Label>
+                 <Input 
+                   className="bg-zinc-900 border-zinc-800 rounded-xl" 
+                   value={formData.imageUrl}
+                   onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                 />
+               </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" className="rounded-xl font-bold text-zinc-500" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold px-8" onClick={saveSpeaker}>Save Profile</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        {speakers.map((speaker) => (
+          <Card key={speaker.id} className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden group hover:border-zinc-800 transition-all shadow-xl text-center p-6">
+            <div className="relative w-20 h-20 mx-auto rounded-2xl overflow-hidden border-2 border-zinc-900 group-hover:border-zinc-700 transition-all shadow-2xl">
+              <Image src={speaker.profileImageUrl} alt={speaker.name} fill className="object-cover" />
+            </div>
+            <h4 className="mt-4 font-bold text-sm text-white truncate">{speaker.name}</h4>
+            <p className="mt-1 text-[9px] text-zinc-600 font-black uppercase tracking-widest">Scholar</p>
+            <div className="mt-6 flex justify-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-zinc-900">
+                <Edit3 className="w-3.5 h-3.5" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
+                onClick={() => deleteDocumentNonBlocking(doc(db, 'speakers', speaker.id))}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -391,7 +835,6 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     setLoading(true);
     try {
       const data = await getAvailableTranslations();
-      // Data structure from alquran.cloud: data is an array of editions
       setAvailable(data.data || []);
     } catch (e) {
       toast({ variant: "destructive", title: "API Error", description: "Could not fetch translation editions." });
@@ -416,7 +859,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
         id: edition.identifier,
         name: edition.name,
         language: edition.language,
-        languageCode: edition.language, // The API uses 'language' field for code (e.g. 'en')
+        languageCode: edition.language,
         isActive: true,
         isDefault: translations.length === 0
       }, { merge: true });
@@ -431,7 +874,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-900">
+      <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
           <h3 className="font-bold text-lg text-white">Language Management</h3>
           <p className="text-xs text-zinc-500 font-medium">Control which translation editions are available on the Quran page.</p>
@@ -440,10 +883,10 @@ function TranslationManagement({ translations }: { translations: any[] }) {
           <DialogTrigger asChild>
             <Button className="rounded-xl h-11 px-6 font-bold bg-white text-black hover:bg-zinc-200 flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              Activate New Translation
+              Activate Translation
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 h-[80vh] flex flex-col">
+          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 h-[80vh] flex flex-col rounded-3xl">
             <DialogHeader className="p-6 border-b border-zinc-800 shrink-0">
               <DialogTitle className="text-white font-bold text-xl">Available Editions</DialogTitle>
               <div className="mt-4 relative">
@@ -491,23 +934,23 @@ function TranslationManagement({ translations }: { translations: any[] }) {
         </Dialog>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-2xl shadow-xl">
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-3xl shadow-2xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900">
-              <TableHead className="text-[10px] font-black uppercase tracking-widest py-5 text-zinc-500">Edition Name</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 text-zinc-500 pl-8">Edition Name</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Language</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Identifier</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500">Action</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500 pr-8">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {translations.map((t) => (
               <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-20">
-                <TableCell className="font-bold text-white">{t.name}</TableCell>
+                <TableCell className="font-bold text-white pl-8">{t.name}</TableCell>
                 <TableCell className="text-zinc-500 font-medium">{t.language}</TableCell>
                 <TableCell className="text-zinc-500 font-mono text-xs">{t.id}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right pr-8">
                   <Button variant="ghost" size="icon" onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_translations', t.id))} className="text-destructive hover:bg-destructive/10 rounded-xl">
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -525,4 +968,3 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     </div>
   );
 }
-// Rest of the Admin code remains same (Dashboard, ChannelManagement, etc.)
