@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/badge';
+import { Badge } from '@/components/ui/badge';
 import { getAllAlQuranEditions, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
