@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useFirestore } from '@/firebase';
-import { doc, writeBatch, setDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, writeBatch, setDoc, query, where, getDocs, collection } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,14 +13,18 @@ import {
   Search, 
   Download, 
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  BookOpen,
+  LayoutList,
+  ChevronRight,
+  ChevronLeft,
+  Database
 } from 'lucide-react';
 import { 
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,6 +42,7 @@ import { getAvailableTranslations, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface QuranHubProps {
   editions: any[];
@@ -74,39 +79,30 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
       const isArabic = editionId === 'quran-uthmani';
       
       // Fetch data from API
-      const arabicPayload = await getFullQuran('quran-uthmani');
-      if (!arabicPayload?.data?.surahs) {
-        throw new Error("Failed to fetch Arabic base text. Please check your internet connection.");
-      }
-
-      const transPayload = isArabic ? arabicPayload : await getFullQuran(editionId);
-      if (!transPayload?.data?.surahs) {
+      // Use the full quran endpoint which returns all surahs and ayahs for the edition
+      const payload = await getFullQuran(editionId);
+      if (!payload?.data?.surahs) {
         throw new Error(`Failed to fetch edition ${editionId} from API.`);
       }
 
       setSyncStatus('saving');
-      const arabicSurahs = arabicPayload.data.surahs;
-      const transSurahs = transPayload.data.surahs;
+      const surahs = payload.data.surahs;
 
-      // Process in small batches to maintain browser performance and Firestore limits
-      const batchSize = 10;
-      for (let i = 0; i < arabicSurahs.length; i += batchSize) {
-        const chunk = arabicSurahs.slice(i, i + batchSize);
+      // Process Surah by Surah
+      const batchSize = 5; // Smaller batch for Surah-wise documents as they are larger
+      for (let i = 0; i < surahs.length; i += batchSize) {
+        const chunk = surahs.slice(i, i + batchSize);
         const batch = writeBatch(db);
         
-        chunk.forEach((s: any, idx: number) => {
+        chunk.forEach((s: any) => {
           const sNum = s.number;
-          const globalIdx = i + idx;
-          const tSurah = transSurahs[globalIdx];
           const surahId = `${editionId}_surah_${sNum}`;
           
-          if (!tSurah) return;
-
-          const ayats = s.ayahs.map((a: any, aIdx: number) => ({
+          const ayats = s.ayahs.map((a: any) => ({
             number: a.number,
             numberInSurah: a.numberInSurah,
             text: a.text,
-            translationText: isArabic ? null : (tSurah.ayahs?.[aIdx]?.text || ''),
+            translationText: isArabic ? null : a.text, // If not Arabic, the 'text' is the translation
             page: a.page,
             juz: a.juz
           }));
@@ -124,7 +120,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         });
         
         await batch.commit();
-        setProgress(Math.round(((i + chunk.length) / arabicSurahs.length) * 100));
+        setProgress(Math.round(((i + chunk.length) / surahs.length) * 100));
       }
 
       // Update sync status in metadata
@@ -195,6 +191,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
           <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Edition Directory</TabsTrigger>
           <TabsTrigger value="sync" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Database Sync</TabsTrigger>
+          <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Full Viewer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory">
@@ -208,6 +205,9 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
             handleStandardSync={handleStandardSync}
             isStandardSynced={isStandardSynced}
           />
+        </TabsContent>
+        <TabsContent value="viewer">
+          <FullQuranViewer editions={editions} />
         </TabsContent>
       </Tabs>
     </div>
@@ -391,6 +391,159 @@ function SyncTool({ editions, syncing, performSync, handleStandardSync, isStanda
             <Download className="mr-2 w-4 h-4" /> Start Indexing
           </Button>
         </div>
+      </Card>
+    </div>
+  );
+}
+
+function FullQuranViewer({ editions }: { editions: any[] }) {
+  const db = useFirestore();
+  const [filterMode, setFilterMode] = useState<'surah' | 'page'>('surah');
+  const [surahNum, setSurahNum] = useState(1);
+  const [pageNum, setPageNum] = useState(1);
+  const [selectedEdition, setSelectedEdition] = useState('quran-uthmani');
+  const [content, setContent] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchContent() {
+      if (!selectedEdition) return;
+      setLoading(true);
+      try {
+        const q = query(
+          collection(db, 'quran'),
+          where('editionId', '==', selectedEdition),
+          filterMode === 'surah' 
+            ? where('surahNumber', '==', surahNum) 
+            : where('pages', 'array-contains', pageNum)
+        );
+        const docs = await getDocs(q);
+        const results = docs.docs.map(d => d.data());
+        setContent(results);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchContent();
+  }, [db, selectedEdition, filterMode, surahNum, pageNum]);
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
+          <div className="space-y-4">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Browser Edition</Label>
+            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                {editions.filter(e => e.dataSync === 'yes').map(e => (
+                  <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-4">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Filter Method</Label>
+            <RadioGroup 
+              defaultValue="surah" 
+              className="flex gap-4 h-12 items-center bg-zinc-900/50 px-4 rounded-xl border border-zinc-900"
+              onValueChange={(val) => setFilterMode(val as 'surah' | 'page')}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="surah" id="r1" className="border-zinc-700" />
+                <Label htmlFor="r1" className="text-xs font-bold text-zinc-400">Surah</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="page" id="r2" className="border-zinc-700" />
+                <Label htmlFor="r2" className="text-xs font-bold text-zinc-400">Page</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="flex items-center gap-3 h-12">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-xl bg-zinc-900"
+              onClick={() => filterMode === 'surah' ? setSurahNum(prev => Math.max(1, prev - 1)) : setPageNum(prev => Math.max(1, prev - 1))}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex-1 text-center bg-zinc-900 h-full flex items-center justify-center rounded-xl font-bold text-white min-w-[100px]">
+              {filterMode === 'surah' ? `Surah ${surahNum}` : `Page ${pageNum}`}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-xl bg-zinc-900"
+              onClick={() => filterMode === 'surah' ? setSurahNum(prev => Math.min(114, prev + 1)) : setPageNum(prev => Math.min(604, prev + 1))}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-3xl shadow-2xl h-[600px] flex flex-col">
+        <CardHeader className="bg-zinc-900/50 flex flex-row justify-between items-center py-4">
+          <div className="flex items-center gap-2">
+             <Database className="w-4 h-4 text-zinc-600" />
+             <CardTitle className="text-xs font-black uppercase tracking-widest text-zinc-500">Database Snapshot</CardTitle>
+          </div>
+          {loading && <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />}
+        </CardHeader>
+        <ScrollArea className="flex-1">
+          <div className="p-8 space-y-12">
+            {content.length > 0 ? content.map((surah) => (
+              <div key={surah.id} className="space-y-8">
+                <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
+                  <div className="flex items-center gap-4">
+                    <span className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-xs font-bold text-white">
+                      {surah.surahNumber}
+                    </span>
+                    <div>
+                      <h4 className="font-bold text-white">{surah.englishName}</h4>
+                      <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Edition: {surah.editionId}</p>
+                    </div>
+                  </div>
+                  <span className="text-2xl font-arabic text-zinc-400">{surah.name}</span>
+                </div>
+                
+                <div className="space-y-6">
+                  {surah.ayats.map((ayat: any) => (
+                    <div key={ayat.number} className="flex gap-6 group">
+                      <div className="w-12 pt-2 shrink-0">
+                         <span className="text-[9px] font-black text-zinc-700 bg-zinc-900 px-2 py-1 rounded-md">
+                           {ayat.numberInSurah}
+                         </span>
+                      </div>
+                      <div className="flex-1 space-y-4">
+                        <p className="text-right text-3xl font-arabic leading-relaxed text-zinc-200" dir="rtl">
+                          {ayat.text}
+                        </p>
+                        {ayat.translationText && (
+                          <p className="text-sm text-zinc-500 font-medium leading-relaxed italic border-l border-zinc-900 pl-4">
+                            {ayat.translationText}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )) : (
+              <div className="flex flex-col items-center justify-center py-32 space-y-4">
+                <BookOpen className="w-12 h-12 text-zinc-900" />
+                <p className="text-zinc-600 font-medium">No records found. Please ensure this edition is synchronized.</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </Card>
     </div>
   );
