@@ -34,21 +34,21 @@ export function Navbar() {
   return (
     <>
       {/* Desktop Nav (Top) */}
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-black/80 backdrop-blur-xl border-b border-zinc-800 h-24 items-center">
+      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-[100] bg-black/80 backdrop-blur-xl border-b border-zinc-900 h-24 items-center">
         <div className="max-w-7xl mx-auto w-full px-8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-all shadow-xl">
-               <Sparkles className="text-white w-6 h-6" />
+               <Sparkles className="text-zinc-400 group-hover:text-white w-6 h-6 transition-colors" />
             </div>
             <div className="flex flex-col justify-center">
-              <span className="font-headline tracking-tight text-2xl font-bold text-white">
+              <span className="font-headline tracking-tight text-2xl font-bold text-zinc-100">
                 VlogNest
               </span>
               <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest leading-none">Creator Studio</span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-1 bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-800">
+          <div className="flex items-center gap-1 bg-zinc-950/50 p-1.5 rounded-2xl border border-zinc-900 shadow-inner">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -59,11 +59,11 @@ export function Navbar() {
                   className={cn(
                     "flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold transition-all relative group/item",
                     isActive 
-                      ? "bg-white/10 text-white border border-white/5" 
-                      : "text-zinc-500 hover:bg-zinc-800/50 hover:text-white"
+                      ? "bg-zinc-800 text-white border border-zinc-700" 
+                      : "text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-300"
                   )}
                 >
-                  <Icon className={cn("w-4 h-4", isActive && "stroke-[2.5px]")} />
+                  <Icon className={cn("w-4 h-4", isActive && "stroke-[2px]")} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -73,25 +73,25 @@ export function Navbar() {
           <div className="flex items-center gap-4 shrink-0">
             {isAdmin && (
               <Link href="/admin">
-                <Button variant="outline" size="sm" className="hidden lg:flex rounded-xl gap-2 font-bold border-zinc-800 text-white hover:bg-zinc-900 h-11 px-5 items-center">
+                <Button variant="outline" size="sm" className="hidden lg:flex rounded-xl gap-2 font-bold border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 h-11 px-5 items-center">
                   <ShieldCheck className="w-4 h-4" />
                   Admin
                 </Button>
               </Link>
             )}
             {!isUserLoading && user ? (
-              <Link href="/channel" className="flex items-center gap-3 bg-zinc-900/50 p-1.5 pr-5 rounded-2xl border border-zinc-800 hover:border-zinc-700 transition-all h-12">
-                <div className="w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center">
-                  <User className="w-5 h-5 text-zinc-400" />
+              <Link href="/channel" className="flex items-center gap-3 bg-zinc-950/50 p-1.5 pr-5 rounded-2xl border border-zinc-900 hover:border-zinc-700 transition-all h-12">
+                <div className="w-9 h-9 rounded-xl bg-zinc-900 flex items-center justify-center">
+                  <User className="w-5 h-5 text-zinc-500" />
                 </div>
                 <div className="flex flex-col text-left justify-center">
-                  <span className="text-xs font-bold truncate max-w-[100px] leading-tight text-white">{user.email?.split('@')[0]}</span>
-                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black">Creator</span>
+                  <span className="text-xs font-bold truncate max-w-[100px] leading-tight text-zinc-300">{user.email?.split('@')[0]}</span>
+                  <span className="text-[9px] text-zinc-600 uppercase tracking-widest font-black">Creator</span>
                 </div>
               </Link>
             ) : (
               <Link href="/login">
-                <Button size="lg" className="bg-white text-black font-bold rounded-2xl px-8 h-12 transition-transform active:scale-95 items-center">
+                <Button size="lg" className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 font-bold rounded-2xl px-8 h-12 transition-transform active:scale-95 items-center shadow-lg">
                   Sign In
                 </Button>
               </Link>
@@ -101,7 +101,7 @@ export function Navbar() {
       </nav>
 
       {/* Mobile Nav (Bottom) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-black/95 backdrop-blur-xl border-t border-zinc-800 md:hidden pb-safe shadow-2xl h-20">
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-900 md:hidden pb-safe h-20">
         <div className="flex justify-around items-center h-full px-4">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
@@ -112,13 +112,13 @@ export function Navbar() {
                 href={item.href}
                 className={cn(
                   "flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all relative group",
-                  isActive ? "text-white" : "text-zinc-500"
+                  isActive ? "text-zinc-100" : "text-zinc-600"
                 )}
               >
                 {isActive && (
-                  <div className="absolute top-0 w-8 h-1 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
+                  <div className="absolute top-0 w-8 h-0.5 bg-zinc-400 rounded-full" />
                 )}
-                <Icon className={cn("w-6 h-6 transition-transform group-active:scale-90", isActive && "stroke-[2.5px]")} />
+                <Icon className={cn("w-6 h-6 transition-transform group-active:scale-90", isActive && "stroke-[2px]")} />
                 <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
               </Link>
             );
