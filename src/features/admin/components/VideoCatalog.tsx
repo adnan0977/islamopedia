@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -201,7 +202,7 @@ export function VideoCatalog() {
                   />
                 </div>
               </div>
-              <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl" onClick={handleAddVideo}>
+              <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl border border-zinc-300 shadow-xl" onClick={handleAddVideo}>
                 Index Video Metadata
               </Button>
             </DialogContent>

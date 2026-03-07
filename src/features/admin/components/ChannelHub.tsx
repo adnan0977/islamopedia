@@ -76,7 +76,6 @@ export function ChannelHub() {
   );
 
   const extractIds = (text: string) => {
-    // Robust regex to find UC followed by 22 alphanumeric/underscore/dash characters
     const matches = text.match(/UC[a-zA-Z0-9_-]{22}/g);
     return Array.from(new Set(matches || []));
   };
@@ -173,8 +172,8 @@ export function ChannelHub() {
             <Tabs defaultValue="bulk" className="w-full">
               <div className="px-10 pt-8">
                 <TabsList className="bg-zinc-900 p-1 rounded-2xl h-14 w-full border border-zinc-800">
-                  <TabsTrigger value="bulk" className="flex-1 rounded-xl font-bold h-full data-[state=active]:bg-zinc-800">Bulk Sync</TabsTrigger>
-                  <TabsTrigger value="single" className="flex-1 rounded-xl font-bold h-full data-[state=active]:bg-zinc-800">Single ID</TabsTrigger>
+                  <TabsTrigger value="bulk" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700">Bulk Sync</TabsTrigger>
+                  <TabsTrigger value="single" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700">Single ID</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -195,7 +194,7 @@ export function ChannelHub() {
                     />
                   </div>
                   <Button 
-                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl"
+                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl border border-zinc-300"
                     disabled={isSyncing || extractIds(bulkIds).length === 0}
                     onClick={() => handleSync(extractIds(bulkIds))}
                   >
@@ -215,7 +214,7 @@ export function ChannelHub() {
                     />
                   </div>
                   <Button 
-                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl"
+                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl border border-zinc-300"
                     disabled={isSyncing || !singleId.startsWith('UC')}
                     onClick={() => handleSync([singleId])}
                   >
