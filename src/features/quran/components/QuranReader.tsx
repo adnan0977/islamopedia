@@ -14,9 +14,7 @@ import {
   Book as BookIcon,
   ArrowLeft,
   Database,
-  Settings,
-  Volume2,
-  Mic2
+  Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -56,7 +54,6 @@ export function QuranReader() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[], translit: any[] }>({ arabic: [], trans: [], translit: [] });
 
-  // Load settings from local storage
   useEffect(() => {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
     const saved = localStorage.getItem(storageKey);
@@ -76,7 +73,6 @@ export function QuranReader() {
     }
   }, [user]);
 
-  // Sync URL state
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
@@ -150,17 +146,19 @@ export function QuranReader() {
                 surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } 
               });
               
-              const transSurah = docsByEdition[localSettings.preferredTranslationId];
-              if (transSurah) {
-                const matchingAyat = transSurah.ayats.find((ta: any) => ta.number === a.number);
-                if (matchingAyat) pageTrans.push(matchingAyat);
-              }
+              if (viewMode === 'ayat') {
+                const transSurah = docsByEdition[localSettings.preferredTranslationId];
+                if (transSurah) {
+                  const matchingAyat = transSurah.ayats.find((ta: any) => ta.number === a.number);
+                  if (matchingAyat) pageTrans.push(matchingAyat);
+                }
 
-              if (localSettings.preferredTransliterationId && localSettings.preferredTransliterationId !== 'none') {
-                const translitSurah = docsByEdition[localSettings.preferredTransliterationId];
-                if (translitSurah) {
-                  const matchingAyat = translitSurah.ayats.find((ta: any) => ta.number === a.number);
-                  if (matchingAyat) pageTranslit.push(matchingAyat);
+                if (localSettings.preferredTransliterationId && localSettings.preferredTransliterationId !== 'none') {
+                  const translitSurah = docsByEdition[localSettings.preferredTransliterationId];
+                  if (translitSurah) {
+                    const matchingAyat = translitSurah.ayats.find((ta: any) => ta.number === a.number);
+                    if (matchingAyat) pageTranslit.push(matchingAyat);
+                  }
                 }
               }
             }
@@ -168,8 +166,8 @@ export function QuranReader() {
         });
         
         pageArabic.sort((a, b) => a.number - b.number);
-        const alignedTrans = pageArabic.map(aa => pageTrans.find(tt => tt.number === aa.number));
-        const alignedTranslit = pageArabic.map(aa => pageTranslit.find(tt => tt.number === aa.number));
+        const alignedTrans = viewMode === 'ayat' ? pageArabic.map(aa => pageTrans.find(tt => tt.number === aa.number)) : [];
+        const alignedTranslit = viewMode === 'ayat' ? pageArabic.map(aa => pageTranslit.find(tt => tt.number === aa.number)) : [];
 
         setQuranData({ arabic: pageArabic, trans: alignedTrans, translit: alignedTranslit });
       } catch (e) { 
@@ -277,6 +275,7 @@ export function QuranReader() {
                   size="sm" 
                   onClick={() => setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat')} 
                   className="rounded-xl font-bold h-10 px-3 md:px-4 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white"
+                  title={viewMode === 'ayat' ? "Switch to Page View" : "Switch to Ayat View"}
                 >
                   {viewMode === 'ayat' ? <BookIcon className="w-4 h-4" /> : <Type className="w-4 h-4" />}
                 </Button>
@@ -365,49 +364,82 @@ export function QuranReader() {
           <div className="p-8 md:p-16">
             <div className="space-y-12">
               {groupedAyats.map(group => (
-                <div key={group.surah.number} className="space-y-12">
-                  {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
-                  {group.ayats.map((a: any) => (
-                    <div key={a.number} className="space-y-4">
-                      <div className="text-left">
-                        <span className="text-[10px] font-black text-zinc-700 tracking-widest uppercase">
-                          {group.surah.number}:{a.numberInSurah}
-                        </span>
-                      </div>
-                      
-                      <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
-                        {a.text}
-                        <span className="inline-block ms-6 align-middle select-none">
-                          <AyatFrame 
-                            number={a.numberInSurah} 
-                            frameId={ayatFrameId} 
-                            size="md"
-                          />
-                        </span>
-                      </p>
-                      
-                      <div className="space-y-2">
-                        {localSettings.showTransliteration && a.translit && (
-                          <p 
-                            className="text-left max-w-3xl text-zinc-500 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
-                            style={{ fontSize: `${transFontSize - 2}px` }}
-                          >
-                            {a.translit}
-                          </p>
-                        )}
-                        {localSettings.showTranslation && a.trans && (
-                          <p 
-                            className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
-                            style={{ fontSize: `${transFontSize}px` }}
-                          >
-                            {a.trans}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="h-px bg-zinc-900 w-full mt-8" />
+                <div key={group.surah.number} className="space-y-8">
+                  {/* Surah Header for the page */}
+                  <div className="flex items-center justify-between border-b border-zinc-900 pb-4 mb-8">
+                    <div className="flex items-center gap-3">
+                      <AyatFrame number={group.surah.number} size="sm" frameId={ayatFrameId} />
+                      <h2 className="font-bold text-lg text-zinc-200">{group.surah.englishName}</h2>
                     </div>
-                  ))}
+                    <span className="text-2xl font-arabic text-zinc-500">{group.surah.name}</span>
+                  </div>
+
+                  {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
+                  
+                  {viewMode === 'page' ? (
+                    /* Page View: Continuous Arabic Text Flow */
+                    <div className="text-right leading-[2.5] md:leading-[3] animate-in fade-in duration-700" dir="rtl">
+                      {group.ayats.map((a: any) => (
+                        <span key={a.number} className="inline transition-all duration-300">
+                          <span className="text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }}>
+                            {a.text}
+                          </span>
+                          <span className="inline-block mx-4 align-middle select-none">
+                            <AyatFrame 
+                              number={a.numberInSurah} 
+                              frameId={ayatFrameId} 
+                              size="md"
+                            />
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    /* Ayat View: Vertical study layout with translations */
+                    <div className="space-y-12 animate-in fade-in duration-700">
+                      {group.ayats.map((a: any) => (
+                        <div key={a.number} className="space-y-4">
+                          <div className="text-left">
+                            <span className="text-[10px] font-black text-zinc-700 tracking-widest uppercase">
+                              {group.surah.number}:{a.numberInSurah}
+                            </span>
+                          </div>
+                          
+                          <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
+                            {a.text}
+                            <span className="inline-block ms-6 align-middle select-none">
+                              <AyatFrame 
+                                number={a.numberInSurah} 
+                                frameId={ayatFrameId} 
+                                size="md"
+                              />
+                            </span>
+                          </p>
+                          
+                          <div className="space-y-2">
+                            {localSettings.showTransliteration && a.translit && (
+                              <p 
+                                className="text-left max-w-3xl text-zinc-500 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
+                                style={{ fontSize: `${transFontSize - 2}px` }}
+                              >
+                                {a.translit}
+                              </p>
+                            )}
+                            {localSettings.showTranslation && a.trans && (
+                              <p 
+                                className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
+                                style={{ fontSize: `${transFontSize}px` }}
+                              >
+                                {a.trans}
+                              </p>
+                            )}
+                          </div>
+                          
+                          <div className="h-px bg-zinc-900 w-full mt-8" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
