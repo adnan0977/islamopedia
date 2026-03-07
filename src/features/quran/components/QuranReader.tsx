@@ -168,15 +168,6 @@ export function QuranReader() {
       .finally(() => setLoadingContent(false));
   };
 
-  const toggleIndex = (type: 'surah' | 'juz') => {
-    setIndexType(type);
-    setViewMode('index');
-  };
-
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat');
-  };
-
   const isReading = viewMode !== 'index';
 
   return (
@@ -214,7 +205,7 @@ export function QuranReader() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => toggleIndex('surah')} 
+                onClick={() => { setIndexType('surah'); setViewMode('index'); }} 
                 className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
               >
                 <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
@@ -222,7 +213,7 @@ export function QuranReader() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => toggleIndex('juz')} 
+                onClick={() => { setIndexType('juz'); setViewMode('index'); }} 
                 className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
               >
                 <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
@@ -251,7 +242,7 @@ export function QuranReader() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={toggleViewMode} 
+                onClick={() => setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat')} 
                 className="rounded-xl font-bold h-10 px-4 border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white shadow-lg"
               >
                 {viewMode === 'ayat' ? (
@@ -271,9 +262,9 @@ export function QuranReader() {
         </div>
       </div>
 
-      {/* Secondary Controls Bar (Only when reading) */}
+      {/* Reading Secondary Controls (Mobile Trans) */}
       {isReading && (
-        <div className="flex items-center justify-between px-6">
+        <div className="flex items-center justify-between px-6 sm:hidden">
           <div className="flex items-center gap-3">
              <Button 
                 variant="outline" 
@@ -294,8 +285,7 @@ export function QuranReader() {
                 <ChevronRight className="w-4 h-4" />
               </Button>
           </div>
-          
-          <div className="sm:hidden w-32">
+          <div className="w-32">
              <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
                 <SelectTrigger className="bg-zinc-950 border-zinc-900 h-10 rounded-xl text-zinc-400 text-[9px] font-bold">
                   <Languages className="w-3 h-3 mr-1" />
@@ -386,11 +376,11 @@ export function QuranReader() {
                             />
                           </div>
                           <div className="flex-1 space-y-6">
-                            <p className="text-right text-4xl md:text-6xl font-arabic leading-[1.8] text-zinc-100" dir="rtl">
+                            <p className="text-right text-4xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
                               {a.text}
                             </p>
                             {a.trans && (
-                              <p className="text-zinc-500 text-lg md:text-xl font-medium border-l border-zinc-900 pl-6 italic">
+                              <p className="text-zinc-500 text-lg font-medium border-l border-zinc-900 pl-6 italic">
                                 {a.trans}
                               </p>
                             )}
@@ -401,14 +391,13 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                /* Improved Page View with generous leading and horizontal margins */
-                <div className="text-right font-arabic leading-[4] text-3xl md:text-5xl text-zinc-100" style={{ direction: 'rtl' }}>
+                <div className="text-right font-arabic leading-loose text-3xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
                     <span key={a.number} className="inline-flex items-center flex-wrap">
                       <span className="hover:text-white transition-colors">
                         {a.text}
                       </span>
-                      <span className="inline-flex mx-6 md:mx-8 align-middle select-none shrink-0 justify-center items-center">
+                      <span className="inline-flex mx-4 align-middle select-none shrink-0 justify-center items-center">
                         <AyatFrame 
                           number={a.numberInSurah} 
                           size="sm" 
@@ -425,6 +414,31 @@ export function QuranReader() {
           </ScrollArea>
         )}
       </Card>
+      
+      {/* Desktop Pagination Bar */}
+      {isReading && (
+        <div className="hidden sm:flex items-center justify-between px-10">
+          <Button 
+            variant="ghost" 
+            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 hover:text-white font-bold"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage <= 1}
+          >
+            <ChevronLeft className="w-4 h-4" /> Previous Page
+          </Button>
+          <div className="text-zinc-700 text-[10px] font-black uppercase tracking-[0.3em]">
+            Manuscript Navigation
+          </div>
+          <Button 
+            variant="ghost" 
+            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 hover:text-white font-bold"
+            onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))}
+            disabled={currentPage >= 604}
+          >
+            Next Page <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
