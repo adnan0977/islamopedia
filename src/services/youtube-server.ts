@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -30,8 +29,6 @@ interface YouTubeVideoData {
  * Common mapper for YouTube API items to our internal format.
  */
 function mapChannelItem(item: any): YouTubeChannelData {
-  // Most channels follow the pattern where the uploads playlist ID is just the channel ID
-  // with 'C' replaced by 'U' at index 1. We use this as a robust fallback.
   const fallbackUploadsId = item.id.startsWith('UC') 
     ? 'UU' + item.id.substring(2) 
     : '';
@@ -54,7 +51,7 @@ function mapChannelItem(item: any): YouTubeChannelData {
  */
 export async function fetchYouTubeChannels(ids: string[]): Promise<YouTubeChannelData[]> {
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
+  if (!apiKey) {
     throw new Error('YOUTUBE_API_KEY is not configured in the environment.');
   }
 
@@ -85,7 +82,7 @@ export async function fetchYouTubeChannels(ids: string[]): Promise<YouTubeChanne
  */
 export async function fetchYouTubeChannelByHandle(handle: string): Promise<YouTubeChannelData | null> {
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
+  if (!apiKey) {
     throw new Error('YOUTUBE_API_KEY is not configured.');
   }
 
@@ -113,11 +110,11 @@ export async function fetchYouTubeChannelByHandle(handle: string): Promise<YouTu
 
 /**
  * Fetches all videos from a specific YouTube channel's "Uploads" playlist.
- * Implements pagination to fetch more than the default limit (500 max).
+ * Implements pagination to fetch up to 5000 videos.
  */
-export async function fetchPlaylistVideos(playlistId: string, limit = 500): Promise<YouTubeVideoData[]> {
+export async function fetchPlaylistVideos(playlistId: string, limit = 5000): Promise<YouTubeVideoData[]> {
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
+  if (!apiKey) {
     throw new Error('YOUTUBE_API_KEY is not configured.');
   }
 
