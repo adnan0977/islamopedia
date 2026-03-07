@@ -333,9 +333,29 @@ export function QuranReader() {
 
           <div className="flex items-center gap-2">
             {!isReading ? (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setIndexType('surah')} className={cn("rounded-xl font-bold h-10 px-4 transition-all", indexType === 'surah' ? "bg-white text-black" : "text-zinc-500")}>Surah</Button>
-                <Button variant="ghost" size="sm" onClick={() => setIndexType('juz')} className={cn("rounded-xl font-bold h-10 px-4 transition-all", indexType === 'juz' ? "bg-white text-black" : "text-zinc-500")}>Juz</Button>
+              <div className="flex items-center gap-1 bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-900 shadow-inner">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIndexType('surah')} 
+                  className={cn(
+                    "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
+                    indexType === 'surah' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  Surah
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIndexType('juz')} 
+                  className={cn(
+                    "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
+                    indexType === 'juz' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  Juz
+                </Button>
               </div>
             ) : (
               <Button 
