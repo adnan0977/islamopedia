@@ -44,6 +44,7 @@ export function QuranReader() {
   const router = useRouter();
   const { user } = useUser();
   
+  // Initial State from URL
   const initialMode = (searchParams.get('mode') as QuranViewMode) || 'index';
   const initialIndexType = (searchParams.get('type') as 'surah' | 'juz') || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
@@ -89,6 +90,7 @@ export function QuranReader() {
     }
   }, [user]);
 
+  // Flattened ayats for the reading list
   const flattenedAyats = useMemo(() => {
     const ayats: any[] = [];
     pagedData.forEach(page => {
@@ -104,7 +106,7 @@ export function QuranReader() {
     return ayats;
   }, [pagedData]);
 
-  // Update URL logic
+  // Robust URL Synchronization
   useEffect(() => {
     const params = new URLSearchParams();
     params.set('mode', viewMode);
@@ -119,9 +121,11 @@ export function QuranReader() {
       params.set('page', visiblePage.toString());
     }
 
-    const newUrl = `/quran?${params.toString()}`;
-    if (window.location.search !== `?${params.toString()}`) {
-      router.replace(newUrl, { scroll: false });
+    const nextUrl = `?${params.toString()}`;
+    const currentQuery = window.location.search;
+    
+    if (currentQuery !== nextUrl) {
+      router.replace(`/quran${nextUrl}`, { scroll: false });
     }
   }, [viewMode, indexType, visiblePage, selectedSurah, selectedJuz, router]);
 
@@ -262,7 +266,7 @@ export function QuranReader() {
           pageToLoad = snap.docs[0].data().pages[0];
         }
       } else if (viewMode === 'juz' && initialJuz) {
-        // Simple heuristic for juz-to-page if metadata is not yet loaded
+        // Juz to Page Mapping
         const juzToPageMap: Record<number, number> = { 1: 1, 2: 22, 3: 42, 4: 62, 5: 82, 6: 102, 7: 121, 8: 142, 9: 162, 10: 182, 11: 201, 12: 222, 13: 242, 14: 262, 15: 282, 16: 302, 17: 322, 18: 342, 19: 362, 20: 382, 21: 402, 22: 422, 23: 442, 24: 462, 25: 482, 26: 502, 27: 522, 28: 542, 29: 562, 30: 582 };
         pageToLoad = juzToPageMap[initialJuz] || initialPage;
       }
@@ -276,10 +280,10 @@ export function QuranReader() {
       setLoadingContent(false);
     }
     initFetch();
-  }, [viewMode, db]);
+  }, [viewMode, initialSurah, initialJuz, initialPage, db]);
 
   useEffect(() => {
-    if ((viewMode !== 'surah' && viewMode !== 'juz') || !ayatScrollContainerRef.current || pagedData.length === 0) return;
+    if (!isReading || !ayatScrollContainerRef.current || pagedData.length === 0) return;
 
     if (observerRef.current) observerRef.current.disconnect();
 
@@ -309,7 +313,7 @@ export function QuranReader() {
     blocks.forEach(b => observerRef.current?.observe(b));
 
     return () => observerRef.current?.disconnect();
-  }, [viewMode, pagedData, loadMorePages, flattenedAyats]);
+  }, [viewMode, pagedData, loadMorePages, flattenedAyats, isReading]);
 
   const scrollToAyat = (index: number) => {
     const target = ayatScrollContainerRef.current?.querySelector(`[data-ayat-index="${index}"]`);
