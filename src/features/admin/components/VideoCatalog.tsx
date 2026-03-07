@@ -25,6 +25,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
   Video as VideoIcon, 
   Search, 
   ExternalLink, 
@@ -34,7 +41,9 @@ import {
   Calendar,
   Loader2,
   TrendingUp,
-  Plus
+  Plus,
+  FilterX,
+  Youtube
 } from 'lucide-react';
 import {
   Dialog,
@@ -48,12 +57,15 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export function VideoCatalog() {
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterChannel, setFilterChannel] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
   const [newVideo, setNewVideo] = useState({
     id: '',
     title: '',
@@ -64,18 +76,27 @@ export function VideoCatalog() {
     isTrending: false
   });
 
+  // Fetch Videos
   const videosQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     orderBy('publishedAt', 'desc'),
-    limit(100)
+    limit(1000)
   ), [db]);
+  const { data: videos, isLoading: isLoadingVideos } = useCollection(videosQuery);
 
-  const { data: videos, isLoading } = useCollection(videosQuery);
+  // Fetch Channels for Filter
+  const channelsQuery = useMemoFirebase(() => query(
+    collection(db, 'channels'),
+    orderBy('title', 'asc')
+  ), [db]);
+  const { data: channels } = useCollection(channelsQuery);
 
-  const filteredVideos = videos?.filter(v => 
-    v.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.channelId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredVideos = videos?.filter(v => {
+    const matchesSearch = v.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         v.channelId.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesChannel = filterChannel === 'all' || v.channelId === filterChannel;
+    return matchesSearch && matchesChannel;
+  });
 
   const handleAddVideo = () => {
     if (!newVideo.id || !newVideo.title) {
@@ -108,7 +129,12 @@ export function VideoCatalog() {
     });
   };
 
-  if (isLoading) {
+  const resetFilters = () => {
+    setSearchTerm('');
+    setFilterChannel('all');
+  };
+
+  if (isLoadingVideos) {
     return (
       <div className="flex flex-col items-center justify-center py-32 space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-zinc-800" />
@@ -118,25 +144,57 @@ export function VideoCatalog() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-full">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
-            placeholder="Search titles or channels..." 
-            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 shadow-inner w-full outline-none focus:ring-1 focus:ring-zinc-800"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-full">
+      <div className="flex flex-col xl:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2.5rem] border border-zinc-900 shadow-xl">
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto flex-1">
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+            <Input 
+              placeholder="Search titles..." 
+              className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 shadow-inner w-full outline-none focus:ring-1 focus:ring-zinc-800"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <Select value={filterChannel} onValueChange={setFilterChannel}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white md:w-64 flex-1">
+                <div className="flex items-center gap-2 truncate">
+                  <Youtube className="w-4 h-4 text-zinc-600" />
+                  <SelectValue placeholder="Filter by Channel" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white max-h-[400px]">
+                <SelectItem value="all">All Channels</SelectItem>
+                {channels?.map(channel => (
+                  <SelectItem key={channel.id} value={channel.id}>
+                    {channel.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={resetFilters} 
+              className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white"
+              title="Reset Filters"
+            >
+              <FilterX className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-3">
+
+        <div className="flex items-center gap-3 w-full xl:w-auto">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button 
-                className="rounded-full h-14 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95 flex items-center gap-3 shadow-lg group"
+                className="rounded-full h-14 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 transition-all active:scale-95 flex items-center gap-3 shadow-lg group w-full sm:w-auto"
               >
                 <Plus className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
-                <span className="text-sm">Add New Video</span>
+                <span className="text-sm">Catalog Video</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
@@ -219,8 +277,8 @@ export function VideoCatalog() {
               </div>
             </DialogContent>
           </Dialog>
-          <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold flex items-center gap-2">
-            {videos?.length || 0} Cataloged
+          <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold hidden sm:flex items-center gap-2">
+            {filteredVideos?.length || 0} Listed
           </Badge>
         </div>
       </div>
@@ -240,14 +298,16 @@ export function VideoCatalog() {
             <TableBody>
               {filteredVideos?.map((video) => (
                 <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
-                  <TableCell className="pl-6">
-                    <div className="flex items-center gap-4 min-w-0 overflow-hidden">
+                  <TableCell className="pl-6 max-w-0">
+                    <div className="flex items-center gap-4 min-w-0">
                       <div className="relative w-20 h-12 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
                         {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                       </div>
                       <div className="flex flex-col min-w-0 overflow-hidden">
                         <span className="font-bold text-zinc-100 truncate text-xs" title={video.title}>{video.title}</span>
-                        <span className="text-[9px] text-zinc-600 truncate uppercase mt-1">{video.channelId}</span>
+                        <span className="text-[9px] text-zinc-600 truncate uppercase mt-1">
+                          {channels?.find(c => c.id === video.channelId)?.title || video.channelId}
+                        </span>
                       </div>
                     </div>
                   </TableCell>
@@ -302,7 +362,8 @@ export function VideoCatalog() {
                   <TableCell colSpan={5} className="h-64 text-center">
                     <div className="flex flex-col items-center justify-center space-y-4">
                        <VideoIcon className="w-12 h-12 text-zinc-900" />
-                       <p className="text-zinc-600 font-medium">No videos found in your catalog.</p>
+                       <p className="text-zinc-600 font-medium">No videos found matching your criteria.</p>
+                       <Button variant="link" onClick={resetFilters} className="text-white">Clear filters</Button>
                     </div>
                   </TableCell>
                 </TableRow>
