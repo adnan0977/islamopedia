@@ -26,7 +26,7 @@ export default function Home() {
   const trendingQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     where('isTrending', '==', true),
-    limit(10)
+    limit(12)
   ), [db]);
   const { data: trendingVideos, isLoading: isTrendingLoading } = useCollection(trendingQuery);
 
@@ -103,9 +103,9 @@ export default function Home() {
             <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
           ) : (
             <Carousel opts={{ align: "start", loop: false }} className="w-full">
-              <CarouselContent className="-ml-2">
+              <CarouselContent className="-ml-1">
                 {trendingVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-2 basis-1/2 sm:basis-1/3 lg:basis-1/4">
+                  <CarouselItem key={video.id} className="pl-1 basis-1/4 sm:basis-1/4 lg:basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
@@ -165,9 +165,9 @@ export default function Home() {
             <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
           ) : (
             <Carousel opts={{ align: "start", loop: false }} className="w-full">
-              <CarouselContent className="-ml-2">
+              <CarouselContent className="-ml-1">
                 {latestVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-2 basis-1/2 sm:basis-1/3 lg:basis-1/4">
+                  <CarouselItem key={video.id} className="pl-1 basis-1/4 sm:basis-1/4 lg:basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
