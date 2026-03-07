@@ -12,8 +12,7 @@ import {
   Layers, 
   Type, 
   Book as BookIcon,
-  Languages,
-  ArrowLeft
+  Languages
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,7 @@ export function QuranReader() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  // URL Params for initial state
+  // URL Params for initial state - defaulting to Index mode with Surah list
   const initialMode = searchParams.get('mode') as 'ayat' | 'page' | 'index' || 'index';
   const initialIndexType = searchParams.get('type') as 'surah' | 'juz' || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
@@ -54,6 +53,7 @@ export function QuranReader() {
     params.set('trans', selectedTranslation);
     if (viewMode === 'index') {
       params.set('type', indexType);
+      params.delete('page');
     } else {
       params.delete('type');
       params.set('page', currentPage.toString());
@@ -127,7 +127,6 @@ export function QuranReader() {
         });
         
         pageArabic.sort((a, b) => a.number - b.number);
-        // Translation array needs to align with Arabic array indices
         const alignedTrans = pageArabic.map(aa => pageTrans.find(tt => tt.number === aa.number));
 
         setQuranData({ arabic: pageArabic, trans: alignedTrans });
@@ -206,7 +205,7 @@ export function QuranReader() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-          {/* Primary Navigation: Surah/Juz List Selection */}
+          {/* Main List Navigation - Always present */}
           <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
             <Button 
               variant="ghost" 
@@ -226,9 +225,9 @@ export function QuranReader() {
             </Button>
           </div>
 
+          {/* Reading Controls - Hidden in Index mode on mobile, always hidden in index mode overall */}
           {viewMode !== 'index' && (
             <>
-              {/* View Mode Toggle: Ayat vs Page */}
               <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
                 <Button 
                   variant="ghost" 
@@ -248,7 +247,6 @@ export function QuranReader() {
                 </Button>
               </div>
 
-              {/* Translation Selector */}
               <div className="flex-1 md:flex-none md:w-48">
                 <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
                   <SelectTrigger className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-zinc-300 text-xs font-bold">
@@ -267,7 +265,6 @@ export function QuranReader() {
                 </Select>
               </div>
 
-              {/* Pagination */}
               <div className="flex items-center gap-3 ml-auto">
                 <Button 
                   variant="outline" 
