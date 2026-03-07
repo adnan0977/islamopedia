@@ -38,17 +38,17 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { fetchYouTubeChannels } from '@/services/youtube-server';
+import { fetchYouTubeChannels, fetchYouTubeChannelByHandle } from '@/services/youtube-server';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const DEFAULT_IDS = `Islamic History Plus,UCsaR6SnAv97_9MI2JPLcyRA,English,Authentic & Research Stories
 Islamic History (Official),UC1mNByYnDzhPesq4RF-jGLQ,English,Pivotal Events & Journeys
-The Kohistani,UCCBGUffdWwRV0gUqgElkCfw,Urdu/English,History & Documentary
+The Kohistani,https://youtube.com/@thekohistani,Urdu/English,History & Documentary
 Islamic Bayan 2026,UCybKAapNVFBeZyn6DJHQaGA,Urdu,Contemporary Sermons & History
 Deen Squad,UCU_9S_kA,English,Youth Culture & Reminders
-iLovUAllah,UC8f_6Y4qN3G7X,English,Motivational & Inspirational
+iLovUAllah,@iLovUAllah,English,Motivational & Inspirational
 Duroos.org,UCp4Vf-IOn66Xv,Arabic/English,Classical Scholarly Lectures
 Masjid Ribat,UCv9u_K37S6v3m,English,Detailed Seerah & History`;
 
@@ -75,42 +75,67 @@ export function ChannelHub() {
     ch.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const extractIds = (text: string) => {
-    const matches = text.match(/UC[a-zA-Z0-9_-]{22}/g);
-    return Array.from(new Set(matches || []));
+  /**
+   * Extracts IDs (UC...) or Handles (@...) from text or URLs
+   */
+  const extractSelectors = (text: string) => {
+    // Look for Channel IDs
+    const idMatches = text.match(/UC[a-zA-Z0-9_-]{22}/g) || [];
+    
+    // Look for Handles (@name)
+    // This catches @name in text or in a URL like youtube.com/@name
+    const handleMatches = text.match(/@[\w.-]+/g) || [];
+
+    return {
+      ids: Array.from(new Set(idMatches)),
+      handles: Array.from(new Set(handleMatches))
+    };
   };
 
-  const handleSync = async (idsToSync: string[]) => {
-    if (idsToSync.length === 0) {
-      toast({ variant: 'destructive', title: 'No IDs found', description: 'Please provide valid YouTube Channel IDs (starting with UC).' });
+  const handleSync = async (input: string) => {
+    const { ids, handles } = extractSelectors(input);
+
+    if (ids.length === 0 && handles.length === 0) {
+      toast({ variant: 'destructive', title: 'No valid input', description: 'Please provide a valid YouTube ID (UC...), Handle (@...), or URL.' });
       return;
     }
 
     setIsSyncing(true);
     setSyncError(null);
     try {
-      const chunks = [];
-      for (let i = 0; i < idsToSync.length; i += 50) {
-        chunks.push(idsToSync.slice(i, i + 50));
+      let totalSynced = 0;
+      const allResolvedChannels: any[] = [];
+
+      // 1. Resolve IDs in batches of 50
+      if (ids.length > 0) {
+        for (let i = 0; i < ids.length; i += 50) {
+          const chunk = ids.slice(i, i + 50);
+          const data = await fetchYouTubeChannels(chunk);
+          allResolvedChannels.push(...data);
+        }
       }
 
-      let totalSynced = 0;
-      for (const chunk of chunks) {
-        const data = await fetchYouTubeChannels(chunk);
-        
-        if (data.length === 0) {
-          throw new Error("No channels found. Please verify the Channel IDs are correct and your API key is active.");
+      // 2. Resolve Handles individually (API limitation)
+      if (handles.length > 0) {
+        for (const handle of handles) {
+          const data = await fetchYouTubeChannelByHandle(handle);
+          if (data) allResolvedChannels.push(data);
         }
+      }
 
-        for (const channel of data) {
-          const channelRef = doc(db, 'channels', channel.id);
-          await setDoc(channelRef, {
-            ...channel,
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-          }, { merge: true });
-          totalSynced++;
-        }
+      if (allResolvedChannels.length === 0) {
+        throw new Error("No channels found. Please verify the IDs/Handles are correct and your API key is active.");
+      }
+
+      // 3. Save all to Firestore
+      for (const channel of allResolvedChannels) {
+        const channelRef = doc(db, 'channels', channel.id);
+        await setDoc(channelRef, {
+          ...channel,
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        }, { merge: true });
+        totalSynced++;
       }
 
       toast({ title: 'Sync Complete', description: `Successfully indexed ${totalSynced} channels.` });
@@ -154,7 +179,7 @@ export function ChannelHub() {
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-4xl p-0 overflow-hidden outline-none shadow-2xl">
             <DialogHeader className="p-10 border-b border-zinc-900 bg-zinc-900/40">
               <DialogTitle className="text-2xl font-bold">Import Creators</DialogTitle>
-              <DialogDescription className="text-zinc-500 text-sm mt-2">Add YouTube channels to your directory to sync spiritual content.</DialogDescription>
+              <DialogDescription className="text-zinc-500 text-sm mt-2">Use a Channel ID (UC...), Handle (@...), or full URL to sync spiritual content.</DialogDescription>
             </DialogHeader>
             
             {syncError && (
@@ -172,8 +197,8 @@ export function ChannelHub() {
             <Tabs defaultValue="bulk" className="w-full">
               <div className="px-10 pt-8">
                 <TabsList className="bg-zinc-900 p-1 rounded-2xl h-14 w-full border border-zinc-800">
-                  <TabsTrigger value="bulk" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700">Bulk Sync</TabsTrigger>
-                  <TabsTrigger value="single" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700">Single ID</TabsTrigger>
+                  <TabsTrigger value="bulk" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700">Bulk Import</TabsTrigger>
+                  <TabsTrigger value="single" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700">Single Lookup</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -181,13 +206,13 @@ export function ChannelHub() {
                 <TabsContent value="bulk" className="m-0 space-y-8">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Detected IDs</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Input List</label>
                       <span className="bg-zinc-900 px-3 py-1 rounded-full text-[10px] font-bold text-zinc-300 border border-zinc-800">
-                        {extractIds(bulkIds).length} Unique
+                        Detects IDs, Handles & URLs
                       </span>
                     </div>
                     <Textarea 
-                      placeholder="Paste list of YouTube Channel IDs..."
+                      placeholder="Paste text containing YouTube Channel IDs, Handles (@...), or URLs..."
                       className="bg-zinc-900 border-zinc-800 text-white font-mono text-xs min-h-[300px] rounded-[1.5rem] p-6 focus:ring-zinc-700 resize-none scrollbar-hide"
                       value={bulkIds}
                       onChange={(e) => setBulkBulkIds(e.target.value)}
@@ -195,19 +220,19 @@ export function ChannelHub() {
                   </div>
                   <Button 
                     className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl border border-zinc-300"
-                    disabled={isSyncing || extractIds(bulkIds).length === 0}
-                    onClick={() => handleSync(extractIds(bulkIds))}
+                    disabled={isSyncing}
+                    onClick={() => handleSync(bulkIds)}
                   >
                     {isSyncing ? <Loader2 className="animate-spin h-5 w-5" /> : <RefreshCw className="h-5 w-5" />}
-                    Sync All Detected Channels
+                    Process & Sync All Content
                   </Button>
                 </TabsContent>
 
                 <TabsContent value="single" className="m-0 space-y-8">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Channel ID</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Identifier or URL</label>
                     <Input 
-                      placeholder="UC..."
+                      placeholder="e.g. @TheKohistani or https://youtube.com/..."
                       className="bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 px-6"
                       value={singleId}
                       onChange={(e) => setSingleId(e.target.value)}
@@ -215,11 +240,11 @@ export function ChannelHub() {
                   </div>
                   <Button 
                     className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl border border-zinc-300"
-                    disabled={isSyncing || !singleId.startsWith('UC')}
-                    onClick={() => handleSync([singleId])}
+                    disabled={isSyncing || !singleId.trim()}
+                    onClick={() => handleSync(singleId)}
                   >
                     {isSyncing ? <Loader2 className="animate-spin h-5 w-5" /> : <Link2 className="h-5 w-5" />}
-                    Fetch & Link Channel
+                    Resolve & Link Creator
                   </Button>
                 </TabsContent>
               </div>
