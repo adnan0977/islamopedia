@@ -190,12 +190,12 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // For RTL navigation:
-    // Swiping to the Right (finger moving right) reveals content on the left (Next Page)
-    // Swiping to the Left (finger moving left) reveals content on the right (Previous Page)
-    if (isRightSwipe && currentPage < 604) {
+    // RTL Navigation (Reversed):
+    // Swipe Left (finger moves left) -> Distance > 0 -> Next Page
+    // Swipe Right (finger moves right) -> Distance < 0 -> Previous Page
+    if (isLeftSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
-    } else if (isLeftSwipe && currentPage > 1) {
+    } else if (isRightSwipe && currentPage > 1) {
       setCurrentPage(prev => prev - 1);
     }
   };
@@ -384,14 +384,14 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                <div className="text-right font-arabic leading-[4] text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
+                <div className="text-right font-arabic leading-loose text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
                     <span key={a.number} className="inline">
                       <span className="hover:text-white transition-colors">
                         {a.text}
                       </span>
                       {" "}
-                      <span className="inline-block mx-6 md:mx-8 align-middle select-none shrink-0">
+                      <span className="inline-block mx-4 md:mx-6 align-middle select-none shrink-0">
                         <AyatFrame 
                           number={a.numberInSurah} 
                           size="sm" 
