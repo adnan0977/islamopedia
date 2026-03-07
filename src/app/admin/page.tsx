@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, getDocs, writeBatch, orderBy, limit, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -835,6 +835,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
   const [available, setAvailable] = useState<any[]>([]);
   const [openAdd, setOpenAdd] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
 
   const fetchAvailable = async () => {
     setLoading(true);
@@ -854,6 +855,11 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     }
   }, [openAdd]);
 
+  const languages = useMemo(() => {
+    const set = new Set(available.map(a => a.language));
+    return Array.from(set).sort();
+  }, [available]);
+
   const toggleTranslation = (edition: any) => {
     const existing = translations.find(t => t.id === edition.identifier);
     if (existing) {
@@ -872,10 +878,12 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     }
   };
 
-  const filtered = available.filter(a => 
-    a.name.toLowerCase().includes(search.toLowerCase()) || 
-    a.language.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = available.filter(a => {
+    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
+                         a.language.toLowerCase().includes(search.toLowerCase());
+    const matchesLanguage = selectedLanguage === 'all' || a.language === selectedLanguage;
+    return matchesSearch && matchesLanguage;
+  });
 
   return (
     <div className="space-y-8">
@@ -894,14 +902,27 @@ function TranslationManagement({ translations }: { translations: any[] }) {
           <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 h-[80vh] flex flex-col rounded-3xl">
             <DialogHeader className="p-6 border-b border-zinc-800 shrink-0">
               <DialogTitle className="text-white font-bold text-xl">Available Editions</DialogTitle>
-              <div className="mt-4 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <Input 
-                  placeholder="Search by language or name..." 
-                  className="pl-10 bg-zinc-900 border-zinc-800 text-white rounded-xl"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+              <div className="mt-4 flex gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <Input 
+                    placeholder="Search name..." 
+                    className="pl-10 bg-zinc-900 border-zinc-800 text-white rounded-xl"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                  <SelectTrigger className="w-40 bg-zinc-900 border-zinc-800 text-white rounded-xl">
+                    <SelectValue placeholder="Language" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                    <SelectItem value="all">All Languages</SelectItem>
+                    {languages.map(lang => (
+                      <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </DialogHeader>
             <div className="flex-1 overflow-hidden">
@@ -1144,4 +1165,3 @@ function QuranIndexing({ translations }: { translations: any[] }) {
     </div>
   );
 }
-
