@@ -16,7 +16,11 @@ import {
   ArrowLeft,
   Database,
   Check,
-  Settings
+  Settings,
+  Search,
+  Mic2,
+  FilterX,
+  Languages as LanguagesIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -25,6 +29,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
@@ -39,8 +45,8 @@ export function QuranReader() {
   const router = useRouter();
   const { user } = useUser();
   
-  const initialMode = searchParams.get('mode') as 'ayat' | 'page' | 'index' || 'index';
-  const initialIndexType = searchParams.get('type') as 'surah' | 'juz' || 'surah';
+  const initialMode = (searchParams.get('mode') as 'ayat' | 'page' | 'index') || 'index';
+  const initialIndexType = (searchParams.get('type') as 'surah' | 'juz') || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
   const initialTrans = searchParams.get('trans') || 'en.sahih';
 
@@ -58,7 +64,12 @@ export function QuranReader() {
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
-  const [selectedTranslation, setSelectedTranslation] = useState(initialTrans);
+  const [selectedEditionId, setSelectedEditionId] = useState(initialTrans);
+  
+  // Selection UI Filters
+  const [editionSearch, setEditionSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'translation' | 'transliteration' | 'versebyverse'>('all');
+  const [langFilter, setLangFilter] = useState('all');
 
   // Load from local storage on mount
   useEffect(() => {
@@ -69,7 +80,7 @@ export function QuranReader() {
         const parsed = JSON.parse(saved);
         setLocalSettings(parsed);
         if (parsed.preferredTranslationId && !searchParams.get('trans')) {
-          setSelectedTranslation(parsed.preferredTranslationId);
+          setSelectedEditionId(parsed.preferredTranslationId);
         }
       } catch (e) {
         console.error("Error parsing local quran settings", e);
@@ -80,7 +91,7 @@ export function QuranReader() {
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
-    params.set('trans', selectedTranslation);
+    params.set('trans', selectedEditionId);
     if (viewMode === 'index') {
       params.set('type', indexType);
       params.delete('page');
@@ -89,7 +100,7 @@ export function QuranReader() {
       params.set('page', currentPage.toString());
     }
     router.replace(`/quran?${params.toString()}`, { scroll: false });
-  }, [viewMode, indexType, currentPage, selectedTranslation, router, searchParams]);
+  }, [viewMode, indexType, currentPage, selectedEditionId, router, searchParams]);
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
@@ -98,8 +109,20 @@ export function QuranReader() {
   ), [db]);
   const { data: editions } = useCollection(editionsQuery);
 
-  const translations = useMemo(() => {
-    return editions?.filter(e => e.type === 'translation') || [];
+  const filteredEditions = useMemo(() => {
+    if (!editions) return [];
+    return editions.filter(e => {
+      const matchesSearch = e.name.toLowerCase().includes(editionSearch.toLowerCase()) || 
+                           e.englishName.toLowerCase().includes(editionSearch.toLowerCase());
+      const matchesType = typeFilter === 'all' || e.type === typeFilter;
+      const matchesLang = langFilter === 'all' || e.language === langFilter;
+      return matchesSearch && matchesType && matchesLang;
+    });
+  }, [editions, editionSearch, typeFilter, langFilter]);
+
+  const languages = useMemo(() => {
+    if (!editions) return [];
+    return Array.from(new Set(editions.map(e => e.language))).sort();
   }, [editions]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
@@ -108,7 +131,6 @@ export function QuranReader() {
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
   
-  // Reading UI settings (from local storage state)
   const arabicFontSize = localSettings.arabicFontSize;
   const transFontSize = localSettings.translationFontSize;
   const ayatFrameId = localSettings.ayatFrameId || settings?.ayatFrameId || 'ornate-star';
@@ -154,7 +176,7 @@ export function QuranReader() {
                 surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } 
               });
               
-              const transSurah = docsByEdition[selectedTranslation];
+              const transSurah = docsByEdition[selectedEditionId];
               if (transSurah) {
                 const matchingAyat = transSurah.ayats.find((ta: any) => ta.number === a.number);
                 if (matchingAyat) {
@@ -176,7 +198,7 @@ export function QuranReader() {
       }
     }
     fetchPage();
-  }, [currentPage, selectedTranslation, viewMode, db]);
+  }, [currentPage, selectedEditionId, viewMode, db]);
 
   const groupedAyats = useMemo(() => {
     const groups: any[] = [];
@@ -239,7 +261,6 @@ export function QuranReader() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Opaque Sticky Header Wrapper */}
       <div className="sticky top-0 md:top-24 z-50 bg-background -mx-4 px-4 py-3">
         <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 rounded-2xl md:rounded-[2rem] border border-zinc-900 shadow-2xl gap-4">
           <div className="flex items-center gap-4">
@@ -298,39 +319,100 @@ export function QuranReader() {
                   <PopoverTrigger asChild>
                     <Button variant="ghost" className="rounded-xl h-10 px-3 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white transition-all">
                       <Languages className="w-4 h-4 md:mr-2" />
-                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Translation</span>
+                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Edition</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 bg-zinc-950 border-zinc-800 p-0 rounded-2xl overflow-hidden shadow-2xl z-[100]">
-                    <div className="p-4 border-b border-zinc-900 bg-zinc-900/50 flex items-center justify-between">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Editions</h3>
-                      <Languages className="w-3 h-3 text-zinc-700" />
-                    </div>
-                    <ScrollArea className="h-72">
-                      <div className="p-2 space-y-1">
-                        {translations.map((t) => (
+                  <PopoverContent className="w-96 bg-zinc-950 border-zinc-800 p-0 rounded-2xl overflow-hidden shadow-2xl z-[100]">
+                    <div className="p-4 border-b border-zinc-900 bg-zinc-900/50 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Edition Library</h3>
+                        <Languages className="w-3 h-3 text-zinc-700" />
+                      </div>
+                      
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+                        <Input 
+                          placeholder="Search editions..." 
+                          className="bg-zinc-950 border-zinc-800 h-9 pl-9 text-xs rounded-lg"
+                          value={editionSearch}
+                          onChange={(e) => setEditionSearch(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {['all', 'translation', 'transliteration'].map((t) => (
                           <button
-                            key={t.id}
-                            onClick={() => setSelectedTranslation(t.id)}
+                            key={t}
+                            onClick={() => setTypeFilter(t as any)}
                             className={cn(
-                              "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group",
-                              selectedTranslation === t.id ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:bg-zinc-900"
+                              "text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
+                              typeFilter === t ? "bg-white text-black border-white" : "text-zinc-500 border-zinc-800 hover:border-zinc-700"
                             )}
                           >
-                            <div className="flex flex-col">
-                              <span className="text-xs font-bold leading-none mb-1">{t.name}</span>
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                         <button
+                           onClick={() => setLangFilter('all')}
+                           className={cn(
+                             "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border",
+                             langFilter === 'all' ? "bg-zinc-100 text-black" : "text-zinc-600 border-zinc-900"
+                           )}
+                         >
+                           All Languages
+                         </button>
+                         {languages.map(l => (
+                           <button
+                             key={l}
+                             onClick={() => setLangFilter(l)}
+                             className={cn(
+                               "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border",
+                               langFilter === l ? "bg-zinc-100 text-black" : "text-zinc-600 border-zinc-900"
+                             )}
+                           >
+                             {l}
+                           </button>
+                         ))}
+                      </div>
+                    </div>
+                    
+                    <ScrollArea className="h-80">
+                      <div className="p-2 space-y-1">
+                        {filteredEditions.map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => setSelectedEditionId(t.id)}
+                            className={cn(
+                              "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group",
+                              selectedEditionId === t.id ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:bg-zinc-900"
+                            )}
+                          >
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold leading-none">{t.name}</span>
+                                {t.type === 'transliteration' && <Badge variant="outline" className="text-[7px] py-0 px-1 border-zinc-800 text-zinc-500">TR</Badge>}
+                              </div>
                               <span className={cn(
                                 "text-[9px] font-medium uppercase tracking-widest", 
-                                selectedTranslation === t.id ? "text-zinc-500" : "text-zinc-600"
+                                selectedEditionId === t.id ? "text-zinc-500" : "text-zinc-600"
                               )}>
-                                {t.englishName}
+                                {t.language} • {t.englishName}
                               </span>
                             </div>
-                            {selectedTranslation === t.id && (
+                            {selectedEditionId === t.id && (
                               <Check className="w-4 h-4" />
                             )}
                           </button>
                         ))}
+                        {filteredEditions.length === 0 && (
+                          <div className="py-12 text-center space-y-2">
+                             <FilterX className="w-8 h-8 text-zinc-900 mx-auto" />
+                             <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">No matching editions</p>
+                          </div>
+                        )}
                       </div>
                     </ScrollArea>
                   </PopoverContent>
@@ -455,7 +537,13 @@ export function QuranReader() {
                         
                         {a.trans && (
                           <div className="py-1 flex items-start justify-start">
-                            <p className="text-zinc-400 font-medium leading-relaxed text-left max-w-3xl" style={{ fontSize: `${transFontSize}px` }}>
+                            <p 
+                              className={cn(
+                                "font-medium leading-relaxed text-left max-w-3xl",
+                                editions?.find(e => e.id === selectedEditionId)?.type === 'transliteration' ? "text-zinc-500 italic" : "text-zinc-400"
+                              )} 
+                              style={{ fontSize: `${transFontSize}px` }}
+                            >
                               {a.trans}
                             </p>
                           </div>
@@ -529,3 +617,4 @@ export function QuranReader() {
     </div>
   );
 }
+
