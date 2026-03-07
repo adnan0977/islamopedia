@@ -73,7 +73,6 @@ export function QuranReader() {
   const { data: editions } = useCollection(editionsQuery);
 
   const translations = useMemo(() => {
-    // Strictly filter for editions of type 'translation'
     return editions?.filter(e => e.type === 'translation') || [];
   }, [editions]);
 
@@ -191,9 +190,9 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // RTL Swipe (Reversed logic based on user feedback):
-    // Swipe Left (finger moves left) -> Returns to previous page
-    // Swipe Right (finger moves right) -> Advances to next page
+    // RTL Swipe Navigation:
+    // Swipe Right (finger moves right, distance < 0) -> Advance to Next Page (Page + 1)
+    // Swipe Left (finger moves left, distance > 0) -> Return to Previous Page (Page - 1)
     if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
     } else if (isLeftSwipe && currentPage > 1) {
@@ -437,4 +436,3 @@ export function QuranReader() {
     </div>
   );
 }
-
