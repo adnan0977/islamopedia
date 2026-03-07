@@ -30,8 +30,6 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
-import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
@@ -81,10 +79,6 @@ export function QuranReader() {
   const translations = useMemo(() => {
     return editions?.filter(e => e.type === 'translation') || [];
   }, [editions]);
-
-  const bismillahImageUrl = useMemo(() => {
-    return PlaceHolderImages.find(img => img.id === 'bismillah-header')?.imageUrl;
-  }, []);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
@@ -191,33 +185,35 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // RTL Swipe: Right-to-Left (swipe left) moves to next page (physically turns page from left)
-    if (isLeftSwipe && currentPage < 604) {
+    // RTL Swipe: Swiping finger to the RIGHT advances to next page
+    if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
-    } else if (isRightSwipe && currentPage > 1) {
+    } else if (isLeftSwipe && currentPage > 1) {
       setCurrentPage(prev => prev - 1);
     }
   };
 
   const BismillahHeader = () => (
-    <div className="w-full flex justify-center py-12 mb-12 relative overflow-hidden rounded-[2rem] border-2 border-zinc-800 bg-zinc-900/40 shadow-inner">
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-100 to-transparent pointer-events-none" />
-      {bismillahImageUrl ? (
-        <div className="relative w-full max-w-[450px] aspect-[4/1] z-10">
-          <Image 
-            src={bismillahImageUrl} 
-            alt="Bismillah" 
-            fill 
-            className="object-contain"
-            style={{ filter: 'invert(1) brightness(3)' }}
-            data-ai-hint="islamic calligraphy"
-          />
-        </div>
-      ) : (
-        <p className="text-4xl md:text-6xl font-arabic text-white relative z-10 drop-shadow-2xl">
+    <div className="w-full flex justify-center py-10 mb-14 relative group">
+      {/* Decorative Illuminated Frame */}
+      <div className="absolute inset-0 bg-zinc-900/40 rounded-[2.5rem] border-2 border-zinc-800 shadow-inner group-hover:border-zinc-700 transition-colors" />
+      <div className="absolute inset-2 border border-zinc-800/50 rounded-[2rem] pointer-events-none" />
+      
+      {/* Glow effect */}
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-zinc-900 to-transparent pointer-events-none" />
+
+      {/* Ornate Corner Elements (SVGs) */}
+      <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-zinc-700 rounded-tl-xl pointer-events-none" />
+      <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-zinc-700 rounded-tr-xl pointer-events-none" />
+      <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-zinc-700 rounded-bl-xl pointer-events-none" />
+      <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-zinc-700 rounded-br-xl pointer-events-none" />
+      
+      {/* Calligraphy Text */}
+      <div className="relative z-10 px-8 py-2">
+        <span className="text-4xl md:text-6xl font-arabic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] tracking-normal leading-none select-none">
           {BISMILLAH_TEXT}
-        </p>
-      )}
+        </span>
+      </div>
     </div>
   );
 
@@ -467,7 +463,7 @@ export function QuranReader() {
             <ChevronLeft className="w-4 h-4" /> Next Page
           </Button>
           <div className="hidden md:block text-zinc-700 text-[10px] font-black uppercase tracking-[0.3em]">
-            Swipe Left to Turn Page
+            Swipe Right to Turn Page
           </div>
           <Button 
             variant="ghost" 
