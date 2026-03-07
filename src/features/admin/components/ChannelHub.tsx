@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -383,7 +382,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                 return (
                   <TableRow key={channel.id} className={cn("hover:bg-zinc-900/40 transition-all border-zinc-900 h-24", !channel.isActive && "opacity-50 grayscale")}>
                     <TableCell className="pl-10">
-                      <div className="flex items-center gap-8">
+                      <div className="flex items-center gap-4">
                         <div className="relative w-12 h-12 rounded-2xl overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
                           {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                         </div>
