@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -192,8 +191,8 @@ export function ChannelHub() {
             <Tabs defaultValue="bulk" className="w-full">
               <div className="px-10 pt-8">
                 <TabsList className="bg-zinc-900 p-1 rounded-2xl h-14 w-full border border-zinc-800">
-                  <TabsTrigger value="bulk" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700">Bulk Import</TabsTrigger>
-                  <TabsTrigger value="single" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700">Single Lookup</TabsTrigger>
+                  <TabsTrigger value="bulk" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700 text-white">Bulk Import</TabsTrigger>
+                  <TabsTrigger value="single" className="flex-1 rounded-xl font-bold h-full border border-transparent data-[state=active]:bg-zinc-800 data-[state=active]:border-zinc-700 text-white">Single Lookup</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -212,7 +211,7 @@ export function ChannelHub() {
                     />
                   </div>
                   <Button 
-                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 shadow-xl border border-white"
+                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl border border-zinc-800"
                     disabled={isSyncing}
                     onClick={() => handleSync(bulkIds)}
                   >
@@ -232,7 +231,7 @@ export function ChannelHub() {
                     />
                   </div>
                   <Button 
-                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 shadow-xl border border-white" 
+                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl border border-zinc-800" 
                     disabled={isSyncing || !singleId.trim()}
                     onClick={() => handleSync(singleId)}
                   >

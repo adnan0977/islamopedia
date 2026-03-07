@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -150,7 +149,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
             </div>
             <Button 
               onClick={handleStandardSync}
-              className="bg-amber-500 text-black hover:bg-amber-400 font-bold rounded-xl h-11 px-6 shrink-0"
+              className="bg-amber-500 text-white hover:bg-amber-400 font-bold rounded-xl h-11 px-6 shrink-0"
             >
               <Download className="mr-2 h-4 w-4" /> Sync Standard Arabic
             </Button>
@@ -167,8 +166,8 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
 
       <Tabs defaultValue="directory" className="w-full">
         <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
-          <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Edition Directory</TabsTrigger>
-          <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Full Viewer</TabsTrigger>
+          <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold text-white">Edition Directory</TabsTrigger>
+          <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold text-white">Full Viewer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory">
@@ -321,11 +320,11 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
           <p className="text-sm text-zinc-500 font-medium">Manage and filter {editions.length} indexed Quranic editions.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={fetchAndSeedMetadata} disabled={metaLoading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-zinc-400 hover:bg-zinc-900">
+          <Button variant="outline" onClick={fetchAndSeedMetadata} disabled={metaLoading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-white hover:bg-zinc-900">
             {metaLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
             Sync Structural Metadata
           </Button>
-          <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-zinc-400 hover:bg-zinc-900">
+          <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-white hover:bg-zinc-900">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CloudDownload className="w-4 h-4 mr-2" />}
             Seed Edition Registry
           </Button>
@@ -391,7 +390,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
             variant="outline" 
             size="icon" 
             onClick={resetFilters} 
-            className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-zinc-600 hover:text-white"
+            className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-white hover:text-white"
             title="Reset Filters"
           >
             <FilterX className="w-5 h-5" />
@@ -493,7 +492,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
                   <div className="flex flex-col items-center justify-center space-y-4">
                      <BookOpen className="w-12 h-12 text-zinc-900" />
                      <p className="text-zinc-600 font-medium">No editions found matching filters.</p>
-                     <Button variant="link" onClick={resetFilters} className="text-zinc-500">Clear all filters</Button>
+                     <Button variant="link" onClick={resetFilters} className="text-white">Clear all filters</Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -509,7 +508,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
            <div className="flex gap-2">
              <Button 
                variant="outline" 
-               className="rounded-xl border-zinc-800 text-zinc-400 font-bold h-10" 
+               className="rounded-xl border-zinc-800 text-white font-bold h-10" 
                disabled={currentPage === 1}
                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
              >
@@ -517,7 +516,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
              </Button>
              <Button 
                variant="outline" 
-               className="rounded-xl border-zinc-800 text-zinc-400 font-bold h-10" 
+               className="rounded-xl border-zinc-800 text-white font-bold h-10" 
                disabled={currentPage === totalPages || totalPages === 0}
                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
              >
@@ -610,7 +609,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="rounded-xl bg-zinc-900"
+              className="rounded-xl bg-zinc-900 text-white"
               onClick={() => filterMode === 'surah' ? setSurahNum(prev => Math.max(1, prev - 1)) : setPageNum(prev => Math.max(1, prev - 1))}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -621,7 +620,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="rounded-xl bg-zinc-900"
+              className="rounded-xl bg-zinc-900 text-white"
               onClick={() => filterMode === 'surah' ? setSurahNum(prev => Math.min(114, prev + 1)) : setPageNum(prev => Math.min(604, prev + 1))}
             >
               <ChevronRight className="w-4 h-4" />

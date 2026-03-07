@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -142,7 +141,7 @@ export function ScholarDirectory() {
                 </div>
               </div>
               <Button 
-                className="w-full h-14 font-bold rounded-2xl bg-white text-black hover:bg-zinc-200 shadow-xl border border-white" 
+                className="w-full h-14 font-bold rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl border border-zinc-800" 
                 onClick={handleAddScholar}
               >
                 Save Scholar Profile
