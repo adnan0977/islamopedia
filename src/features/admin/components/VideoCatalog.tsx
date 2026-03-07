@@ -118,12 +118,12 @@ export function VideoCatalog() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
             placeholder="Search titles or channels..." 
-            className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner w-full outline-none focus:ring-1 focus:ring-zinc-800"
+            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 shadow-inner w-full outline-none focus:ring-1 focus:ring-zinc-800"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -131,11 +131,11 @@ export function VideoCatalog() {
         <div className="flex gap-3">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl h-14 px-8 font-bold flex items-center gap-2">
+              <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl h-14 px-8 font-bold flex items-center gap-2 shadow-xl">
                 <Plus className="w-5 h-5" /> Add Video
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-bold">Catalog New Video</DialogTitle>
                 <DialogDescription className="text-zinc-500">Manually add spiritual content to your platform library.</DialogDescription>
@@ -204,13 +204,19 @@ export function VideoCatalog() {
               </Button>
             </DialogContent>
           </Dialog>
-          <Badge variant="secondary" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold flex items-center gap-2">
+          <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold flex items-center gap-2">
             {videos?.length || 0} Total Videos
           </Badge>
         </div>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
+        <div className="p-8 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/20">
+          <div className="flex items-center gap-3">
+            <VideoIcon className="w-5 h-5 text-zinc-400" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Video Catalog Explorer</h3>
+          </div>
+        </div>
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900 hover:bg-transparent">
@@ -226,8 +232,8 @@ export function VideoCatalog() {
               <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
                 <TableCell className="pl-8">
                   <div className="flex items-center gap-4">
-                    <div className="relative w-24 h-14 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0">
-                      <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />
+                    <div className="relative w-24 h-14 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
+                      {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="font-bold text-zinc-100 truncate max-w-[300px]">{video.title}</span>
@@ -265,7 +271,7 @@ export function VideoCatalog() {
                 <TableCell className="text-right pr-8">
                   <div className="flex justify-end gap-2">
                     <a href={video.externalUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-zinc-600 hover:text-white hover:bg-zinc-900">
+                      <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800">
                         <ExternalLink className="w-4 h-4" />
                       </Button>
                     </a>

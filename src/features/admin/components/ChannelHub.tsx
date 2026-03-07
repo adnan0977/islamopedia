@@ -45,7 +45,9 @@ const DEFAULT_IDS = `Islamic History Plus,UCsaR6SnAv97_9MI2JPLcyRA,English,Authe
 Islamic History (Official),UC1mNByYnDzhPesq4RF-jGLQ,English,Pivotal Events & Journeys
 The Kohistani,UCCBGUffdWwRV0gUqgElkCfw,Urdu/English,History & Documentary
 Islamic Bayan 2026,UCybKAapNVFBeZyn6DJHQaGA,Urdu,Contemporary Sermons & History
-Duroos.org,UCp4Vf-IOn66Xv_Xf7oN7tLg,Arabic/English,Classical Scholarly Lectures
+Deen Squad,UCU_9S_kA,English,Youth Culture & Reminders
+iLovUAllah,UC8f_6Y4qN3G7X,English,Motivational & Inspirational
+Duroos.org,UCp4Vf-IOn66Xv,Arabic/English,Classical Scholarly Lectures
 Masjid Ribat,UCv9u_K37S6v3m,English,Detailed Seerah & History`;
 
 export function ChannelHub() {
@@ -71,7 +73,7 @@ export function ChannelHub() {
   );
 
   const extractIds = (text: string) => {
-    const matches = text.match(/UC[a-zA-Z0-9_-]{22}/g);
+    const matches = text.match(/UC[a-zA-Z0-9_-]{10,24}/g);
     return Array.from(new Set(matches || []));
   };
 
@@ -114,12 +116,12 @@ export function ChannelHub() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
             placeholder="Search linked channels..."
-            className="bg-zinc-950 border-zinc-900 pl-12 rounded-2xl h-14 text-white focus:ring-zinc-700"
+            className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14 text-white focus:ring-zinc-700"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -243,7 +245,7 @@ export function ChannelHub() {
                   <TableCell>
                     <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm">
                       <Users className="w-4 h-4 text-zinc-700" />
-                      {(channel.subscribersCount / 1000).toFixed(1)}K Subscribers
+                      {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount} Subscribers
                     </div>
                   </TableCell>
                   <TableCell className="text-right pr-10">
