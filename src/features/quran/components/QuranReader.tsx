@@ -81,7 +81,7 @@ export function QuranReader() {
     return editions?.filter(e => e.type === 'translation') || [];
   }, [editions]);
 
-  const bismillahImage = useMemo(() => {
+  const bismillahImageUrl = useMemo(() => {
     return PlaceHolderImages.find(img => img.id === 'bismillah-header')?.imageUrl;
   }, []);
 
@@ -95,6 +95,7 @@ export function QuranReader() {
   const frameImageUrl = settings?.frameImageUrl;
 
   const cleanAyatText = (text: string, surahNumber: number, ayatNumberInSurah: number) => {
+    // AlQuran Cloud prefixes the Bismillah to the first ayat of most surahs
     if (surahNumber !== 1 && surahNumber !== 9 && ayatNumberInSurah === 1) {
       if (text.startsWith(BISMILLAH_TEXT)) {
         return text.substring(BISMILLAH_TEXT.length).trim();
@@ -209,7 +210,7 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // Swiping right advances to next page
+    // RTL Navigation: Swipe Right to go Next, Left to go Prev
     if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
     } else if (isLeftSwipe && currentPage > 1) {
@@ -381,14 +382,14 @@ export function QuranReader() {
                   {groupedAyats.map(group => (
                     <div key={group.surah.number} className="space-y-10">
                       {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 1 && group.surah.number !== 9 && (
-                        <div className="flex justify-center py-10 border-b border-zinc-900/50">
-                          {bismillahImage ? (
-                            <div className="relative w-full max-w-[400px] aspect-[4/1]">
+                        <div className="flex justify-center py-10 mb-8 border-b border-zinc-900/50">
+                          {bismillahImageUrl ? (
+                            <div className="relative w-full max-w-[450px] aspect-[4/1]">
                               <Image 
-                                src={bismillahImage} 
+                                src={bismillahImageUrl} 
                                 alt="Bismillah" 
                                 fill 
-                                className="object-contain invert brightness-200"
+                                className="object-contain invert brightness-150"
                                 data-ai-hint="islamic calligraphy"
                               />
                             </div>
@@ -433,14 +434,14 @@ export function QuranReader() {
                     return (
                       <span key={a.number} className="inline">
                         {isNewSurah && (
-                          <span className="block w-full text-center py-10 border-y border-zinc-900/50 my-8">
-                            {bismillahImage ? (
-                              <div className="relative w-full max-w-[400px] aspect-[4/1] mx-auto">
+                          <span className="block w-full text-center py-12 border-y border-zinc-900/50 my-12 bg-zinc-900/10">
+                            {bismillahImageUrl ? (
+                              <div className="relative w-full max-w-[450px] aspect-[4/1] mx-auto">
                                 <Image 
-                                  src={bismillahImage} 
+                                  src={bismillahImageUrl} 
                                   alt="Bismillah" 
                                   fill 
-                                  className="object-contain invert brightness-200"
+                                  className="object-contain invert brightness-150"
                                   data-ai-hint="islamic calligraphy"
                                 />
                               </div>
@@ -486,7 +487,7 @@ export function QuranReader() {
             <ChevronLeft className="w-4 h-4" /> <span className="hidden md:inline">Next Page</span>
           </Button>
           <div className="block text-zinc-700 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
-            Swipe to Turn Page
+            Swipe Right to Turn Page
           </div>
           <Button 
             variant="ghost" 
