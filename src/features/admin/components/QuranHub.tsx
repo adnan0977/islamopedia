@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
@@ -13,7 +13,10 @@ import {
   Search, 
   Languages, 
   Download, 
-  Book 
+  Book,
+  AlertCircle,
+  CheckCircle2,
+  Database
 } from 'lucide-react';
 import { 
   Dialog,
@@ -37,6 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { getAvailableTranslations, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface QuranHubProps {
   editions: any[];
@@ -52,8 +56,117 @@ const languageNameMap: Record<string, string> = {
 };
 
 export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncStatus }: QuranHubProps) {
+  const db = useFirestore();
+  const { toast } = useToast();
+
+  const standardEdition = editions.find(e => e.id === 'quran-uthmani');
+  const isStandardSynced = standardEdition?.dataSync === 'yes';
+
+  const handleStandardSync = async () => {
+    // Ensure the edition exists in the tracking collection first
+    if (!standardEdition) {
+      setDocumentNonBlocking(doc(db, 'quran_editions', 'quran-uthmani'), {
+        id: 'quran-uthmani',
+        name: 'Standard Arabic (Uthmani)',
+        language: 'Arabic',
+        languageCode: 'ar',
+        isActive: true,
+        isDefault: true,
+        dataSync: 'no'
+      }, { merge: true });
+    }
+    
+    // Trigger the sync process for the standard edition
+    await performSync('quran-uthmani');
+  };
+
+  const performSync = async (editionId: string) => {
+    setSyncing(true);
+    setSyncStatus('fetching');
+    setProgress(0);
+    
+    try {
+      const isArabic = editionId === 'quran-uthmani';
+      const arabicPayload = await getFullQuran('quran-uthmani');
+      const transPayload = isArabic ? arabicPayload : await getFullQuran(editionId);
+
+      setSyncStatus('saving');
+      const arabicSurahs = arabicPayload.data.surahs;
+      const transSurahs = transPayload.data.surahs;
+
+      const batchSize = 10;
+      for (let i = 0; i < arabicSurahs.length; i += batchSize) {
+        const chunk = arabicSurahs.slice(i, i + batchSize);
+        const batch = writeBatch(db);
+        
+        chunk.forEach((s: any, idx: number) => {
+          const sNum = s.number;
+          const tSurah = transSurahs[i + idx];
+          const surahId = `${editionId}_surah_${sNum}`;
+          
+          const ayats = s.ayahs.map((a: any, aIdx: number) => ({
+            number: a.number,
+            numberInSurah: a.numberInSurah,
+            text: a.text,
+            translationText: isArabic ? null : tSurah.ayahs[aIdx].text,
+            page: a.page,
+            juz: a.juz
+          }));
+
+          batch.set(doc(db, 'quran', surahId), {
+            id: surahId, 
+            editionId: editionId, 
+            surahNumber: sNum, 
+            name: s.name, 
+            englishName: s.englishName, 
+            ayats, 
+            pages: Array.from(new Set(ayats.map((a: any) => a.page))), 
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        });
+        await batch.commit();
+        setProgress(Math.round(((i + chunk.length) / arabicSurahs.length) * 100));
+      }
+
+      updateDocumentNonBlocking(doc(db, 'quran_editions', editionId), { dataSync: 'yes' });
+      setSyncStatus('success');
+      toast({ title: "Sync Complete", description: `${editionId} is now live.` });
+    } catch (e) {
+      setSyncStatus('error');
+      toast({ variant: "destructive", title: "Sync Failed" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Auto-Sync Alert for Standard Edition */}
+      {!isStandardSynced && !syncing && (
+        <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-200 rounded-3xl p-6">
+          <AlertCircle className="h-5 w-5 text-amber-500" />
+          <AlertTitle className="font-bold text-lg mb-2">Standard Quran Required</AlertTitle>
+          <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <p className="text-amber-200/70 text-sm">
+              The foundational Arabic Uthmani text has not been synchronized. This is required for the Quran Reader to function correctly.
+            </p>
+            <Button 
+              onClick={handleStandardSync}
+              className="bg-amber-500 text-black hover:bg-amber-400 font-bold rounded-xl h-11 px-6 shrink-0"
+            >
+              <Download className="mr-2 h-4 w-4" /> Sync Standard Arabic
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isStandardSynced && (
+         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-4 flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Standard Arabic Text Synchronized</span>
+         </div>
+      )}
+
       <Tabs defaultValue="directory" className="w-full">
         <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
           <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Edition Directory</TabsTrigger>
@@ -68,9 +181,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
           <SyncTool 
             editions={editions} 
             syncing={syncing} 
-            setSyncing={setSyncing} 
-            setProgress={setProgress} 
-            setSyncStatus={setSyncStatus} 
+            performSync={performSync}
           />
         </TabsContent>
         <TabsContent value="viewer">
@@ -204,63 +315,8 @@ function EditionDirectory({ editions }: { editions: any[] }) {
   );
 }
 
-function SyncTool({ editions, syncing, setSyncing, setProgress, setSyncStatus }: QuranHubProps) {
-  const db = useFirestore();
-  const { toast } = useToast();
+function SyncTool({ editions, syncing, performSync }: { editions: any[], syncing: boolean, performSync: (id: string) => Promise<void> }) {
   const [selectedEdition, setSelectedEdition] = useState('');
-
-  const handleSync = async () => {
-    if (!selectedEdition) return;
-    setSyncing(true);
-    setSyncStatus('fetching');
-    setProgress(0);
-    
-    try {
-      const isArabic = selectedEdition === 'quran-uthmani';
-      const arabicPayload = await getFullQuran('quran-uthmani');
-      const transPayload = isArabic ? arabicPayload : await getFullQuran(selectedEdition);
-
-      setSyncStatus('saving');
-      const arabicSurahs = arabicPayload.data.surahs;
-      const transSurahs = transPayload.data.surahs;
-
-      const batchSize = 10;
-      for (let i = 0; i < arabicSurahs.length; i += batchSize) {
-        const chunk = arabicSurahs.slice(i, i + batchSize);
-        const batch = writeBatch(db);
-        
-        chunk.forEach((s: any, idx: number) => {
-          const sNum = s.number;
-          const tSurah = transSurahs[i + idx];
-          const surahId = `${selectedEdition}_surah_${sNum}`;
-          
-          const ayats = s.ayahs.map((a: any, aIdx: number) => ({
-            number: a.number,
-            numberInSurah: a.numberInSurah,
-            text: a.text,
-            translationText: isArabic ? null : tSurah.ayahs[aIdx].text,
-            page: a.page,
-            juz: a.juz
-          }));
-
-          batch.set(doc(db, 'quran', surahId), {
-            id: surahId, editionId: selectedEdition, surahNumber: sNum, name: s.name, englishName: s.englishName, ayats, pages: Array.from(new Set(ayats.map((a: any) => a.page))), updatedAt: new Date().toISOString()
-          }, { merge: true });
-        });
-        await batch.commit();
-        setProgress(Math.round(((i + chunk.length) / arabicSurahs.length) * 100));
-      }
-
-      updateDocumentNonBlocking(doc(db, 'quran_editions', selectedEdition), { dataSync: 'yes' });
-      setSyncStatus('success');
-      toast({ title: "Sync Complete" });
-    } catch (e) {
-      setSyncStatus('error');
-      toast({ variant: "destructive", title: "Sync Failed" });
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   return (
     <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
@@ -280,7 +336,11 @@ function SyncTool({ editions, syncing, setSyncing, setProgress, setSyncStatus }:
             </SelectContent>
           </Select>
         </div>
-        <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold" onClick={handleSync} disabled={syncing || !selectedEdition}>
+        <Button 
+          className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold" 
+          onClick={() => performSync(selectedEdition)} 
+          disabled={syncing || !selectedEdition}
+        >
           <Download className="mr-2 w-4 h-4" /> Start Sync
         </Button>
       </div>
