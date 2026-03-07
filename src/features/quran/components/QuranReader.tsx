@@ -26,7 +26,8 @@ export function QuranReader() {
   // Fetch global settings for Ayat Frame style
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
-  const ayatFrameId = settings?.ayatFrameId || 'star';
+  const ayatFrameId = settings?.ayatFrameId || 'royal-ornate';
+  const customAyatFramePath = settings?.customAyatFramePath;
 
   useEffect(() => {
     async function fetchPage() {
@@ -73,6 +74,12 @@ export function QuranReader() {
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-6">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="flex items-center gap-4">
+          <AyatFrame 
+            number={groupedAyats[0]?.surah.number || 1} 
+            frameId={ayatFrameId} 
+            customPath={customAyatFramePath} 
+            size="md" 
+          />
           <h1 className="text-3xl font-headline font-bold text-white">{groupedAyats[0]?.surah.englishName || 'Quran Reader'}</h1>
           <Badge className="bg-zinc-900 border-zinc-800 text-zinc-500 font-black uppercase tracking-widest">Page {currentPage}</Badge>
         </div>
@@ -102,7 +109,11 @@ export function QuranReader() {
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="flex gap-8 group">
                           <div className="w-12 pt-2 shrink-0">
-                            <AyatFrame number={a.numberInSurah} frameId={ayatFrameId} />
+                            <AyatFrame 
+                              number={a.numberInSurah} 
+                              frameId={ayatFrameId} 
+                              customPath={customAyatFramePath} 
+                            />
                           </div>
                           <div className="flex-1 space-y-8">
                             <p className="text-right text-4xl md:text-6xl font-arabic leading-[2] text-zinc-100" dir="rtl">
@@ -125,7 +136,12 @@ export function QuranReader() {
                     <span key={a.number} className="hover:text-white transition-colors">
                       {a.text} 
                       <span className="inline-flex mx-2">
-                        <AyatFrame number={a.numberInSurah} size="lg" frameId={ayatFrameId} />
+                        <AyatFrame 
+                          number={a.numberInSurah} 
+                          size="lg" 
+                          frameId={ayatFrameId} 
+                          customPath={customAyatFramePath} 
+                        />
                       </span>
                     </span>
                   ))}

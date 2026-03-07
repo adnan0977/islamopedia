@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { Settings, Image as ImageIcon, Layout, Save, Loader2, Hash } from 'lucide-react';
+import { Settings, Image as ImageIcon, Layout, Save, Loader2, Hash, Code } from 'lucide-react';
 import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +25,7 @@ export function AppSettings() {
   const [localSettings, setLocalSettings] = useState({
     logoUrl: '',
     ayatFrameId: 'royal-ornate',
+    customAyatFramePath: '',
     navigationVisibility: {
       home: true,
       upload: true,
@@ -37,6 +39,7 @@ export function AppSettings() {
       setLocalSettings({
         logoUrl: settings.logoUrl || '',
         ayatFrameId: settings.ayatFrameId || 'royal-ornate',
+        customAyatFramePath: settings.customAyatFramePath || '',
         navigationVisibility: {
           home: settings.navigationVisibility?.home ?? true,
           upload: settings.navigationVisibility?.upload ?? true,
@@ -129,7 +132,41 @@ export function AppSettings() {
                   </span>
                 </button>
               ))}
+              
+              {/* Custom Path Option */}
+              <button
+                onClick={() => setLocalSettings({ ...localSettings, ayatFrameId: 'custom' })}
+                className={cn(
+                  "flex flex-col items-center gap-4 p-6 rounded-2xl border transition-all group h-full",
+                  localSettings.ayatFrameId === 'custom' 
+                    ? "bg-zinc-900 border-zinc-500 shadow-lg" 
+                    : "bg-zinc-950 border-zinc-900 hover:border-zinc-700"
+                )}
+              >
+                <div className="w-14 h-14 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center">
+                  <Code className="w-6 h-6 text-zinc-500" />
+                </div>
+                <span className={cn(
+                  "text-[10px] font-black uppercase tracking-tight text-center",
+                  localSettings.ayatFrameId === 'custom' ? "text-white" : "text-zinc-600 group-hover:text-zinc-400"
+                )}>
+                  Custom Path
+                </span>
+              </button>
             </div>
+
+            {localSettings.ayatFrameId === 'custom' && (
+              <div className="mt-6 p-6 bg-zinc-900/30 rounded-2xl border border-zinc-900 space-y-4 animate-in slide-in-from-top-2">
+                <Label className="text-xs font-bold text-zinc-400">Custom SVG Path Data (d attribute)</Label>
+                <Textarea 
+                  placeholder="M50 5 L95 50..."
+                  className="bg-zinc-950 border-zinc-800 text-white font-mono text-xs min-h-[100px]"
+                  value={localSettings.customAyatFramePath}
+                  onChange={(e) => setLocalSettings({ ...localSettings, customAyatFramePath: e.target.value })}
+                />
+                <p className="text-[10px] text-zinc-600">The SVG is rendered within a 100x100 viewBox. Center your design at 50,50.</p>
+              </div>
+            )}
           </div>
 
           {/* Navigation Section */}

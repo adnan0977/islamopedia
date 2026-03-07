@@ -17,12 +17,16 @@ export const AYAT_FRAMES = [
 interface AyatFrameProps {
   number: number | string;
   frameId?: string;
+  customPath?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export function AyatFrame({ number, frameId = 'royal-ornate', size = "md", className }: AyatFrameProps) {
-  const frame = AYAT_FRAMES.find(f => f.id === frameId) || AYAT_FRAMES[0];
+export function AyatFrame({ number, frameId = 'royal-ornate', customPath, size = "md", className }: AyatFrameProps) {
+  // Use custom path if provided or if the frameId is 'custom'
+  const pathData = (frameId === 'custom' && customPath) 
+    ? customPath 
+    : (AYAT_FRAMES.find(f => f.id === frameId)?.path || AYAT_FRAMES[0].path);
   
   const dimensions = {
     sm: "w-8 h-8",
@@ -43,7 +47,7 @@ export function AyatFrame({ number, frameId = 'royal-ornate', size = "md", class
         className="absolute inset-0 w-full h-full text-zinc-800 fill-zinc-900/30 stroke-zinc-700 transition-all duration-500"
         strokeWidth="2.5"
       >
-        <path d={frame.path} fillRule="evenodd" />
+        <path d={pathData} fillRule="evenodd" />
       </svg>
       <span className={cn("relative z-10 font-black font-sans text-zinc-400 transition-colors", fontSizes[size])}>
         {toArabicNumerals(number)}

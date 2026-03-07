@@ -539,10 +539,11 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
   const [content, setContent] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch frame setting
+  // Fetch global settings for Ayat Frame style
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
-  const ayatFrameId = settings?.ayatFrameId || 'star';
+  const ayatFrameId = settings?.ayatFrameId || 'royal-ornate';
+  const customAyatFramePath = settings?.customAyatFramePath;
 
   useEffect(() => {
     async function fetchContent() {
@@ -642,9 +643,12 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
               <div key={surah.id} className="space-y-8">
                 <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
                   <div className="flex items-center gap-4">
-                    <span className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-xs font-bold text-white">
-                      {surah.surahNumber}
-                    </span>
+                    <AyatFrame 
+                      number={surah.surahNumber} 
+                      frameId={ayatFrameId} 
+                      customPath={customAyatFramePath} 
+                      size="md" 
+                    />
                     <div>
                       <h4 className="font-bold text-white">{surah.englishName}</h4>
                       <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Edition: {surah.editionId}</p>
@@ -657,7 +661,11 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
                   {surah.ayats.map((ayat: any) => (
                     <div key={ayat.number} className="flex gap-6 group">
                       <div className="w-12 pt-2 shrink-0">
-                         <AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} />
+                         <AyatFrame 
+                           number={ayat.numberInSurah} 
+                           frameId={ayatFrameId} 
+                           customPath={customAyatFramePath} 
+                         />
                       </div>
                       <div className="flex-1 space-y-4">
                         <p className="text-right text-3xl font-arabic leading-relaxed text-zinc-200" dir="rtl">
