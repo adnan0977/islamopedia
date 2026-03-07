@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { getQuranSurahs, getPageDetails } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Book, Loader2, PlayCircle, PauseCircle, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Book, Loader2, PlayCircle, PauseCircle, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight, Settings, MoreVertical } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -13,12 +14,19 @@ import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-conte
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarShortcut,
+  MenubarTrigger,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
+  MenubarRadioGroup,
+  MenubarRadioItem,
+} from "@/components/ui/menubar"
 
 type ViewMode = 'ayat' | 'page';
 
@@ -155,7 +163,7 @@ export default function QuranPage() {
         </div>
 
         {/* Action Bar Clustered on Right */}
-        <div className="flex items-center gap-2 self-end md:self-auto">
+        <div className="flex items-center gap-3 self-end md:self-auto">
           <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-900 rounded-xl p-1 shadow-lg">
             <Button 
               variant="ghost" 
@@ -177,30 +185,38 @@ export default function QuranPage() {
             </Button>
           </div>
 
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-10 w-10 bg-zinc-950 border-zinc-900 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all shadow-lg"
-            onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
-          >
-            {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
-          </Button>
-
-          <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
-            <SelectTrigger className="w-10 h-10 p-0 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors">
-              <Languages className="w-5 h-5 shrink-0" />
-            </SelectTrigger>
-            <SelectContent align="end" className="bg-zinc-950 border-zinc-800">
-              {displayTranslations.map(t => (
-                <SelectItem key={t.id} value={t.id} className="text-zinc-300 focus:bg-zinc-900">
-                  <div className="flex flex-col py-0.5">
-                    <span className="font-bold text-xs">{t.name}</span>
-                    <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Menubar className="bg-zinc-950 border-zinc-900 rounded-xl h-10 px-2 shadow-lg hover:border-zinc-700 transition-colors">
+            <MenubarMenu>
+              <MenubarTrigger className="text-zinc-400 focus:bg-zinc-900 focus:text-white data-[state=open]:bg-zinc-900 data-[state=open]:text-white cursor-pointer font-bold flex items-center gap-2">
+                Quran
+              </MenubarTrigger>
+              <MenubarContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                <MenubarSub>
+                  <MenubarSubTrigger className="flex items-center gap-2 focus:bg-zinc-900">
+                    <Languages className="w-4 h-4" />
+                    Translations
+                  </MenubarSubTrigger>
+                  <MenubarSubContent className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[200px]">
+                    <MenubarRadioGroup value={selectedEdition} onValueChange={setSelectedEdition}>
+                      {displayTranslations.map((t) => (
+                        <MenubarRadioItem key={t.id} value={t.id} className="focus:bg-zinc-900">
+                          <div className="flex flex-col py-0.5">
+                            <span className="text-xs font-bold">{t.name}</span>
+                            <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
+                          </div>
+                        </MenubarRadioItem>
+                      ))}
+                    </MenubarRadioGroup>
+                  </MenubarSubContent>
+                </MenubarSub>
+                <MenubarSeparator className="bg-zinc-800" />
+                <MenubarItem onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')} className="flex items-center gap-2 focus:bg-zinc-900">
+                  {viewMode === 'ayat' ? <BookOpen className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
+                  {viewMode === 'ayat' ? 'Page View' : 'Ayat View'}
+                </MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+          </Menubar>
 
           <div className={cn(
             "relative transition-all duration-300 flex items-center",
@@ -381,3 +397,4 @@ export default function QuranPage() {
     </div>
   );
 }
+
