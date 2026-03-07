@@ -26,6 +26,8 @@ import {
   Languages,
   TrendingUp,
   History,
+  Eye,
+  BookOpen,
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -76,7 +78,7 @@ import {
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { getAvailableTranslations } from '@/lib/api';
+import { getAvailableTranslations, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type AdminTab = 'dashboard' | 'channels' | 'videos' | 'scholars' | 'quran-tools';
@@ -742,10 +744,14 @@ function QuranToolsView({ translations }: { translations: any[] }) {
       <Tabs defaultValue="directory" className="w-full">
         <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
           <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Edition Directory</TabsTrigger>
+          <TabsTrigger value="full-viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Full Quran Viewer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory">
           <TranslationManagement translations={translations} />
+        </TabsContent>
+        <TabsContent value="full-viewer">
+          <FullQuranViewer translations={translations} />
         </TabsContent>
       </Tabs>
     </div>
@@ -974,3 +980,97 @@ function TranslationManagement({ translations }: { translations: any[] }) {
   );
 }
 
+function FullQuranViewer({ translations }: { translations: any[] }) {
+  const [selectedEdition, setSelectedEdition] = useState('quran-uthmani');
+  const [quranData, setQuranData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const fetchQuran = async () => {
+    setLoading(true);
+    try {
+      const result = await getFullQuran(selectedEdition);
+      setQuranData(result.data);
+    } catch (e) {
+      toast({ variant: "destructive", title: "API Error", description: "Failed to fetch full Quran content." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuran();
+  }, [selectedEdition]);
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
+        <div className="space-y-1">
+          <h3 className="font-bold text-lg text-white">Full Quran Viewer</h3>
+          <p className="text-xs text-zinc-500 font-medium">Fetch and inspect the entire payload of any activated translation edition.</p>
+        </div>
+        <div className="w-full md:w-80">
+           <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Target Edition</Label>
+           <Select value={selectedEdition} onValueChange={setSelectedEdition}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white rounded-xl">
+                <SelectValue placeholder="Select Edition" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                <SelectItem value="quran-uthmani">Arabic Uthmani (Base)</SelectItem>
+                {translations.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+           </Select>
+        </div>
+      </div>
+
+      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl h-[70vh] flex flex-col">
+        {loading ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-zinc-800 space-y-4">
+            <Loader2 className="animate-spin w-12 h-12" />
+            <p className="text-sm font-black uppercase tracking-widest">Fetching Full Quran Payload...</p>
+          </div>
+        ) : quranData ? (
+          <ScrollArea className="flex-1">
+            <div className="p-8 space-y-12">
+              {quranData.surahs.map((surah: any) => (
+                <div key={surah.number} className="space-y-6">
+                  <div className="flex items-center gap-4 border-b border-zinc-900 pb-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">Surah {surah.number}. {surah.englishName}</span>
+                    <div className="flex-1 h-px bg-zinc-900" />
+                  </div>
+                  {surah.ayahs.map((ayah: any) => (
+                    <div key={ayah.number} className="group p-6 bg-zinc-900/30 rounded-2xl border border-zinc-900/50 hover:border-zinc-800 transition-all">
+                       <div className="flex justify-between items-start gap-8">
+                         <div className="flex flex-col gap-2">
+                            <Badge variant="outline" className="w-fit text-[8px] font-black uppercase tracking-widest text-zinc-600 border-zinc-900">
+                              PAGE {ayah.page}
+                            </Badge>
+                            <Badge variant="secondary" className="w-fit text-[8px] font-black uppercase tracking-widest bg-zinc-900 text-zinc-400">
+                              AYAT {ayah.numberInSurah}
+                            </Badge>
+                         </div>
+                         <p className={cn(
+                           "flex-1 text-right leading-relaxed text-zinc-100",
+                           selectedEdition.includes('ar') ? "text-2xl font-arabic" : "text-sm font-medium"
+                         )}>
+                           {ayah.text}
+                         </p>
+                       </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-zinc-600">
+            <Eye className="w-12 h-12 opacity-10 mb-4" />
+            <p className="font-bold">Select an edition to view its content.</p>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
