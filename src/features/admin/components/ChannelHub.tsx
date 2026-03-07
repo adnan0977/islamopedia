@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -28,32 +29,17 @@ import { useToast } from '@/hooks/use-toast';
 import { fetchYouTubeChannels } from '@/services/youtube-server';
 import { Input } from '@/components/ui/input';
 
-// Pre-sanitized list of unique IDs from user's provided data
+// Sanitized list based on the latest user request
 const DEFAULT_IDS = [
-  "UCNB_OaI4504v6A6mAnV2S0A",
-  "UC9BY472E8Z2YpGsh_m_6WPA",
-  "UCv9u_K37S6v3m3N_5fV3DPA",
-  "UCp4Vf-IOn66Xv_Xf7oN7tLg",
-  "UC4898uN4R6_z5_7_t8A8kXA",
-  "UChKk-8-U82XyG-6G_Fw_x7A",
-  "UCv_6SAn7tU_z_8m9I7qVvUA",
-  "UC8m7_p6_qD8zU_x7S8F8_xA",
-  "UCv9f8_6Y4qN3G7X_U_9S_kA",
-  "UCfSmrkM_O8Z2YpGsh_m_6WPA",
-  "UCrX7_6iO-8q_YvK9vX_7A",
-  "UCmS7nO1n7A_w9D7A_U_9S_kA",
-  "UCuT7_8m7_p6_qD8zU_x7S8F8",
-  "UCiZL26Scf_8m7_p6_qD8zU_x",
-  "UCBMHtZeFf0EJeYr7CXnO5xQ",
-  "UCswfDAA0jz-g",
-  "UC0SpkR2ZkUwbzyq36ZJa_Lg",
-  "UCCGvq-qmjFmmMD4e-PLQqGg",
-  "UCQHRLH8RQIrdGWMhf5heWiA",
-  "UC6hAia1d_zZFl5tgwxDdxUg",
-  "UC7akDG0W4i-8",
-  "UCMad1VGxhLz0",
-  "UCA7NJDbK4nnU",
-  "UCza9svcr3"
+  "UCsaR6SnAv97_9MI2JPLcyRA", // Islamic History Plus
+  "UC1mNByYnDzhPesq4RF-jGLQ", // Islamic History (Official)
+  "UCCBGUffdWwRV0gUqgElkCfw", // The Kohistani
+  "UCybKAapNVFBeZyn6DJHQaGA", // Islamic Bayan 2026
+  "UCp4Vf-IOn66Xv_Xf7oN7tLg", // Duroos.org
+  "UCv9u_K37S6v3m3N_5fV3DPA", // Masjid Ribat
+  "UC8m7_p6_qD8zU_x7S8F8_xA", // iLovUAllah
+  "UCNB_OaI4504v6A6mAnV2S0A", // Quran Central
+  "UCBMHtZeFf0EJeYr7CXnO5xQ"  // Additional 
 ].join('\n');
 
 export function ChannelHub() {
@@ -66,6 +52,7 @@ export function ChannelHub() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const extractIds = (text: string) => {
+    // Regex for standard YouTube Channel IDs (UC + 22 characters)
     const matches = text.match(/UC[a-zA-Z0-9_-]{22}/g);
     return Array.from(new Set(matches || []));
   };
@@ -78,6 +65,7 @@ export function ChannelHub() {
 
     setIsSyncing(true);
     try {
+      // YouTube Data API allows up to 50 IDs per request
       const chunks = [];
       for (let i = 0; i < idsToSync.length; i += 50) {
         chunks.push(idsToSync.slice(i, i + 50));
@@ -115,9 +103,9 @@ export function ChannelHub() {
         </div>
         
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-white">YouTube Integration</h2>
+          <h2 className="text-2xl font-bold text-white">Channel Synchronizer</h2>
           <p className="text-zinc-500 text-sm max-w-xs mx-auto">
-            Link creator channels to automatically synchronize spiritual content and scholars.
+            Index YouTube creator channels to populate your spiritual feed and scholar directory.
           </p>
         </div>
 
@@ -131,63 +119,76 @@ export function ChannelHub() {
           </DialogTrigger>
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-0 overflow-hidden outline-none shadow-2xl">
             <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
-              <DialogTitle className="text-2xl font-bold">Import Content Library</DialogTitle>
-              <DialogDescription className="text-zinc-500">Enter YouTube Channel IDs to fetch metadata and start indexing.</DialogDescription>
+              <DialogTitle className="text-2xl font-bold">Import Content Registry</DialogTitle>
+              <DialogDescription className="text-zinc-500">Fetch metadata from YouTube and persist it to Firestore.</DialogDescription>
             </DialogHeader>
             
             <Tabs defaultValue="bulk" className="w-full">
               <div className="px-8 pt-6">
                 <TabsList className="bg-zinc-900 p-1 rounded-xl h-12 w-full border border-zinc-800">
-                  <TabsTrigger value="single" className="flex-1 rounded-lg font-bold"><Globe className="w-4 h-4 mr-2" /> Single ID</TabsTrigger>
                   <TabsTrigger value="bulk" className="flex-1 rounded-lg font-bold"><Database className="w-4 h-4 mr-2" /> Bulk Sync</TabsTrigger>
+                  <TabsTrigger value="single" className="flex-1 rounded-lg font-bold"><Globe className="w-4 h-4 mr-2" /> Single ID</TabsTrigger>
                 </TabsList>
               </div>
 
               <div className="p-8">
-                <TabsContent value="single" className="m-0 space-y-6">
-                  <div className="space-y-4">
-                    <label className="text-xs font-black uppercase tracking-widest text-zinc-600">YouTube Channel ID</label>
-                    <Input 
-                      placeholder="e.g. UCp4Vf-IOn66Xv_Xf7oN7tLg"
-                      className="bg-zinc-900 border-zinc-800 text-white rounded-xl h-14 focus:ring-zinc-700"
-                      value={singleId}
-                      onChange={(e) => setSingleId(e.target.value)}
-                    />
-                    <p className="text-[10px] text-zinc-600 italic">Example: UC + 22 alphanumeric characters.</p>
-                  </div>
-                  <Button 
-                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md"
-                    disabled={isSyncing || !singleId.startsWith('UC')}
-                    onClick={() => handleSync([singleId])}
-                  >
-                    {isSyncing ? <Loader2 className="animate-spin mr-2" /> : <Link2 className="mr-2 h-5 w-5" />}
-                    Link Channel
-                  </Button>
-                </TabsContent>
-
                 <TabsContent value="bulk" className="m-0 space-y-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-black uppercase tracking-widest text-zinc-600">
                         IDs Detected: <span className="text-zinc-300 ml-1">{extractIds(bulkIds).length}</span>
                       </label>
-                      <Button variant="link" className="text-zinc-600 text-xs h-auto p-0 hover:text-white" onClick={() => setBulkBulkIds('')}>Clear All</Button>
+                      <Button variant="link" className="text-zinc-600 text-xs h-auto p-0 hover:text-white" onClick={() => setBulkBulkIds('')}>Clear Input</Button>
                     </div>
                     <Textarea 
                       placeholder="Paste list of IDs or links..."
-                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-[11px] min-h-[200px] rounded-2xl p-6 focus:ring-zinc-700 scrollbar-hide"
+                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-[11px] min-h-[250px] rounded-2xl p-6 focus:ring-zinc-700 scrollbar-hide resize-none"
                       value={bulkIds}
                       onChange={(e) => setBulkBulkIds(e.target.value)}
                     />
                   </div>
-                  <Button 
-                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md"
-                    disabled={isSyncing || extractIds(bulkIds).length === 0}
-                    onClick={() => handleSync(extractIds(bulkIds))}
-                  >
-                    {isSyncing ? <Loader2 className="animate-spin mr-2" /> : <RefreshCw className="mr-2 h-5 w-5" />}
-                    Sync All Detected Channels
-                  </Button>
+                  <div className="pt-2">
+                    <Button 
+                      className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md flex items-center justify-center gap-2 shadow-lg"
+                      disabled={isSyncing || extractIds(bulkIds).length === 0}
+                      onClick={() => handleSync(extractIds(bulkIds))}
+                    >
+                      {isSyncing ? (
+                        <>
+                          <Loader2 className="animate-spin h-5 w-5" />
+                          Indexing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-5 w-5" />
+                          Sync All Detected Channels
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="single" className="m-0 space-y-6">
+                  <div className="space-y-4">
+                    <label className="text-xs font-black uppercase tracking-widest text-zinc-600">Specific YouTube Channel ID</label>
+                    <Input 
+                      placeholder="e.g. UCp4Vf-IOn66Xv_Xf7oN7tLg"
+                      className="bg-zinc-900 border-zinc-800 text-white rounded-xl h-14 focus:ring-zinc-700"
+                      value={singleId}
+                      onChange={(e) => setSingleId(e.target.value)}
+                    />
+                    <p className="text-[10px] text-zinc-600 italic px-1">Example: UC followed by 22 alphanumeric characters.</p>
+                  </div>
+                  <div className="pt-2">
+                    <Button 
+                      className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md flex items-center justify-center gap-2 shadow-lg"
+                      disabled={isSyncing || !singleId.startsWith('UC') || singleId.length < 24}
+                      onClick={() => handleSync([singleId])}
+                    >
+                      {isSyncing ? <Loader2 className="animate-spin h-5 w-5" /> : <Link2 className="h-5 w-5" />}
+                      Fetch & Link Channel
+                    </Button>
+                  </div>
                 </TabsContent>
               </div>
             </Tabs>
