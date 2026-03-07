@@ -122,7 +122,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
     setSyncStatus('Fetching channel metadata...');
     try {
       let totalSynced = 0;
-      const allResolvedChannels: any[] = [];
+      const all ResolvedChannels: any[] = [];
 
       if (ids.length > 0) {
         for (let i = 0; i < ids.length; i += 50) {
@@ -382,7 +382,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           <Table className="min-w-[800px]">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6">Creator branding</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[30%]">Creator branding</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-32">Inventory</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-24">Subs</TableHead>
                 <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-48">Actions</TableHead>
@@ -396,13 +396,13 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                   const videosInDbCount = videos.filter(v => v.channelId === channel.id).length;
                   return (
                     <TableRow key={channel.id} className={cn("hover:bg-zinc-900/40 transition-all border-zinc-900 h-24", !channel.isActive && "opacity-50 grayscale")}>
-                      <TableCell className="pl-6">
+                      <TableCell className="pl-6 max-w-0">
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-zinc-800 bg-black shrink-0">
                             {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                           </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-zinc-100 truncate max-w-[200px] text-sm flex items-center gap-2">
+                          <div className="flex flex-col min-w-0 overflow-hidden">
+                            <span className="font-bold text-zinc-100 truncate text-sm flex items-center gap-2">
                               {channel.title}
                               {channel.isActive && <CheckCircle2 className="w-3 h-3 text-zinc-600" />}
                             </span>

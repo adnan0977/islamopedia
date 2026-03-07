@@ -118,7 +118,7 @@ export function VideoCatalog() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-full">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-full">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
@@ -230,7 +230,7 @@ export function VideoCatalog() {
           <Table className="min-w-[800px]">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6">Video Details</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[30%]">Video Details</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-32">Engagement</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-32">Published</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-32">Status</TableHead>
@@ -240,13 +240,13 @@ export function VideoCatalog() {
             <TableBody>
               {filteredVideos?.map((video) => (
                 <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
-                  <TableCell className="pl-6">
+                  <TableCell className="pl-6 max-w-0">
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="relative w-20 h-12 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
                         {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-zinc-100 truncate max-w-[200px] md:max-w-[300px] text-xs">{video.title}</span>
+                      <div className="flex flex-col min-w-0 overflow-hidden">
+                        <span className="font-bold text-zinc-100 truncate text-xs">{video.title}</span>
                         <span className="text-[9px] text-zinc-600 truncate uppercase mt-1">{video.channelId}</span>
                       </div>
                     </div>
