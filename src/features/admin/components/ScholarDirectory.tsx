@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -126,12 +125,12 @@ export function ScholarDirectory() {
                 <span className="text-sm">Add New Scholar</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-xl shadow-2xl flex flex-col max-h-[90vh]">
+            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
               <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
                 <DialogTitle className="text-xl font-bold">Register Scholar</DialogTitle>
-                <DialogDescription className="text-zinc-500 text-xs">Create a profile for a spiritual teacher.</DialogDescription>
+                <DialogDescription className="text-zinc-500 text-xs mt-1">Create a profile for a spiritual teacher.</DialogDescription>
               </DialogHeader>
-              <div className="flex-1 overflow-y-auto p-8 space-y-6">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800">
                 <div className="space-y-2">
                   <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Scholar Name</Label>
                   <Input 
@@ -177,7 +176,7 @@ export function ScholarDirectory() {
       </div>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
-        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10">
+        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10 max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold">Remove Scholar Profile?</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -273,7 +272,7 @@ export function VideoCatalog() {
       </div>
 
       <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
           <DialogHeader className="p-6 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
             <DialogTitle className="text-xl font-bold">{isEditing ? 'Update Video' : 'Catalog New Video'}</DialogTitle>
             <DialogDescription className="text-zinc-500 text-xs mt-1">
@@ -366,7 +365,7 @@ export function VideoCatalog() {
       </Dialog>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
-        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10">
+        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10 max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold">Remove from Catalog?</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500">

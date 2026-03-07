@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -249,19 +248,19 @@ export function ChannelHub({ videos }: { videos: any[] }) {
               Add Creators
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-10 outline-none">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">Import Creators</DialogTitle>
-              <DialogDescription className="text-zinc-500">Paste YouTube IDs, Handles, or URLs below.</DialogDescription>
+          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] max-w-xl p-8 outline-none shadow-2xl">
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-xl font-bold">Import Creators</DialogTitle>
+              <DialogDescription className="text-zinc-500 text-xs">Paste YouTube IDs, Handles, or URLs below.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-6 pt-6">
+            <div className="space-y-6">
               <Textarea 
                 placeholder="Paste IDs..."
-                className="bg-zinc-900 border-zinc-800 h-64 rounded-2xl p-6"
+                className="bg-zinc-900 border-zinc-800 h-64 rounded-2xl p-6 scrollbar-thin scrollbar-thumb-zinc-800"
                 value={bulkIds}
                 onChange={(e) => setBulkBulkIds(e.target.value)}
               />
-              <Button className="w-full h-14 bg-zinc-100 text-black font-bold rounded-2xl" onClick={() => handleSync(bulkIds)}>
+              <Button className="w-full h-14 bg-zinc-100 text-black font-bold rounded-2xl shadow-xl transition-all active:scale-[0.98]" onClick={() => handleSync(bulkIds)}>
                 Process Import
               </Button>
             </div>
@@ -270,7 +269,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
       </div>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
-        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10">
+        <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10 max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold">Unlink Creator?</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500">
