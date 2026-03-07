@@ -4,9 +4,26 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
-import { Loader2, ChevronLeft, ChevronRight, Grid3X3, Layers } from 'lucide-react';
+import { 
+  Loader2, 
+  ChevronLeft, 
+  ChevronRight, 
+  Grid3X3, 
+  Layers, 
+  Type, 
+  Book as BookIcon,
+  Languages,
+  ArrowLeft
+} from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
@@ -21,18 +38,20 @@ export function QuranReader() {
   const initialMode = searchParams.get('mode') as 'ayat' | 'page' | 'index' || 'index';
   const initialIndexType = searchParams.get('type') as 'surah' | 'juz' || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
+  const initialTrans = searchParams.get('trans') || 'en.sahih';
 
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [viewMode, setViewMode] = useState<'ayat' | 'page' | 'index'>(initialMode);
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
-  const [selectedEdition] = useState('en.sahih');
+  const [selectedTranslation, setSelectedTranslation] = useState(initialTrans);
 
   // Handle URL updates when state changes
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
+    params.set('trans', selectedTranslation);
     if (viewMode === 'index') {
       params.set('type', indexType);
     } else {
@@ -40,10 +59,19 @@ export function QuranReader() {
       params.set('page', currentPage.toString());
     }
     router.replace(`/quran?${params.toString()}`, { scroll: false });
-  }, [viewMode, indexType, currentPage, router, searchParams]);
+  }, [viewMode, indexType, currentPage, selectedTranslation, router, searchParams]);
 
-  const editionsRef = useMemoFirebase(() => collection(db, 'quran_editions'), [db]);
-  const { data: editions } = useCollection(editionsRef);
+  // Fetch available translations
+  const editionsQuery = useMemoFirebase(() => query(
+    collection(db, 'quran_editions'), 
+    where('isActive', '==', true),
+    where('dataSync', '==', 'yes')
+  ), [db]);
+  const { data: editions } = useCollection(editionsQuery);
+
+  const translations = useMemo(() => {
+    return editions?.filter(e => e.type === 'translation' || e.id !== 'quran-uthmani') || [];
+  }, [editions]);
 
   // Fetch Global Metadata for Indexing
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
@@ -66,29 +94,61 @@ export function QuranReader() {
         const pageArabic: any[] = [];
         const pageTrans: any[] = [];
 
+        // Organize snapshots by edition for easy lookup
+        const docsByEdition: Record<string, any> = {};
         snapshots.forEach(doc => {
-          const s = doc.data();
+          const data = doc.data();
+          docsByEdition[data.editionId] = data;
+        });
+
+        // Get Arabic base
+        const arabicSurahDocs = snapshots.docs
+          .map(d => d.data())
+          .filter(d => d.editionId === 'quran-uthmani');
+
+        arabicSurahDocs.forEach(s => {
           s.ayats.forEach((a: any) => {
             if (a.page === currentPage) {
-              if (s.editionId === 'quran-uthmani') pageArabic.push({ ...a, surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } });
-              if (s.editionId === selectedEdition) pageTrans.push(a);
+              pageArabic.push({ 
+                ...a, 
+                surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } 
+              });
+              
+              // Find matching translation ayat
+              const transSurah = docsByEdition[selectedTranslation];
+              if (transSurah) {
+                const matchingAyat = transSurah.ayats.find((ta: any) => ta.number === a.number);
+                if (matchingAyat) {
+                  pageTrans.push(matchingAyat);
+                }
+              }
             }
           });
         });
         
-        pageArabic.sort((a, b) => (a.numberInSurah - b.numberInSurah));
-        setQuranData({ arabic: pageArabic, trans: pageTrans });
-      } catch (e) { console.error(e); } finally { setLoadingContent(false); }
+        pageArabic.sort((a, b) => a.number - b.number);
+        // Translation array needs to align with Arabic array indices
+        const alignedTrans = pageArabic.map(aa => pageTrans.find(tt => tt.number === aa.number));
+
+        setQuranData({ arabic: pageArabic, trans: alignedTrans });
+      } catch (e) { 
+        console.error(e); 
+      } finally { 
+        setLoadingContent(false); 
+      }
     }
     fetchPage();
-  }, [currentPage, selectedEdition, viewMode, db]);
+  }, [currentPage, selectedTranslation, viewMode, db]);
 
   const groupedAyats = useMemo(() => {
     const groups: any[] = [];
     quranData.arabic.forEach((ayat, idx) => {
       const last = groups[groups.length - 1];
       if (!last || last.surah.number !== ayat.surah.number) {
-        groups.push({ surah: ayat.surah, ayats: [{ ...ayat, trans: quranData.trans[idx]?.translationText }] });
+        groups.push({ 
+          surah: ayat.surah, 
+          ayats: [{ ...ayat, trans: quranData.trans[idx]?.translationText }] 
+        });
       } else {
         last.ayats.push({ ...ayat, trans: quranData.trans[idx]?.translationText });
       }
@@ -98,7 +158,7 @@ export function QuranReader() {
 
   const handleJumpToPage = (page: number) => {
     setCurrentPage(page);
-    setViewMode('page'); // Default to Page mode for Juz/General jumps
+    setViewMode('page'); 
   };
 
   const handleJumpToSurah = (surahNum: number) => {
@@ -109,7 +169,7 @@ export function QuranReader() {
           const data = snap.docs[0].data();
           if (data.pages && data.pages.length > 0) {
             setCurrentPage(data.pages[0]);
-            setViewMode('ayat'); // Default to Ayat mode for Surah jumps
+            setViewMode('ayat'); 
           }
         }
       })
@@ -124,7 +184,7 @@ export function QuranReader() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-6">
         <div className="flex items-center gap-4">
           <AyatFrame 
             number={viewMode === 'index' ? (indexType === 'surah' ? '١' : '٣٠') : (groupedAyats[0]?.surah.number || currentPage)} 
@@ -145,51 +205,95 @@ export function QuranReader() {
           </div>
         </div>
 
-        {/* Primary Navigation: Surah/Juz List Selection */}
-        <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => toggleIndex('surah')} 
-            className={cn("rounded-xl font-bold h-10 px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-          >
-            <Grid3X3 className="w-4 h-4 mr-2" /> Surah List
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => toggleIndex('juz')} 
-            className={cn("rounded-xl font-bold h-10 px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-          >
-            <Layers className="w-4 h-4 mr-2" /> Juz List
-          </Button>
-        </div>
-
-        {viewMode !== 'index' && (
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+          {/* Primary Navigation: Surah/Juz List Selection */}
+          <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
             <Button 
-              variant="outline" 
-              size="icon" 
-              className="rounded-xl border-zinc-800 h-10 w-10"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
-              disabled={currentPage <= 1}
+              variant="ghost" 
+              size="sm" 
+              onClick={() => toggleIndex('surah')} 
+              className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
             </Button>
-            <div className="bg-zinc-900 px-4 h-10 flex items-center justify-center rounded-xl font-bold text-xs text-zinc-400 min-w-[80px] border border-zinc-800">
-              {currentPage} / ٦٠٤
-            </div>
             <Button 
-              variant="outline" 
-              size="icon" 
-              className="rounded-xl border-zinc-800 h-10 w-10"
-              onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
-              disabled={currentPage >= 604}
+              variant="ghost" 
+              size="sm" 
+              onClick={() => toggleIndex('juz')} 
+              className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
             >
-              <ChevronRight className="w-4 h-4" />
+              <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
             </Button>
           </div>
-        )}
+
+          {viewMode !== 'index' && (
+            <>
+              {/* View Mode Toggle: Ayat vs Page */}
+              <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setViewMode('ayat')} 
+                  className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'ayat') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                >
+                  <Type className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Ayat View</span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setViewMode('page')} 
+                  className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'page') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                >
+                  <BookIcon className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Page View</span>
+                </Button>
+              </div>
+
+              {/* Translation Selector */}
+              <div className="flex-1 md:flex-none md:w-48">
+                <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
+                  <SelectTrigger className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-zinc-300 text-xs font-bold">
+                    <div className="flex items-center gap-2">
+                      <Languages className="w-3.5 h-3.5 text-zinc-500" />
+                      <SelectValue placeholder="Translation" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                    {translations.map((t) => (
+                      <SelectItem key={t.id} value={t.id} className="text-xs font-medium">
+                        {t.name} ({t.language})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center gap-3 ml-auto">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="rounded-xl border-zinc-800 h-10 w-10"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                  disabled={currentPage <= 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="bg-zinc-900 px-4 h-10 flex items-center justify-center rounded-xl font-bold text-xs text-zinc-400 min-w-[80px] border border-zinc-800">
+                  {currentPage} / ٦٠٤
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="rounded-xl border-zinc-800 h-10 w-10"
+                  onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
+                  disabled={currentPage >= 604}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -296,8 +400,8 @@ export function QuranReader() {
                 </div>
               ) : (
                 <div className="text-right font-arabic leading-[3] text-4xl md:text-7xl text-zinc-100" style={{ direction: 'rtl' }}>
-                  {quranData.arabic.map(a => (
-                    <span key={a.number} className="hover:text-white transition-colors">
+                  {quranData.arabic.map((a, idx) => (
+                    <span key={a.number} className="hover:text-white transition-colors group relative inline-block">
                       {a.text} 
                       <span className="inline-flex mx-2">
                         <AyatFrame 
