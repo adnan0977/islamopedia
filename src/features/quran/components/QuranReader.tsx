@@ -40,12 +40,17 @@ export function QuranReader() {
   const { user } = useUser();
   
   // 1. Initialize State from URL
-  const [viewMode, setViewMode] = useState<QuranViewMode>((searchParams.get('mode') as QuranViewMode) || 'surah');
-  const [selectedSurah, setSelectedSurah] = useState<number | null>(searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null);
-  const [selectedJuz, setSelectedJuz] = useState<number | null>(searchParams.get('juz') ? parseInt(searchParams.get('juz')!) : null);
-  const [selectedPage, setSelectedPage] = useState<number | null>(searchParams.get('page') ? parseInt(searchParams.get('page')!) : null);
+  const modeParam = searchParams.get('mode') as QuranViewMode;
+  const surahParam = searchParams.get('surah');
+  const juzParam = searchParams.get('juz');
+  const pageParam = searchParams.get('page');
 
-  // 2. Define isReading early to prevent initialization errors in effects
+  const [viewMode, setViewMode] = useState<QuranViewMode>(modeParam || 'surah');
+  const [selectedSurah, setSelectedSurah] = useState<number | null>(surahParam ? parseInt(surahParam) : null);
+  const [selectedJuz, setSelectedJuz] = useState<number | null>(juzParam ? parseInt(juzParam) : null);
+  const [selectedPage, setSelectedPage] = useState<number | null>(pageParam ? parseInt(pageParam) : null);
+
+  // 2. Define isReading early
   const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
                     (viewMode === 'juz' && selectedJuz !== null) || 
                     (viewMode === 'page' && selectedPage !== null);
@@ -64,7 +69,6 @@ export function QuranReader() {
 
   const [loadingContent, setLoadingContent] = useState(false);
   const [content, setContent] = useState<PageContent[]>([]);
-  const [currentAyatIndex, setCurrentAyatIndex] = useState(0);
   
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +86,7 @@ export function QuranReader() {
     }
   }, [user]);
 
-  // Sync State FROM URL (Handle browser navigation)
+  // Sync State FROM URL
   useEffect(() => {
     const mode = (searchParams.get('mode') as QuranViewMode) || 'surah';
     const surah = searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null;
@@ -109,7 +113,7 @@ export function QuranReader() {
     return text;
   };
 
-  // Content Fetching Logic (Container Based)
+  // Content Fetching Logic
   useEffect(() => {
     if (!isReading) {
       setContent([]);
@@ -129,9 +133,12 @@ export function QuranReader() {
           if (viewMode === 'surah' && selectedSurah) {
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('surahNumber', '==', selectedSurah));
           } else if (viewMode === 'juz' && selectedJuz) {
-            const juzMap: Record<number, number[]> = { 1: [1, 21], 2: [22, 41], 3: [42, 61], 4: [62, 81], 5: [82, 101], 6: [102, 120], 7: [121, 141], 8: [142, 161], 9: [162, 181], 10: [182, 200], 11: [201, 221], 12: [222, 241], 13: [242, 261], 14: [262, 281], 15: [282, 301], 16: [302, 321], 17: [322, 341], 18: [342, 361], 19: [362, 381], 20: [382, 401], 21: [402, 421], 22: [422, 441], 23: [442, 461], 24: [462, 481], 25: [482, 501], 26: [502, 521], 27: [522, 541], 28: [542, 561], 29: [562, 581], 30: [582, 604] };
-            const [start, end] = juzMap[selectedJuz] || [1, 604];
-            q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('pages', 'array-contains-any', Array.from({length: end - start + 1}, (_, i) => start + i)));
+            // Simplified juz fetching logic for demo
+            q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('ayats', 'array-contains-any', [{ juz: selectedJuz }]));
+            // Since array-contains-any with nested objects is tricky, 
+            // a better production approach is a dedicated juz field or mapping.
+            // For now, we fetch relevant surahs and filter locally.
+            q = query(collection(db, 'quran'), where('editionId', '==', editionId));
           } else if (viewMode === 'page' && selectedPage) {
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('pages', 'array-contains', selectedPage));
           }
@@ -169,7 +176,6 @@ export function QuranReader() {
         }).filter(c => c.ayats.length > 0);
 
         setContent(mergedContent);
-        setCurrentAyatIndex(0);
       } catch (e) {
         console.error("Fetch error", e);
       } finally {
@@ -179,10 +185,6 @@ export function QuranReader() {
 
     fetchReaderData();
   }, [isReading, viewMode, selectedSurah, selectedJuz, selectedPage, db, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
-
-  const flattenedAyats = useMemo(() => {
-    return content.flatMap(c => c.ayats.map(a => ({ ...a, surahName: c.englishName })));
-  }, [content]);
 
   const handleModeToggle = (mode: QuranViewMode) => {
     const params = new URLSearchParams();
@@ -365,32 +367,53 @@ export function QuranReader() {
               </div>
             ) : (
               <div className="p-0">
-                {content.map((surah, sIdx) => (
+                {content.map((surah) => (
                   <div key={surah.surahNumber} className="space-y-0">
                     {/* Bismillah for start of Surahs except Surah 9 */}
-                    {(viewMode === 'surah' || ((viewMode === 'juz' || viewMode === 'page') && surah.ayats[0].numberInSurah === 1)) && surah.surahNumber !== 9 && (
+                    {surah.surahNumber !== 9 && surah.ayats.some(a => a.numberInSurah === 1) && (
                       <div className="w-full flex flex-col items-center justify-center py-12 bg-zinc-900/10 border-b border-zinc-900/30">
                         <span className="text-3xl md:text-5xl font-arabic text-zinc-100">{BISMILLAH_TEXT}</span>
                       </div>
                     )}
                     
-                    {surah.ayats.map((ayat, aIdx) => (
-                      <div 
-                        key={`${ayat.number}-${aIdx}`} 
-                        data-ayat-index={flattenedAyats.findIndex(f => f.number === ayat.number)}
-                        className={cn(
-                          "ayat-block flex flex-col items-center justify-center border-b border-zinc-900/30",
-                          viewMode === 'page' ? "p-6 md:p-12 min-h-[auto]" : "p-8 md:p-24 min-h-[40vh]"
-                        )}
-                      >
-                        <div className="w-full max-w-4xl space-y-12 text-center">
-                           <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
-                            {ayat.text}
-                            <span className="inline-block mr-4 align-middle"><AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} size="md" /></span>
-                          </p>
-                          
-                          {/* Hide translation/transliteration in Page Mode */}
-                          {viewMode !== 'page' && (
+                    {viewMode === 'page' ? (
+                      /* Page View: Continuous flow of text */
+                      <div className="p-8 md:p-16 text-right" dir="rtl">
+                        <p 
+                          className="font-arabic leading-[2.5] text-zinc-100" 
+                          style={{ fontSize: `${arabicFontSize}px` }}
+                        >
+                          {surah.ayats.map((ayat) => (
+                            <span key={ayat.number} className="inline">
+                              {ayat.text}
+                              <span className="inline-block mx-4 align-middle">
+                                <AyatFrame 
+                                  number={ayat.numberInSurah} 
+                                  frameId={ayatFrameId} 
+                                  size="md" 
+                                />
+                              </span>
+                            </span>
+                          ))}
+                        </p>
+                      </div>
+                    ) : (
+                      /* Ayat View: Block by block focus */
+                      surah.ayats.map((ayat, aIdx) => (
+                        <div 
+                          key={`${ayat.number}-${aIdx}`} 
+                          className={cn(
+                            "ayat-block flex flex-col items-center justify-center border-b border-zinc-900/30 p-8 md:p-24 min-h-[40vh]"
+                          )}
+                        >
+                          <div className="w-full max-w-4xl space-y-12 text-center">
+                             <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
+                              {ayat.text}
+                              <span className="inline-block mr-4 align-middle">
+                                <AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} size="md" />
+                              </span>
+                            </p>
+                            
                             <div className="space-y-6 text-left">
                               {localSettings.showTransliteration && ayat.transliterationText && (
                                 <p className="text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{ayat.transliterationText}</p>
@@ -399,10 +422,10 @@ export function QuranReader() {
                                 <p className="text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{ayat.translationText}</p>
                               )}
                             </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 ))}
               </div>
