@@ -21,6 +21,9 @@ import {
   Power,
   PowerOff,
   CloudDownload,
+  RefreshCw,
+  Type,
+  Mic
 } from 'lucide-react';
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -166,7 +169,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         </TabsList>
 
         <TabsContent value="directory">
-          <EditionDirectory editions={editions} />
+          <EditionDirectory editions={editions} performSync={performSync} syncing={syncing} />
         </TabsContent>
         <TabsContent value="sync">
           <SyncTool 
@@ -185,7 +188,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
   );
 }
 
-function EditionDirectory({ editions }: { editions: any[] }) {
+function EditionDirectory({ editions, performSync, syncing }: { editions: any[], performSync: (id: string) => Promise<void>, syncing: boolean }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -240,7 +243,8 @@ function EditionDirectory({ editions }: { editions: any[] }) {
     return editions.filter(e => 
       e.name.toLowerCase().includes(dirSearch.toLowerCase()) || 
       e.id.toLowerCase().includes(dirSearch.toLowerCase()) ||
-      e.language.toLowerCase().includes(dirSearch.toLowerCase())
+      e.language.toLowerCase().includes(dirSearch.toLowerCase()) ||
+      e.format?.toLowerCase().includes(dirSearch.toLowerCase())
     );
   }, [editions, dirSearch]);
 
@@ -265,7 +269,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-zinc-400 hover:bg-zinc-900">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CloudDownload className="w-4 h-4 mr-2" />}
-            Sync Registry from Cloud
+            Seed Registry from Cloud
           </Button>
         </div>
       </div>
@@ -273,7 +277,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
         <Input 
-          placeholder="Filter by name, ID, or language..." 
+          placeholder="Search by name, ID, language, or format..." 
           className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
           value={dirSearch}
           onChange={(e) => setDirSearch(e.target.value)}
@@ -286,7 +290,8 @@ function EditionDirectory({ editions }: { editions: any[] }) {
             <TableRow className="border-zinc-900">
               <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 text-zinc-500 pl-8">Edition Detail</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Language</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Platform Status</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Format</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Status</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500 pr-8">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -299,22 +304,44 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                     <span className="text-[9px] font-mono text-zinc-700 uppercase">{t.id}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-zinc-500 font-medium text-xs">{t.language}</TableCell>
+                <TableCell className="text-zinc-500 font-medium text-xs">
+                  {t.language}
+                </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    {t.isActive ? (
-                      <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[9px] font-black uppercase">Active</Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[9px] font-black uppercase">Inactive</Badge>
-                    )}
-                    {t.dataSync === 'yes' ? (
-                      <Badge className="bg-blue-500/10 text-blue-500 border-none rounded-lg text-[9px] font-black uppercase">Synced</Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-amber-500/10 text-amber-500/50 rounded-lg text-[9px] font-black uppercase">Pending Sync</Badge>
-                    )}
+                  <div className="flex items-center gap-2 text-zinc-500 text-xs font-medium">
+                    {t.format === 'text' ? <Type className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                    <span className="capitalize">{t.format}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-right pr-8 space-x-2">
+                <TableCell>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      {t.isActive ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[8px] font-black uppercase">Active</Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[8px] font-black uppercase">Inactive</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {t.dataSync === 'yes' ? (
+                        <Badge className="bg-blue-500/10 text-blue-500 border-none rounded-lg text-[8px] font-black uppercase">Synced</Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-amber-500/10 text-amber-500/50 rounded-lg text-[8px] font-black uppercase">Pending Sync</Badge>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right pr-8 space-x-1.5">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    disabled={syncing || !t.isActive}
+                    onClick={() => performSync(t.id)} 
+                    className="text-zinc-400 hover:bg-zinc-900 rounded-xl h-10 w-10"
+                    title="Start Sync"
+                  >
+                    <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -338,10 +365,10 @@ function EditionDirectory({ editions }: { editions: any[] }) {
             ))}
             {paginatedEditions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="h-60 text-center">
+                <TableCell colSpan={5} className="h-60 text-center">
                   <div className="flex flex-col items-center justify-center space-y-4">
                      <BookOpen className="w-12 h-12 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">No local editions found matching "{dirSearch}"</p>
+                     <p className="text-zinc-600 font-medium">No editions found in registry.</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -349,7 +376,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
           </TableBody>
         </Table>
         
-        {/* Main Table Pagination Footer */}
+        {/* Pagination Footer */}
         <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between">
            <div className="flex flex-col">
              <span className="text-xs font-bold text-zinc-400">Showing {paginatedEditions.length} of {filteredEditions.length}</span>
@@ -434,7 +461,7 @@ function SyncTool({ editions, syncing, performSync, handleStandardSync, isStanda
             onClick={() => performSync(selectedEdition)} 
             disabled={syncing || !selectedEdition}
           >
-            <Download className="mr-2 w-5 h-5" /> Start Full Sync
+            <RefreshCw className={cn("mr-2 w-5 h-5", syncing && "animate-spin")} /> Start Full Sync
           </Button>
         </div>
       </Card>
@@ -594,4 +621,3 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
     </div>
   );
 }
-
