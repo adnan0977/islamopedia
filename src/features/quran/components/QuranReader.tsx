@@ -405,7 +405,11 @@ export function QuranReader() {
                              <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                               {ayat.text}
                               <span className="inline-block mr-4 align-middle">
-                                <AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} size="md" />
+                                <AyatFrame 
+                                  number={viewMode === 'surah' ? `${surah.surahNumber}:${ayat.numberInSurah}` : ayat.numberInSurah} 
+                                  frameId={ayatFrameId} 
+                                  size="md" 
+                                />
                               </span>
                             </p>
                             
