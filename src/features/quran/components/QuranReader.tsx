@@ -24,6 +24,12 @@ import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
 import Link from 'next/link';
 import { getOfflineSurah } from '@/lib/offline-db';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 
 const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
@@ -56,7 +62,6 @@ export function QuranReader() {
     showAudio: true
   });
 
-  const [basePage, setBasePage] = useState(initialPage);
   const [visiblePage, setVisiblePage] = useState(initialPage);
   const [viewMode, setViewMode] = useState<'ayat' | 'page' | 'index'>(initialMode);
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
@@ -64,8 +69,7 @@ export function QuranReader() {
   const [pagedData, setPagedData] = useState<PageContent[]>([]);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   
-  const observer = useRef<IntersectionObserver | null>(null);
-  const pageTrackingObserver = useRef<IntersectionObserver | null>(null);
+  const [api, setApi] = useState<CarouselApi>();
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Load settings
@@ -193,7 +197,7 @@ export function QuranReader() {
     }
   };
 
-  // Initial fetch or reset on mode change
+  // Initial fetch
   useEffect(() => {
     if (viewMode === 'index') {
       setPagedData([]);
@@ -206,29 +210,48 @@ export function QuranReader() {
       if (data) {
         setPagedData([data]);
         setVisiblePage(initialPage);
-        setBasePage(initialPage);
       }
       setLoadingContent(false);
     }
     initFetch();
   }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
-  // Infinite Scroll Trigger (Sentinel at the bottom)
-  const lastPageRef = useCallback((node: HTMLDivElement | null) => {
-    if (loadingContent || viewMode === 'page' || viewMode === 'index') return;
-    if (observer.current) observer.current.disconnect();
+  // Flattened Ayats for Carousel
+  const flattenedAyats = useMemo(() => {
+    const ayats: any[] = [];
+    pagedData.forEach(page => {
+      page.arabic.forEach((a, idx) => {
+        ayats.push({
+          ...a,
+          trans: page.trans[idx]?.text || page.trans[idx]?.translationText,
+          translit: page.translit[idx]?.text || page.translit[idx]?.translationText,
+          pageNumber: page.pageNumber
+        });
+      });
+    });
+    return ayats;
+  }, [pagedData]);
 
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        const lastPage = pagedData[pagedData.length - 1];
-        if (lastPage && lastPage.pageNumber < 604) {
-          loadMorePages();
+  // Carousel Select Logic
+  useEffect(() => {
+    if (!api || viewMode !== 'ayat') return;
+
+    api.on("select", () => {
+      const index = api.selectedScrollSnap();
+      const currentAyat = flattenedAyats[index];
+      if (currentAyat) {
+        setVisiblePage(currentAyat.pageNumber);
+        
+        // Load more if near the end
+        if (index >= flattenedAyats.length - 5 && !loadingContent) {
+          const lastPage = pagedData[pagedData.length - 1]?.pageNumber;
+          if (lastPage && lastPage < 604) {
+            loadMorePages();
+          }
         }
       }
-    }, { threshold: 0.1, rootMargin: '400px' });
-
-    if (node) observer.current.observe(node);
-  }, [loadingContent, viewMode, pagedData]);
+    });
+  }, [api, viewMode, flattenedAyats, pagedData, loadingContent]);
 
   const loadMorePages = async () => {
     if (loadingContent) return;
@@ -243,63 +266,6 @@ export function QuranReader() {
     }
     setLoadingContent(false);
   };
-
-  // Page Tracking Observer (Updates header)
-  useEffect(() => {
-    if (viewMode === 'index') return;
-
-    if (pageTrackingObserver.current) pageTrackingObserver.current.disconnect();
-
-    pageTrackingObserver.current = new IntersectionObserver(
-      (entries) => {
-        // Find the page entry that is most visible or closest to the top
-        const visibleEntry = entries.find((entry) => entry.isIntersecting);
-        if (visibleEntry) {
-          const pageNum = parseInt(visibleEntry.target.getAttribute('data-page') || '0');
-          if (pageNum > 0) {
-            setVisiblePage(pageNum);
-          }
-        }
-      },
-      { 
-        threshold: 0.1,
-        // Focus the observation on the top part of the scroll area
-        rootMargin: '-10% 0px -70% 0px' 
-      }
-    );
-
-    pageRefs.current.forEach((ref) => {
-      if (ref) pageTrackingObserver.current?.observe(ref);
-    });
-
-    return () => pageTrackingObserver.current?.disconnect();
-  }, [pagedData, viewMode]);
-
-  const groupedPagedContent = useMemo(() => {
-    return pagedData.map(page => {
-      const groups: any[] = [];
-      page.arabic.forEach((ayat, idx) => {
-        const last = groups[groups.length - 1];
-        if (!last || last.surah.number !== ayat.surah.number) {
-          groups.push({ 
-            surah: ayat.surah, 
-            ayats: [{ 
-              ...ayat, 
-              trans: page.trans[idx]?.text || page.trans[idx]?.translationText, 
-              translit: page.translit[idx]?.text || page.translit[idx]?.translationText 
-            }] 
-          });
-        } else {
-          last.ayats.push({ 
-            ...ayat, 
-            trans: page.trans[idx]?.text || page.trans[idx]?.translationText, 
-            translit: page.translit[idx]?.text || page.translit[idx]?.translationText 
-          });
-        }
-      });
-      return { pageNumber: page.pageNumber, groups };
-    });
-  }, [pagedData]);
 
   const isReading = viewMode !== 'index';
 
@@ -335,8 +301,7 @@ export function QuranReader() {
                 </Button>
                 <div className="flex flex-col justify-center">
                   <h1 className="text-sm md:text-xl font-headline font-bold text-white leading-tight">
-                    {groupedPagedContent.find(p => p.pageNumber === visiblePage)?.groups[0]?.surah.englishName || 
-                     groupedPagedContent[0]?.groups[0]?.surah.englishName || 'Reciting...'}
+                    {flattenedAyats[api?.selectedScrollSnap() || 0]?.surah.englishName || 'Reciting...'}
                   </h1>
                   <div className="flex items-center gap-2">
                     <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">Page {visiblePage}</p>
@@ -356,7 +321,10 @@ export function QuranReader() {
             ) : (
               <Button 
                 variant="outline" size="sm" 
-                onClick={() => setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat')} 
+                onClick={() => {
+                  const newMode = viewMode === 'ayat' ? 'page' : 'ayat';
+                  setViewMode(newMode);
+                }} 
                 className="rounded-xl font-bold h-10 border-zinc-800 bg-zinc-900 text-zinc-400"
               >
                 {viewMode === 'ayat' ? <BookIcon className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
@@ -388,7 +356,6 @@ export function QuranReader() {
                         if (!snap.empty) {
                           const startPage = snap.docs[0].data().pages[0];
                           setVisiblePage(startPage);
-                          setBasePage(startPage);
                           setViewMode('ayat');
                         }
                       }).finally(() => setLoadingContent(false));
@@ -413,7 +380,6 @@ export function QuranReader() {
                     key={idx}
                     onClick={() => { 
                       setVisiblePage(juz.ayah || 1); 
-                      setBasePage(juz.ayah || 1);
                       setViewMode('page'); 
                     }}
                     className="group flex items-center justify-between p-6 bg-zinc-900/30 rounded-3xl border border-zinc-900 hover:border-zinc-700 transition-all text-left"
@@ -428,63 +394,110 @@ export function QuranReader() {
               </div>
             )}
           </div>
+        ) : viewMode === 'ayat' ? (
+          <div className="h-full">
+            <Carousel setApi={setApi} className="w-full h-full" opts={{ direction: 'rtl', align: 'start' }}>
+              <CarouselContent className="h-full">
+                {flattenedAyats.map((ayat, idx) => (
+                  <CarouselItem key={`${ayat.number}-${idx}`} className="h-full flex flex-col items-center justify-center p-8 md:p-24 min-h-[60vh]">
+                    <div className="w-full max-w-4xl space-y-12 text-center">
+                      {ayat.numberInSurah === 1 && ayat.surah.number !== 9 && <BismillahHeader />}
+                      <div className="space-y-12">
+                         <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
+                          {ayat.text}
+                          <span className="inline-block mr-4 align-middle"><AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                        </p>
+                        <div className="space-y-6 text-left">
+                          {localSettings.showTransliteration && ayat.translit && (
+                            <p className="text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{ayat.translit}</p>
+                          )}
+                          {localSettings.showTranslation && ayat.trans && (
+                            <p className="text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{ayat.trans}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
+          </div>
         ) : (
           <div className="p-8 md:p-16">
             <div className="space-y-12">
-              {groupedPagedContent.map((page, pIdx) => (
+              {pagedData.map((page) => (
                 <div 
                   key={`page-${page.pageNumber}`} 
-                  ref={el => { if(el) pageRefs.current.set(page.pageNumber, el) }}
                   data-page={page.pageNumber}
                   className="space-y-12 mb-16"
                 >
-                  {page.groups.map((group: any) => (
-                    <div key={`${page.pageNumber}-${group.surah.number}`} className="space-y-8">
-                      {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
-                      {viewMode === 'page' ? (
-                        <div className="text-right leading-[3]" dir="rtl">
-                          {group.ayats.map((a: any) => (
-                            <span key={a.number} className="inline transition-all">
-                              <span className="text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }}>{a.text}</span>
-                              <span className="inline-block mx-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="space-y-12">
-                          {group.ayats.map((a: any) => (
-                            <div key={a.number} className="space-y-4">
-                              <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
-                                {a.text}
-                                <span className="inline-block mr-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
-                              </p>
-                              <div className="space-y-2">
-                                {localSettings.showTransliteration && a.translit && (
-                                  <p className="text-left max-w-3xl text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{a.translit}</p>
-                                )}
-                                {localSettings.showTranslation && a.trans && (
-                                  <p className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{a.trans}</p>
-                                )}
-                              </div>
-                              <div className="h-px bg-zinc-900 w-full mt-8" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {/* Sentinel for infinite scroll - only on the last loaded page block */}
-                  {pIdx === groupedPagedContent.length - 1 && viewMode === 'ayat' && (
-                    <div ref={lastPageRef} className="h-20 flex items-center justify-center">
-                      {loadingContent && <Loader2 className="animate-spin text-zinc-800 w-8 h-8" />}
-                    </div>
-                  )}
+                  <div className="text-right leading-[3]" dir="rtl">
+                    {page.arabic.map((a: any) => (
+                      <span key={a.number} className="inline transition-all">
+                        <span className="text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }}>{a.text}</span>
+                        <span className="inline-block mx-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
       </Card>
+
+      {isReading && viewMode === 'ayat' && (
+        <div className="flex items-center justify-between px-6 pb-32">
+           <Button 
+            variant="ghost" 
+            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
+            onClick={() => api?.scrollNext()}
+            disabled={!api?.canScrollNext()}
+          >
+            Next Ayat <ChevronLeft className="w-4 h-4 ml-2" />
+          </Button>
+          <div className="text-zinc-600 font-black text-[10px] uppercase tracking-widest">
+            {api?.selectedScrollSnap() + 1} / {flattenedAyats.length}
+          </div>
+          <Button 
+            variant="ghost" 
+            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
+            onClick={() => api?.scrollPrev()}
+            disabled={!api?.canScrollPrev()}
+          >
+            <ChevronRight className="w-4 h-4 mr-2" /> Previous Ayat
+          </Button>
+        </div>
+      )}
+
+      {isReading && viewMode === 'page' && (
+        <div className="flex items-center justify-between px-6 pb-32">
+          <Button 
+            variant="ghost" 
+            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
+            onClick={() => {
+              const next = Math.min(604, visiblePage + 1);
+              setVisiblePage(next);
+              setPagedData([]); 
+            }} 
+            disabled={visiblePage >= 604}
+          >
+            Next Page <ChevronLeft className="w-4 h-4 ml-2" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
+            onClick={() => {
+              const prev = Math.max(1, visiblePage - 1);
+              setVisiblePage(prev);
+              setPagedData([]); 
+            }} 
+            disabled={visiblePage <= 1}
+          >
+            <ChevronRight className="w-4 h-4 mr-2" /> Previous Page
+          </Button>
+        </div>
+      )}
 
       {isReading && localSettings.showAudio && localSettings.preferredAudioId !== 'none' && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl z-50">
@@ -495,42 +508,11 @@ export function QuranReader() {
                <p className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Available Offline</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-400"><ChevronLeft className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-400" onClick={() => api?.scrollPrev()}><ChevronLeft className="w-5 h-5" /></Button>
               <Button className="h-12 w-12 rounded-2xl bg-white text-black"><Mic2 className="w-5 h-5" /></Button>
-              <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-400"><ChevronRight className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-400" onClick={() => api?.scrollNext()}><ChevronRight className="w-5 h-5" /></Button>
             </div>
           </Card>
-        </div>
-      )}
-      
-      {isReading && viewMode === 'page' && (
-        <div className="flex items-center justify-between px-6 pb-32">
-          <Button 
-            variant="ghost" 
-            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
-            onClick={() => {
-              const prev = Math.max(1, visiblePage - 1);
-              setVisiblePage(prev);
-              setBasePage(prev);
-              setPagedData([]); // Reset and load specific page
-            }} 
-            disabled={visiblePage <= 1}
-          >
-            Next Page <ChevronLeft className="w-4 h-4 ml-2" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
-            onClick={() => {
-              const next = Math.min(604, visiblePage + 1);
-              setVisiblePage(next);
-              setBasePage(next);
-              setPagedData([]); // Reset and load specific page
-            }} 
-            disabled={visiblePage >= 604}
-          >
-            <ChevronRight className="w-4 h-4 mr-2" /> Previous Page
-          </Button>
         </div>
       )}
     </div>
