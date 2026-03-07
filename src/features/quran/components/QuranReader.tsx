@@ -8,7 +8,6 @@ import {
   Loader2, 
   ChevronLeft, 
   ChevronRight, 
-  Layers, 
   BookOpen,
   List,
   ArrowLeft,
@@ -72,6 +71,15 @@ export function QuranReader() {
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Variable initialization for rendering logic
+  const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
+                    (viewMode === 'juz' && selectedJuz !== null) || 
+                    (viewMode === 'page' && selectedPage !== null);
+
+  const arabicFontSize = localSettings.arabicFontSize;
+  const transFontSize = localSettings.translationFontSize;
+  const ayatFrameId = localSettings.ayatFrameId || 'ornate-star';
+
   // Load settings from LocalStorage
   useEffect(() => {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
@@ -96,7 +104,7 @@ export function QuranReader() {
     };
   }, []);
 
-  // Sync State FROM URL
+  // Sync State FROM URL (Handles browser Back/Forward)
   useEffect(() => {
     const mode = (searchParams.get('mode') as QuranViewMode) || 'surah';
     const surah = searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null;
@@ -111,14 +119,6 @@ export function QuranReader() {
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
-
-  const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
-                    (viewMode === 'juz' && selectedJuz !== null) || 
-                    (viewMode === 'page' && selectedPage !== null);
-
-  const arabicFontSize = localSettings.arabicFontSize;
-  const transFontSize = localSettings.translationFontSize;
-  const ayatFrameId = localSettings.ayatFrameId || 'ornate-star';
 
   const cleanAyatText = (text: string, surahNumber: number, ayatNumberInSurah: number) => {
     if (surahNumber !== 9 && ayatNumberInSurah === 1 && text.startsWith(BISMILLAH_TEXT)) {
@@ -220,40 +220,41 @@ export function QuranReader() {
   }, [isReading, viewMode, selectedSurah, selectedJuz, selectedPage, db, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
   const handleModeToggle = (mode: QuranViewMode) => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams();
     params.set('mode', mode);
     router.push(`/quran?${params.toString()}`);
   };
 
   const selectSurah = (num: number) => {
-    router.push(`/quran?mode=surah&surah=${num}`);
+    const params = new URLSearchParams();
+    params.set('mode', 'surah');
+    params.set('surah', num.toString());
+    router.push(`/quran?${params.toString()}`);
   };
 
   const selectJuz = (num: number) => {
-    router.push(`/quran?mode=juz&juz=${num}`);
+    const params = new URLSearchParams();
+    params.set('mode', 'juz');
+    params.set('juz', num.toString());
+    router.push(`/quran?${params.toString()}`);
   };
 
   const goBackToIndex = () => {
-    const params = new URLSearchParams(window.location.search);
-    params.delete('surah');
-    params.delete('juz');
-    params.delete('page');
+    const params = new URLSearchParams();
+    params.set('mode', viewMode);
     router.push(`/quran?${params.toString()}`);
   };
 
   const toggleReaderViewMode = () => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams();
     if (viewMode !== 'page') {
       const firstPage = content[0]?.ayats[0]?.page || 1;
       params.set('mode', 'page');
       params.set('page', firstPage.toString());
-      params.delete('surah');
-      params.delete('juz');
     } else {
       const firstSurah = content[0]?.surahNumber || 1;
       params.set('mode', 'surah');
       params.set('surah', firstSurah.toString());
-      params.delete('page');
     }
     router.push(`/quran?${params.toString()}`);
   };
@@ -321,7 +322,7 @@ export function QuranReader() {
                 </Button>
               </div>
             ) : (
-              isReading && viewMode !== 'juz' && (
+              viewMode !== 'juz' && (
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -405,15 +406,15 @@ export function QuranReader() {
                     )}
                     
                     {viewMode === 'page' ? (
-                      <div className="p-8 md:p-16 text-right" dir="rtl">
+                      <div className="p-10 md:p-24 text-right" dir="rtl">
                         <p 
-                          className="font-arabic leading-[2.5] text-zinc-100" 
+                          className="font-arabic leading-[2.8] text-zinc-100 text-justify" 
                           style={{ fontSize: `${arabicFontSize}px` }}
                         >
                           {surah.ayats.map((ayat) => (
                             <span key={ayat.number} className="inline">
                               {ayat.text}
-                              <span className="inline-block mx-4 align-middle">
+                              <span className="inline-block mx-3 align-middle">
                                 <AyatFrame 
                                   number={ayat.numberInSurah} 
                                   frameId={ayatFrameId} 
@@ -428,9 +429,7 @@ export function QuranReader() {
                       surah.ayats.map((ayat, aIdx) => (
                         <div 
                           key={`${ayat.number}-${aIdx}`} 
-                          className={cn(
-                            "ayat-block flex flex-col items-center justify-center border-b border-zinc-900/30 p-8 md:p-24 min-h-[40vh]"
-                          )}
+                          className="flex flex-col items-center justify-center border-b border-zinc-900/30 p-8 md:p-24 min-h-[40vh]"
                         >
                           <div className="w-full max-w-4xl space-y-12 text-center">
                             {/* Verse Header */}
