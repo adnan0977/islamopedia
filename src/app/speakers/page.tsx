@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -48,20 +49,20 @@ export default function SpeakersPage() {
           <p className="text-zinc-600 font-medium">Loading directory...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-8">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 md:gap-6">
           {filteredSpeakers?.map((speaker) => (
-            <Link key={speaker.id} href={`/videos?speakerId=${speaker.id}`} className="group space-y-4 text-center">
-              <div className="relative aspect-square rounded-[2rem] overflow-hidden border border-zinc-900 p-1.5 ring-1 ring-zinc-900 group-hover:ring-zinc-600 transition-all duration-700 bg-zinc-950 shadow-2xl">
+            <Link key={speaker.id} href={`/videos?speakerId=${speaker.id}`} className="group space-y-3 text-center">
+              <div className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-900 p-1 ring-1 ring-zinc-900 group-hover:ring-zinc-700 transition-all duration-500 bg-zinc-950 shadow-lg">
                 <Image 
                   src={speaker.profileImageUrl || 'https://picsum.photos/seed/speaker/400'} 
                   alt={speaker.name} 
                   fill
-                  className="rounded-[1.6rem] object-cover transition-transform duration-1000 group-hover:scale-110"
+                  className="rounded-xl object-cover transition-transform duration-1000 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-700" />
               </div>
-              <div className="space-y-1">
-                <h3 className="text-[10px] uppercase tracking-[0.2em] font-black text-zinc-600 group-hover:text-zinc-100 transition-colors line-clamp-1 px-2">
+              <div className="space-y-1 px-1">
+                <h3 className="text-[9px] md:text-[10px] uppercase tracking-[0.15em] font-black text-zinc-600 group-hover:text-zinc-100 transition-colors line-clamp-1">
                   {speaker.name}
                 </h3>
               </div>
