@@ -249,7 +249,6 @@ export function QuranReader() {
             </div>
           ) : (
             <div className="flex items-center gap-2 md:gap-3">
-              {/* Translation Selector */}
               <div className="w-24 md:w-48">
                 <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
                   <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[9px] md:text-[10px] font-bold">
@@ -268,7 +267,6 @@ export function QuranReader() {
                 </Select>
               </div>
 
-              {/* View Toggle Button */}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -292,7 +290,6 @@ export function QuranReader() {
         </div>
       </div>
 
-      {/* Main Content Area with Swipe Support */}
       <Card 
         className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col"
         onTouchStart={onTouchStart}
@@ -361,26 +358,26 @@ export function QuranReader() {
                   {groupedAyats.map(group => (
                     <div key={group.surah.number} className="space-y-10">
                       {group.ayats.map((a: any) => (
-                        <div key={a.number} className="flex gap-4 md:gap-6 group">
-                          <div className="w-8 md:w-10 pt-1 shrink-0 flex justify-center">
-                            <AyatFrame 
-                              number={a.numberInSurah} 
-                              frameId={ayatFrameId} 
-                              customPath={customAyatFramePath} 
-                              customImageUrl={frameImageUrl}
-                              size="sm"
-                            />
-                          </div>
-                          <div className="flex-1 space-y-4 md:space-y-6">
-                            <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
+                        <div key={a.number} className="space-y-6 md:space-y-8 border-b border-zinc-900/50 pb-12 last:border-0">
+                          <div className="text-right" dir="rtl">
+                            <p className="text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100 inline">
                               {a.text}
                             </p>
-                            {a.trans && (
-                              <p className="text-zinc-500 text-base md:text-lg font-medium border-l border-zinc-900 pl-4 md:pl-6 italic">
-                                {a.trans}
-                              </p>
-                            )}
+                            <span className="inline-flex mr-4 md:mr-6 align-middle">
+                              <AyatFrame 
+                                number={a.numberInSurah} 
+                                frameId={ayatFrameId} 
+                                customPath={customAyatFramePath} 
+                                customImageUrl={frameImageUrl}
+                                size="sm"
+                              />
+                            </span>
                           </div>
+                          {a.trans && (
+                            <p className="text-zinc-500 text-base md:text-lg font-medium border-l border-zinc-900 pl-4 md:pl-6 italic">
+                              {a.trans}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -389,11 +386,12 @@ export function QuranReader() {
               ) : (
                 <div className="text-right font-arabic leading-[2.5] text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
-                    <span key={a.number} className="inline-flex items-center flex-wrap">
+                    <span key={a.number} className="inline">
                       <span className="hover:text-white transition-colors">
                         {a.text}
                       </span>
-                      <span className="inline-flex mx-3 md:mx-6 align-middle select-none shrink-0 justify-center items-center">
+                      {" "}
+                      <span className="inline-flex mx-2 md:mx-4 align-middle select-none shrink-0 justify-center items-center">
                         <AyatFrame 
                           number={a.numberInSurah} 
                           size="sm" 
@@ -402,6 +400,7 @@ export function QuranReader() {
                           customImageUrl={frameImageUrl}
                         />
                       </span>
+                      {" "}
                     </span>
                   ))}
                 </div>
@@ -411,7 +410,6 @@ export function QuranReader() {
         )}
       </Card>
       
-      {/* Footer Pagination Bar */}
       {isReading && (
         <div className="flex items-center justify-between px-6 md:px-10">
           <Button 
