@@ -195,11 +195,9 @@ export function QuranReader() {
     <div className="w-full flex flex-col items-center justify-center py-24 mb-12 relative">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.08)_0%,_transparent_70%)] pointer-events-none" />
       <div className="flex items-center gap-6 md:gap-12 relative">
-        <div className="hidden md:block w-24 h-px bg-gradient-to-r from-transparent to-zinc-800" />
         <span className="text-4xl md:text-6xl font-arabic text-white select-none drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
           {BISMILLAH_TEXT}
         </span>
-        <div className="hidden md:block w-24 h-px bg-gradient-to-l from-transparent to-zinc-800" />
       </div>
       <div className="mt-12 flex gap-4">
         <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
@@ -386,7 +384,6 @@ export function QuranReader() {
                     {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                     {group.ayats.map((a: any) => (
                       <div key={a.number} className="space-y-8">
-                        {/* Reference displayed at the top left */}
                         <div className="text-left">
                           <span className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.2em] select-none">
                             {group.surah.number}:{a.numberInSurah}
@@ -414,8 +411,10 @@ export function QuranReader() {
                           </div>
                         )}
                         
-                        <div className="pt-12">
-                          <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-900 to-transparent opacity-50" />
+                        <div className="pt-16 pb-8 flex items-center justify-center gap-4">
+                          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-zinc-900" />
+                          <div className="w-2 h-2 rounded-full bg-zinc-800" />
+                          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-zinc-900" />
                         </div>
                       </div>
                     ))}
