@@ -46,6 +46,11 @@ export function QuranReader() {
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
   const [selectedTranslation, setSelectedTranslation] = useState(initialTrans);
 
+  // Swipe Gesture State
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
@@ -170,6 +175,29 @@ export function QuranReader() {
 
   const isReading = viewMode !== 'index';
 
+  // Swipe Gesture Handlers
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || !isReading) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentPage < 604) {
+      setCurrentPage(prev => prev + 1);
+    } else if (isRightSwipe && currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-4">
       {/* Primary Header */}
@@ -188,7 +216,7 @@ export function QuranReader() {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div className="flex flex-col justify-center">
-                <h1 className="text-lg md:text-xl font-headline font-bold text-white leading-tight">
+                <h1 className="text-sm md:text-xl font-headline font-bold text-white leading-tight">
                   {groupedAyats[0]?.surah.englishName || 'Reading...'}
                 </h1>
                 <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">
@@ -220,14 +248,14 @@ export function QuranReader() {
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              {/* Moved Translation to Main Header */}
-              <div className="w-32 md:w-48">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Translation Selector */}
+              <div className="w-24 md:w-48">
                 <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[10px] font-bold">
+                  <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[9px] md:text-[10px] font-bold">
                     <div className="flex items-center gap-2">
-                      <Languages className="w-3 h-3 text-zinc-500" />
-                      <SelectValue placeholder="Translation" />
+                      <Languages className="w-3 h-3 text-zinc-500 hidden md:inline" />
+                      <SelectValue placeholder="Trans" />
                     </div>
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
@@ -245,7 +273,7 @@ export function QuranReader() {
                 variant="outline" 
                 size="sm" 
                 onClick={() => setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat')} 
-                className="rounded-xl font-bold h-10 px-4 border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white shadow-lg"
+                className="rounded-xl font-bold h-10 px-3 md:px-4 border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white shadow-lg"
               >
                 {viewMode === 'ayat' ? (
                   <div className="flex items-center gap-2">
@@ -264,8 +292,13 @@ export function QuranReader() {
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col">
+      {/* Main Content Area with Swipe Support */}
+      <Card 
+        className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         {viewMode === 'index' ? (
           <ScrollArea className="flex-1">
             <div className="p-8 md:p-12 space-y-8">
@@ -322,14 +355,14 @@ export function QuranReader() {
           </div>
         ) : (
           <ScrollArea className="flex-1">
-            <div className="p-8 md:p-16">
+            <div className="p-6 md:p-16">
               {viewMode === 'ayat' ? (
                 <div className="space-y-12">
                   {groupedAyats.map(group => (
                     <div key={group.surah.number} className="space-y-10">
                       {group.ayats.map((a: any) => (
-                        <div key={a.number} className="flex gap-6 group">
-                          <div className="w-10 pt-1 shrink-0 flex justify-center">
+                        <div key={a.number} className="flex gap-4 md:gap-6 group">
+                          <div className="w-8 md:w-10 pt-1 shrink-0 flex justify-center">
                             <AyatFrame 
                               number={a.numberInSurah} 
                               frameId={ayatFrameId} 
@@ -338,12 +371,12 @@ export function QuranReader() {
                               size="sm"
                             />
                           </div>
-                          <div className="flex-1 space-y-6">
-                            <p className="text-right text-4xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
+                          <div className="flex-1 space-y-4 md:space-y-6">
+                            <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
                               {a.text}
                             </p>
                             {a.trans && (
-                              <p className="text-zinc-500 text-lg font-medium border-l border-zinc-900 pl-6 italic">
+                              <p className="text-zinc-500 text-base md:text-lg font-medium border-l border-zinc-900 pl-4 md:pl-6 italic">
                                 {a.trans}
                               </p>
                             )}
@@ -354,13 +387,13 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                <div className="text-right font-arabic leading-[2.5] text-3xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
+                <div className="text-right font-arabic leading-[2.5] text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
                     <span key={a.number} className="inline-flex items-center flex-wrap">
                       <span className="hover:text-white transition-colors">
                         {a.text}
                       </span>
-                      <span className="inline-flex mx-4 md:mx-6 align-middle select-none shrink-0 justify-center items-center">
+                      <span className="inline-flex mx-3 md:mx-6 align-middle select-none shrink-0 justify-center items-center">
                         <AyatFrame 
                           number={a.numberInSurah} 
                           size="sm" 
@@ -380,25 +413,25 @@ export function QuranReader() {
       
       {/* Footer Pagination Bar */}
       {isReading && (
-        <div className="flex items-center justify-between px-10">
+        <div className="flex items-center justify-between px-6 md:px-10">
           <Button 
             variant="ghost" 
-            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 hover:text-white font-bold"
+            className="rounded-xl h-10 md:h-12 px-3 md:px-6 gap-2 text-zinc-500 hover:text-white font-bold text-xs md:text-sm"
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage <= 1}
           >
-            <ChevronLeft className="w-4 h-4" /> Previous Page
+            <ChevronLeft className="w-4 h-4" /> <span className="hidden md:inline">Previous Page</span>
           </Button>
-          <div className="hidden md:block text-zinc-700 text-[10px] font-black uppercase tracking-[0.3em]">
-            Manuscript Navigation
+          <div className="block text-zinc-700 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
+            Swipe to Turn Page
           </div>
           <Button 
             variant="ghost" 
-            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 hover:text-white font-bold"
+            className="rounded-xl h-10 md:h-12 px-3 md:px-6 gap-2 text-zinc-500 hover:text-white font-bold text-xs md:text-sm"
             onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))}
             disabled={currentPage >= 604}
           >
-            Next Page <ChevronRight className="w-4 h-4" />
+            <span className="hidden md:inline">Next Page</span> <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       )}
