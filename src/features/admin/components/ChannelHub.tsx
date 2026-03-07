@@ -122,7 +122,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
     setSyncStatus('Fetching channel metadata...');
     try {
       let totalSynced = 0;
-      const all ResolvedChannels: any[] = [];
+      const allResolvedChannels: any[] = [];
 
       if (ids.length > 0) {
         for (let i = 0; i < ids.length; i += 50) {
