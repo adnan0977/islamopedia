@@ -127,6 +127,17 @@ export default function QuranPage() {
                 : 'Read, listen, and contemplate the Word of Allah.'}
             </p>
           </div>
+          {selectedSurah && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 bg-zinc-950 border-zinc-900 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all shadow-lg ml-2"
+              onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
+              title={viewMode === 'ayat' ? "Switch to Page View" : "Switch to Ayat View"}
+            >
+              {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
+            </Button>
+          )}
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -232,18 +243,8 @@ export default function QuranPage() {
                       </div>
                       <CardDescription className="text-xs md:text-sm text-zinc-500">{selectedSurah.info.englishNameTranslation}</CardDescription>
                     </div>
-                    <div className="flex flex-col items-end gap-3">
+                    <div className="text-right">
                       <p className="text-2xl md:text-3xl font-arabic text-zinc-100">{selectedSurah.info.name}</p>
-                      
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10 bg-zinc-900 border-zinc-800 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all shadow-lg mt-2"
-                        onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
-                        title={viewMode === 'ayat' ? "Switch to Page View" : "Switch to Ayat View"}
-                      >
-                        {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
-                      </Button>
                     </div>
                   </div>
                 </CardHeader>
