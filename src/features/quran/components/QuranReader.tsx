@@ -83,7 +83,22 @@ export function QuranReader() {
     }
   }, [user]);
 
-  // Update URL - Using a separate effect to update URL based on state
+  const flattenedAyats = useMemo(() => {
+    const ayats: any[] = [];
+    pagedData.forEach(page => {
+      page.arabic.forEach((a, idx) => {
+        ayats.push({
+          ...a,
+          trans: page.trans[idx]?.text || page.trans[idx]?.translationText,
+          translit: page.translit[idx]?.text || page.translit[idx]?.translationText,
+          pageNumber: a.page || page.pageNumber
+        });
+      });
+    });
+    return ayats;
+  }, [pagedData]);
+
+  // Update URL
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('mode', viewMode);
@@ -209,12 +224,14 @@ export function QuranReader() {
     setLoadingContent(true);
     const data = await fetchPageData(nextPage);
     if (data) {
-      setPagedData(prev => [...prev, data]);
+      setPagedData(prev => {
+        if (prev.some(p => p.pageNumber === data.pageNumber)) return prev;
+        return [...prev, data];
+      });
     }
     setLoadingContent(false);
   }, [loadingContent, pagedData, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
-  // Initial fetch - Only on mount or major mode change
   useEffect(() => {
     if (viewMode === 'index') {
       setPagedData([]);
@@ -233,22 +250,6 @@ export function QuranReader() {
     initFetch();
   }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
-  const flattenedAyats = useMemo(() => {
-    const ayats: any[] = [];
-    pagedData.forEach(page => {
-      page.arabic.forEach((a, idx) => {
-        ayats.push({
-          ...a,
-          trans: page.trans[idx]?.text || page.trans[idx]?.translationText,
-          translit: page.translit[idx]?.text || page.translit[idx]?.translationText,
-          pageNumber: a.page || page.pageNumber
-        });
-      });
-    });
-    return ayats;
-  }, [pagedData]);
-
-  // Observer for infinite scroll and header updates
   useEffect(() => {
     if (viewMode !== 'ayat' || !ayatScrollContainerRef.current || pagedData.length === 0) return;
 
@@ -260,11 +261,9 @@ export function QuranReader() {
           const ayatIndex = parseInt(entry.target.getAttribute('data-ayat-index') || '0');
           const pageNum = parseInt(entry.target.getAttribute('data-page-number') || visiblePage.toString());
           
-          // Update visual states only
           setCurrentAyatIndex(ayatIndex);
           setVisiblePage(pageNum);
 
-          // Trigger infinite load if near end
           if (ayatIndex >= flattenedAyats.length - 3) {
             loadMorePages();
           }
@@ -457,9 +456,9 @@ export function QuranReader() {
         ) : (
           <div className="flex-1 overflow-y-auto p-8 md:p-16">
             <div className="space-y-12">
-              {pagedData.map((page) => (
+              {pagedData.map((page, index) => (
                 <div 
-                  key={`page-${page.pageNumber}`} 
+                  key={`page-${page.pageNumber}-${index}`} 
                   data-page={page.pageNumber}
                   className="space-y-12 mb-16"
                 >
