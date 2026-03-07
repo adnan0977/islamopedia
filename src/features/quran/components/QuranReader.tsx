@@ -73,6 +73,8 @@ export function QuranReader() {
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [currentAyatIndex, setCurrentAyatIndex] = useState(0);
   
+  const isReading = viewMode !== 'index';
+  
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -321,8 +323,6 @@ export function QuranReader() {
       target.scrollIntoView({ behavior: 'smooth' });
     }
   };
-
-  const isReading = viewMode !== 'index';
 
   const BismillahHeader = () => (
     <div className="w-full flex flex-col items-center justify-center py-6 mb-4">
