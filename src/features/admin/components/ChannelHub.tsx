@@ -378,14 +378,14 @@ export function ChannelHub({ videos }: { videos: any[] }) {
       </div>
 
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
-        <div className="overflow-x-auto">
-          <Table className="min-w-[800px] table-fixed">
+        <div className="overflow-x-auto scrollbar-hide">
+          <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[30%]">Creator branding</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-32">Inventory</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-24">Subs</TableHead>
-                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-48">Actions</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[180px]">Creator branding</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-24">Inventory</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-24 text-center">Subs</TableHead>
+                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-32">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -396,40 +396,40 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                   const videosInDbCount = videos.filter(v => v.channelId === channel.id).length;
                   return (
                     <TableRow key={channel.id} className={cn("hover:bg-zinc-900/40 transition-all border-zinc-900 h-24", !channel.isActive && "opacity-50 grayscale")}>
-                      <TableCell className="pl-6">
-                        <div className="flex items-center gap-4 min-w-0 overflow-hidden">
-                          <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-zinc-800 bg-black shrink-0">
+                      <TableCell className="pl-6 max-w-[180px]">
+                        <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+                          <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0">
                             {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                           </div>
                           <div className="flex flex-col min-w-0 overflow-hidden">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-bold text-zinc-100 truncate text-sm" title={channel.title}>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="font-bold text-zinc-100 truncate text-[11px]" title={channel.title}>
                                 {channel.title}
                               </span>
-                              {channel.isActive && <CheckCircle2 className="w-3 h-3 text-zinc-600 shrink-0" />}
+                              {channel.isActive && <CheckCircle2 className="w-2.5 h-2.5 text-zinc-600 shrink-0" />}
                             </div>
-                            <div className="mt-1">
+                            <div className="mt-0.5">
                               {channel.isActive ? (
-                                <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[7px] font-black uppercase px-1.5 py-0">Active</Badge>
+                                <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[6px] font-black uppercase px-1 py-0">Active</Badge>
                               ) : (
-                                <Badge variant="outline" className="border-zinc-800 text-zinc-600 text-[7px] font-black uppercase px-1.5 py-0">Deactivated</Badge>
+                                <Badge variant="outline" className="border-zinc-800 text-zinc-600 text-[6px] font-black uppercase px-1 py-0">Off</Badge>
                               )}
                             </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex items-center gap-1.5 text-zinc-400 font-bold text-[10px]">
-                            <VideoIcon className="w-2.5 h-2.5 text-zinc-600" />
-                            <span>{videosInDbCount} / {channel.videoCount || 0}</span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <div className="flex items-center gap-1 text-zinc-400 font-bold text-[9px]">
+                            <VideoIcon className="w-2 h-2 text-zinc-600" />
+                            <span>{videosInDbCount}/{channel.videoCount || 0}</span>
                           </div>
-                          <span className="text-[7px] font-black uppercase text-zinc-600">Local / YT</span>
+                          <span className="text-[6px] font-black uppercase text-zinc-600">Local/YT</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1.5 text-zinc-400 font-bold text-xs">
-                          <Users className="w-3 h-3 text-zinc-700" />
+                        <div className="flex items-center justify-center gap-1 text-zinc-400 font-bold text-[10px]">
+                          <Users className="w-2.5 h-2.5 text-zinc-700" />
                           {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount}
                         </div>
                       </TableCell>
@@ -438,34 +438,31 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                           <Button 
                             variant="ghost" size="icon" 
                             disabled={!!syncingVideosFor}
-                            className="rounded-xl h-10 w-10 text-zinc-600 hover:text-emerald-500 hover:bg-zinc-900"
+                            className="rounded-lg h-8 w-8 text-zinc-600 hover:text-emerald-500 hover:bg-zinc-900"
                             onClick={() => handleSyncVideos(channel)}
                           >
-                            <RefreshCw className={cn("w-4 h-4", syncingVideosFor === channel.id && "animate-spin")} />
+                            <RefreshCw className={cn("w-3.5 h-3.5", syncingVideosFor === channel.id && "animate-spin")} />
                           </Button>
                           <Button 
                             variant="ghost" size="icon" 
-                            className={cn("rounded-xl h-10 w-10 text-zinc-600 hover:bg-zinc-900", channel.isActive ? "text-emerald-500" : "text-zinc-700")}
+                            className={cn("rounded-lg h-8 w-8 text-zinc-600 hover:bg-zinc-900", channel.isActive ? "text-emerald-500" : "text-zinc-700")}
                             onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)}
                           >
-                            {channel.isActive ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
+                            {channel.isActive ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
                           </Button>
                           <Button 
                             variant="ghost" size="icon" 
-                            className="rounded-xl h-10 w-10 text-zinc-600 hover:text-white hover:bg-zinc-900"
+                            className="rounded-lg h-8 w-8 text-zinc-600 hover:text-white hover:bg-zinc-900"
                             onClick={() => { setEditingChannel(channel); setIsEditDialogOpen(true); }}
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-3.5 h-3.5" />
                           </Button>
-                          <a href={channel.externalUrl} target="_blank" rel="noopener noreferrer">
-                            <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-zinc-600 hover:text-white hover:bg-zinc-900"><ExternalLink className="w-4 h-4" /></Button>
-                          </a>
                           <Button 
                             variant="ghost" size="icon" 
-                            className="rounded-xl h-10 w-10 text-zinc-600 hover:text-destructive"
+                            className="rounded-lg h-8 w-8 text-zinc-600 hover:text-destructive"
                             onClick={() => { if (confirm("Are you sure you want to remove this channel from the registry?")) deleteDocumentNonBlocking(doc(db, 'channels', channel.id)); }}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       </TableCell>
