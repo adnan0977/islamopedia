@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, doc, query, where, getDocs, writeBatch, setDoc } from 'firebase/firestore';
+import { doc, writeBatch, setDoc } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -36,7 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { getAvailableTranslations, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface QuranHubProps {
@@ -60,8 +60,6 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
   const isStandardSynced = standardEdition?.dataSync === 'yes';
 
   const handleStandardSync = async () => {
-    // We initiate the sync with 'quran-uthmani'. 
-    // The performSync function will handle the document creation if it doesn't exist.
     await performSync('quran-uthmani');
   };
 
@@ -75,13 +73,12 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
     try {
       const isArabic = editionId === 'quran-uthmani';
       
-      // We always need the Arabic Uthmani text as the base
+      // Fetch data from API
       const arabicPayload = await getFullQuran('quran-uthmani');
       if (!arabicPayload?.data?.surahs) {
-        throw new Error("Failed to fetch Arabic base text from API.");
+        throw new Error("Failed to fetch Arabic base text. Please check your internet connection.");
       }
 
-      // Fetch translation if this isn't the Arabic edition
       const transPayload = isArabic ? arabicPayload : await getFullQuran(editionId);
       if (!transPayload?.data?.surahs) {
         throw new Error(`Failed to fetch edition ${editionId} from API.`);
@@ -91,8 +88,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
       const arabicSurahs = arabicPayload.data.surahs;
       const transSurahs = transPayload.data.surahs;
 
-      // Firestore Batch Write (max 500 ops per batch)
-      // We process 10 Surahs at a time to stay safe within payload size limits per doc
+      // Process in small batches to maintain browser performance and Firestore limits
       const batchSize = 10;
       for (let i = 0; i < arabicSurahs.length; i += batchSize) {
         const chunk = arabicSurahs.slice(i, i + batchSize);
@@ -100,9 +96,8 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         
         chunk.forEach((s: any, idx: number) => {
           const sNum = s.number;
-          // Find corresponding translation surah
-          // API returns them in index order 0-113
-          const tSurah = transSurahs[i + idx];
+          const globalIdx = i + idx;
+          const tSurah = transSurahs[globalIdx];
           const surahId = `${editionId}_surah_${sNum}`;
           
           if (!tSurah) return;
@@ -132,11 +127,8 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         setProgress(Math.round(((i + chunk.length) / arabicSurahs.length) * 100));
       }
 
-      // Ensure the edition record exists and is marked as synced
+      // Update sync status in metadata
       const editionRef = doc(db, 'quran_editions', editionId);
-      
-      // If it's a new edition we haven't tracked yet (like standard auto-sync)
-      // we initialize its metadata here
       const editionMetadata = isArabic ? {
         id: 'quran-uthmani',
         name: 'Standard Arabic (Uthmani)',
@@ -153,16 +145,16 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
 
       setSyncStatus('success');
       toast({ 
-        title: "Database Synchronized", 
-        description: `Successfully indexed ${editionId} surahs into Firestore.` 
+        title: "Synchronization Complete", 
+        description: `Successfully indexed ${editionId} surahs.` 
       });
     } catch (e: any) {
       console.error("Sync Error:", e);
       setSyncStatus('error');
       toast({ 
         variant: "destructive", 
-        title: "Synchronization Failed", 
-        description: e.message || "An error occurred while communicating with AlQuran Cloud." 
+        title: "Sync Failed", 
+        description: e.message || "An unexpected error occurred during database sync." 
       });
     } finally {
       setSyncing(false);
@@ -252,7 +244,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
       deleteDocumentNonBlocking(doc(db, 'quran_editions', edition.identifier));
       toast({ title: "Edition Deactivated" });
     } else {
-      setDocumentNonBlocking(doc(db, 'quran_editions', edition.identifier), {
+      setDoc(doc(db, 'quran_editions', edition.identifier), {
         id: edition.identifier,
         name: edition.name,
         language: languageNameMap[edition.language] || edition.language.toUpperCase(),

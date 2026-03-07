@@ -185,9 +185,9 @@ export default function AdminPanel() {
               <QuranHub 
                 editions={editions || []} 
                 syncing={sync.isSyncing} 
-                setSyncing={(val) => setSync({ ...sync, isSyncing: val })}
-                setProgress={(val) => setSync({ ...sync, progress: val })}
-                setSyncStatus={(val) => setSync({ ...sync, status: val })}
+                setSyncing={(val) => setSync(prev => ({ ...prev, isSyncing: val }))}
+                setProgress={(val) => setSync(prev => ({ ...prev, progress: val }))}
+                setSyncStatus={(val) => setSync(prev => ({ ...prev, status: val }))}
               />
             )}
             {activeTab === 'settings' && (
