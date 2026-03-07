@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, writeBatch, limit, orderBy } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, getDoc, writeBatch, limit, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -1277,14 +1277,23 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
   const [isLoading, setIsLoading] = useState(false);
   const [pageData, setPageData] = useState<any>(null);
 
+  // Default to Arabic base if available
+  useEffect(() => {
+    if (!selectedEdition && editions.length > 0) {
+      const hasArabic = editions.find(e => e.id === 'quran-uthmani');
+      setSelectedEdition(hasArabic ? 'quran-uthmani' : editions[0].id);
+    }
+  }, [editions, selectedEdition]);
+
   const fetchPageFromDB = async () => {
     if (!selectedEdition) return;
     setIsLoading(true);
     try {
       const pageId = `${selectedEdition}_page_${currentPage}`;
-      const snap = await getDocs(query(collection(db, 'quran'), where('id', '==', pageId), limit(1)));
-      if (!snap.empty) {
-        setPageData(snap.docs[0].data());
+      const docRef = doc(db, 'quran', pageId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        setPageData(snap.data());
       } else {
         setPageData(null);
       }
