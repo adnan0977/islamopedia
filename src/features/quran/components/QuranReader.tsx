@@ -4,15 +4,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
-import { Loader2, BookOpen, LayoutList, ChevronLeft, ChevronRight, List, Grid3X3, Layers } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Grid3X3, Layers } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function QuranReader() {
   const db = useFirestore();
@@ -20,7 +18,7 @@ export function QuranReader() {
   const router = useRouter();
   
   // URL Params for initial state
-  const initialMode = searchParams.get('mode') as 'ayat' | 'page' | 'index' || 'page';
+  const initialMode = searchParams.get('mode') as 'ayat' | 'page' | 'index' || 'index';
   const initialIndexType = searchParams.get('type') as 'surah' | 'juz' || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
 
@@ -29,7 +27,7 @@ export function QuranReader() {
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
-  const [selectedEdition, setSelectedEdition] = useState('en.sahih');
+  const [selectedEdition] = useState('en.sahih');
 
   // Handle URL updates when state changes
   useEffect(() => {
@@ -100,16 +98,10 @@ export function QuranReader() {
 
   const handleJumpToPage = (page: number) => {
     setCurrentPage(page);
-    setViewMode('page');
+    setViewMode('page'); // Default to Page mode for Juz/General jumps
   };
 
   const handleJumpToSurah = (surahNum: number) => {
-    // Basic heuristic to find the start page of a surah from metadata if available
-    const surahRef = metadata?.surahs?.references?.find((s: any) => s.number === surahNum);
-    // If metadata doesn't have page mapping yet, we'd need a more complex lookup
-    // For now, let's assume we navigate to surah view mode or first page of surah
-    // Since we browse by page primarily, we'd need metadata to have startPage
-    // If not, we fetch the surah doc from 'quran' collection
     setLoadingContent(true);
     getDocs(query(collection(db, 'quran'), where('editionId', '==', 'quran-uthmani'), where('surahNumber', '==', surahNum)))
       .then(snap => {
@@ -117,11 +109,16 @@ export function QuranReader() {
           const data = snap.docs[0].data();
           if (data.pages && data.pages.length > 0) {
             setCurrentPage(data.pages[0]);
-            setViewMode('page');
+            setViewMode('ayat'); // Default to Ayat mode for Surah jumps
           }
         }
       })
       .finally(() => setLoadingContent(false));
+  };
+
+  const toggleIndex = (type: 'surah' | 'juz') => {
+    setIndexType(type);
+    setViewMode('index');
   };
 
   return (
@@ -148,31 +145,23 @@ export function QuranReader() {
           </div>
         </div>
 
+        {/* Primary Navigation: Surah/Juz List Selection */}
         <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setViewMode('index')} 
-            className={cn("rounded-xl font-bold h-10 px-4", viewMode === 'index' ? "bg-zinc-800 text-white" : "text-zinc-500")}
+            onClick={() => toggleIndex('surah')} 
+            className={cn("rounded-xl font-bold h-10 px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
           >
-            <List className="w-4 h-4 mr-2" /> Index
-          </Button>
-          <div className="w-px h-6 bg-zinc-800 mx-1" />
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setViewMode('page')} 
-            className={cn("rounded-xl font-bold h-10 px-4", viewMode === 'page' ? "bg-zinc-800 text-white" : "text-zinc-500")}
-          >
-            <BookOpen className="w-4 h-4 mr-2" /> Page
+            <Grid3X3 className="w-4 h-4 mr-2" /> Surah List
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setViewMode('ayat')} 
-            className={cn("rounded-xl font-bold h-10 px-4", viewMode === 'ayat' ? "bg-zinc-800 text-white" : "text-zinc-500")}
+            onClick={() => toggleIndex('juz')} 
+            className={cn("rounded-xl font-bold h-10 px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
           >
-            <LayoutList className="w-4 h-4 mr-2" /> Verses
+            <Layers className="w-4 h-4 mr-2" /> Juz List
           </Button>
         </div>
 
@@ -207,24 +196,7 @@ export function QuranReader() {
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col">
         {viewMode === 'index' ? (
           <ScrollArea className="flex-1">
-            <div className="p-8 md:p-12 space-y-12">
-              <div className="flex gap-4">
-                <Button 
-                  variant={indexType === 'surah' ? 'default' : 'outline'} 
-                  onClick={() => setIndexType('surah')}
-                  className="rounded-xl font-bold"
-                >
-                  <Grid3X3 className="w-4 h-4 mr-2" /> Surah List
-                </Button>
-                <Button 
-                  variant={indexType === 'juz' ? 'default' : 'outline'} 
-                  onClick={() => setIndexType('juz')}
-                  className="rounded-xl font-bold"
-                >
-                  <Layers className="w-4 h-4 mr-2" /> Juz List
-                </Button>
-              </div>
-
+            <div className="p-8 md:p-12 space-y-8">
               {isMetaLoading ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="animate-spin text-zinc-800 w-10 h-10" />
@@ -243,7 +215,7 @@ export function QuranReader() {
                         </div>
                         <div>
                           <h3 className="font-bold text-sm text-zinc-200">{surah.englishName}</h3>
-                          <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">{surah.numberOfAyahs} Verses • {surah.revelationType}</p>
+                          <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">{surah.numberOfAyahs} Verses</p>
                         </div>
                       </div>
                       <span className="text-lg font-arabic text-zinc-500 group-hover:text-zinc-200 transition-colors">{surah.name}</span>
@@ -255,14 +227,14 @@ export function QuranReader() {
                   {metadata?.juzs?.references?.map((juz: any, idx: number) => (
                     <button 
                       key={idx}
-                      onClick={() => handleJumpToPage(juz.ayah || 1)} // Juz metadata usually maps to a page/ayah
+                      onClick={() => handleJumpToPage(juz.ayah || 1)}
                       className="group flex items-center justify-between p-6 bg-zinc-900/30 rounded-3xl border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-900/50 transition-all text-left"
                     >
                       <div className="flex items-center gap-5">
                         <AyatFrame number={idx + 1} size="sm" frameId={ayatFrameId} customPath={customAyatFramePath} customImageUrl={frameImageUrl} />
                         <div>
                           <h3 className="font-bold text-zinc-200">Juz {idx + 1}</h3>
-                          <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Starting at Surah {juz.surah}, Ayah {juz.ayah}</p>
+                          <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Starting at Surah {juz.surah}</p>
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-zinc-800 group-hover:text-zinc-400 transition-colors" />
