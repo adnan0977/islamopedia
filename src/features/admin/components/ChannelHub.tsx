@@ -48,11 +48,10 @@ const DEFAULT_IDS = [
   "UC1mNByYnDzhPesq4RF-jGLQ", // Islamic History (Official)
   "UCCBGUffdWwRV0gUqgElkCfw", // The Kohistani
   "UCybKAapNVFBeZyn6DJHQaGA", // Islamic Bayan 2026
-  "UCp4Vf-IOn66Xv_Xf7oN7tLg", // Duroos.org
-  "UCv9u_K37S6v3m3N_5fV3DPA", // Masjid Ribat
+  "UCBMHtZeFf0EJeYr7CXnO5xQ", // Deen Squad
   "UC8m7_p6_qD8zU_x7S8F8_xA", // iLovUAllah
-  "UCNB_OaI4504v6A6mAnV2S0A", // Quran Central
-  "UCBMHtZeFf0EJeYr7CXnO5xQ"  // Additional
+  "UCp4Vf-IOn66Xv_Xf7oN7tLg", // Duroos.org
+  "UCv9u_K37S6v3m3N_5fV3DPA"  // Masjid Ribat
 ].join('\n');
 
 export function ChannelHub() {
