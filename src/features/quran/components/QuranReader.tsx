@@ -1,31 +1,17 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Search, Loader2, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, BookOpen, LayoutList, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, toArabicNumerals } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-context-flow';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, query, where, getDocs } from 'firebase/firestore';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu"
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export function QuranReader() {
   const db = useFirestore();
-  const { user } = useUser();
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'ayat' | 'page'>('page');
   const [loadingContent, setLoadingContent] = useState(false);
@@ -53,11 +39,15 @@ export function QuranReader() {
             }
           });
         });
+        
+        // Ensure sorting by ayat number if they came from different surahs on same page
+        pageArabic.sort((a, b) => (a.numberInSurah - b.numberInSurah));
+        
         setQuranData({ arabic: pageArabic, trans: pageTrans });
       } catch (e) { console.error(e); } finally { setLoadingContent(false); }
     }
     fetchPage();
-  }, [currentPage, selectedEdition]);
+  }, [currentPage, selectedEdition, db]);
 
   const groupedAyats = useMemo(() => {
     const groups: any[] = [];
@@ -77,18 +67,24 @@ export function QuranReader() {
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-headline font-bold text-white">{groupedAyats[0]?.surah.englishName || 'Quran Reader'}</h1>
-          <Badge className="bg-zinc-900 border-zinc-800 text-zinc-500 font-black">PAGE {currentPage}</Badge>
+          <Badge className="bg-zinc-900 border-zinc-800 text-zinc-500 font-black uppercase tracking-widest">Page {currentPage}</Badge>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage <= 1}><ChevronLeft/></Button>
-          <span className="text-xs font-black text-zinc-600 px-4">{currentPage} / 604</span>
+          <span className="text-xs font-black text-zinc-600 px-4">{currentPage} / 6٠٤</span>
           <Button variant="ghost" size="icon" onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} disabled={currentPage >= 604}><ChevronRight/></Button>
-          <Button variant="outline" size="icon" onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')} className="ml-4">{viewMode === 'ayat' ? <BookOpen/> : <LayoutList/>}</Button>
+          <Button variant="outline" size="icon" onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')} className="ml-4">
+            {viewMode === 'ayat' ? <BookOpen className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
+          </Button>
         </div>
       </div>
 
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-3xl">
-        {loadingContent ? <div className="flex items-center justify-center h-full py-20"><Loader2 className="animate-spin text-zinc-500 w-12 h-12" /></div> : (
+        {loadingContent ? (
+          <div className="flex items-center justify-center h-full py-20">
+            <Loader2 className="animate-spin text-zinc-500 w-12 h-12" />
+          </div>
+        ) : (
           <ScrollArea className="h-full">
             <div className="p-10 md:p-20">
               {viewMode === 'ayat' ? (
@@ -97,9 +93,22 @@ export function QuranReader() {
                     <div key={group.surah.number} className="space-y-12">
                       <div className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-800 border-b border-zinc-900 pb-2">SURAH {group.surah.number}</div>
                       {group.ayats.map((a: any) => (
-                        <div key={a.number} className="space-y-8">
-                          <p className="text-right text-4xl md:text-6xl font-arabic leading-[2] text-zinc-100">{a.text}</p>
-                          {a.trans && <p className="text-zinc-500 text-xl font-medium border-l-2 border-zinc-900 pl-8">{a.trans}</p>}
+                        <div key={a.number} className="flex gap-8 group">
+                          <div className="w-12 pt-2 shrink-0">
+                            <span className="text-[10px] font-black text-zinc-100 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
+                              {toArabicNumerals(a.numberInSurah)}
+                            </span>
+                          </div>
+                          <div className="flex-1 space-y-8">
+                            <p className="text-right text-4xl md:text-6xl font-arabic leading-[2] text-zinc-100" dir="rtl">
+                              {a.text}
+                            </p>
+                            {a.trans && (
+                              <p className="text-zinc-500 text-xl font-medium border-l-2 border-zinc-900 pl-8 italic">
+                                {a.trans}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -109,7 +118,10 @@ export function QuranReader() {
                 <div className="text-right font-arabic leading-[3] text-4xl md:text-7xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map(a => (
                     <span key={a.number} className="hover:text-white transition-colors">
-                      {a.text} <span className="inline-flex items-center justify-center w-12 h-12 mx-4 text-sm border border-zinc-900 rounded-full font-sans font-black text-zinc-700">{a.numberInSurah}</span>
+                      {a.text} 
+                      <span className="inline-flex items-center justify-center w-14 h-14 mx-4 text-base border border-zinc-800 rounded-full font-sans font-black text-zinc-600 bg-zinc-900/30">
+                        {toArabicNumerals(a.numberInSurah)}
+                      </span>
                     </span>
                   ))}
                 </div>

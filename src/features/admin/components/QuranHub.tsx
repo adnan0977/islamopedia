@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -15,7 +14,6 @@ import {
   AlertCircle,
   CheckCircle2,
   BookOpen,
-  LayoutList,
   ChevronRight,
   ChevronLeft,
   Database
@@ -45,6 +43,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toArabicNumerals } from '@/lib/utils';
 
 interface QuranHubProps {
   editions: any[];
@@ -236,7 +235,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
 
   useEffect(() => {
     if (openAdd && available.length === 0) fetchAvailable();
-  }, [openAdd]);
+  }, [openAdd, available.length]);
 
   const toggleEdition = (edition: any) => {
     const existing = editions.find(t => t.id === edition.identifier);
@@ -521,8 +520,8 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
                   {surah.ayats.map((ayat: any) => (
                     <div key={ayat.number} className="flex gap-6 group">
                       <div className="w-12 pt-2 shrink-0">
-                         <span className="text-[9px] font-black text-zinc-700 bg-zinc-900 px-2 py-1 rounded-md">
-                           {ayat.numberInSurah}
+                         <span className="text-[10px] font-black text-zinc-400 bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-800">
+                           {toArabicNumerals(ayat.numberInSurah)}
                          </span>
                       </div>
                       <div className="flex-1 space-y-4">
@@ -551,3 +550,4 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
     </div>
   );
 }
+
