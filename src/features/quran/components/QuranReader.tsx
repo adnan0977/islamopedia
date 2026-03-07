@@ -175,7 +175,6 @@ export function QuranReader() {
 
   const isReading = viewMode !== 'index';
 
-  // Swipe Gesture Handlers
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
@@ -200,7 +199,6 @@ export function QuranReader() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-4">
-      {/* Primary Header */}
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex items-center gap-4">
           {!isReading ? (
@@ -359,11 +357,10 @@ export function QuranReader() {
                     <div key={group.surah.number} className="space-y-10">
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="space-y-6 md:space-y-8 border-b border-zinc-900/50 pb-12 last:border-0">
-                          <div className="text-right" dir="rtl">
-                            <p className="text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100 inline">
-                              {a.text}
-                            </p>
-                            <span className="inline-flex mr-4 md:mr-6 align-middle">
+                          <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
+                            {a.text}
+                            {" "}
+                            <span className="inline-block align-middle ms-4 select-none">
                               <AyatFrame 
                                 number={a.numberInSurah} 
                                 frameId={ayatFrameId} 
@@ -372,9 +369,9 @@ export function QuranReader() {
                                 size="sm"
                               />
                             </span>
-                          </div>
+                          </p>
                           {a.trans && (
-                            <p className="text-zinc-500 text-base md:text-lg font-medium border-l border-zinc-900 pl-4 md:pl-6 italic">
+                            <p className="text-zinc-500 text-sm md:text-lg font-medium border-l border-zinc-900 pl-4 md:pl-6 italic">
                               {a.trans}
                             </p>
                           )}
@@ -391,7 +388,7 @@ export function QuranReader() {
                         {a.text}
                       </span>
                       {" "}
-                      <span className="inline-flex mx-2 md:mx-4 align-middle select-none shrink-0 justify-center items-center">
+                      <span className="inline-block mx-2 md:mx-4 align-middle select-none shrink-0">
                         <AyatFrame 
                           number={a.numberInSurah} 
                           size="sm" 
