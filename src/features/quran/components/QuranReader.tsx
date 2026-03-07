@@ -191,8 +191,7 @@ export function QuranReader() {
     const isRightSwipe = distance < -minSwipeDistance;
 
     // RTL Swipe Navigation:
-    // Swipe Right (finger moves right, distance < 0) -> Advance to Next Page (Page + 1)
-    // Swipe Left (finger moves left, distance > 0) -> Return to Previous Page (Page - 1)
+    // Physical analogy: Pulling a page from left-to-right (Right Swipe) reveals the NEXT page.
     if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
     } else if (isLeftSwipe && currentPage > 1) {
@@ -360,7 +359,7 @@ export function QuranReader() {
                     <div key={group.surah.number} className="space-y-10">
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="space-y-6 md:space-y-8 border-b border-zinc-900/50 pb-12 last:border-0">
-                          <p className="text-right text-3xl md:text-5xl font-headline-arabic leading-relaxed text-zinc-100" dir="rtl">
+                          <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
                             {a.text}
                             {" "}
                             <span className="inline-block align-middle ms-4 select-none">
@@ -415,10 +414,10 @@ export function QuranReader() {
           <Button 
             variant="ghost" 
             className="rounded-xl h-10 md:h-12 px-3 md:px-6 gap-2 text-zinc-500 hover:text-white font-bold text-xs md:text-sm"
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))}
+            disabled={currentPage >= 604}
           >
-            <ChevronLeft className="w-4 h-4" /> <span className="hidden md:inline">Previous Page</span>
+            <ChevronLeft className="w-4 h-4" /> <span className="hidden md:inline">Next Page</span>
           </Button>
           <div className="block text-zinc-700 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
             Swipe to Turn Page
@@ -426,10 +425,10 @@ export function QuranReader() {
           <Button 
             variant="ghost" 
             className="rounded-xl h-10 md:h-12 px-3 md:px-6 gap-2 text-zinc-500 hover:text-white font-bold text-xs md:text-sm"
-            onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))}
-            disabled={currentPage >= 604}
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage <= 1}
           >
-            <span className="hidden md:inline">Next Page</span> <ChevronRight className="w-4 h-4" />
+            <span className="hidden md:inline">Previous Page</span> <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       )}
