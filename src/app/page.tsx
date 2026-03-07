@@ -102,9 +102,9 @@ export default function Home() {
             <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
           ) : (
             <Carousel opts={{ align: "start", loop: true }} className="w-full">
-              <CarouselContent className="-ml-6">
+              <CarouselContent className="-ml-2">
                 {trendingVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-6 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                  <CarouselItem key={video.id} className="pl-2 basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
@@ -145,7 +145,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Latest Videos Slider (Now Horizontal) */}
+        {/* Latest Videos Slider */}
         <section className="space-y-8 relative">
           <div className="flex items-center justify-between px-2">
             <div className="space-y-1">
@@ -164,9 +164,9 @@ export default function Home() {
             <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
           ) : (
             <Carousel opts={{ align: "start", loop: true }} className="w-full">
-              <CarouselContent className="-ml-6">
+              <CarouselContent className="-ml-2">
                 {latestVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-6 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                  <CarouselItem key={video.id} className="pl-2 basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
@@ -191,7 +191,7 @@ function VideoCard({ video }: { video: any }) {
   }, []);
 
   return (
-    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-3xl">
+    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-xl md:rounded-3xl">
       <Link href={`/watch?v=${video.id}`}>
         <div className="relative aspect-video overflow-hidden">
           <Image 
@@ -201,17 +201,18 @@ function VideoCard({ video }: { video: any }) {
             className="object-cover group-hover:scale-105 transition-transform duration-1000"
           />
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl w-14 h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
-              <Play className="text-zinc-300 fill-zinc-300 ml-1 w-6 h-6" />
+            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-lg md:rounded-2xl w-8 h-8 md:w-14 md:h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
+              <Play className="text-zinc-300 fill-zinc-300 ml-0.5 w-3 h-3 md:w-6 md:h-6" />
             </div>
           </div>
         </div>
-        <CardHeader className="p-5 space-y-4">
-          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-sm tracking-tight">
+        <CardHeader className="p-2 md:p-5 space-y-2 md:space-y-4">
+          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[1.5rem] md:min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-[9px] md:text-sm tracking-tight">
             {video.title}
           </CardTitle>
-          <div className="flex items-center justify-between text-[9px] text-zinc-600 font-black uppercase tracking-[0.2em] pt-4 border-t border-zinc-900 mt-2">
-            <span>{video.viewCount?.toLocaleString() || 0} views</span>
+          <div className="flex items-center justify-between text-[7px] md:text-[9px] text-zinc-600 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] pt-1 md:pt-4 border-t border-zinc-900 mt-1 md:mt-2">
+            <span className="hidden xs:inline">{video.viewCount?.toLocaleString() || 0} views</span>
+            <span className="xs:hidden">{video.viewCount ? (video.viewCount / 1000).toFixed(0) + 'K' : 0}</span>
             <span className="text-zinc-800">•</span>
             <span>
               {mounted ? new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
