@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getQuranSurahs, getSurahDetails } from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, MapPin, Languages, LayoutList, BookOpen } from 'lucide-react';
+import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, MapPin, Languages, LayoutList, BookOpen, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -27,11 +27,13 @@ export default function QuranPage() {
   const db = useFirestore();
   const [surahs, setSurahs] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedSurah, setSelectedSurah] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [playingAyat, setPlayingAyat] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('ayat');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Translation State
   const translationsRef = useMemoFirebase(() => collection(db, 'quran_translations'), [db]);
@@ -104,11 +106,17 @@ export default function QuranPage() {
     s.name.includes(search)
   );
 
+  useEffect(() => {
+    if (isSearchExpanded && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isSearchExpanded]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 h-auto md:h-[calc(100vh-120px)] flex flex-col space-y-6 pb-24 md:pb-0">
       {/* Header with Unified Controls */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-1">
           {selectedSurah && (
             <Button 
               variant="ghost" 
@@ -119,24 +127,23 @@ export default function QuranPage() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
-          <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100">
+              <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100 whitespace-nowrap">
                 {selectedSurah ? selectedSurah.info.englishName : 'Quran Majeed'}
               </h1>
               {selectedSurah && (
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 bg-zinc-950 border-zinc-900 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all shadow-lg"
+                  className="h-10 w-10 bg-zinc-950 border-zinc-900 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all shadow-lg shrink-0"
                   onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
-                  title={viewMode === 'ayat' ? "Switch to Page View" : "Switch to Ayat View"}
                 >
                   {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
                 </Button>
               )}
             </div>
-            <p className="text-zinc-500 text-xs md:text-sm">
+            <p className="text-zinc-500 text-xs md:text-sm truncate">
               {selectedSurah 
                 ? `${selectedSurah.info.englishNameTranslation} • ${selectedSurah.info.numberOfAyahs} Ayahs` 
                 : 'Read, listen, and contemplate the Word of Allah.'}
@@ -144,34 +151,64 @@ export default function QuranPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          {/* Translation Icon Selector */}
-          <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
-            <SelectTrigger className="w-12 h-12 p-0 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors">
-              <Languages className="w-5 h-5 shrink-0" />
-            </SelectTrigger>
-            <SelectContent align="end" className="bg-zinc-950 border-zinc-800">
-              {displayTranslations.map(t => (
-                <SelectItem key={t.id} value={t.id} className="text-zinc-300 focus:bg-zinc-900">
-                  <div className="flex flex-col py-0.5">
-                    <span className="font-bold text-xs">{t.name}</span>
-                    <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Search Bar */}
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-            <Input 
-              placeholder="Search Surah..." 
-              className="pl-10 bg-zinc-950 border-zinc-900 h-12 rounded-xl text-white shadow-lg focus:border-zinc-700 transition-all"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-end">
+          {/* Expandable Search Input */}
+          <div className={cn(
+            "relative transition-all duration-300 flex items-center",
+            isSearchExpanded ? "w-full md:w-80" : "w-12"
+          )}>
+            {isSearchExpanded ? (
+              <div className="flex items-center w-full bg-zinc-950 border border-zinc-900 rounded-xl h-12 shadow-lg animate-in slide-in-from-right-2 duration-300">
+                <Search className="ml-3 w-4 h-4 text-zinc-600 shrink-0" />
+                <Input 
+                  ref={searchInputRef}
+                  placeholder="Search Surah..." 
+                  className="bg-transparent border-none focus-visible:ring-0 text-white placeholder:text-zinc-600 h-full w-full"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-full w-10 text-zinc-600 hover:text-white"
+                  onClick={() => {
+                    setIsSearchExpanded(false);
+                    setSearch('');
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                onClick={() => setIsSearchExpanded(true)}
+                variant="outline"
+                size="icon"
+                className="w-12 h-12 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors"
+              >
+                <Search className="w-5 h-5" />
+              </Button>
+            )}
           </div>
+
+          {/* Translation Icon Selector */}
+          {!isSearchExpanded && (
+            <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
+              <SelectTrigger className="w-12 h-12 p-0 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors">
+                <Languages className="w-5 h-5 shrink-0" />
+              </SelectTrigger>
+              <SelectContent align="end" className="bg-zinc-950 border-zinc-800">
+                {displayTranslations.map(t => (
+                  <SelectItem key={t.id} value={t.id} className="text-zinc-300 focus:bg-zinc-900">
+                    <div className="flex flex-col py-0.5">
+                      <span className="font-bold text-xs">{t.name}</span>
+                      <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
