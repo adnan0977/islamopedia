@@ -174,7 +174,6 @@ export function QuranReader() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-6">
-      {/* Updated Header Bar */}
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex flex-col justify-center">
           <h1 className="text-xl md:text-2xl font-headline font-bold text-white">
@@ -209,7 +208,6 @@ export function QuranReader() {
         </div>
       </div>
 
-      {/* Dynamic Sub-header for Reading Controls */}
       {viewMode !== 'index' && (
         <div className="flex flex-wrap items-center justify-between bg-zinc-950/50 backdrop-blur-md p-4 rounded-3xl border border-zinc-900 gap-4">
           <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
@@ -277,7 +275,6 @@ export function QuranReader() {
         </div>
       )}
 
-      {/* Main Content Area */}
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col">
         {viewMode === 'index' ? (
           <ScrollArea className="flex-1">
@@ -356,12 +353,13 @@ export function QuranReader() {
                       
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="flex gap-8 group">
-                          <div className="w-12 pt-2 shrink-0">
+                          <div className="w-10 pt-2 shrink-0 flex justify-center">
                             <AyatFrame 
                               number={a.numberInSurah} 
                               frameId={ayatFrameId} 
                               customPath={customAyatFramePath} 
                               customImageUrl={frameImageUrl}
+                              size="sm"
                             />
                           </div>
                           <div className="flex-1 space-y-8">
@@ -384,10 +382,10 @@ export function QuranReader() {
                   {quranData.arabic.map((a, idx) => (
                     <span key={a.number} className="hover:text-white transition-colors group relative inline-block">
                       {a.text} 
-                      <span className="inline-flex mx-2">
+                      <span className="inline-flex mx-2 align-middle">
                         <AyatFrame 
                           number={a.numberInSurah} 
-                          size="lg" 
+                          size="md" 
                           frameId={ayatFrameId} 
                           customPath={customAyatFramePath} 
                           customImageUrl={frameImageUrl}
