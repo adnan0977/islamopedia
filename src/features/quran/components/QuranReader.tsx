@@ -9,7 +9,8 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Layers, 
-  Book as BookIcon,
+  BookOpen,
+  List,
   ArrowLeft,
   Database,
   Settings,
@@ -50,7 +51,7 @@ export function QuranReader() {
   const [selectedJuz, setSelectedJuz] = useState<number | null>(juzParam ? parseInt(juzParam) : null);
   const [selectedPage, setSelectedPage] = useState<number | null>(pageParam ? parseInt(pageParam) : null);
 
-  // 2. Define isReading early
+  // 2. Define isReading early for initialization order
   const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
                     (viewMode === 'juz' && selectedJuz !== null) || 
                     (viewMode === 'page' && selectedPage !== null);
@@ -113,7 +114,7 @@ export function QuranReader() {
     return text;
   };
 
-  // Content Fetching Logic
+  // Content Fetching Logic - Strictly isolated views for Surah/Juz/Page
   useEffect(() => {
     if (!isReading) {
       setContent([]);
@@ -133,11 +134,8 @@ export function QuranReader() {
           if (viewMode === 'surah' && selectedSurah) {
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('surahNumber', '==', selectedSurah));
           } else if (viewMode === 'juz' && selectedJuz) {
-            // Simplified juz fetching logic for demo
-            q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('ayats', 'array-contains-any', [{ juz: selectedJuz }]));
-            // Since array-contains-any with nested objects is tricky, 
-            // a better production approach is a dedicated juz field or mapping.
-            // For now, we fetch relevant surahs and filter locally.
+            // In a production environment, you might have a juz-specific collection.
+            // For this implementation, we fetch all surahs and filter the ayats locally to guarantee the exact Juz range.
             q = query(collection(db, 'quran'), where('editionId', '==', editionId));
           } else if (viewMode === 'page' && selectedPage) {
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('pages', 'array-contains', selectedPage));
@@ -145,7 +143,7 @@ export function QuranReader() {
 
           if (q) {
             const snap = await getDocs(q);
-            results[editionId] = snap.docs.map(d => d.data()).sort((a, b) => a.surahNumber - b.surahNumber);
+            results[editionId] = snap.docs.map(d => d.data());
           }
         }
 
@@ -173,7 +171,7 @@ export function QuranReader() {
             englishName: s.englishName,
             ayats
           };
-        }).filter(c => c.ayats.length > 0);
+        }).filter(c => c.ayats.length > 0).sort((a, b) => (a.surahNumber || 0) - (b.surahNumber || 0));
 
         setContent(mergedContent);
       } catch (e) {
@@ -206,11 +204,13 @@ export function QuranReader() {
     router.push(`/quran?${params.toString()}`);
   };
 
-  const toggleReaderViewMode = (newMode: 'ayat' | 'page') => {
-    if (newMode === 'page') {
+  const toggleReaderViewMode = () => {
+    if (viewMode !== 'page') {
+      // Switch to Page mode
       const firstPage = content[0]?.ayats[0]?.page || 1;
       router.push(`/quran?mode=page&page=${firstPage}`);
     } else {
+      // Switch back to Ayat mode (Surah view)
       const firstSurah = content[0]?.surahNumber || 1;
       router.push(`/quran?mode=surah&surah=${firstSurah}`);
     }
@@ -245,7 +245,7 @@ export function QuranReader() {
                     {viewMode === 'page' && `Page ${selectedPage}`}
                   </h1>
                   <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">
-                    {viewMode === 'surah' ? `${content[0]?.ayats.length || 0} Verses` : viewMode === 'page' ? 'Page View' : `Juz Reading`}
+                    {viewMode === 'surah' ? `${content[0]?.ayats.length || 0} Verses` : viewMode === 'page' ? 'Mushaf View' : `Juz Reading`}
                   </p>
                 </div>
               </div>
@@ -279,30 +279,15 @@ export function QuranReader() {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-1 bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-900 shadow-inner">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => toggleReaderViewMode('ayat')} 
-                  className={cn(
-                    "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
-                    viewMode !== 'page' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
-                  )}
-                >
-                  Ayat
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => toggleReaderViewMode('page')} 
-                  className={cn(
-                    "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
-                    viewMode === 'page' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
-                  )}
-                >
-                  Page
-                </Button>
-              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleReaderViewMode}
+                className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
+                title={viewMode === 'page' ? "Switch to Ayat View" : "Switch to Page View"}
+              >
+                {viewMode === 'page' ? <List className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+              </Button>
             )}
             <Link href="/quran/settings">
               <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white">
@@ -377,7 +362,7 @@ export function QuranReader() {
                     )}
                     
                     {viewMode === 'page' ? (
-                      /* Page View: Continuous flow of text */
+                      /* Page View: Continuous flow of pure Arabic text with inline separators */
                       <div className="p-8 md:p-16 text-right" dir="rtl">
                         <p 
                           className="font-arabic leading-[2.5] text-zinc-100" 
@@ -398,7 +383,7 @@ export function QuranReader() {
                         </p>
                       </div>
                     ) : (
-                      /* Ayat View: Block by block focus */
+                      /* Ayat View: Block by block focus with translation/transliteration */
                       surah.ayats.map((ayat, aIdx) => (
                         <div 
                           key={`${ayat.number}-${aIdx}`} 
@@ -437,7 +422,7 @@ export function QuranReader() {
       {isReading && (
         <div className="flex items-center justify-between px-6 pb-32">
           <div className="text-zinc-600 font-black text-[10px] uppercase tracking-widest">
-            {viewMode === 'surah' ? 'Full Surah View' : viewMode === 'juz' ? 'Juz Content' : 'Page View'}
+            {viewMode === 'surah' ? 'Full Surah View' : viewMode === 'juz' ? 'Juz Content' : 'Page Context'}
           </div>
           <Button 
             variant="ghost" 
