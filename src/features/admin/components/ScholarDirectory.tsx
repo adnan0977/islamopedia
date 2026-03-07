@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -107,7 +106,7 @@ export function ScholarDirectory() {
                 <span className="text-sm">Add New Scholar</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none shadow-2xl">
+            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-xl shadow-2xl">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-bold">Register Scholar</DialogTitle>
                 <DialogDescription className="text-zinc-500">Create a new profile for a spiritual teacher.</DialogDescription>

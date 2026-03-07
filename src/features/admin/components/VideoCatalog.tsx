@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -138,7 +137,7 @@ export function VideoCatalog() {
                 <span className="text-sm">Add New Video</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-bold">Catalog New Video</DialogTitle>
                 <DialogDescription className="text-zinc-500">Manually add spiritual content to your platform library.</DialogDescription>

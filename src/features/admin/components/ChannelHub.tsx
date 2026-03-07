@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -138,7 +137,7 @@ export function ChannelHub() {
               <span className="text-sm">Add New Channels</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-0 overflow-hidden outline-none shadow-2xl">
+          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-4xl p-0 overflow-hidden outline-none shadow-2xl">
             <DialogHeader className="p-10 border-b border-zinc-900 bg-zinc-900/40">
               <DialogTitle className="text-2xl font-bold">Import Creators</DialogTitle>
               <DialogDescription className="text-zinc-500 text-sm mt-2">Add YouTube channels to your directory to sync spiritual content.</DialogDescription>
@@ -163,7 +162,7 @@ export function ChannelHub() {
                     </div>
                     <Textarea 
                       placeholder="Paste list of YouTube Channel IDs..."
-                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-xs min-h-[220px] rounded-[1.5rem] p-6 focus:ring-zinc-700 resize-none scrollbar-hide"
+                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-xs min-h-[300px] rounded-[1.5rem] p-6 focus:ring-zinc-700 resize-none scrollbar-hide"
                       value={bulkIds}
                       onChange={(e) => setBulkBulkIds(e.target.value)}
                     />
