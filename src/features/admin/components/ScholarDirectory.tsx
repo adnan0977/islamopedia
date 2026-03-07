@@ -100,10 +100,11 @@ export function ScholarDirectory() {
         <div className="flex gap-3">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-700 rounded-full h-14 px-8 font-bold shadow-2xl transition-all active:scale-95 flex items-center gap-3 group">
-                <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
-                  <Plus className="w-5 h-5 text-emerald-500" />
-                </div>
+              <Button 
+                variant="outline"
+                className="rounded-full h-14 px-8 font-bold border-zinc-700 hover:bg-zinc-900 hover:text-white transition-all active:scale-95 flex items-center gap-3"
+              >
+                <Plus className="w-5 h-5 text-emerald-500" />
                 <span className="text-sm">Add New Scholar</span>
               </Button>
             </DialogTrigger>
@@ -141,7 +142,11 @@ export function ScholarDirectory() {
                   />
                 </div>
               </div>
-              <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl border border-zinc-300 shadow-xl" onClick={handleAddScholar}>
+              <Button 
+                variant="default"
+                className="w-full h-14 font-bold rounded-2xl shadow-xl" 
+                onClick={handleAddScholar}
+              >
                 Save Scholar Profile
               </Button>
             </DialogContent>

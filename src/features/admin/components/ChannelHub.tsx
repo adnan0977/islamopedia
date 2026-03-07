@@ -75,17 +75,9 @@ export function ChannelHub() {
     ch.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  /**
-   * Extracts IDs (UC...) or Handles (@...) from text or URLs
-   */
   const extractSelectors = (text: string) => {
-    // Look for Channel IDs
     const idMatches = text.match(/UC[a-zA-Z0-9_-]{22}/g) || [];
-    
-    // Look for Handles (@name)
-    // This catches @name in text or in a URL like youtube.com/@name
     const handleMatches = text.match(/@[\w.-]+/g) || [];
-
     return {
       ids: Array.from(new Set(idMatches)),
       handles: Array.from(new Set(handleMatches))
@@ -106,7 +98,6 @@ export function ChannelHub() {
       let totalSynced = 0;
       const allResolvedChannels: any[] = [];
 
-      // 1. Resolve IDs in batches of 50
       if (ids.length > 0) {
         for (let i = 0; i < ids.length; i += 50) {
           const chunk = ids.slice(i, i + 50);
@@ -115,7 +106,6 @@ export function ChannelHub() {
         }
       }
 
-      // 2. Resolve Handles individually (API limitation)
       if (handles.length > 0) {
         for (const handle of handles) {
           const data = await fetchYouTubeChannelByHandle(handle);
@@ -124,10 +114,9 @@ export function ChannelHub() {
       }
 
       if (allResolvedChannels.length === 0) {
-        throw new Error("No channels found. Please verify the IDs/Handles are correct and your API key is active.");
+        throw new Error("No channels found. Please verify the IDs/Handles are correct.");
       }
 
-      // 3. Save all to Firestore
       for (const channel of allResolvedChannels) {
         const channelRef = doc(db, 'channels', channel.id);
         await setDoc(channelRef, {
@@ -168,18 +157,17 @@ export function ChannelHub() {
         }}>
           <DialogTrigger asChild>
             <Button 
-              className="bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-700 rounded-full h-14 px-8 font-bold shadow-2xl transition-all active:scale-95 flex items-center gap-3 group"
+              variant="outline"
+              className="rounded-full h-14 px-8 font-bold border-zinc-700 hover:bg-zinc-900 hover:text-white transition-all active:scale-95 flex items-center gap-3"
             >
-              <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
-                <Plus className="w-5 h-5 text-emerald-500" />
-              </div>
-              <span className="text-sm">Add New Channels</span>
+              <Plus className="w-5 h-5 text-emerald-500" />
+              <span>Add New Channels</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-4xl p-0 overflow-hidden outline-none shadow-2xl">
             <DialogHeader className="p-10 border-b border-zinc-900 bg-zinc-900/40">
               <DialogTitle className="text-2xl font-bold">Import Creators</DialogTitle>
-              <DialogDescription className="text-zinc-500 text-sm mt-2">Use a Channel ID (UC...), Handle (@...), or full URL to sync spiritual content.</DialogDescription>
+              <DialogDescription className="text-zinc-500 text-sm mt-2">Use a Channel ID, Handle, or full URL to sync spiritual content.</DialogDescription>
             </DialogHeader>
             
             {syncError && (
@@ -187,9 +175,7 @@ export function ChannelHub() {
                 <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle className="font-bold">Synchronization Error</AlertTitle>
-                  <AlertDescription className="text-xs mt-1">
-                    {syncError}
-                  </AlertDescription>
+                  <AlertDescription className="text-xs mt-1">{syncError}</AlertDescription>
                 </Alert>
               </div>
             )}
@@ -207,19 +193,18 @@ export function ChannelHub() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Input List</label>
-                      <span className="bg-zinc-900 px-3 py-1 rounded-full text-[10px] font-bold text-zinc-300 border border-zinc-800">
-                        Detects IDs, Handles & URLs
-                      </span>
+                      <Badge variant="outline" className="border-zinc-800 text-zinc-500">Detects IDs, Handles & URLs</Badge>
                     </div>
                     <Textarea 
-                      placeholder="Paste text containing YouTube Channel IDs, Handles (@...), or URLs..."
+                      placeholder="Paste text containing YouTube identifiers..."
                       className="bg-zinc-900 border-zinc-800 text-white font-mono text-xs min-h-[300px] rounded-[1.5rem] p-6 focus:ring-zinc-700 resize-none scrollbar-hide"
                       value={bulkIds}
                       onChange={(e) => setBulkBulkIds(e.target.value)}
                     />
                   </div>
                   <Button 
-                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl border border-zinc-300"
+                    variant="default"
+                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl"
                     disabled={isSyncing}
                     onClick={() => handleSync(bulkIds)}
                   >
@@ -239,7 +224,8 @@ export function ChannelHub() {
                     />
                   </div>
                   <Button 
-                    className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl border border-zinc-300"
+                    variant="default"
+                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl"
                     disabled={isSyncing || !singleId.trim()}
                     onClick={() => handleSync(singleId)}
                   >
@@ -303,7 +289,7 @@ export function ChannelHub() {
                   </TableCell>
                   <TableCell className="text-right pr-10">
                     <a href={channel.externalUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-all">
+                      <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800">
                         <ExternalLink className="w-5 h-5" />
                       </Button>
                     </a>
