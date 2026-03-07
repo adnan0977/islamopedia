@@ -85,7 +85,7 @@ export function QuranReader() {
 
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
-  const ayatFrameId = settings?.ayatFrameId || 'royal-ornate';
+  const ayatFrameId = settings?.ayatFrameId || 'ornate-star';
   const customAyatFramePath = settings?.customAyatFramePath;
   const frameImageUrl = settings?.frameImageUrl;
 
@@ -185,7 +185,7 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // RTL Swipe: Swiping finger to the RIGHT advances to next page
+    // RTL Swipe Logic: Swiping finger to the RIGHT advances (next page)
     if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
     } else if (isLeftSwipe && currentPage > 1) {
@@ -194,39 +194,38 @@ export function QuranReader() {
   };
 
   const BismillahHeader = () => (
-    <div className="w-full flex justify-center py-10 mb-14 relative group">
-      {/* Decorative Illuminated Frame */}
-      <div className="absolute inset-0 bg-zinc-900/40 rounded-[2.5rem] border-2 border-zinc-800 shadow-inner group-hover:border-zinc-700 transition-colors" />
-      <div className="absolute inset-2 border border-zinc-800/50 rounded-[2rem] pointer-events-none" />
+    <div className="w-full flex flex-col items-center justify-center py-16 mb-8 relative">
+      {/* Soft Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent pointer-events-none" />
       
-      {/* Glow effect */}
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-zinc-900 to-transparent pointer-events-none" />
-
-      {/* Ornate Corner Elements (SVGs) */}
-      <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-zinc-700 rounded-tl-xl pointer-events-none" />
-      <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-zinc-700 rounded-tr-xl pointer-events-none" />
-      <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-zinc-700 rounded-bl-xl pointer-events-none" />
-      <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-zinc-700 rounded-br-xl pointer-events-none" />
-      
-      {/* Calligraphy Text */}
-      <div className="relative z-10 px-8 py-2">
-        <span className="text-4xl md:text-6xl font-arabic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] tracking-normal leading-none select-none">
+      {/* Ornamental Divider Elements */}
+      <div className="flex items-center gap-6 md:gap-12">
+        <div className="hidden md:block w-24 h-[1px] bg-gradient-to-r from-transparent to-zinc-800" />
+        <span className="text-4xl md:text-6xl font-arabic text-white select-none drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
           {BISMILLAH_TEXT}
         </span>
+        <div className="hidden md:block w-24 h-[1px] bg-gradient-to-l from-transparent to-zinc-800" />
+      </div>
+
+      {/* Traditional Corner Accents */}
+      <div className="mt-6 flex gap-4">
+        <div className="w-1 h-1 rounded-full bg-zinc-800" />
+        <div className="w-1 h-1 rounded-full bg-zinc-700" />
+        <div className="w-1 h-1 rounded-full bg-zinc-800" />
       </div>
     </div>
   );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-4">
-      <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
+      <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2.5rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex items-center gap-4">
           {!isReading ? (
             <div className="flex items-center gap-3">
                <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800">
                   <Database className="w-5 h-5 text-zinc-500" />
                </div>
-               <h1 className="text-xl md:text-2xl font-headline font-bold text-white">Quran Index</h1>
+               <h1 className="text-xl md:text-2xl font-headline font-bold text-white tracking-tight">Quran Index</h1>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -257,17 +256,17 @@ export function QuranReader() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setIndexType('surah')} 
-                className={cn("rounded-xl font-bold h-10 px-4 md:px-6 transition-all", indexType === 'surah' ? "bg-white text-black" : "text-zinc-500")}
+                className={cn("rounded-xl font-bold h-10 px-4 md:px-6 transition-all", indexType === 'surah' ? "bg-white text-black shadow-lg" : "text-zinc-500")}
               >
-                <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
+                <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah</span>
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setIndexType('juz')} 
-                className={cn("rounded-xl font-bold h-10 px-4 md:px-6 transition-all", indexType === 'juz' ? "bg-white text-black" : "text-zinc-500")}
+                className={cn("rounded-xl font-bold h-10 px-4 md:px-6 transition-all", indexType === 'juz' ? "bg-white text-black shadow-lg" : "text-zinc-500")}
               >
-                <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
+                <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz</span>
               </Button>
             </div>
           ) : (
@@ -282,7 +281,7 @@ export function QuranReader() {
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                     {translations.map((t) => (
-                      <SelectItem key={t.id} value={t.id} className="text-xs font-medium">
+                      <SelectItem key={t.id} value={t.id} className="text-xs font-medium focus:bg-zinc-900 focus:text-white">
                         {t.name}
                       </SelectItem>
                     ))}
@@ -294,17 +293,17 @@ export function QuranReader() {
                 variant="outline" 
                 size="sm" 
                 onClick={() => setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat')} 
-                className="rounded-xl font-bold h-10 px-3 md:px-4 border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white shadow-lg"
+                className="rounded-xl font-bold h-10 px-3 md:px-4 border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white"
               >
                 {viewMode === 'ayat' ? (
                   <div className="flex items-center gap-2">
                     <BookIcon className="w-4 h-4" />
-                    <span className="text-[10px] uppercase tracking-widest hidden md:inline">Page View</span>
+                    <span className="text-[10px] uppercase tracking-widest hidden md:inline">Page</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Type className="w-4 h-4" />
-                    <span className="text-[10px] uppercase tracking-widest hidden md:inline">Ayat View</span>
+                    <span className="text-[10px] uppercase tracking-widest hidden md:inline">Ayat</span>
                   </div>
                 )}
               </Button>
@@ -353,7 +352,7 @@ export function QuranReader() {
                           <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">{surah.numberOfAyahs} Verses</p>
                         </div>
                       </div>
-                      <span className="text-lg font-arabic text-zinc-500 group-hover:text-zinc-200 transition-colors">{surah.name}</span>
+                      <span className="text-xl font-arabic text-zinc-500 group-hover:text-zinc-200 transition-colors">{surah.name}</span>
                     </button>
                   ))}
                 </div>
@@ -363,7 +362,6 @@ export function QuranReader() {
                     <button 
                       key={idx}
                       onClick={() => {
-                        // Estimated page calculation or direct jump if known
                         setCurrentPage(juz.ayah || 1);
                         setViewMode('page');
                       }}
@@ -373,7 +371,7 @@ export function QuranReader() {
                         <AyatFrame number={idx + 1} size="sm" frameId={ayatFrameId} customPath={customAyatFramePath} customImageUrl={frameImageUrl} />
                         <div>
                           <h3 className="font-bold text-zinc-200">Juz {idx + 1}</h3>
-                          <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Starting at Surah {juz.surah}</p>
+                          <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Starts at Surah {juz.surah}</p>
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-zinc-800 group-hover:text-zinc-400 transition-colors" />
@@ -389,29 +387,29 @@ export function QuranReader() {
           </div>
         ) : (
           <ScrollArea className="flex-1">
-            <div className="p-6 md:p-16">
+            <div className="p-8 md:p-20">
               {viewMode === 'ayat' ? (
-                <div className="space-y-12">
+                <div className="space-y-16">
                   {groupedAyats.map(group => (
-                    <div key={group.surah.number} className="space-y-10">
+                    <div key={group.surah.number} className="space-y-12">
                       {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                       {group.ayats.map((a: any) => (
-                        <div key={a.number} className="space-y-6 md:space-y-8 border-b border-zinc-900/50 pb-12 last:border-0">
-                          <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
+                        <div key={a.number} className="space-y-8 md:space-y-12 pb-12 last:border-0 border-b border-zinc-900/40">
+                          <p className="text-right text-4xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
                             {a.text}
-                            <span className="inline-block ms-4 align-middle select-none">
+                            <span className="inline-block ms-6 align-middle select-none">
                               <AyatFrame 
                                 number={a.numberInSurah} 
                                 frameId={ayatFrameId} 
                                 customPath={customAyatFramePath} 
                                 customImageUrl={frameImageUrl}
-                                size="sm"
+                                size="md"
                               />
                             </span>
                           </p>
                           {a.trans && (
-                            <div className="mt-6 border-l-2 border-zinc-800 pl-6 py-1">
-                              <p className="text-zinc-400 text-sm md:text-base font-medium leading-relaxed text-left italic">
+                            <div className="mt-8 border-l-2 border-zinc-800 pl-8 py-1">
+                              <p className="text-zinc-400 text-sm md:text-base font-medium leading-relaxed text-left">
                                 {a.trans}
                               </p>
                             </div>
@@ -422,7 +420,7 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                <div className="text-right font-arabic leading-[2.5] text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
+                <div className="text-right font-arabic leading-[2.5] text-3xl md:text-5xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => {
                     const isNewSurah = a.numberInSurah === 1 && a.surah.number !== 9;
                     return (
@@ -432,7 +430,7 @@ export function QuranReader() {
                           {a.text}
                         </span>
                         {" "}
-                        <span className="inline-block mx-4 md:mx-6 align-middle select-none shrink-0">
+                        <span className="inline-block mx-6 md:mx-8 align-middle select-none shrink-0">
                           <AyatFrame 
                             number={a.numberInSurah} 
                             size="sm" 
@@ -453,7 +451,7 @@ export function QuranReader() {
       </Card>
       
       {isReading && (
-        <div className="flex items-center justify-between px-6 md:px-10">
+        <div className="flex items-center justify-between px-6 md:px-10 pb-4">
           <Button 
             variant="ghost" 
             className="rounded-xl h-10 md:h-12 px-3 md:px-6 gap-2 text-zinc-500 hover:text-white font-bold text-xs md:text-sm"
@@ -462,8 +460,8 @@ export function QuranReader() {
           >
             <ChevronLeft className="w-4 h-4" /> Next Page
           </Button>
-          <div className="hidden md:block text-zinc-700 text-[10px] font-black uppercase tracking-[0.3em]">
-            Swipe Right to Turn Page
+          <div className="hidden md:block text-zinc-700 text-[9px] font-black uppercase tracking-[0.4em] select-none">
+            Swipe Right to Advance
           </div>
           <Button 
             variant="ghost" 
@@ -471,7 +469,7 @@ export function QuranReader() {
             onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))}
             disabled={currentPage >= 604}
           >
-            Previous Page <ChevronRight className="w-4 h-4" />
+            Prev Page <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       )}
