@@ -67,7 +67,7 @@ export function QuranReader() {
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [currentAyatIndex, setCurrentAyatIndex] = useState(0);
   
-  // Derived state for reading status - DEFINED BEFORE HOOKS
+  // Derived state for reading status
   const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
                     (viewMode === 'juz' && selectedJuz !== null) || 
                     viewMode === 'page';
@@ -75,20 +75,30 @@ export function QuranReader() {
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Sync state FROM URL (Handle browser navigation)
+  // 1. Sync state FROM URL (Handle browser navigation)
   useEffect(() => {
     const mode = (searchParams.get('mode') as QuranViewMode) || 'surah';
-    const surah = searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null;
-    const juz = searchParams.get('juz') ? parseInt(searchParams.get('juz')!) : null;
-    const page = parseInt(searchParams.get('page') || '1');
+    const surahStr = searchParams.get('surah');
+    const juzStr = searchParams.get('juz');
+    const pageStr = searchParams.get('page');
 
+    const surah = surahStr ? parseInt(surahStr) : null;
+    const juz = juzStr ? parseInt(juzStr) : null;
+    
     setViewMode(mode);
     setSelectedSurah(surah);
     setSelectedJuz(juz);
-    setVisiblePage(page);
+    
+    // Only update page from URL if it's explicitly provided or we are in page mode
+    // This prevents resets to "1" when navigating surahs
+    if (pageStr) {
+      setVisiblePage(parseInt(pageStr));
+    } else if (mode === 'page') {
+      setVisiblePage(1);
+    }
   }, [searchParams]);
 
-  // Sync URL FROM State
+  // 2. Sync URL FROM State
   useEffect(() => {
     const params = new URLSearchParams();
     params.set('mode', viewMode);
@@ -265,7 +275,7 @@ export function QuranReader() {
     
     async function initFetch() {
       setLoadingContent(true);
-      let pageToLoad = 1;
+      let pageToLoad = visiblePage;
 
       if (viewMode === 'surah' && selectedSurah) {
         const q = query(collection(db, 'quran'), where('editionId', '==', 'quran-uthmani'), where('surahNumber', '==', selectedSurah));
@@ -276,8 +286,6 @@ export function QuranReader() {
       } else if (viewMode === 'juz' && selectedJuz) {
         const juzToPageMap: Record<number, number> = { 1: 1, 2: 22, 3: 42, 4: 62, 5: 82, 6: 102, 7: 121, 8: 142, 9: 162, 10: 182, 11: 201, 12: 222, 13: 242, 14: 262, 15: 282, 16: 302, 17: 322, 18: 342, 19: 362, 20: 382, 21: 402, 22: 422, 23: 442, 24: 462, 25: 482, 26: 502, 27: 522, 28: 542, 29: 562, 30: 582 };
         pageToLoad = juzToPageMap[selectedJuz] || 1;
-      } else if (viewMode === 'page') {
-        pageToLoad = visiblePage;
       }
 
       const data = await fetchPageData(pageToLoad);
@@ -304,8 +312,14 @@ export function QuranReader() {
           
           const activeAyat = flattenedAyats[ayatIndex];
           if (activeAyat?.surah?.number) {
-            if (viewMode === 'surah') setSelectedSurah(activeAyat.surah.number);
-            setVisiblePage(activeAyat.pageNumber);
+            // Update surah only if we're scrolling into a new one
+            if (viewMode === 'surah' && selectedSurah !== activeAyat.surah.number) {
+              setSelectedSurah(activeAyat.surah.number);
+            }
+            // Update page header
+            if (visiblePage !== activeAyat.pageNumber) {
+              setVisiblePage(activeAyat.pageNumber);
+            }
           }
           
           if (ayatIndex >= flattenedAyats.length - 3) {
@@ -322,7 +336,7 @@ export function QuranReader() {
     blocks.forEach(b => observerRef.current?.observe(b));
 
     return () => observerRef.current?.disconnect();
-  }, [viewMode, pagedData, loadMorePages, flattenedAyats, isReading]);
+  }, [viewMode, pagedData, loadMorePages, flattenedAyats, isReading, selectedSurah, visiblePage]);
 
   const scrollToAyat = (index: number) => {
     const target = ayatScrollContainerRef.current?.querySelector(`[data-ayat-index="${index}"]`);
