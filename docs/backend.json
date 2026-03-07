@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -26,6 +27,14 @@
         },
         "hijriAdjustment": {
           "type": "number"
+        },
+        "lastReadPage": {
+          "type": "number",
+          "description": "The last page the user was reading in the Quran."
+        },
+        "preferredTranslationId": {
+          "type": "string",
+          "description": "The identifier of the user's preferred Quran translation edition."
         },
         "createdAt": {
           "type": "string",

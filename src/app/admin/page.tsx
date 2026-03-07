@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -855,7 +856,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     } else {
       // Save activated translation to the 'quran_translations' collection
       setDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier), {
-        id: edition.identifier,
+        id: edition.identifier, // Use identifier as the unique ID
         name: edition.name,
         language: edition.language,
         languageCode: edition.language,

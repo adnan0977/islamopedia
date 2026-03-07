@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-context-flow';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +29,7 @@ type ViewMode = 'ayat' | 'page';
 
 export default function QuranPage() {
   const db = useFirestore();
+  const { user } = useUser();
   const [surahs, setSurahs] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchPage, setSearchPage] = useState('');
@@ -39,12 +41,30 @@ export default function QuranPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('page');
   const searchInputRef = useRef<HTMLInputElement>(null);
   
-  // Translation State
+  // User Profile for Persistence
+  const userProfileRef = useMemoFirebase(() => (user ? doc(db, 'users', user.uid) : null), [db, user]);
+  const { data: userProfile } = useDoc(userProfileRef);
+
+  // Translation State from Database
   const translationsRef = useMemoFirebase(() => collection(db, 'quran_translations'), [db]);
   const { data: activatedTranslations, isLoading: isTranslationsLoading } = useCollection(translationsRef);
   const [selectedEdition, setSelectedEdition] = useState<string>('en.sahih');
 
-  // Fallback translation if none activated
+  // Load initial settings from User Profile or activated translations
+  useEffect(() => {
+    if (userProfile?.lastReadPage) {
+      setCurrentPage(userProfile.lastReadPage);
+    }
+    if (userProfile?.preferredTranslationId) {
+      setSelectedEdition(userProfile.preferredTranslationId);
+    } else if (activatedTranslations && activatedTranslations.length > 0) {
+      // Default to the first activated translation if user hasn't chosen one
+      const defaultTrans = activatedTranslations.find(t => t.isDefault) || activatedTranslations[0];
+      setSelectedEdition(defaultTrans.id);
+    }
+  }, [userProfile, activatedTranslations]);
+
+  // Fallback translation list for dropdown
   const displayTranslations = useMemo(() => {
     return activatedTranslations && activatedTranslations.length > 0 
       ? activatedTranslations 
@@ -85,6 +105,14 @@ export default function QuranPage() {
       if (primarySurah) {
         fetchAiContext(primarySurah.number, primarySurah.englishName);
       }
+
+      // Persist progress to Firestore
+      if (userProfileRef) {
+        updateDocumentNonBlocking(userProfileRef, {
+          lastReadPage: page,
+          preferredTranslationId: selectedEdition
+        });
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -93,7 +121,9 @@ export default function QuranPage() {
   };
 
   useEffect(() => {
-    fetchPage(currentPage);
+    if (selectedEdition) {
+      fetchPage(currentPage);
+    }
   }, [currentPage, selectedEdition]);
 
   const fetchAiContext = async (number: number, name: string) => {
