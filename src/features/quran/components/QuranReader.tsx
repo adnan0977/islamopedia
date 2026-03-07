@@ -44,11 +44,11 @@ export function QuranReader() {
   const router = useRouter();
   const { user } = useUser();
   
-  // Initial State from URL
-  const initialMode = (searchParams.get('mode') as QuranViewMode) || 'surah';
-  const initialPage = parseInt(searchParams.get('page') || '1');
-  const initialSurah = searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null;
-  const initialJuz = searchParams.get('juz') ? parseInt(searchParams.get('juz')!) : null;
+  // State initialization
+  const [viewMode, setViewMode] = useState<QuranViewMode>((searchParams.get('mode') as QuranViewMode) || 'surah');
+  const [selectedSurah, setSelectedSurah] = useState<number | null>(searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null);
+  const [selectedJuz, setSelectedJuz] = useState<number | null>(searchParams.get('juz') ? parseInt(searchParams.get('juz')!) : null);
+  const [visiblePage, setVisiblePage] = useState<number>(parseInt(searchParams.get('page') || '1'));
 
   const [localSettings, setLocalSettings] = useState({
     arabicFontSize: 40,
@@ -62,22 +62,52 @@ export function QuranReader() {
     showAudio: true
   });
 
-  const [visiblePage, setVisiblePage] = useState(initialPage);
-  const [selectedSurah, setSelectedSurah] = useState<number | null>(initialSurah);
-  const [selectedJuz, setSelectedJuz] = useState<number | null>(initialJuz);
-  const [viewMode, setViewMode] = useState<QuranViewMode>(initialMode);
   const [loadingContent, setLoadingContent] = useState(false);
   const [pagedData, setPagedData] = useState<PageContent[]>([]);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [currentAyatIndex, setCurrentAyatIndex] = useState(0);
   
-  // Derived state for reading status
+  // Derived state for reading status - DEFINED BEFORE HOOKS
   const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
                     (viewMode === 'juz' && selectedJuz !== null) || 
                     viewMode === 'page';
   
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Sync state FROM URL (Handle browser navigation)
+  useEffect(() => {
+    const mode = (searchParams.get('mode') as QuranViewMode) || 'surah';
+    const surah = searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null;
+    const juz = searchParams.get('juz') ? parseInt(searchParams.get('juz')!) : null;
+    const page = parseInt(searchParams.get('page') || '1');
+
+    setViewMode(mode);
+    setSelectedSurah(surah);
+    setSelectedJuz(juz);
+    setVisiblePage(page);
+  }, [searchParams]);
+
+  // Sync URL FROM State
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('mode', viewMode);
+    
+    if (viewMode === 'surah' && selectedSurah) {
+      params.set('surah', selectedSurah.toString());
+    } else if (viewMode === 'juz' && selectedJuz) {
+      params.set('juz', selectedJuz.toString());
+    } else if (viewMode === 'page') {
+      params.set('page', visiblePage.toString());
+    }
+
+    const nextQuery = `?${params.toString()}`;
+    const currentQuery = window.location.search;
+    
+    if (currentQuery !== nextQuery) {
+      router.replace(`/quran${nextQuery}`, { scroll: false });
+    }
+  }, [viewMode, selectedSurah, selectedJuz, visiblePage, router]);
 
   // Load settings
   useEffect(() => {
@@ -108,27 +138,6 @@ export function QuranReader() {
     });
     return ayats;
   }, [pagedData]);
-
-  // Robust URL Synchronization
-  useEffect(() => {
-    const params = new URLSearchParams();
-    params.set('mode', viewMode);
-    
-    if (viewMode === 'surah' && selectedSurah) {
-      params.set('surah', selectedSurah.toString());
-    } else if (viewMode === 'juz' && selectedJuz) {
-      params.set('juz', selectedJuz.toString());
-    } else if (viewMode === 'page') {
-      params.set('page', visiblePage.toString());
-    }
-
-    const nextUrl = `?${params.toString()}`;
-    const currentQuery = window.location.search;
-    
-    if (currentQuery !== nextUrl) {
-      router.replace(`/quran${nextUrl}`, { scroll: false });
-    }
-  }, [viewMode, visiblePage, selectedSurah, selectedJuz, router]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
@@ -256,17 +265,19 @@ export function QuranReader() {
     
     async function initFetch() {
       setLoadingContent(true);
-      let pageToLoad = initialPage;
+      let pageToLoad = 1;
 
-      if (viewMode === 'surah' && initialSurah) {
-        const q = query(collection(db, 'quran'), where('editionId', '==', 'quran-uthmani'), where('surahNumber', '==', initialSurah));
+      if (viewMode === 'surah' && selectedSurah) {
+        const q = query(collection(db, 'quran'), where('editionId', '==', 'quran-uthmani'), where('surahNumber', '==', selectedSurah));
         const snap = await getDocs(q);
         if (!snap.empty) {
           pageToLoad = snap.docs[0].data().pages[0];
         }
-      } else if (viewMode === 'juz' && initialJuz) {
+      } else if (viewMode === 'juz' && selectedJuz) {
         const juzToPageMap: Record<number, number> = { 1: 1, 2: 22, 3: 42, 4: 62, 5: 82, 6: 102, 7: 121, 8: 142, 9: 162, 10: 182, 11: 201, 12: 222, 13: 242, 14: 262, 15: 282, 16: 302, 17: 322, 18: 342, 19: 362, 20: 382, 21: 402, 22: 422, 23: 442, 24: 462, 25: 482, 26: 502, 27: 522, 28: 542, 29: 562, 30: 582 };
-        pageToLoad = juzToPageMap[initialJuz] || initialPage;
+        pageToLoad = juzToPageMap[selectedJuz] || 1;
+      } else if (viewMode === 'page') {
+        pageToLoad = visiblePage;
       }
 
       const data = await fetchPageData(pageToLoad);
@@ -278,7 +289,7 @@ export function QuranReader() {
       setLoadingContent(false);
     }
     initFetch();
-  }, [viewMode, initialSurah, initialJuz, initialPage, db, isReading]);
+  }, [isReading, selectedSurah, selectedJuz, viewMode, db]);
 
   useEffect(() => {
     if (!isReading || !ayatScrollContainerRef.current || pagedData.length === 0) return;
