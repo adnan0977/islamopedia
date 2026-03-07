@@ -25,6 +25,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /quran_pages/{pageId} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+
     match /speakers/{speakerId} {
       allow read, list: if true;
       allow write: if isAdmin();
