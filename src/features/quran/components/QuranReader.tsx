@@ -30,6 +30,13 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
@@ -215,10 +222,6 @@ export function QuranReader() {
 
   const isReading = viewMode !== 'index';
 
-  const onTouchStart = (e: React.TouchEvent) => {};
-  const onTouchMove = (e: React.TouchEvent) => {};
-  const onTouchEnd = () => {};
-
   const BismillahHeader = () => (
     <div className="w-full flex flex-col items-center justify-center py-6 mb-4 relative">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)] pointer-events-none" />
@@ -295,35 +298,21 @@ export function QuranReader() {
                   <PopoverContent className="w-96 bg-zinc-950 border-zinc-800 p-0 rounded-2xl overflow-hidden shadow-2xl z-[100]">
                     <div className="p-4 border-b border-zinc-900 bg-zinc-900/50 space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Available Languages</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Language Filter</h3>
                         <Globe className="w-3 h-3 text-zinc-700" />
                       </div>
                       
-                      <ScrollArea className="w-full">
-                        <div className="flex gap-2 pb-1">
-                           <button
-                             onClick={() => setLangFilter('all')}
-                             className={cn(
-                               "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
-                               langFilter === 'all' ? "bg-white text-black border-white" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
-                             )}
-                           >
-                             All
-                           </button>
-                           {languages.map(l => (
-                             <button
-                               key={l}
-                               onClick={() => setLangFilter(l)}
-                               className={cn(
-                                 "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
-                                 langFilter === l ? "bg-white text-black border-white" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
-                               )}
-                             >
-                               {l}
-                             </button>
-                           ))}
-                        </div>
-                      </ScrollArea>
+                      <Select value={langFilter} onValueChange={setLangFilter}>
+                        <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 h-10 text-xs rounded-lg text-white">
+                          <SelectValue placeholder="All Languages" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectItem value="all">All Languages</SelectItem>
+                          {languages.map(l => (
+                            <SelectItem key={l} value={l}>{l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />

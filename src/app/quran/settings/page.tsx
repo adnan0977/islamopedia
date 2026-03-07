@@ -31,6 +31,13 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -106,7 +113,6 @@ export default function QuranSettingsPage() {
   }
 
   const currentEdition = editions?.find(e => e.id === localSettings.preferredTranslationId);
-  const customFrames = appSettings?.savedCustomFrames || [];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 pb-32">
@@ -141,34 +147,34 @@ export default function QuranSettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-              <ScrollArea className="w-full">
-                <div className="flex gap-2 pb-2">
-                   <button
-                     onClick={() => setLangFilter('all')}
-                     className={cn(
-                       "shrink-0 text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border transition-all",
-                       langFilter === 'all' ? "bg-white text-black border-white" : "text-zinc-500 border-zinc-900 hover:border-zinc-700"
-                     )}
-                   >
-                     All
-                   </button>
-                   {languages.map(l => (
-                     <button
-                       key={l}
-                       onClick={() => setLangFilter(l)}
-                       className={cn(
-                         "shrink-0 text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border transition-all",
-                         langFilter === l ? "bg-white text-black border-white" : "text-zinc-500 border-zinc-900 hover:border-zinc-700"
-                       )}
-                     >
-                       {l}
-                     </button>
-                   ))}
-                </div>
-              </ScrollArea>
-
               <div className="space-y-4">
-                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Edition for {langFilter === 'all' ? 'any language' : langFilter}</Label>
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Language</Label>
+                <Select value={langFilter} onValueChange={setLangFilter}>
+                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                    <SelectValue placeholder="All Languages" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                    <SelectItem value="all">All Languages</SelectItem>
+                    {languages.map(l => (
+                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4 pt-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Edition</Label>
+                  <div className="relative w-40">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
+                    <Input 
+                      placeholder="Search scholar..." 
+                      className="bg-zinc-900 border-zinc-800 h-8 pl-8 text-[10px] rounded-lg"
+                      value={editionSearch}
+                      onChange={(e) => setEditionSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
                 <ScrollArea className="h-64 border border-zinc-900 rounded-2xl bg-zinc-900/20">
                   <div className="p-2 space-y-1">
                     {filteredEditions.map(t => (
@@ -187,6 +193,11 @@ export default function QuranSettingsPage() {
                         {localSettings.preferredTranslationId === t.id && <CheckCircle2 className="w-4 h-4" />}
                       </button>
                     ))}
+                    {filteredEditions.length === 0 && (
+                      <div className="p-8 text-center text-zinc-600 text-[10px] font-bold uppercase tracking-widest">
+                        No editions found
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </div>
