@@ -235,6 +235,7 @@ export function QuranReader() {
   useEffect(() => {
     if (viewMode === 'index') {
       setPagedData([]);
+      setCurrentAyatIndex(0);
       return;
     }
     
@@ -244,6 +245,7 @@ export function QuranReader() {
       if (data) {
         setPagedData([data]);
         setVisiblePage(initialPage);
+        setCurrentAyatIndex(0);
       }
       setLoadingContent(false);
     }
@@ -259,10 +261,8 @@ export function QuranReader() {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const ayatIndex = parseInt(entry.target.getAttribute('data-ayat-index') || '0');
-          
           setCurrentAyatIndex(ayatIndex);
-          // Note: setVisiblePage(pageNum) is disabled here to stop dynamic page number change on scroll as requested
-
+          
           if (ayatIndex >= flattenedAyats.length - 3) {
             loadMorePages();
           }
@@ -314,13 +314,14 @@ export function QuranReader() {
                   onClick={() => {
                     setViewMode('index');
                     setPagedData([]);
+                    setCurrentAyatIndex(0);
                   }}
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <div className="flex flex-col justify-center">
                   <h1 className="text-sm md:text-xl font-headline font-bold text-white leading-tight">
-                    {flattenedAyats[currentAyatIndex]?.surah.englishName || 'Reciting...'}
+                    {flattenedAyats[currentAyatIndex]?.surah?.englishName || 'Quran'}
                   </h1>
                   <div className="flex items-center gap-2">
                     <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">Page {visiblePage}</p>
@@ -395,6 +396,7 @@ export function QuranReader() {
                         if (!snap.empty) {
                           const startPage = snap.docs[0].data().pages[0];
                           setVisiblePage(startPage);
+                          setCurrentAyatIndex(0);
                           setViewMode('ayat');
                         }
                       }).finally(() => setLoadingContent(false));
@@ -419,6 +421,7 @@ export function QuranReader() {
                     key={idx}
                     onClick={() => { 
                       setVisiblePage(juz.ayah || 1); 
+                      setCurrentAyatIndex(0);
                       setViewMode('page'); 
                     }}
                     className="group flex items-center justify-between p-6 bg-zinc-900/30 rounded-3xl border border-zinc-900 hover:border-zinc-700 transition-all text-left"
@@ -528,6 +531,7 @@ export function QuranReader() {
             onClick={() => {
               const nextVal = Math.min(604, visiblePage + 1);
               setVisiblePage(nextVal);
+              setCurrentAyatIndex(0);
               setPagedData([]);
             }} 
             disabled={visiblePage >= 604}
@@ -540,6 +544,7 @@ export function QuranReader() {
             onClick={() => {
               const prev = Math.max(1, visiblePage - 1);
               setVisiblePage(prev);
+              setCurrentAyatIndex(0);
               setPagedData([]); 
             }} 
             disabled={visiblePage <= 1}
