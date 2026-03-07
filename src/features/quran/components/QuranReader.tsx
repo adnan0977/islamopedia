@@ -184,7 +184,6 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // RTL Swipe Logic: Swiping finger to the RIGHT advances (next page)
     if (isRightSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
     } else if (isLeftSwipe && currentPage > 1) {
@@ -387,6 +386,13 @@ export function QuranReader() {
                     {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                     {group.ayats.map((a: any) => (
                       <div key={a.number} className="space-y-8">
+                        {/* Reference displayed at the top left */}
+                        <div className="text-left">
+                          <span className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.2em] select-none">
+                            {group.surah.number}:{a.numberInSurah}
+                          </span>
+                        </div>
+                        
                         <p className="text-right text-4xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
                           {a.text}
                           <span className="inline-block ms-6 align-middle select-none">
@@ -399,16 +405,15 @@ export function QuranReader() {
                             />
                           </span>
                         </p>
+                        
                         {a.trans && (
-                          <div className="mt-8 py-1 flex items-start justify-between">
+                          <div className="mt-8 py-1 flex items-start justify-start">
                             <p className="text-zinc-400 text-sm md:text-base font-medium leading-relaxed text-left max-w-3xl">
                               {a.trans}
                             </p>
-                            <span className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.2em] ml-6 pt-1 shrink-0 select-none">
-                              {group.surah.number}:{a.numberInSurah}
-                            </span>
                           </div>
                         )}
+                        
                         <div className="pt-12">
                           <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-900 to-transparent opacity-50" />
                         </div>
