@@ -29,6 +29,8 @@ import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
 
+const BISMILLAH = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+
 export function QuranReader() {
   const db = useFirestore();
   const searchParams = useSearchParams();
@@ -85,6 +87,15 @@ export function QuranReader() {
   const customAyatFramePath = settings?.customAyatFramePath;
   const frameImageUrl = settings?.frameImageUrl;
 
+  const cleanAyatText = (text: string, surahNumber: number, ayatNumberInSurah: number) => {
+    if (surahNumber !== 1 && surahNumber !== 9 && ayatNumberInSurah === 1) {
+      if (text.startsWith(BISMILLAH)) {
+        return text.substring(BISMILLAH.length).trim();
+      }
+    }
+    return text;
+  };
+
   useEffect(() => {
     async function fetchPage() {
       if (viewMode === 'index') return;
@@ -110,6 +121,7 @@ export function QuranReader() {
             if (a.page === currentPage) {
               pageArabic.push({ 
                 ...a, 
+                text: cleanAyatText(a.text, s.surahNumber, a.numberInSurah),
                 surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } 
               });
               
@@ -357,6 +369,13 @@ export function QuranReader() {
                 <div className="space-y-12">
                   {groupedAyats.map(group => (
                     <div key={group.surah.number} className="space-y-10">
+                      {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 1 && group.surah.number !== 9 && (
+                        <div className="flex justify-center py-10 border-b border-zinc-900/50">
+                          <p className="text-4xl md:text-6xl font-arabic text-zinc-100 leading-none">
+                            {BISMILLAH}
+                          </p>
+                        </div>
+                      )}
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="space-y-6 md:space-y-8 border-b border-zinc-900/50 pb-12 last:border-0">
                           <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
@@ -386,24 +405,32 @@ export function QuranReader() {
                 </div>
               ) : (
                 <div className="text-right font-arabic leading-[2.5] text-2xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
-                  {quranData.arabic.map((a, idx) => (
-                    <span key={a.number} className="inline">
-                      <span className="hover:text-white transition-colors">
-                        {a.text}
+                  {quranData.arabic.map((a, idx) => {
+                    const isNewSurah = a.numberInSurah === 1 && a.surah.number !== 1 && a.surah.number !== 9;
+                    return (
+                      <span key={a.number} className="inline">
+                        {isNewSurah && (
+                          <span className="block w-full text-center py-10 text-4xl md:text-6xl border-y border-zinc-900/50 my-8">
+                            {BISMILLAH}
+                          </span>
+                        )}
+                        <span className="hover:text-white transition-colors">
+                          {a.text}
+                        </span>
+                        {" "}
+                        <span className="inline-block mx-4 md:mx-6 align-middle select-none shrink-0">
+                          <AyatFrame 
+                            number={a.numberInSurah} 
+                            size="sm" 
+                            frameId={ayatFrameId} 
+                            customPath={customAyatFramePath} 
+                            customImageUrl={frameImageUrl}
+                          />
+                        </span>
+                        {" "}
                       </span>
-                      {" "}
-                      <span className="inline-block mx-4 md:mx-6 align-middle select-none shrink-0">
-                        <AyatFrame 
-                          number={a.numberInSurah} 
-                          size="sm" 
-                          frameId={ayatFrameId} 
-                          customPath={customAyatFramePath} 
-                          customImageUrl={frameImageUrl}
-                        />
-                      </span>
-                      {" "}
-                    </span>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
