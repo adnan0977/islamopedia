@@ -134,8 +134,6 @@ export function QuranReader() {
           if (viewMode === 'surah' && selectedSurah) {
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('surahNumber', '==', selectedSurah));
           } else if (viewMode === 'juz' && selectedJuz) {
-            // In a production environment, you might have a juz-specific collection.
-            // For this implementation, we fetch all surahs and filter the ayats locally to guarantee the exact Juz range.
             q = query(collection(db, 'quran'), where('editionId', '==', editionId));
           } else if (viewMode === 'page' && selectedPage) {
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('pages', 'array-contains', selectedPage));
@@ -185,7 +183,7 @@ export function QuranReader() {
   }, [isReading, viewMode, selectedSurah, selectedJuz, selectedPage, db, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
   const handleModeToggle = (mode: QuranViewMode) => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
     params.set('mode', mode);
     router.push(`/quran?${params.toString()}`);
   };
@@ -199,21 +197,30 @@ export function QuranReader() {
   };
 
   const goBackToIndex = () => {
-    const params = new URLSearchParams();
-    params.set('mode', viewMode === 'page' ? 'surah' : viewMode);
+    const params = new URLSearchParams(window.location.search);
+    params.delete('surah');
+    params.delete('juz');
+    params.delete('page');
     router.push(`/quran?${params.toString()}`);
   };
 
   const toggleReaderViewMode = () => {
+    const params = new URLSearchParams(window.location.search);
     if (viewMode !== 'page') {
       // Switch to Page mode
       const firstPage = content[0]?.ayats[0]?.page || 1;
-      router.push(`/quran?mode=page&page=${firstPage}`);
+      params.set('mode', 'page');
+      params.set('page', firstPage.toString());
+      params.delete('surah');
+      params.delete('juz');
     } else {
       // Switch back to Ayat mode (Surah view)
       const firstSurah = content[0]?.surahNumber || 1;
-      router.push(`/quran?mode=surah&surah=${firstSurah}`);
+      params.set('mode', 'surah');
+      params.set('surah', firstSurah.toString());
+      params.delete('page');
     }
+    router.push(`/quran?${params.toString()}`);
   };
 
   return (
@@ -323,7 +330,7 @@ export function QuranReader() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {metadata?.juzs?.references?.map((juz: any, idx: number) => (
                   <button 
                     key={idx}
