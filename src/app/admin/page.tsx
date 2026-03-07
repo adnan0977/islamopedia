@@ -817,7 +817,7 @@ function QuranToolsView({
         </TabsList>
 
         <TabsContent value="directory">
-          <TranslationManagement editions={editions} />
+          <EditionManagement editions={editions} />
         </TabsContent>
         <TabsContent value="sync">
           <QuranDatabaseSync 
@@ -885,7 +885,7 @@ const languageNameMap: Record<string, string> = {
   ug: 'Uyghur',
 };
 
-function TranslationManagement({ editions }: { editions: any[] }) {
+function EditionManagement({ editions }: { editions: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -923,6 +923,7 @@ function TranslationManagement({ editions }: { editions: any[] }) {
   }, [available]);
 
   const handleDeleteEdition = async (id: string) => {
+    // Delete all associated page data in Firestore first
     const q = query(collection(db, 'quran'), where('editionId', '==', id));
     const snapshots = await getDocs(q);
     const batch = writeBatch(db);
@@ -931,6 +932,7 @@ function TranslationManagement({ editions }: { editions: any[] }) {
     });
     await batch.commit();
 
+    // Remove the edition from editions table
     deleteDocumentNonBlocking(doc(db, 'quran_editions', id));
     toast({ title: "Edition & Content Deleted" });
   };
@@ -1131,6 +1133,7 @@ function QuranDatabaseSync({
       const arabicSurahs = arabicRes.data.surahs;
       const transSurahs = transRes.data.surahs;
 
+      // Map to track ayats by page for Firestore documents
       const pageMap = new Map<number, any[]>();
       
       arabicSurahs.forEach((surah: any, sIdx: number) => {
