@@ -174,6 +174,7 @@ export function QuranReader() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-6">
+      {/* Primary Header */}
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex flex-col justify-center">
           <h1 className="text-xl md:text-2xl font-headline font-bold text-white">
@@ -186,28 +187,27 @@ export function QuranReader() {
           )}
         </div>
 
-        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900 shrink-0">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => toggleIndex('surah')} 
-              className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-            >
-              <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => toggleIndex('juz')} 
-              className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-            >
-              <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
-            </Button>
-          </div>
+        <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => toggleIndex('surah')} 
+            className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+          >
+            <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => toggleIndex('juz')} 
+            className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+          >
+            <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
+          </Button>
         </div>
       </div>
 
+      {/* Reading Controls Bar - Visible only when not in index mode */}
       {viewMode !== 'index' && (
         <div className="flex flex-wrap items-center justify-between bg-zinc-950/50 backdrop-blur-md p-4 rounded-3xl border border-zinc-900 gap-4">
           <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
@@ -275,6 +275,7 @@ export function QuranReader() {
         </div>
       )}
 
+      {/* Main Content Area */}
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col">
         {viewMode === 'index' ? (
           <ScrollArea className="flex-1">
