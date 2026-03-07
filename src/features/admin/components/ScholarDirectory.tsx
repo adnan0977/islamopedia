@@ -128,12 +128,12 @@ export function ScholarDirectory() {
             </DialogTrigger>
             <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-xl shadow-2xl flex flex-col max-h-[90vh]">
               <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
-                <DialogTitle className="text-2xl font-bold">Register Scholar</DialogTitle>
-                <DialogDescription className="text-zinc-500">Create a new profile for a spiritual teacher.</DialogDescription>
+                <DialogTitle className="text-xl font-bold">Register Scholar</DialogTitle>
+                <DialogDescription className="text-zinc-500 text-xs">Create a profile for a spiritual teacher.</DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto p-8 space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Scholar Name</Label>
+                  <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Scholar Name</Label>
                   <Input 
                     placeholder="e.g. Dr. Israr Ahmed" 
                     className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
@@ -142,7 +142,7 @@ export function ScholarDirectory() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Identifier (ID)</Label>
+                  <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Identifier (ID)</Label>
                   <Input 
                     placeholder="e.g. dr-israr-ahmed" 
                     className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
@@ -151,7 +151,7 @@ export function ScholarDirectory() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Profile Image URL</Label>
+                  <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Profile Image URL</Label>
                   <Input 
                     placeholder="https://..." 
                     className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
@@ -181,7 +181,7 @@ export function ScholarDirectory() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold">Remove Scholar Profile?</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500">
-              This will delete the scholar's profile from the directory. Linked videos will remain but will no longer be associated with this scholar.
+              This will delete the scholar's profile from the directory.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">

@@ -273,97 +273,93 @@ export function VideoCatalog() {
       </div>
 
       <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-3xl overflow-hidden shadow-2xl flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
-          <DialogHeader className="p-6 md:p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
-            <DialogTitle className="text-xl md:text-2xl font-bold">{isEditing ? 'Update Video' : 'Catalog New Video'}</DialogTitle>
-            <DialogDescription className="text-zinc-500 text-sm mt-1 md:mt-2">
-              {isEditing ? 'Modify the existing entry in your platform library.' : 'Manually index spiritual content into your platform library.'}
+        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
+            <DialogTitle className="text-xl font-bold">{isEditing ? 'Update Video' : 'Catalog New Video'}</DialogTitle>
+            <DialogDescription className="text-zinc-500 text-xs mt-1">
+              {isEditing ? 'Modify the existing entry.' : 'Index spiritual content manually.'}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 md:space-y-8 scrollbar-thin scrollbar-thumb-zinc-800">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              <div className="space-y-2">
-                <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">YouTube Video ID</Label>
-                <Input 
-                  placeholder="e.g. dQw4w9WgXcQ" 
-                  className="bg-zinc-900 border-zinc-800 h-12 md:h-14 rounded-xl md:rounded-2xl text-white px-4 md:px-6 focus:ring-zinc-700"
-                  value={videoFormData.id}
-                  disabled={isEditing}
-                  onChange={(e) => setVideoFormData({ ...videoFormData, id: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Channel ID</Label>
-                <Input 
-                  placeholder="UC..." 
-                  className="bg-zinc-900 border-zinc-800 h-12 md:h-14 rounded-xl md:rounded-2xl text-white px-4 md:px-6 focus:ring-zinc-700"
-                  value={videoFormData.channelId}
-                  onChange={(e) => setVideoFormData({ ...videoFormData, channelId: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Video Title</Label>
-              <Input 
-                placeholder="Enter descriptive title" 
-                className="bg-zinc-900 border-zinc-800 h-12 md:h-14 rounded-xl md:rounded-2xl text-white px-4 md:px-6 focus:ring-zinc-700"
-                value={videoFormData.title}
-                onChange={(e) => setVideoFormData({ ...videoFormData, title: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Thumbnail URL</Label>
-              <Input 
-                placeholder="https://i.ytimg.com/vi/..." 
-                className="bg-zinc-900 border-zinc-800 h-12 md:h-14 rounded-xl md:rounded-2xl text-white px-4 md:px-6 focus:ring-zinc-700"
-                value={videoFormData.thumbnailUrl}
-                onChange={(e) => setVideoFormData({ ...videoFormData, thumbnailUrl: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.2em]">Description</Label>
-              <Textarea 
-                placeholder="Provide a detailed summary of the reflection..." 
-                className="bg-zinc-900 border-zinc-800 rounded-xl md:rounded-[1.5rem] min-h-[120px] md:min-h-[150px] text-white p-4 md:p-6 focus:ring-zinc-700 resize-none"
-                value={videoFormData.description}
-                onChange={(e) => setVideoFormData({ ...videoFormData, description: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 md:p-6 bg-zinc-900/50 rounded-2xl md:rounded-3xl border border-zinc-800">
-                <div className="space-y-1">
-                  <Label className="font-bold text-zinc-100 text-sm">Featured</Label>
-                  <p className="text-[8px] text-zinc-500 font-black uppercase tracking-widest">Promote video</p>
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">YouTube Video ID</Label>
+                  <Input 
+                    placeholder="e.g. dQw4w9WgXcQ" 
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white px-4"
+                    value={videoFormData.id}
+                    disabled={isEditing}
+                    onChange={(e) => setVideoFormData({ ...videoFormData, id: e.target.value })}
+                  />
                 </div>
-                <Switch 
-                  checked={videoFormData.isTrending}
-                  onCheckedChange={(val) => setVideoFormData({ ...videoFormData, isTrending: val })}
+                <div className="space-y-2">
+                  <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Channel ID</Label>
+                  <Input 
+                    placeholder="UC..." 
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white px-4"
+                    value={videoFormData.channelId}
+                    onChange={(e) => setVideoFormData({ ...videoFormData, channelId: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Video Title</Label>
+                <Input 
+                  placeholder="Enter descriptive title" 
+                  className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white px-4"
+                  value={videoFormData.title}
+                  onChange={(e) => setVideoFormData({ ...videoFormData, title: e.target.value })}
                 />
               </div>
-              <div className="flex items-center justify-between p-4 md:p-6 bg-zinc-900/50 rounded-2xl md:rounded-3xl border border-zinc-800">
-                <div className="space-y-1">
-                  <Label className="font-bold text-zinc-100 text-sm">Active</Label>
-                  <p className="text-[8px] text-zinc-500 font-black uppercase tracking-widest">Public visibility</p>
-                </div>
-                <Switch 
-                  checked={videoFormData.isActive}
-                  onCheckedChange={(val) => setVideoFormData({ ...videoFormData, isActive: val })}
+
+              <div className="space-y-2">
+                <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Thumbnail URL</Label>
+                <Input 
+                  placeholder="https://..." 
+                  className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white px-4"
+                  value={videoFormData.thumbnailUrl}
+                  onChange={(e) => setVideoFormData({ ...videoFormData, thumbnailUrl: e.target.value })}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Description</Label>
+                <Textarea 
+                  placeholder="Provide a detailed summary..." 
+                  className="bg-zinc-900 border-zinc-800 rounded-xl min-h-[100px] text-white p-4 resize-none"
+                  value={videoFormData.description}
+                  onChange={(e) => setVideoFormData({ ...videoFormData, description: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800">
+                  <Label className="font-bold text-zinc-100 text-xs">Featured</Label>
+                  <Switch 
+                    checked={videoFormData.isTrending}
+                    onCheckedChange={(val) => setVideoFormData({ ...videoFormData, isTrending: val })}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800">
+                  <Label className="font-bold text-zinc-100 text-xs">Active</Label>
+                  <Switch 
+                    checked={videoFormData.isActive}
+                    onCheckedChange={(val) => setVideoFormData({ ...videoFormData, isActive: val })}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="p-6 md:p-8 border-t border-zinc-900 bg-zinc-950 shrink-0">
+          <div className="p-6 border-t border-zinc-900 bg-zinc-950 shrink-0">
             <Button 
-              className="w-full h-12 md:h-14 font-bold rounded-xl md:rounded-2xl text-sm md:text-base bg-zinc-100 text-black hover:bg-white shadow-xl transition-all active:scale-[0.98]" 
+              className="w-full h-12 font-bold rounded-xl text-sm bg-zinc-100 text-black hover:bg-white shadow-xl transition-all active:scale-[0.98]" 
               onClick={handleSaveVideo}
             >
-              {isEditing ? 'Save Changes' : 'Index Video Metadata'}
+              {isEditing ? 'Save Changes' : 'Index Video'}
             </Button>
           </div>
         </DialogContent>
@@ -374,7 +370,7 @@ export function VideoCatalog() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold">Remove from Catalog?</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500">
-              This action will permanently delete this video entry from your local library. This cannot be undone.
+              This action will permanently delete this video entry from your local library.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">

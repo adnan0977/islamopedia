@@ -249,9 +249,10 @@ export function ChannelHub({ videos }: { videos: any[] }) {
               Add Creators
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-4xl p-10 outline-none">
+          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-10 outline-none">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold">Import Creators</DialogTitle>
+              <DialogDescription className="text-zinc-500">Paste YouTube IDs, Handles, or URLs below.</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 pt-6">
               <Textarea 
@@ -273,7 +274,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold">Unlink Creator?</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500">
-              Removing this channel will stop local synchronization. Existing videos will remain in the catalog unless manually removed.
+              Removing this channel will stop local synchronization.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">
@@ -290,10 +291,10 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900">
-                <TableHead className="py-6 text-zinc-600 pl-6 w-[30%]">Creator Branding</TableHead>
+                <TableHead className="py-6 text-zinc-600 pl-6 w-[25%]">Creator Branding</TableHead>
                 <TableHead className="text-zinc-600 text-center w-[20%]">Inventory</TableHead>
                 <TableHead className="text-zinc-600 text-center w-[20%]">Subs</TableHead>
-                <TableHead className="text-right text-zinc-600 pr-6 w-[30%]">Actions</TableHead>
+                <TableHead className="text-right text-zinc-600 pr-6 w-[35%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
