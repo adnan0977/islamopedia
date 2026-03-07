@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { 
   Card, 
@@ -69,7 +69,7 @@ export function ScholarDirectory() {
 
   const handleAddScholar = () => {
     if (!newScholar.name || !newScholar.id) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Name and ID (slug) are required." });
+      toast({ variant: "destructive", title: "Missing Fields" });
       return;
     }
 
@@ -80,7 +80,7 @@ export function ScholarDirectory() {
       updatedAt: new Date().toISOString()
     }, { merge: true });
 
-    toast({ title: "Scholar Added", description: `${newScholar.name} has been saved.` });
+    toast({ title: "Scholar Added" });
     setIsAddDialogOpen(false);
     setNewScholar({ id: '', name: '', profileImageUrl: '' });
   };
@@ -103,91 +103,53 @@ export function ScholarDirectory() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl">
+    <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
-            placeholder="Search scholars..." 
-            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 shadow-inner w-full outline-none focus:ring-1 focus:ring-zinc-800"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Input placeholder="Search scholars..." className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
-        <div className="flex gap-3">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                className="rounded-full h-14 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95 flex items-center gap-3 shadow-lg group"
-              >
-                <Plus className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
-                <span className="text-sm">Add New Scholar</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-              <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
-                <DialogTitle className="text-xl font-bold">Register Scholar</DialogTitle>
-                <DialogDescription className="text-zinc-500 text-xs mt-1">Create a profile for a spiritual teacher.</DialogDescription>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800">
-                <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Scholar Name</Label>
-                  <Input 
-                    placeholder="e.g. Dr. Israr Ahmed" 
-                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
-                    value={newScholar.name}
-                    onChange={(e) => setNewScholar({ ...newScholar, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Identifier (ID)</Label>
-                  <Input 
-                    placeholder="e.g. dr-israr-ahmed" 
-                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
-                    value={newScholar.id}
-                    onChange={(e) => setNewScholar({ ...newScholar, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Profile Image URL</Label>
-                  <Input 
-                    placeholder="https://..." 
-                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
-                    value={newScholar.profileImageUrl}
-                    onChange={(e) => setNewScholar({ ...newScholar, profileImageUrl: e.target.value })}
-                  />
-                </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 shadow-lg flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              <span>Add Scholar</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px] bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none shadow-2xl overflow-hidden">
+            <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
+              <DialogTitle className="text-xl font-bold">Register Scholar</DialogTitle>
+              <DialogDescription className="text-zinc-500 text-xs mt-1">Create a profile for a spiritual teacher.</DialogDescription>
+            </DialogHeader>
+            <div className="p-8 space-y-6">
+              <div className="grid gap-2">
+                <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Name</Label>
+                <Input placeholder="e.g. Dr. Israr Ahmed" className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={newScholar.name} onChange={(e) => setNewScholar({ ...newScholar, name: e.target.value })} />
               </div>
-              <div className="p-8 border-t border-zinc-900 bg-zinc-950 shrink-0">
-                <Button 
-                  className="w-full h-14 font-bold rounded-2xl bg-zinc-100 text-black hover:bg-white shadow-xl transition-all active:scale-[0.98]" 
-                  onClick={handleAddScholar}
-                >
-                  Save Scholar Profile
-                </Button>
+              <div className="grid gap-2">
+                <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">ID Slug</Label>
+                <Input placeholder="e.g. dr-israr-ahmed" className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={newScholar.id} onChange={(e) => setNewScholar({ ...newScholar, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })} />
               </div>
-            </DialogContent>
-          </Dialog>
-          <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold hidden sm:flex items-center gap-2">
-            {scholars?.length || 0} Listed
-          </Badge>
-        </div>
+              <div className="grid gap-2">
+                <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Profile Image URL</Label>
+                <Input placeholder="https://..." className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={newScholar.profileImageUrl} onChange={(e) => setNewScholar({ ...newScholar, profileImageUrl: e.target.value })} />
+              </div>
+              <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl shadow-xl hover:bg-zinc-200 mt-4" onClick={handleAddScholar}>Save Profile</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
         <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10 max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Remove Scholar Profile?</AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-500">
-              This will delete the scholar's profile from the directory.
-            </AlertDialogDescription>
+            <AlertDialogTitle className="text-xl font-bold">Remove Scholar?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">This action will delete the profile permanently.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">
-            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 rounded-xl h-12 px-6">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl h-12 px-6 font-bold">
-              Permanently Remove
-            </AlertDialogAction>
+            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl font-bold">Remove Scholar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -197,13 +159,8 @@ export function ScholarDirectory() {
           <Card key={scholar.id} className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group shadow-xl">
             <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
               <div className="flex items-center gap-5">
-                <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-zinc-800 bg-black shrink-0 group-hover:scale-105 transition-transform shadow-lg">
-                  <Image 
-                    src={scholar.profileImageUrl || 'https://picsum.photos/seed/scholar/200'} 
-                    alt={scholar.name} 
-                    fill 
-                    className="object-cover" 
-                  />
+                <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
+                  <Image src={scholar.profileImageUrl || 'https://picsum.photos/seed/scholar/200'} alt={scholar.name} fill className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -214,41 +171,12 @@ export function ScholarDirectory() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-900 flex flex-col items-center">
-                    <Video className="w-4 h-4 text-zinc-700 mb-2" />
-                    <span className="text-lg font-bold text-white">0</span>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600">Videos</span>
-                 </div>
-                 <div className="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-900 flex flex-col items-center">
-                    <Settings className="w-4 h-4 text-zinc-700 mb-2" />
-                    <span className="text-lg font-bold text-white">Active</span>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600">Status</span>
-                 </div>
-              </div>
-            </CardContent>
             <CardFooter className="p-6 bg-zinc-900/10 border-t border-zinc-900 flex justify-between gap-2">
-               <Button variant="ghost" size="sm" className="flex-1 rounded-xl font-bold h-11 text-zinc-500 hover:text-white hover:bg-zinc-900">
-                  <Settings className="w-4 h-4 mr-2" /> Manage
-               </Button>
-               <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-xl h-11 w-11 text-destructive hover:bg-destructive/10"
-                onClick={() => setDeleteConfirmId(scholar.id)}
-               >
-                  <Trash2 className="w-4 h-4" />
-               </Button>
+               <Button variant="ghost" size="sm" className="flex-1 rounded-xl font-bold h-11 text-zinc-500 hover:text-white hover:bg-zinc-900"><Settings className="w-4 h-4 mr-2" /> Manage</Button>
+               <Button variant="ghost" size="icon" className="rounded-xl h-11 w-11 text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirmId(scholar.id)}><Trash2 className="w-4 h-4" /></Button>
             </CardFooter>
           </Card>
         ))}
-        {(!filteredScholars || filteredScholars.length === 0) && (
-          <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-3xl border-2 border-dashed border-zinc-900 flex flex-col items-center justify-center space-y-4">
-             <Mic2 className="w-12 h-12 text-zinc-900" />
-             <p className="text-zinc-600 font-medium">No scholars found matching your search.</p>
-          </div>
-        )}
       </div>
     </div>
   );

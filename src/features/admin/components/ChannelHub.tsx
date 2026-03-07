@@ -13,18 +13,11 @@ import {
   Youtube, 
   RefreshCw, 
   Plus, 
-  Link2,
-  Search,
-  CheckCircle2,
-  ExternalLink,
-  Users,
-  AlertCircle,
-  Pencil,
+  Search, 
+  Power, 
+  PowerOff, 
   Trash2,
-  Power,
-  PowerOff,
-  Video as VideoIcon,
-  Database
+  RefreshCw as SyncIcon
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,24 +45,17 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { fetchYouTubeChannels, fetchYouTubeChannelByHandle, fetchPlaylistVideos } from '@/services/youtube-server';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
 
 const DEFAULT_IDS = `Islamic History Plus,UCsaR6SnAv97_9MI2JPLcyRA,English,Authentic & Research Stories
 Islamic History (Official),UC1mNByYnDzhPesq4RF-jGLQ,English,Pivotal Events & Journeys
 The Kohistani,https://youtube.com/@thekohistani,Urdu/English,History & Documentary
-Islamic Bayan 2026,UCybKAapNVFBeZyn6DJHQaGA,Urdu,Contemporary Sermons & History
-Deen Squad,UCU_9S_kA,English,Youth Culture & Reminders
-iLovUAllah,@iLovUAllah,English,Motivational & Inspirational
-Duroos.org,UCp4Vf-IOn66Xv,Arabic/English,Classical Scholarly Lectures
-Masjid Ribat,UCv9u_K37S6v3m,English,Detailed Seerah & History`;
+Islamic Bayan 2026,UCybKAapNVFBeZyn6DJHQaGA,Urdu,Contemporary Sermons & History`;
 
 export function ChannelHub({ videos }: { videos: any[] }) {
   const db = useFirestore();
@@ -77,8 +63,6 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncingVideosFor, setSyncingVideosFor] = useState<string | null>(null);
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [syncStatus, setSyncStatus] = useState('');
   
   const [bulkIds, setBulkBulkIds] = useState(DEFAULT_IDS);
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,29 +83,22 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   const extractSelectors = (text: string) => {
     const idMatches = text.match(/UC[a-zA-Z0-9_-]{22}/g) || [];
     const handleMatches = text.match(/@[\w.-]+/g) || [];
-    const urlHandleMatches = text.match(/youtube\.com\/(@[\w.-]+)/g) || [];
-    const handlesFromUrls = urlHandleMatches.map(m => m.split('/').pop()).filter(Boolean) as string[];
-    const urlIdMatches = text.match(/youtube\.com\/channel\/(UC[a-zA-Z0-9_-]{22})/g) || [];
-    const idsFromUrls = urlIdMatches.map(m => m.split('/').pop()).filter(Boolean) as string[];
-
     return {
-      ids: Array.from(new Set([...idMatches, ...idsFromUrls])),
-      handles: Array.from(new Set([...handleMatches, ...handlesFromUrls]))
+      ids: Array.from(new Set([...idMatches])),
+      handles: Array.from(new Set([...handleMatches]))
     };
   };
 
   const handleSync = async (input: string) => {
     const { ids, handles } = extractSelectors(input);
     if (ids.length === 0 && handles.length === 0) {
-      toast({ variant: 'destructive', title: 'No valid input', description: 'Please provide a valid YouTube ID, Handle, or URL.' });
+      toast({ variant: 'destructive', title: 'Invalid input' });
       return;
     }
 
     setIsSyncing(true);
     try {
-      let totalSynced = 0;
       const allResolvedChannels: any[] = [];
-
       if (ids.length > 0) {
         for (let i = 0; i < ids.length; i += 50) {
           const chunk = ids.slice(i, i + 50);
@@ -129,7 +106,6 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           allResolvedChannels.push(...data);
         }
       }
-
       if (handles.length > 0) {
         for (const handle of handles) {
           const data = await fetchYouTubeChannelByHandle(handle);
@@ -140,17 +116,10 @@ export function ChannelHub({ videos }: { videos: any[] }) {
       const batch = writeBatch(db);
       allResolvedChannels.forEach(channel => {
         const channelRef = doc(db, 'channels', channel.id);
-        batch.set(channelRef, {
-          ...channel,
-          isActive: true,
-          updatedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-        }, { merge: true });
-        totalSynced++;
+        batch.set(channelRef, { ...channel, isActive: true, updatedAt: new Date().toISOString(), createdAt: new Date().toISOString() }, { merge: true });
       });
       await batch.commit();
-
-      toast({ title: 'Sync Complete', description: `Successfully indexed ${totalSynced} channels.` });
+      toast({ title: 'Import Complete' });
       setIsImportDialogOpen(false);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Sync Failed', description: error.message });
@@ -160,108 +129,70 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   };
 
   const handleSyncVideos = async (channel: any) => {
-    const MAX_PROCESS_PER_CLICK = 500;
-    let uploadsId = channel.uploadsPlaylistId;
     setSyncingVideosFor(channel.id);
-    setSyncStatus(`Syncing catalog for ${channel.title}...`);
-    setSyncProgress(5);
-
     try {
-      if (!uploadsId) {
-        const freshData = await fetchYouTubeChannels([channel.id]);
-        if (freshData.length > 0 && freshData[0].uploadsPlaylistId) {
-          uploadsId = freshData[0].uploadsPlaylistId;
-          updateDocumentNonBlocking(doc(db, 'channels', channel.id), { uploadsPlaylistId: uploadsId });
-        }
-      }
-
-      const ytVideos = await fetchPlaylistVideos(uploadsId, 5000);
+      const uploadsId = channel.uploadsPlaylistId || ('UU' + channel.id.substring(2));
+      const ytVideos = await fetchPlaylistVideos(uploadsId, 500);
       const existingVideosQ = query(collection(db, 'videos'), where('channelId', '==', channel.id));
       const existingSnap = await getDocs(existingVideosQ);
       const existingIds = new Set(existingSnap.docs.map(d => d.id));
       const missingVideos = ytVideos.filter(v => !existingIds.has(v.id));
 
-      if (missingVideos.length === 0) {
-        toast({ title: "Catalog Up to Date" });
-        return;
-      }
-
-      const subsetToProcess = missingVideos.slice(0, MAX_PROCESS_PER_CLICK);
-      const batchSize = 400;
-      for (let i = 0; i < subsetToProcess.length; i += batchSize) {
-        const chunk = subsetToProcess.slice(i, i + batchSize);
+      if (missingVideos.length > 0) {
         const batch = writeBatch(db);
-        chunk.forEach(v => {
+        missingVideos.forEach(v => {
           const vRef = doc(db, 'videos', v.id);
-          batch.set(vRef, {
-            ...v,
-            externalUrl: `https://youtube.com/watch?v=${v.id}`,
-            isActive: !!channel.isActive,
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-          }, { merge: true });
+          batch.set(vRef, { ...v, externalUrl: `https://youtube.com/watch?v=${v.id}`, isActive: !!channel.isActive, updatedAt: new Date().toISOString(), createdAt: new Date().toISOString() }, { merge: true });
         });
         await batch.commit();
-        setSyncProgress(Math.round(30 + ((i + chunk.length) / subsetToProcess.length) * 70));
+        toast({ title: "Catalog Updated", description: `Added ${missingVideos.length} videos.` });
+      } else {
+        toast({ title: "Up to Date" });
       }
-      toast({ title: "Sync Successful", description: `Added ${subsetToProcess.length} videos.` });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Sync Failed', description: error.message });
     } finally {
       setSyncingVideosFor(null);
-      setSyncStatus('');
-      setSyncProgress(0);
     }
   };
 
-  const toggleChannelActivation = async (channelId: string, currentStatus: boolean) => {
-    const newStatus = !currentStatus;
-    updateDocumentNonBlocking(doc(db, 'channels', channelId), { isActive: newStatus });
-    toast({ title: newStatus ? "Activated" : "Deactivated" });
+  const toggleChannelActivation = (channelId: string, currentStatus: boolean) => {
+    updateDocumentNonBlocking(doc(db, 'channels', channelId), { isActive: !currentStatus });
+    toast({ title: !currentStatus ? "Activated" : "Deactivated" });
   };
 
   const confirmDelete = () => {
     if (deleteConfirmId) {
       deleteDocumentNonBlocking(doc(db, 'channels', deleteConfirmId));
       setDeleteConfirmId(null);
-      toast({ title: "Creator Removed" });
+      toast({ title: "Creator Unlinked" });
     }
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
-            placeholder="Search channels..."
-            className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14 text-white"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Input placeholder="Search creators..." className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
         <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-full h-14 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 shadow-lg">
-              <Plus className="w-5 h-5 text-emerald-500 mr-2" />
-              Add Creators
+            <Button className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 shadow-lg flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              <span>Link Creator</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] max-w-xl p-8 outline-none shadow-2xl">
-            <DialogHeader className="mb-6">
+          <DialogContent className="sm:max-w-[500px] bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none shadow-2xl overflow-hidden">
+            <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
               <DialogTitle className="text-xl font-bold">Import Creators</DialogTitle>
-              <DialogDescription className="text-zinc-500 text-xs">Paste YouTube IDs, Handles, or URLs below.</DialogDescription>
+              <DialogDescription className="text-zinc-500 text-xs mt-1">Paste YouTube IDs or Handles below.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-6">
-              <Textarea 
-                placeholder="Paste IDs..."
-                className="bg-zinc-900 border-zinc-800 h-64 rounded-2xl p-6 scrollbar-thin scrollbar-thumb-zinc-800"
-                value={bulkIds}
-                onChange={(e) => setBulkBulkIds(e.target.value)}
-              />
-              <Button className="w-full h-14 bg-zinc-100 text-black font-bold rounded-2xl shadow-xl transition-all active:scale-[0.98]" onClick={() => handleSync(bulkIds)}>
-                Process Import
+            <div className="p-8 space-y-6">
+              <Textarea placeholder="UC... or @handle" className="bg-zinc-900 border-zinc-800 h-48 rounded-2xl p-6" value={bulkIds} onChange={(e) => setBulkBulkIds(e.target.value)} />
+              <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl shadow-xl hover:bg-zinc-200" onClick={() => handleSync(bulkIds)} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="animate-spin h-5 w-5 mx-auto" /> : 'Start Import'}
               </Button>
             </div>
           </DialogContent>
@@ -272,15 +203,11 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10 max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold">Unlink Creator?</AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-500">
-              Removing this channel will stop local synchronization.
-            </AlertDialogDescription>
+            <AlertDialogDescription className="text-zinc-500">Stopping sync for this channel. Local data remains.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">
-            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 rounded-xl h-12 px-6">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl h-12 px-6 font-bold">
-              Unlink Channel
-            </AlertDialogAction>
+            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl font-bold">Unlink</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -290,50 +217,39 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900">
-                <TableHead className="py-6 text-zinc-600 pl-6 w-[25%]">Creator Branding</TableHead>
-                <TableHead className="text-zinc-600 text-center w-[20%]">Inventory</TableHead>
-                <TableHead className="text-zinc-600 text-center w-[20%]">Subs</TableHead>
-                <TableHead className="text-right text-zinc-600 pr-6 w-[35%]">Actions</TableHead>
+                <TableHead className="py-6 text-zinc-600 pl-6 w-[25%] text-[9px] font-black uppercase">Creator Branding</TableHead>
+                <TableHead className="text-zinc-600 text-center w-[20%] text-[9px] font-black uppercase">Inventory</TableHead>
+                <TableHead className="text-zinc-600 text-center w-[20%] text-[9px] font-black uppercase">Subs</TableHead>
+                <TableHead className="text-right text-zinc-600 pr-6 w-[35%] text-[9px] font-black uppercase">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoadingChannels ? (
-                <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow>
               ) : filteredChannels?.map((channel) => (
                 <TableRow key={channel.id} className="border-zinc-900 h-24 hover:bg-zinc-900/40">
                   <TableCell className="pl-6 max-w-0">
-                    <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0">
                         {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                       </div>
-                      <div className="flex flex-col min-w-0 overflow-hidden">
-                        <span className="font-bold text-zinc-100 truncate block w-full text-[11px]" title={channel.title}>{channel.title}</span>
-                        <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[6px] px-1 py-0 w-fit mt-1 uppercase font-black">
-                          {channel.isActive ? 'Active' : 'Off'}
-                        </Badge>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-zinc-100 truncate block text-[11px]" title={channel.title}>{channel.title}</span>
+                        <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[6px] px-1 py-0 w-fit mt-1 uppercase font-black">{channel.isActive ? 'Active' : 'Off'}</Badge>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-[10px] font-bold text-zinc-400">{videos.filter(v => v.channelId === channel.id).length}/{channel.videoCount || 0}</span>
-                      <span className="text-[6px] text-zinc-600 font-black uppercase">Local/YT</span>
-                    </div>
+                  <TableCell className="text-center text-[10px] font-bold text-zinc-400">
+                    {videos.filter(v => v.channelId === channel.id).length}/{channel.videoCount || 0}
                   </TableCell>
                   <TableCell className="text-center text-[10px] font-bold text-zinc-400">
                     {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount}
                   </TableCell>
-                  <TableCell className="text-right pr-6 max-w-0">
-                    <div className="flex justify-end gap-1 flex-nowrap">
-                      <Button variant="ghost" size="icon" onClick={() => handleSyncVideos(channel)} className="h-8 w-8 text-zinc-600 hover:text-emerald-500">
-                        <RefreshCw className={cn("w-3.5 h-3.5", syncingVideosFor === channel.id && "animate-spin")} />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)} className="h-8 w-8 text-zinc-600">
-                        {channel.isActive ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(channel.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                  <TableCell className="text-right pr-6">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleSyncVideos(channel)} className="h-8 w-8 text-zinc-600 hover:text-emerald-500"><SyncIcon className={cn("w-3.5 h-3.5", syncingVideosFor === channel.id && "animate-spin")} /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)} className="h-8 w-8 text-zinc-600">{channel.isActive ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}</Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(channel.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
