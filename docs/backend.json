@@ -91,35 +91,30 @@
       "required": ["id", "title", "thumbnailUrl", "externalUrl", "channelId"]
     },
     "QuranTranslation": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "QuranTranslation",
       "type": "object",
       "description": "Represents an activated Quran translation edition.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "The unique identifier of the translation edition (e.g., 'en.sahih')."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the translation."
-        },
-        "language": {
-          "type": "string",
-          "description": "The language name (e.g., 'English')."
-        },
-        "languageCode": {
-          "type": "string",
-          "description": "The language code (e.g., 'en')."
-        },
-        "isDefault": {
-          "type": "boolean"
-        },
-        "isActive": {
-          "type": "boolean"
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "language": { "type": "string" },
+        "languageCode": { "type": "string" },
+        "isDefault": { "type": "boolean" },
+        "isActive": { "type": "boolean" }
       },
       "required": ["id", "name", "language", "languageCode"]
+    },
+    "QuranPageData": {
+      "title": "QuranPageData",
+      "type": "object",
+      "description": "Stored Quran page content for fast loading.",
+      "properties": {
+        "pageNumber": { "type": "number" },
+        "translationId": { "type": "string" },
+        "content": { "type": "array", "items": { "type": "object" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["pageNumber", "translationId", "content"]
     }
   },
   "auth": {
@@ -129,34 +124,27 @@
     "structure": [
       {
         "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile"
-        }
+        "definition": { "entityName": "UserProfile" }
       },
       {
         "path": "/channels/{channelId}",
-        "definition": {
-          "entityName": "YouTubeChannel"
-        }
+        "definition": { "entityName": "YouTubeChannel" }
       },
       {
         "path": "/videos/{videoId}",
-        "definition": {
-          "entityName": "YouTubeVideo"
-        }
+        "definition": { "entityName": "YouTubeVideo" }
       },
       {
         "path": "/quran_translations/{translationId}",
-        "definition": {
-          "entityName": "QuranTranslation",
-          "description": "Stores activated Quran translations. Publicly readable, admin writable."
-        }
+        "definition": { "entityName": "QuranTranslation" }
+      },
+      {
+        "path": "/quran_pages/{pageId}",
+        "definition": { "entityName": "QuranPageData" }
       },
       {
         "path": "/roles_admin/{adminId}",
-        "definition": {
-          "entityName": "UserProfile"
-        }
+        "definition": { "entityName": "UserProfile" }
       }
     ]
   }

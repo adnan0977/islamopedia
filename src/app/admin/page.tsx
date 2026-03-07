@@ -44,7 +44,8 @@ import {
   Languages,
   LayoutList,
   TrendingUp,
-  History
+  History,
+  Database
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -113,7 +114,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { getAvailableTranslations } from '@/lib/api';
+import { getAvailableTranslations, getPageDetails } from '@/lib/api';
 import {
   Menubar,
   MenubarContent,
@@ -127,7 +128,7 @@ import {
   MenubarSubTrigger,
 } from "@/components/ui/menubar"
 
-type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'translations';
+type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'translations' | 'indexing';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
@@ -252,7 +253,7 @@ export default function AdminPanel() {
                     { id: 'channels', label: 'Channels', icon: Youtube },
                     { id: 'videos', label: 'Video Catalog', icon: VideoIcon },
                     { id: 'speakers', label: 'Scholars', icon: Mic2 },
-                    { id: 'translations', label: 'Translations', icon: Languages },
+                    { id: 'translations', label: 'Quran Tools', icon: Book },
                   ].map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton 
@@ -292,7 +293,8 @@ export default function AdminPanel() {
                   {activeTab === 'channels' && 'YouTube Channels'}
                   {activeTab === 'videos' && 'Video Catalog'}
                   {activeTab === 'speakers' && 'Scholar Management'}
-                  {activeTab === 'translations' && 'Quran Translations'}
+                  {activeTab === 'translations' && 'Quran Management'}
+                  {activeTab === 'indexing' && 'Quran Indexing'}
                 </h2>
 
                 <Menubar className="bg-transparent border-none shadow-none hidden lg:flex">
@@ -304,9 +306,11 @@ export default function AdminPanel() {
                       <MenubarItem onClick={() => setActiveTab('translations')} className="focus:bg-zinc-900">
                         Active Translations
                       </MenubarItem>
+                      <MenubarItem onClick={() => setActiveTab('indexing')} className="focus:bg-zinc-900">
+                        Index Pages
+                      </MenubarItem>
                       <MenubarSeparator className="bg-zinc-800" />
                       <MenubarItem disabled className="opacity-50">Surah Management</MenubarItem>
-                      <MenubarItem disabled className="opacity-50">Ayat Verification</MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>
 
@@ -317,18 +321,6 @@ export default function AdminPanel() {
                     <MenubarContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
                       <MenubarItem onClick={() => setActiveTab('channels')} className="focus:bg-zinc-900">Link Channels</MenubarItem>
                       <MenubarItem onClick={() => setActiveTab('videos')} className="focus:bg-zinc-900">Video Indexing</MenubarItem>
-                      <MenubarSeparator className="bg-zinc-800" />
-                      <MenubarItem disabled className="opacity-50">Content Analytics</MenubarItem>
-                    </MenubarContent>
-                  </MenubarMenu>
-
-                  <MenubarMenu>
-                    <MenubarTrigger className="text-zinc-400 focus:bg-zinc-900 focus:text-white data-[state=open]:bg-zinc-900 data-[state=open]:text-white cursor-pointer font-bold px-4 rounded-xl transition-colors">
-                      Directory
-                    </MenubarTrigger>
-                    <MenubarContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
-                      <MenubarItem onClick={() => setActiveTab('speakers')} className="focus:bg-zinc-900">Manage Scholars</MenubarItem>
-                      <MenubarItem disabled className="opacity-50">User Roles</MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>
                 </Menubar>
@@ -377,6 +369,7 @@ export default function AdminPanel() {
             {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
             {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
             {activeTab === 'translations' && <TranslationManagement translations={translations || []} />}
+            {activeTab === 'indexing' && <QuranIndexing translations={translations || []} />}
           </main>
         </SidebarInset>
       </div>
@@ -854,9 +847,8 @@ function TranslationManagement({ translations }: { translations: any[] }) {
       deleteDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier));
       toast({ title: "Translation Removed" });
     } else {
-      // Save activated translation to the 'quran_translations' collection
       setDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier), {
-        id: edition.identifier, // Use identifier as the unique ID
+        id: edition.identifier,
         name: edition.name,
         language: edition.language,
         languageCode: edition.language,
@@ -957,14 +949,103 @@ function TranslationManagement({ translations }: { translations: any[] }) {
                 </TableCell>
               </TableRow>
             ))}
-            {translations.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="h-40 text-center text-zinc-600 italic font-medium">No custom translations activated yet. Defaulting to Sahih International.</TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </Card>
     </div>
+  );
+}
+
+function QuranIndexing({ translations }: { translations: any[] }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [selectedEdition, setSelectedEdition] = useState<string>('');
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState('');
+
+  const startIndexing = async () => {
+    if (!selectedEdition) return;
+    setIsIndexing(true);
+    setProgress(0);
+    setStatus('Initializing indexer...');
+
+    try {
+      // Indexing logic: Fetch 604 pages and store in Firestore
+      // For demonstration, we'll index a smaller batch or provide a controlled loop
+      for (let p = 1; p <= 604; p++) {
+        setStatus(`Fetching Page ${p} of 604...`);
+        const data = await getPageDetails(p, selectedEdition);
+        
+        const pageId = `${selectedEdition}_${p}`;
+        setDocumentNonBlocking(doc(db, 'quran_pages', pageId), {
+          pageNumber: p,
+          translationId: selectedEdition,
+          content: data.data,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        setProgress((p / 604) * 100);
+        
+        // Small delay to prevent API rate limits if necessary
+        if (p % 20 === 0) {
+           await new Promise(r => setTimeout(r, 500));
+        }
+      }
+      setStatus('Indexing Complete');
+      toast({ title: "Indexing Finished", description: `Successfully stored 604 pages for ${selectedEdition}.` });
+    } catch (e: any) {
+      setStatus('Indexing Failed');
+      toast({ variant: "destructive", title: "Error", description: e.message });
+    } finally {
+      setIsIndexing(false);
+    }
+  };
+
+  return (
+    <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-8 shadow-2xl space-y-8">
+      <div className="space-y-2">
+        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+          <Database className="w-6 h-6 text-zinc-500" />
+          Page Indexing Tool
+        </h3>
+        <p className="text-sm text-zinc-500">Fetch and cache Quranic pages in your local database for high-performance reading.</p>
+      </div>
+
+      <div className="grid gap-6">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Select Translation to Index</Label>
+          <Select value={selectedEdition} onValueChange={setSelectedEdition}>
+            <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+              <SelectValue placeholder="Choose edition..." />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+              {translations.map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {isIndexing && (
+          <div className="space-y-4 animate-in fade-in duration-500">
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
+              <span>{status}</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} className="h-2 bg-zinc-900" />
+          </div>
+        )}
+
+        <Button 
+          className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 font-bold"
+          onClick={startIndexing}
+          disabled={isIndexing || !selectedEdition}
+        >
+          {isIndexing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+          Start Data Sync
+        </Button>
+      </div>
+    </Card>
   );
 }
