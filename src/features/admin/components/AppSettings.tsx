@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -50,7 +51,6 @@ export function AppSettings() {
   });
 
   const [newFrame, setNewFrame] = useState({ name: '', path: '' });
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -79,10 +79,15 @@ export function AppSettings() {
   };
 
   const parseSvgPath = (svgString: string) => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(svgString, 'image/svg+xml');
-    const path = doc.querySelector('path');
-    return path ? path.getAttribute('d') : null;
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svgString, 'image/svg+xml');
+      const path = doc.querySelector('path');
+      return path ? path.getAttribute('d') : null;
+    } catch (e) {
+      console.error("Failed to parse SVG", e);
+      return null;
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +131,6 @@ export function AppSettings() {
     setLocalSettings({
       ...localSettings,
       savedCustomFrames: updated,
-      // Fallback if currently selected frame is removed
       ayatFrameId: localSettings.ayatFrameId === id ? 'royal-ornate' : localSettings.ayatFrameId
     });
   };
