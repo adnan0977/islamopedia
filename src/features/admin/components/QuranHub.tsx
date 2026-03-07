@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/badge';
 import { getAllAlQuranEditions, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -166,21 +166,11 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
       <Tabs defaultValue="directory" className="w-full">
         <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
           <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Edition Directory</TabsTrigger>
-          <TabsTrigger value="sync" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Database Sync</TabsTrigger>
           <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Full Viewer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory">
           <EditionDirectory editions={editions} performSync={performSync} syncing={syncing} />
-        </TabsContent>
-        <TabsContent value="sync">
-          <SyncTool 
-            editions={editions} 
-            syncing={syncing} 
-            performSync={performSync}
-            handleStandardSync={handleStandardSync}
-            isStandardSynced={isStandardSynced}
-          />
         </TabsContent>
         <TabsContent value="viewer">
           <FullQuranViewer editions={editions} />
@@ -508,69 +498,6 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
                Next <ChevronRight className="w-4 h-4 ml-2" />
              </Button>
            </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function SyncTool({ editions, syncing, performSync, handleStandardSync, isStandardSynced }: { 
-  editions: any[], 
-  syncing: boolean, 
-  performSync: (id: string) => Promise<void>,
-  handleStandardSync: () => Promise<void>,
-  isStandardSynced: boolean
-}) {
-  const [selectedEdition, setSelectedEdition] = useState('');
-  const activeEditions = editions.filter(e => e.isActive);
-
-  return (
-    <div className="space-y-6">
-      {!isStandardSynced && (
-        <Card className="bg-amber-500/5 border-amber-500/20 p-8 rounded-3xl">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-             <div className="space-y-2 text-center md:text-left">
-                <h4 className="font-bold text-white">Standard Base Initialization</h4>
-                <p className="text-sm text-zinc-500">Sync the Uthmani script before indexing translations.</p>
-             </div>
-             <Button 
-                onClick={handleStandardSync}
-                disabled={syncing}
-                className="bg-amber-500 text-black hover:bg-amber-400 font-bold rounded-xl h-12 px-8"
-              >
-                <Download className="mr-2 h-4 w-4" /> Sync Arabic Base
-             </Button>
-          </div>
-        </Card>
-      )}
-
-      <Card className="bg-zinc-950 border-zinc-900 p-10 rounded-3xl shadow-2xl">
-        <div className="flex flex-col md:flex-row gap-8 items-end">
-          <div className="flex-1 space-y-4 w-full">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Active Edition</Label>
-            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-14 text-white">
-                <SelectValue placeholder="Select an active translation..." />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                {activeEditions.map((t) => (
-                  <SelectItem key={t.id} value={t.id} disabled={t.dataSync === 'yes'}>
-                    {t.name} {t.englishName && `(${t.englishName})`} {t.dataSync === 'yes' ? ' (Done)' : ''}
-                  </SelectItem>
-                ))}
-                {activeEditions.length === 0 && (
-                  <div className="p-4 text-center text-xs text-zinc-600">No active translations found.</div>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button 
-            className="bg-white text-black hover:bg-zinc-200 rounded-xl h-14 px-10 font-bold w-full md:w-auto transition-transform active:scale-95" 
-            onClick={() => performSync(selectedEdition)} 
-            disabled={syncing || !selectedEdition}
-          >
-            <RefreshCw className={cn("mr-2 w-5 h-5", syncing && "animate-spin")} /> Start Full Sync
-          </Button>
         </div>
       </Card>
     </div>
