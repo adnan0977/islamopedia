@@ -382,7 +382,7 @@ export function VideoCatalog() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-col items-center gap-0.5">
+                    <div className="inline-flex flex-col items-center gap-0.5">
                       <div className="flex items-center gap-1 text-zinc-400">
                         <Smartphone className="w-2.5 h-2.5 text-zinc-600" />
                         <span className="text-[9px] font-bold">{video.appViewCount?.toLocaleString() || 0}</span>
@@ -394,7 +394,7 @@ export function VideoCatalog() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-col items-center gap-1.5">
+                    <div className="inline-flex flex-col items-center justify-center gap-1.5">
                       {video.isActive === false ? (
                         <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[7px] font-black uppercase w-fit px-1.5 py-0">Disabled</Badge>
                       ) : (
