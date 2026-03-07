@@ -107,7 +107,7 @@
     "QuranPage": {
       "title": "QuranPage",
       "type": "object",
-      "description": "Represents a single page of the Quran for a specific edition.",
+      "description": "Represents a single page of the Quran for a specific edition, cached in Firestore.",
       "properties": {
         "id": { "type": "string", "description": "Format: {editionId}_page_{pageNumber}" },
         "editionId": { "type": "string" },
@@ -119,6 +119,7 @@
             "properties": {
               "number": { "type": "number" },
               "text": { "type": "string" },
+              "translationText": { "type": "string" },
               "surah": {
                 "type": "object",
                 "properties": {

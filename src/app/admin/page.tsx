@@ -1115,17 +1115,32 @@ function QuranDatabaseSync({ translations }: { translations: any[] }) {
           </Button>
         </div>
 
-        {syncing && (
-          <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-top-2">
-            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-              <span className="text-zinc-500">
-                {syncStatus === 'fetching' ? 'Downloading from API...' : 'Writing to Firestore...'}
-              </span>
-              <span className="text-white">{progress}%</span>
+        {/* Blocking Sync Loader Modal */}
+        <Dialog open={syncing}>
+          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl sm:max-w-md p-10 outline-none">
+            <div className="flex flex-col items-center text-center space-y-8">
+               <div className="w-20 h-20 bg-zinc-900 border border-zinc-800 rounded-3xl flex items-center justify-center animate-pulse">
+                 <Database className="w-10 h-10 text-white" />
+               </div>
+               <div className="space-y-2">
+                 <h3 className="text-xl font-bold">Synchronizing Database</h3>
+                 <p className="text-zinc-500 text-sm leading-relaxed">
+                   Fetching the complete Quran text and committing thousands of verses to your Firestore 'quran' table. Please do not close or switch tabs.
+                 </p>
+               </div>
+               <div className="w-full space-y-4">
+                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                   <span>
+                    {syncStatus === 'fetching' ? 'Downloading from AlQuran Cloud API...' : 'Writing Batch to Firestore...'}
+                   </span>
+                   <span className="text-white">{progress}%</span>
+                 </div>
+                 <Progress value={progress} className="h-2 bg-zinc-900" />
+               </div>
+               <Loader2 className="animate-spin text-zinc-500 w-6 h-6" />
             </div>
-            <Progress value={progress} className="h-2 bg-zinc-900" />
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {syncStatus === 'success' && !syncing && (
           <div className="mt-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3 animate-in zoom-in-95">
