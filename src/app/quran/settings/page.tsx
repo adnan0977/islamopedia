@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, query, collection, where } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
+import { query, collection, where, doc } from 'firebase/firestore';
 import { 
   Settings, 
   ArrowLeft, 
@@ -13,12 +13,11 @@ import {
   Hash, 
   Save, 
   Loader2, 
-  CheckCircle2,
   Sparkles,
   BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { 
@@ -29,7 +28,6 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -46,8 +44,7 @@ export default function QuranSettingsPage() {
     ayatFrameId: 'royal-ornate'
   });
 
-  const profileRef = useMemoFirebase(() => (user ? doc(db, 'users', user.uid) : null), [db, user]);
-  const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
@@ -59,42 +56,35 @@ export default function QuranSettingsPage() {
   const appSettingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: appSettings } = useDoc(appSettingsRef);
 
+  // Load from Local Storage on mount
   useEffect(() => {
-    if (profile) {
-      setLocalSettings({
-        arabicFontSize: profile.arabicFontSize || 40,
-        translationFontSize: profile.translationFontSize || 16,
-        preferredTranslationId: profile.preferredTranslationId || 'en.sahih',
-        ayatFrameId: profile.ayatFrameId || 'royal-ornate'
-      });
+    const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        setLocalSettings(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse local quran settings", e);
+      }
     }
-  }, [profile]);
+    setIsLoaded(true);
+  }, [user]);
 
   const handleSave = () => {
-    if (!profileRef || !user) return;
-    
-    // Use setDocumentNonBlocking with merge: true to handle cases where the doc doesn't exist yet.
-    // Also include required fields from UserProfile schema.
-    const dataToSave = {
-      ...localSettings,
-      id: user.uid,
-      namazLocation: profile?.namazLocation || 'London, UK',
-      updatedAt: new Date().toISOString()
-    };
-
-    setDocumentNonBlocking(profileRef, dataToSave, { merge: true });
+    const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
+    localStorage.setItem(storageKey, JSON.stringify(localSettings));
     
     toast({
-      title: "Settings Saved",
-      description: "Your Quran reading preferences have been updated."
+      title: "Settings Saved Locally",
+      description: "Your reading preferences have been updated for this device."
     });
   };
 
-  if (isProfileLoading) {
+  if (!isLoaded) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-zinc-500" />
-        <p className="text-zinc-500 font-medium">Loading preferences...</p>
+        <p className="text-zinc-500 font-medium">Loading local preferences...</p>
       </div>
     );
   }
@@ -116,7 +106,7 @@ export default function QuranSettingsPage() {
           </Button>
           <div className="space-y-1">
             <h1 className="text-2xl font-headline font-bold text-white">Quran Settings</h1>
-            <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Personalize your spiritual experience</p>
+            <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Device-Specific Preferences</p>
           </div>
         </div>
         <Button 
@@ -124,7 +114,7 @@ export default function QuranSettingsPage() {
           onClick={handleSave}
         >
           <Save className="w-4 h-4 mr-2" />
-          Save Changes
+          Save Locally
         </Button>
       </div>
 

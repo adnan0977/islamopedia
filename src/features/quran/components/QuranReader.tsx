@@ -16,7 +16,6 @@ import {
   ArrowLeft,
   Database,
   Check,
-  Search,
   Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,6 +44,14 @@ export function QuranReader() {
   const initialPage = parseInt(searchParams.get('page') || '1');
   const initialTrans = searchParams.get('trans') || 'en.sahih';
 
+  // Local settings state
+  const [localSettings, setLocalSettings] = useState({
+    arabicFontSize: 40,
+    translationFontSize: 16,
+    preferredTranslationId: initialTrans,
+    ayatFrameId: 'royal-ornate'
+  });
+
   // State
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [viewMode, setViewMode] = useState<'ayat' | 'page' | 'index'>(initialMode);
@@ -53,21 +60,22 @@ export function QuranReader() {
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
   const [selectedTranslation, setSelectedTranslation] = useState(initialTrans);
 
-  // Profile data
-  const profileRef = useMemoFirebase(() => (user ? doc(db, 'users', user.uid) : null), [db, user]);
-  const { data: profile } = useDoc(profileRef);
-
-  // Sync initial translation with profile if available
+  // Load from local storage on mount
   useEffect(() => {
-    if (profile?.preferredTranslationId && !searchParams.get('trans')) {
-      setSelectedTranslation(profile.preferredTranslationId);
+    const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setLocalSettings(parsed);
+        if (parsed.preferredTranslationId && !searchParams.get('trans')) {
+          setSelectedTranslation(parsed.preferredTranslationId);
+        }
+      } catch (e) {
+        console.error("Error parsing local quran settings", e);
+      }
     }
-  }, [profile, searchParams]);
-
-  // Swipe Gesture State
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const minSwipeDistance = 50;
+  }, [user, searchParams]);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -100,10 +108,10 @@ export function QuranReader() {
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
   
-  // Dynamic reading settings
-  const arabicFontSize = profile?.arabicFontSize || 40;
-  const transFontSize = profile?.translationFontSize || 16;
-  const ayatFrameId = profile?.ayatFrameId || settings?.ayatFrameId || 'ornate-star';
+  // Reading UI settings (from local storage state)
+  const arabicFontSize = localSettings.arabicFontSize;
+  const transFontSize = localSettings.translationFontSize;
+  const ayatFrameId = localSettings.ayatFrameId || settings?.ayatFrameId || 'ornate-star';
   const customAyatFramePath = settings?.customAyatFramePath;
   const frameImageUrl = settings?.frameImageUrl;
 
@@ -188,6 +196,11 @@ export function QuranReader() {
 
   const isReading = viewMode !== 'index';
 
+  // Swipe Gesture State
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
@@ -226,6 +239,7 @@ export function QuranReader() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      {/* Opaque Sticky Header Wrapper */}
       <div className="sticky top-0 md:top-24 z-50 bg-background -mx-4 px-4 py-3">
         <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 rounded-2xl md:rounded-[2rem] border border-zinc-900 shadow-2xl gap-4">
           <div className="flex items-center gap-4">
