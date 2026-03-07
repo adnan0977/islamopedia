@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, collection, query, orderBy, limit } from 'firebase/firestore';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -12,8 +12,6 @@ import {
   Youtube, 
   RefreshCw, 
   Plus, 
-  Globe,
-  Database,
   Link2,
   Search,
   CheckCircle2,
@@ -42,6 +40,7 @@ import { fetchYouTubeChannels } from '@/services/youtube-server';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 
+// Pre-loaded prioritized IDs from the user
 const DEFAULT_IDS = [
   "UCsaR6SnAv97_9MI2JPLcyRA", // Islamic History Plus
   "UC1mNByYnDzhPesq4RF-jGLQ", // Islamic History (Official)
@@ -77,20 +76,18 @@ export function ChannelHub() {
   );
 
   const extractIds = (text: string) => {
-    // Regex for standard YouTube Channel IDs (UC + 22 characters)
     const matches = text.match(/UC[a-zA-Z0-9_-]{22}/g);
     return Array.from(new Set(matches || []));
   };
 
   const handleSync = async (idsToSync: string[]) => {
     if (idsToSync.length === 0) {
-      toast({ variant: 'destructive', title: 'No IDs found', description: 'Please provide valid YouTube Channel IDs starting with "UC".' });
+      toast({ variant: 'destructive', title: 'No IDs found', description: 'Please provide valid YouTube Channel IDs.' });
       return;
     }
 
     setIsSyncing(true);
     try {
-      // YouTube Data API allows up to 50 IDs per request
       const chunks = [];
       for (let i = 0; i < idsToSync.length; i += 50) {
         chunks.push(idsToSync.slice(i, i + 50));
@@ -110,11 +107,11 @@ export function ChannelHub() {
         }
       }
 
-      toast({ title: 'Sync Complete', description: `Successfully indexed ${totalSynced} channels into the registry.` });
+      toast({ title: 'Sync Complete', description: `Successfully indexed ${totalSynced} channels.` });
       setIsDialogOpen(false);
       setSingleId('');
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'API Error', description: error.message || 'Could not connect to YouTube Data API.' });
+      toast({ variant: 'destructive', title: 'API Error', description: error.message || 'Failed to fetch from YouTube.' });
     } finally {
       setIsSyncing(false);
     }
@@ -122,7 +119,7 @@ export function ChannelHub() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Top Action Row */}
+      {/* Search & Add Button Row */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
@@ -145,7 +142,7 @@ export function ChannelHub() {
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-0 overflow-hidden outline-none shadow-2xl">
             <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
               <DialogTitle className="text-2xl font-bold">Import Channels</DialogTitle>
-              <DialogDescription className="text-zinc-500">Fetch metadata from YouTube and persist it to Firestore.</DialogDescription>
+              <DialogDescription className="text-zinc-500">Persist spiritual creators from YouTube to your feed.</DialogDescription>
             </DialogHeader>
             
             <Tabs defaultValue="bulk" className="w-full">
@@ -267,7 +264,7 @@ export function ChannelHub() {
                 <TableCell colSpan={3} className="h-60 text-center">
                   <div className="flex flex-col items-center justify-center space-y-4">
                      <Youtube className="w-12 h-12 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">No linked channels found matching your search.</p>
+                     <p className="text-zinc-600 font-medium">No linked channels found.</p>
                   </div>
                 </TableCell>
               </TableRow>
