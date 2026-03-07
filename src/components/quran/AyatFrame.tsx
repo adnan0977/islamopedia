@@ -26,20 +26,19 @@ interface AyatFrameProps {
 export function AyatFrame({ number, frameId = 'royal-ornate', customPath, customImageUrl, size = "md", className }: AyatFrameProps) {
   const staticFrame = AYAT_FRAMES.find(f => f.id === frameId);
   
-  // Decide what to render: Image or SVG
   const isImage = !!customImageUrl;
   const pathData = staticFrame ? staticFrame.path : (customPath || (AYAT_FRAMES.find(f => f.id === 'royal-ornate')?.path || AYAT_FRAMES[0].path));
   
   const dimensions = {
-    sm: "w-6 h-6",
-    md: "w-8 h-8",
-    lg: "w-10 h-10"
+    sm: "w-5 h-5",
+    md: "w-7 h-7",
+    lg: "w-9 h-9"
   };
   
   const fontSizes = {
-    sm: "text-[7px]",
-    md: "text-[9px]",
-    lg: "text-[11px]"
+    sm: "text-[6px]",
+    md: "text-[8px]",
+    lg: "text-[10px]"
   };
 
   return (

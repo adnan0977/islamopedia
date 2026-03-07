@@ -181,7 +181,6 @@ export function QuranReader() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-4">
-      {/* Unified Primary Header */}
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex items-center gap-4">
           {!isReading ? (
@@ -208,7 +207,6 @@ export function QuranReader() {
           )}
         </div>
 
-        {/* Right Side Action Area */}
         <div className="flex items-center gap-2">
           {!isReading ? (
             <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
@@ -231,7 +229,6 @@ export function QuranReader() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              {/* Translation Selection in Header */}
               <div className="w-28 md:w-48 hidden sm:block">
                 <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
                   <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[10px] font-bold">
@@ -250,7 +247,6 @@ export function QuranReader() {
                 </Select>
               </div>
 
-              {/* Single Toggle Button for Page/Ayat in Header */}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -274,7 +270,6 @@ export function QuranReader() {
         </div>
       </div>
 
-      {/* Pagination Controls Bar (Only when reading) */}
       {isReading && (
         <div className="flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
@@ -298,7 +293,6 @@ export function QuranReader() {
               </Button>
           </div>
           
-          {/* Mobile-only translation selector if screen is very small */}
           <div className="sm:hidden w-32">
              <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
                 <SelectTrigger className="bg-zinc-950 border-zinc-900 h-10 rounded-xl text-zinc-400 text-[9px] font-bold">
@@ -315,7 +309,6 @@ export function QuranReader() {
         </div>
       )}
 
-      {/* Main Content Area */}
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col">
         {viewMode === 'index' ? (
           <ScrollArea className="flex-1">
@@ -405,11 +398,13 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                <div className="text-right font-arabic leading-[2.5] text-3xl md:text-5xl text-zinc-100" style={{ direction: 'rtl' }}>
+                <div className="text-right font-arabic leading-[3] text-3xl md:text-5xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
-                    <span key={a.number} className="hover:text-white transition-colors group relative inline-block">
-                      {a.text} 
-                      <span className="inline-flex mx-1.5 align-middle">
+                    <span key={a.number} className="inline group">
+                      <span className="hover:text-white transition-colors">
+                        {a.text}
+                      </span>
+                      <span className="inline-flex mx-4 md:mx-6 align-middle select-none">
                         <AyatFrame 
                           number={a.numberInSurah} 
                           size="sm" 
