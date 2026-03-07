@@ -243,7 +243,7 @@ export function QuranReader() {
                     {viewMode === 'page' && `Page ${selectedPage}`}
                   </h1>
                   <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">
-                    {viewMode === 'surah' ? `${content[0]?.ayats.length || 0} Verses` : `Reading Mode`}
+                    {viewMode === 'surah' ? `${content[0]?.ayats.length || 0} Verses` : viewMode === 'page' ? 'Page View' : `Juz Reading`}
                   </p>
                 </div>
               </div>
@@ -368,7 +368,7 @@ export function QuranReader() {
                 {content.map((surah, sIdx) => (
                   <div key={surah.surahNumber} className="space-y-0">
                     {/* Bismillah for start of Surahs except Surah 9 */}
-                    {(viewMode === 'surah' || (viewMode === 'juz' && surah.ayats[0].numberInSurah === 1)) && surah.surahNumber !== 9 && (
+                    {(viewMode === 'surah' || ((viewMode === 'juz' || viewMode === 'page') && surah.ayats[0].numberInSurah === 1)) && surah.surahNumber !== 9 && (
                       <div className="w-full flex flex-col items-center justify-center py-12 bg-zinc-900/10 border-b border-zinc-900/30">
                         <span className="text-3xl md:text-5xl font-arabic text-zinc-100">{BISMILLAH_TEXT}</span>
                       </div>
@@ -378,21 +378,28 @@ export function QuranReader() {
                       <div 
                         key={`${ayat.number}-${aIdx}`} 
                         data-ayat-index={flattenedAyats.findIndex(f => f.number === ayat.number)}
-                        className="ayat-block flex flex-col items-center justify-center p-8 md:p-24 border-b border-zinc-900/30 min-h-[40vh]"
+                        className={cn(
+                          "ayat-block flex flex-col items-center justify-center border-b border-zinc-900/30",
+                          viewMode === 'page' ? "p-6 md:p-12 min-h-[auto]" : "p-8 md:p-24 min-h-[40vh]"
+                        )}
                       >
                         <div className="w-full max-w-4xl space-y-12 text-center">
                            <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                             {ayat.text}
                             <span className="inline-block mr-4 align-middle"><AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} size="md" /></span>
                           </p>
-                          <div className="space-y-6 text-left">
-                            {localSettings.showTransliteration && ayat.transliterationText && (
-                              <p className="text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{ayat.transliterationText}</p>
-                            )}
-                            {localSettings.showTranslation && ayat.translationText && (
-                              <p className="text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{ayat.translationText}</p>
-                            )}
-                          </div>
+                          
+                          {/* Hide translation/transliteration in Page Mode */}
+                          {viewMode !== 'page' && (
+                            <div className="space-y-6 text-left">
+                              {localSettings.showTransliteration && ayat.transliterationText && (
+                                <p className="text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{ayat.transliterationText}</p>
+                              )}
+                              {localSettings.showTranslation && ayat.translationText && (
+                                <p className="text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{ayat.translationText}</p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
