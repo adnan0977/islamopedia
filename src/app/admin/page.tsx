@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -26,7 +26,6 @@ import {
   Languages,
   TrendingUp,
   History,
-  ArrowRight
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -46,10 +45,10 @@ import {
 import { 
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -78,8 +77,9 @@ import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { getAvailableTranslations } from '@/lib/api';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'translations';
+type AdminTab = 'dashboard' | 'channels' | 'videos' | 'scholars' | 'quran-tools';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
@@ -190,7 +190,7 @@ export default function AdminPanel() {
               </div>
               <div className="flex flex-col">
                 <span className="font-headline font-bold text-lg leading-none text-white">Admin Hub</span>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1 font-black">Management</span>
+                <span className="text-[10px] text-zinc-600 uppercase tracking-widest mt-1 font-black">Management</span>
               </div>
             </div>
           </SidebarHeader>
@@ -203,8 +203,8 @@ export default function AdminPanel() {
                     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                     { id: 'channels', label: 'Channels', icon: Youtube },
                     { id: 'videos', label: 'Video Catalog', icon: VideoIcon },
-                    { id: 'speakers', label: 'Scholars', icon: Mic2 },
-                    { id: 'translations', label: 'Quran Tools', icon: Book },
+                    { id: 'scholars', label: 'Scholars', icon: Mic2 },
+                    { id: 'quran-tools', label: 'Quran Tools', icon: Book },
                   ].map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton 
@@ -243,8 +243,8 @@ export default function AdminPanel() {
                   {activeTab === 'dashboard' && 'Admin Overview'}
                   {activeTab === 'channels' && 'YouTube Channels'}
                   {activeTab === 'videos' && 'Video Catalog'}
-                  {activeTab === 'speakers' && 'Scholar Management'}
-                  {activeTab === 'translations' && 'Quran Tools Hub'}
+                  {activeTab === 'scholars' && 'Scholar Management'}
+                  {activeTab === 'quran-tools' && 'Quran Tools Hub'}
                 </h2>
              </div>
 
@@ -287,10 +287,10 @@ export default function AdminPanel() {
 
           <main className="p-8 pb-32">
             {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} speakers={speakers || []} translations={translations || []} />}
-            {activeTab === 'channels' && <ChannelManagement channels={channels || []} existingVideos={videos || []} />}
-            {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
-            {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
-            {activeTab === 'translations' && <TranslationManagement translations={translations || []} />}
+            {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
+            {activeTab === 'videos' && <VideoManagement videos={videos || []} />}
+            {activeTab === 'scholars' && <SpeakerManagement speakers={speakers || []} />}
+            {activeTab === 'quran-tools' && <QuranToolsView translations={translations || []} />}
           </main>
         </SidebarInset>
       </div>
@@ -404,7 +404,7 @@ function DashboardOverview({ channels, videos, speakers, translations }: { chann
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-bold text-white truncate group-hover:text-zinc-300">{video.title}</span>
-                    <span className="text-[10px] text-zinc-500 truncate">{video.channelId}</span>
+                    <span className="text-[10px] text-zinc-600 truncate">{video.channelId}</span>
                   </div>
                 </div>
               ))}
@@ -416,7 +416,7 @@ function DashboardOverview({ channels, videos, speakers, translations }: { chann
   );
 }
 
-function ChannelManagement({ channels, existingVideos }: { channels: any[], existingVideos: any[] }) {
+function ChannelManagement({ channels }: { channels: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -521,7 +521,7 @@ function ChannelManagement({ channels, existingVideos }: { channels: any[], exis
   );
 }
 
-function VideoManagement({ videos, channels, speakers }: { videos: any[], channels: any[], speakers: any[] }) {
+function VideoManagement({ videos }: { videos: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
@@ -736,6 +736,69 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
   );
 }
 
+function QuranToolsView({ translations }: { translations: any[] }) {
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <Tabs defaultValue="directory" className="w-full">
+        <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
+          <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black transition-all font-bold">Edition Directory</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="directory">
+          <TranslationManagement translations={translations} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+const languageNameMap: Record<string, string> = {
+  ar: 'Arabic',
+  en: 'English',
+  ur: 'Urdu',
+  fr: 'French',
+  es: 'Spanish',
+  de: 'German',
+  id: 'Indonesian',
+  tr: 'Turkish',
+  zh: 'Chinese',
+  ru: 'Russian',
+  fa: 'Persian',
+  bn: 'Bengali',
+  hi: 'Hindi',
+  ml: 'Malayalam',
+  ta: 'Tamil',
+  te: 'Telugu',
+  kn: 'Kannada',
+  mr: 'Marathi',
+  gu: 'Gujarati',
+  pa: 'Punjabi',
+  sw: 'Swahili',
+  ha: 'Hausa',
+  yo: 'Yoruba',
+  am: 'Amharic',
+  so: 'Somali',
+  sq: 'Albanian',
+  bs: 'Bosnian',
+  nl: 'Dutch',
+  it: 'Italian',
+  pt: 'Portuguese',
+  th: 'Thai',
+  vi: 'Vietnamese',
+  ko: 'Korean',
+  ja: 'Japanese',
+  az: 'Azerbaijani',
+  ku: 'Kurdish',
+  ps: 'Pashto',
+  sd: 'Sindhi',
+  tg: 'Tajik',
+  uz: 'Uzbek',
+  tt: 'Tatar',
+  kk: 'Kazakh',
+  ky: 'Kyrgyz',
+  ug: 'Uyghur',
+};
+
 function TranslationManagement({ translations }: { translations: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
@@ -764,8 +827,13 @@ function TranslationManagement({ translations }: { translations: any[] }) {
   }, [openAdd]);
 
   const languages = useMemo(() => {
-    const set = new Set(available.map(a => a.language));
-    return Array.from(set).sort();
+    const map = new Map<string, string>();
+    available.forEach(a => {
+      if (!map.has(a.language)) {
+        map.set(a.language, languageNameMap[a.language] || a.language.toUpperCase());
+      }
+    });
+    return Array.from(map.entries()).map(([code, name]) => ({ code, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [available]);
 
   const handleDeleteTranslation = async (id: string) => {
@@ -825,13 +893,13 @@ function TranslationManagement({ translations }: { translations: any[] }) {
                   />
                 </div>
                 <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                  <SelectTrigger className="w-40 bg-zinc-900 border-zinc-800 text-white rounded-xl">
+                  <SelectTrigger className="w-48 bg-zinc-900 border-zinc-800 text-white rounded-xl">
                     <SelectValue placeholder="Language" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                     <SelectItem value="all">All Languages</SelectItem>
                     {languages.map(lang => (
-                      <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                      <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -850,7 +918,9 @@ function TranslationManagement({ translations }: { translations: any[] }) {
                           <div key={item.identifier} className="flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors">
                             <div className="flex flex-col">
                               <span className="text-white font-bold text-sm">{item.name}</span>
-                              <span className="text-zinc-500 text-[10px] uppercase font-black tracking-widest">{item.language} • {item.identifier}</span>
+                              <span className="text-zinc-500 text-[10px] uppercase font-black tracking-widest">
+                                {languageNameMap[item.language] || item.language.toUpperCase()} • {item.identifier}
+                              </span>
                             </div>
                             <Button 
                               size="sm" 
@@ -886,7 +956,9 @@ function TranslationManagement({ translations }: { translations: any[] }) {
             {translations.map((t) => (
               <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-20">
                 <TableCell className="font-bold text-white pl-8">{t.name}</TableCell>
-                <TableCell className="text-zinc-500 font-medium">{t.language}</TableCell>
+                <TableCell className="text-zinc-500 font-medium">
+                  {languageNameMap[t.language] || t.language.toUpperCase()}
+                </TableCell>
                 <TableCell className="text-zinc-500 font-mono text-xs">{t.id}</TableCell>
                 <TableCell className="text-right pr-8">
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteTranslation(t.id)} className="text-destructive hover:bg-destructive/10 rounded-xl">
@@ -901,3 +973,4 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     </div>
   );
 }
+
