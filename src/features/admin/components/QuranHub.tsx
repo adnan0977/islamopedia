@@ -23,7 +23,8 @@ import {
   CloudDownload,
   RefreshCw,
   Type,
-  Mic
+  Mic,
+  FilterX
 } from 'lucide-react';
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -193,10 +194,24 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [dirSearch, setDirSearch] = useState('');
+  const [filterFormat, setFilterFormat] = useState('all');
+  const [filterLanguage, setFilterLanguage] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   
   // Pagination State for Main Table
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+
+  // Extract unique languages and formats for filters
+  const languages = useMemo(() => {
+    const unique = new Set(editions.map(e => e.language).filter(Boolean));
+    return Array.from(unique).sort();
+  }, [editions]);
+
+  const formats = useMemo(() => {
+    const unique = new Set(editions.map(e => e.format).filter(Boolean));
+    return Array.from(unique).sort();
+  }, [editions]);
 
   const fetchAndSeedRegistry = async () => {
     setLoading(true);
@@ -238,15 +253,32 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
     });
   };
 
+  const resetFilters = () => {
+    setDirSearch('');
+    setFilterFormat('all');
+    setFilterLanguage('all');
+    setFilterStatus('all');
+    setCurrentPage(1);
+  };
+
   // Filter Main Directory
   const filteredEditions = useMemo(() => {
-    return editions.filter(e => 
-      e.name.toLowerCase().includes(dirSearch.toLowerCase()) || 
-      e.id.toLowerCase().includes(dirSearch.toLowerCase()) ||
-      e.language.toLowerCase().includes(dirSearch.toLowerCase()) ||
-      e.format?.toLowerCase().includes(dirSearch.toLowerCase())
-    );
-  }, [editions, dirSearch]);
+    return editions.filter(e => {
+      const matchesSearch = e.name.toLowerCase().includes(dirSearch.toLowerCase()) || 
+                           e.id.toLowerCase().includes(dirSearch.toLowerCase());
+      
+      const matchesLanguage = filterLanguage === 'all' || e.language === filterLanguage;
+      const matchesFormat = filterFormat === 'all' || e.format === filterFormat;
+      
+      let matchesStatus = true;
+      if (filterStatus === 'active') matchesStatus = e.isActive;
+      else if (filterStatus === 'inactive') matchesStatus = !e.isActive;
+      else if (filterStatus === 'synced') matchesStatus = e.dataSync === 'yes';
+      else if (filterStatus === 'pending-sync') matchesStatus = e.dataSync === 'no' && e.isActive;
+
+      return matchesSearch && matchesLanguage && matchesFormat && matchesStatus;
+    });
+  }, [editions, dirSearch, filterLanguage, filterFormat, filterStatus]);
 
   const paginatedEditions = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -257,14 +289,14 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [dirSearch]);
+  }, [dirSearch, filterFormat, filterLanguage, filterStatus]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-950 p-8 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-2">
           <h3 className="font-bold text-xl text-white">Platform Registry</h3>
-          <p className="text-sm text-zinc-500 font-medium">Manage all indexed Quranic translations and recitations.</p>
+          <p className="text-sm text-zinc-500 font-medium">Manage and filter {editions.length} indexed Quranic editions.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-zinc-400 hover:bg-zinc-900">
@@ -274,14 +306,60 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-        <Input 
-          placeholder="Search by name, ID, language, or format..." 
-          className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
-          value={dirSearch}
-          onChange={(e) => setDirSearch(e.target.value)}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="relative md:col-span-2 lg:col-span-2">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+          <Input 
+            placeholder="Search name or ID..." 
+            className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
+            value={dirSearch}
+            onChange={(e) => setDirSearch(e.target.value)}
+          />
+        </div>
+
+        <Select value={filterFormat} onValueChange={setFilterFormat}>
+          <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white">
+            <SelectValue placeholder="Format" />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-950 border-zinc-900 text-white">
+            <SelectItem value="all">All Formats</SelectItem>
+            {formats.map(f => <SelectItem key={f} value={f} className="capitalize">{f}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+          <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white">
+            <SelectValue placeholder="Language" />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-950 border-zinc-900 text-white">
+            <SelectItem value="all">All Languages</SelectItem>
+            {languages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <div className="flex gap-2">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white flex-1">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-950 border-zinc-900 text-white">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="synced">Synced</SelectItem>
+              <SelectItem value="pending-sync">Pending Sync</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={resetFilters} 
+            className="h-14 w-14 rounded-2xl border-zinc-900 bg-zinc-950 text-zinc-600 hover:text-white"
+            title="Reset Filters"
+          >
+            <FilterX className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-3xl shadow-2xl">
@@ -368,7 +446,8 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
                 <TableCell colSpan={5} className="h-60 text-center">
                   <div className="flex flex-col items-center justify-center space-y-4">
                      <BookOpen className="w-12 h-12 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">No editions found in registry.</p>
+                     <p className="text-zinc-600 font-medium">No editions found matching filters.</p>
+                     <Button variant="link" onClick={resetFilters} className="text-zinc-500">Clear all filters</Button>
                   </div>
                 </TableCell>
               </TableRow>
