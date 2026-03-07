@@ -14,7 +14,8 @@ import {
   Book as BookIcon,
   Languages,
   ArrowLeft,
-  Database
+  Database,
+  Sparkles
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -95,13 +96,9 @@ export function QuranReader() {
   const frameImageUrl = settings?.frameImageUrl;
 
   const cleanAyatText = (text: string, surahNumber: number, ayatNumberInSurah: number) => {
-    // AlQuran Cloud often prefixes the Bismillah to the first ayat of most surahs
-    // We remove it from the text if we're showing it as a header
     if (surahNumber !== 9 && ayatNumberInSurah === 1) {
       if (text.startsWith(BISMILLAH_TEXT)) {
         const cleaned = text.substring(BISMILLAH_TEXT.length).trim();
-        // If removing it makes the verse empty (like in Fatihah sometimes), we might need to be careful
-        // but usually Fatihah 1 *is* Bismillah.
         return cleaned || text; 
       }
     }
@@ -177,26 +174,6 @@ export function QuranReader() {
     return groups;
   }, [quranData]);
 
-  const handleJumpToPage = (page: number) => {
-    setCurrentPage(page);
-    setViewMode('page'); 
-  };
-
-  const handleJumpToSurah = (surahNum: number) => {
-    setLoadingContent(true);
-    getDocs(query(collection(db, 'quran'), where('editionId', '==', 'quran-uthmani'), where('surahNumber', '==', surahNum)))
-      .then(snap => {
-        if (!snap.empty) {
-          const data = snap.docs[0].data();
-          if (data.pages && data.pages.length > 0) {
-            setCurrentPage(data.pages[0]);
-            setViewMode('ayat'); 
-          }
-        }
-      })
-      .finally(() => setLoadingContent(false));
-  };
-
   const isReading = viewMode !== 'index';
 
   const onTouchStart = (e: React.TouchEvent) => {
@@ -214,13 +191,35 @@ export function QuranReader() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // RTL Navigation: Swipe Right to go Next, Left to go Prev
-    if (isRightSwipe && currentPage < 604) {
+    // RTL Swipe: Right-to-Left (swipe left) moves to next page (physically turns page from left)
+    if (isLeftSwipe && currentPage < 604) {
       setCurrentPage(prev => prev + 1);
-    } else if (isLeftSwipe && currentPage > 1) {
+    } else if (isRightSwipe && currentPage > 1) {
       setCurrentPage(prev => prev - 1);
     }
   };
+
+  const BismillahHeader = () => (
+    <div className="w-full flex justify-center py-12 mb-12 relative overflow-hidden rounded-[2rem] border-2 border-zinc-800 bg-zinc-900/40 shadow-inner">
+      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-100 to-transparent pointer-events-none" />
+      {bismillahImageUrl ? (
+        <div className="relative w-full max-w-[450px] aspect-[4/1] z-10">
+          <Image 
+            src={bismillahImageUrl} 
+            alt="Bismillah" 
+            fill 
+            className="object-contain"
+            style={{ filter: 'invert(1) brightness(3)' }}
+            data-ai-hint="islamic calligraphy"
+          />
+        </div>
+      ) : (
+        <p className="text-4xl md:text-6xl font-arabic text-white relative z-10 drop-shadow-2xl">
+          {BISMILLAH_TEXT}
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-4">
@@ -336,7 +335,17 @@ export function QuranReader() {
                   {metadata?.surahs?.references?.map((surah: any) => (
                     <button 
                       key={surah.number}
-                      onClick={() => handleJumpToSurah(surah.number)}
+                      onClick={() => {
+                        setLoadingContent(true);
+                        const q = query(collection(db, 'quran'), where('editionId', '==', 'quran-uthmani'), where('surahNumber', '==', surah.number));
+                        getDocs(q).then(snap => {
+                          if (!snap.empty) {
+                            const data = snap.docs[0].data();
+                            setCurrentPage(data.pages[0]);
+                            setViewMode('ayat');
+                          }
+                        }).finally(() => setLoadingContent(false));
+                      }}
                       className="group flex items-center justify-between p-5 bg-zinc-900/30 rounded-3xl border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-900/50 transition-all text-left"
                     >
                       <div className="flex items-center gap-4">
@@ -357,7 +366,11 @@ export function QuranReader() {
                   {metadata?.juzs?.references?.map((juz: any, idx: number) => (
                     <button 
                       key={idx}
-                      onClick={() => handleJumpToPage(juz.ayah || 1)}
+                      onClick={() => {
+                        // Estimated page calculation or direct jump if known
+                        setCurrentPage(juz.ayah || 1);
+                        setViewMode('page');
+                      }}
                       className="group flex items-center justify-between p-6 bg-zinc-900/30 rounded-3xl border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-900/50 transition-all text-left"
                     >
                       <div className="flex items-center gap-5">
@@ -385,32 +398,12 @@ export function QuranReader() {
                 <div className="space-y-12">
                   {groupedAyats.map(group => (
                     <div key={group.surah.number} className="space-y-10">
-                      {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && (
-                        <div className="flex justify-center py-10 mb-8 border-b border-zinc-900/50">
-                          {bismillahImageUrl ? (
-                            <div className="relative w-full max-w-[450px] aspect-[4/1]">
-                              <Image 
-                                src={bismillahImageUrl} 
-                                alt="Bismillah" 
-                                fill 
-                                className="object-contain invert brightness-[2]"
-                                style={{ filter: 'invert(1) brightness(2)' }}
-                                data-ai-hint="islamic calligraphy"
-                              />
-                            </div>
-                          ) : (
-                            <p className="text-4xl md:text-6xl font-arabic text-white leading-none">
-                              {BISMILLAH_TEXT}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                      {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="space-y-6 md:space-y-8 border-b border-zinc-900/50 pb-12 last:border-0">
                           <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
                             {a.text}
-                            {" "}
-                            <span className="inline-block align-middle ms-4 select-none">
+                            <span className="inline-block ms-4 align-middle select-none">
                               <AyatFrame 
                                 number={a.numberInSurah} 
                                 frameId={ayatFrameId} 
@@ -438,26 +431,7 @@ export function QuranReader() {
                     const isNewSurah = a.numberInSurah === 1 && a.surah.number !== 9;
                     return (
                       <span key={a.number} className="inline">
-                        {isNewSurah && (
-                          <span className="block w-full text-center py-12 border-y border-zinc-900/50 my-12 bg-zinc-900/10">
-                            {bismillahImageUrl ? (
-                              <div className="relative w-full max-w-[450px] aspect-[4/1] mx-auto">
-                                <Image 
-                                  src={bismillahImageUrl} 
-                                  alt="Bismillah" 
-                                  fill 
-                                  className="object-contain invert brightness-[2]"
-                                  style={{ filter: 'invert(1) brightness(2)' }}
-                                  data-ai-hint="islamic calligraphy"
-                                />
-                              </div>
-                            ) : (
-                              <span className="text-4xl md:text-6xl text-white">
-                                {BISMILLAH_TEXT}
-                              </span>
-                            )}
-                          </span>
-                        )}
+                        {isNewSurah && <BismillahHeader />}
                         <span className="hover:text-white transition-colors">
                           {a.text}
                         </span>
@@ -487,21 +461,21 @@ export function QuranReader() {
           <Button 
             variant="ghost" 
             className="rounded-xl h-10 md:h-12 px-3 md:px-6 gap-2 text-zinc-500 hover:text-white font-bold text-xs md:text-sm"
-            onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))}
-            disabled={currentPage >= 604}
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage <= 1}
           >
-            <ChevronLeft className="w-4 h-4" /> <span className="hidden md:inline">Next Page</span>
+            <ChevronLeft className="w-4 h-4" /> Next Page
           </Button>
-          <div className="block text-zinc-700 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
-            Swipe Right to Turn Page
+          <div className="hidden md:block text-zinc-700 text-[10px] font-black uppercase tracking-[0.3em]">
+            Swipe Left to Turn Page
           </div>
           <Button 
             variant="ghost" 
             className="rounded-xl h-10 md:h-12 px-3 md:px-6 gap-2 text-zinc-500 hover:text-white font-bold text-xs md:text-sm"
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))}
+            disabled={currentPage >= 604}
           >
-            <span className="hidden md:inline">Previous Page</span> <ChevronRight className="w-4 h-4" />
+            Previous Page <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       )}
