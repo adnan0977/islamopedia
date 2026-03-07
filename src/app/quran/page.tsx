@@ -14,19 +14,15 @@ import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-conte
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarSeparator,
-  MenubarShortcut,
-  MenubarTrigger,
-  MenubarSub,
-  MenubarSubContent,
-  MenubarSubTrigger,
-  MenubarRadioGroup,
-  MenubarRadioItem,
-} from "@/components/ui/menubar"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu"
 
 type ViewMode = 'ayat' | 'page';
 
@@ -74,7 +70,6 @@ export default function QuranPage() {
     setAiContext(null);
     try {
       const data = await getPageDetails(page, selectedEdition);
-      // Data returns an array of editions: 0 is Arabic, 1 is Translation, 2 is Audio
       const ayahs = data.data[0].ayahs;
       const translation = data.data[1].ayahs;
       const audio = data.data[2].ayahs;
@@ -147,7 +142,6 @@ export default function QuranPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 h-auto md:h-[calc(100vh-120px)] flex flex-col space-y-6 pb-24 md:pb-0">
-      {/* Dynamic Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex flex-col min-w-0">
           <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100 whitespace-nowrap">
@@ -155,16 +149,12 @@ export default function QuranPage() {
             <span className="text-zinc-600 ml-3 text-lg font-medium">Page {currentPage}</span>
           </h1>
           <p className="text-zinc-500 text-xs md:text-sm truncate">
-            {groupedAyats.length > 1 
-              ? `Surahs ${groupedAyats.map(g => g.surah.englishName).join(' & ')}` 
-              : `The Noble Quran • Page ${currentPage} of 604`
-            }
+            The Noble Quran • Page {currentPage} of 604
           </p>
         </div>
 
-        {/* Action Bar Clustered on Right */}
-        <div className="flex items-center gap-3 self-end md:self-auto">
-          <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-900 rounded-xl p-1 shadow-lg">
+        <div className="flex items-center gap-2 self-end md:self-auto">
+          <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-900 rounded-xl p-1 shadow-lg mr-2">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -185,38 +175,40 @@ export default function QuranPage() {
             </Button>
           </div>
 
-          <Menubar className="bg-zinc-950 border-zinc-900 rounded-xl h-10 px-2 shadow-lg hover:border-zinc-700 transition-colors">
-            <MenubarMenu>
-              <MenubarTrigger className="text-zinc-400 focus:bg-zinc-900 focus:text-white data-[state=open]:bg-zinc-900 data-[state=open]:text-white cursor-pointer font-bold flex items-center gap-2">
-                Quran
-              </MenubarTrigger>
-              <MenubarContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
-                <MenubarSub>
-                  <MenubarSubTrigger className="flex items-center gap-2 focus:bg-zinc-900">
-                    <Languages className="w-4 h-4" />
-                    Translations
-                  </MenubarSubTrigger>
-                  <MenubarSubContent className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[200px]">
-                    <MenubarRadioGroup value={selectedEdition} onValueChange={setSelectedEdition}>
-                      {displayTranslations.map((t) => (
-                        <MenubarRadioItem key={t.id} value={t.id} className="focus:bg-zinc-900">
-                          <div className="flex flex-col py-0.5">
-                            <span className="text-xs font-bold">{t.name}</span>
-                            <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
-                          </div>
-                        </MenubarRadioItem>
-                      ))}
-                    </MenubarRadioGroup>
-                  </MenubarSubContent>
-                </MenubarSub>
-                <MenubarSeparator className="bg-zinc-800" />
-                <MenubarItem onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')} className="flex items-center gap-2 focus:bg-zinc-900">
-                  {viewMode === 'ayat' ? <BookOpen className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
-                  {viewMode === 'ayat' ? 'Page View' : 'Ayat View'}
-                </MenubarItem>
-              </MenubarContent>
-            </MenubarMenu>
-          </Menubar>
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
+            className="w-10 h-10 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg transition-colors"
+          >
+            {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="w-10 h-10 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg transition-colors"
+              >
+                <Languages className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-zinc-950 border-zinc-800 text-zinc-300 w-56">
+              <DropdownMenuLabel>Translation Edition</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-zinc-800" />
+              <DropdownMenuRadioGroup value={selectedEdition} onValueChange={setSelectedEdition}>
+                {displayTranslations.map((t) => (
+                  <DropdownMenuRadioItem key={t.id} value={t.id} className="focus:bg-zinc-900">
+                    <div className="flex flex-col py-0.5">
+                      <span className="text-xs font-bold">{t.name}</span>
+                      <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
+                    </div>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className={cn(
             "relative transition-all duration-300 flex items-center",
@@ -245,10 +237,7 @@ export default function QuranPage() {
                   variant="ghost" 
                   size="icon" 
                   className="h-full w-8 text-zinc-600 hover:text-white"
-                  onClick={() => {
-                    setIsSearchExpanded(false);
-                    setSearchPage('');
-                  }}
+                  onClick={() => { setIsSearchExpanded(false); setSearchPage(''); }}
                 >
                   <X className="w-3.5 h-3.5" />
                 </Button>
@@ -258,7 +247,7 @@ export default function QuranPage() {
                 onClick={() => setIsSearchExpanded(true)}
                 variant="outline"
                 size="icon"
-                className="w-10 h-10 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors"
+                className="w-10 h-10 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg transition-colors"
               >
                 <Search className="w-5 h-5" />
               </Button>
@@ -268,7 +257,6 @@ export default function QuranPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
-        {/* Page Browser (Desktop Only) */}
         <div className="md:col-span-3 lg:col-span-2 flex flex-col space-y-4 h-full hidden md:flex">
           <ScrollArea className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-900 p-2 shadow-inner">
             <div className="grid grid-cols-3 gap-1">
@@ -288,7 +276,6 @@ export default function QuranPage() {
           </ScrollArea>
         </div>
 
-        {/* Content Viewer */}
         <div className="md:col-span-9 lg:col-span-10 flex flex-col min-h-0 h-full">
           <Card className="flex-1 bg-zinc-950 border-zinc-900 flex flex-col overflow-hidden shadow-2xl rounded-2xl">
             {loadingDetails ? (
@@ -299,7 +286,6 @@ export default function QuranPage() {
             ) : (
               <ScrollArea className="flex-1">
                 <div className="p-4 md:p-8 space-y-12">
-                  {/* AI Revelation Context */}
                   {aiContext && (
                     <div className="bg-zinc-900/40 rounded-3xl border border-zinc-900 p-6 md:p-10 space-y-8 animate-in fade-in duration-1000">
                       <div className="flex items-center justify-between border-b border-zinc-800 pb-6">
@@ -397,4 +383,3 @@ export default function QuranPage() {
     </div>
   );
 }
-
