@@ -118,7 +118,7 @@ export function VideoCatalog() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-full">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
@@ -226,87 +226,90 @@ export function VideoCatalog() {
       </div>
 
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
-        <Table>
-          <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-zinc-900 hover:bg-transparent">
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] py-6 text-zinc-600 pl-10">Video Details</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 text-center">Engagement</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 text-center">Publication</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Status</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 pr-10">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredVideos?.map((video) => (
-              <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
-                <TableCell className="pl-10">
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-24 h-14 rounded-xl overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
-                      {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
+        <div className="overflow-x-auto">
+          <Table className="min-w-[800px]">
+            <TableHeader className="bg-zinc-900/50">
+              <TableRow className="border-zinc-900 hover:bg-transparent">
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6">Video Details</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-32">Engagement</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-32">Published</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-32">Status</TableHead>
+                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-32">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredVideos?.map((video) => (
+                <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
+                  <TableCell className="pl-6">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="relative w-20 h-12 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
+                        {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-zinc-100 truncate max-w-[200px] md:max-w-[300px] text-xs">{video.title}</span>
+                        <span className="text-[9px] text-zinc-600 truncate uppercase mt-1">{video.channelId}</span>
+                      </div>
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-bold text-zinc-100 truncate max-w-[300px] text-sm">{video.title}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-1.5 text-zinc-400">
+                        <Smartphone className="w-2.5 h-2.5 text-zinc-600" />
+                        <span className="text-[10px] font-bold">{video.appViewCount?.toLocaleString() || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-zinc-600">
+                        <Eye className="w-2.5 h-2.5" />
+                        <span className="text-[8px] font-medium">{video.youtubeViewCount?.toLocaleString() || 0}</span>
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-1.5 text-zinc-400">
-                      <Smartphone className="w-3 h-3 text-zinc-600" />
-                      <span className="text-xs font-bold">{video.appViewCount?.toLocaleString() || 0}</span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2 text-zinc-500 text-[10px] font-medium">
+                      <Calendar className="w-2.5 h-2.5 text-zinc-700" />
+                      {new Date(video.publishedAt).toLocaleDateString()}
                     </div>
-                    <div className="flex items-center gap-1.5 text-zinc-600">
-                      <Eye className="w-3 h-3" />
-                      <span className="text-[9px] font-medium">{video.youtubeViewCount?.toLocaleString() || 0}</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2 text-zinc-500 text-xs font-medium">
-                    <Calendar className="w-3 h-3 text-zinc-700" />
-                    {new Date(video.publishedAt).toLocaleDateString()}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {video.isTrending ? (
-                    <Badge className="bg-amber-500/10 text-amber-500 border-none rounded-lg text-[8px] font-black uppercase flex items-center gap-1 w-fit">
-                      <TrendingUp className="w-2.5 h-2.5" /> Featured
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[8px] font-black uppercase w-fit">Standard</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right pr-10">
-                  <div className="flex justify-end gap-1">
-                    <a href={video.externalUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900">
-                        <ExternalLink className="w-5 h-5" />
+                  </TableCell>
+                  <TableCell>
+                    {video.isTrending ? (
+                      <Badge className="bg-amber-500/10 text-amber-500 border-none rounded-lg text-[8px] font-black uppercase flex items-center gap-1 w-fit">
+                        <TrendingUp className="w-2 h-2" /> Featured
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[8px] font-black uppercase w-fit">Standard</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <div className="flex justify-end gap-1">
+                      <a href={video.externalUrl} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 text-zinc-600 hover:text-white hover:bg-zinc-900">
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </a>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl h-9 w-9 text-zinc-600 hover:text-destructive transition-colors"
+                        onClick={() => { if(confirm("Permanently remove this video from catalog?")) deleteDocumentNonBlocking(doc(db, 'videos', video.id)); }}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
-                    </a>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-destructive transition-colors"
-                      onClick={() => { if(confirm("Permanently remove this video from catalog?")) deleteDocumentNonBlocking(doc(db, 'videos', video.id)); }}
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {(!filteredVideos || filteredVideos.length === 0) && (
-              <TableRow>
-                <TableCell colSpan={5} className="h-64 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-4">
-                     <VideoIcon className="w-12 h-12 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">No videos found in your catalog.</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!filteredVideos || filteredVideos.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-64 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                       <VideoIcon className="w-12 h-12 text-zinc-900" />
+                       <p className="text-zinc-600 font-medium">No videos found in your catalog.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
     </div>
   );
