@@ -3,3 +3,5 @@ config();
 
 import '@/ai/flows/ai-generated-video-metadata.ts';
 import '@/ai/flows/ai-video-categorization-and-tagging.ts';
+import '@/ai/flows/quran-context-flow.ts';
+

@@ -1,15 +1,15 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
 import { getQuranSurahs, getSurahDetails } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft } from 'lucide-react';
+import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, History, MapPin } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-context-flow';
 
 export default function QuranPage() {
   const [surahs, setSurahs] = useState<any[]>([]);
@@ -18,6 +18,10 @@ export default function QuranPage() {
   const [selectedSurah, setSelectedSurah] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [playingAyat, setPlayingAyat] = useState<number | null>(null);
+  
+  // AI Context State
+  const [aiContext, setAiContext] = useState<SurahContextOutput | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -30,18 +34,35 @@ export default function QuranPage() {
 
   const selectSurah = async (id: number) => {
     setLoadingDetails(true);
+    setAiContext(null);
     try {
       const data = await getSurahDetails(id);
+      const surahInfo = surahs.find(s => s.number === id);
       setSelectedSurah({
-        info: surahs.find(s => s.number === id),
+        info: surahInfo,
         ayats: data.data[0].ayahs,
         translation: data.data[1].ayahs,
         audio: data.data[2].ayahs
       });
+      
+      // Auto-fetch AI context
+      fetchAiContext(id, surahInfo.englishName);
     } catch (error) {
       console.error(error);
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const fetchAiContext = async (number: number, name: string) => {
+    setLoadingAi(true);
+    try {
+      const result = await getSurahContext({ surahNumber: number, surahName: name });
+      setAiContext(result);
+    } catch (error) {
+      console.error("AI Context Error:", error);
+    } finally {
+      setLoadingAi(false);
     }
   };
 
@@ -65,15 +86,15 @@ export default function QuranPage() {
             </Button>
           )}
           <div>
-            <h1 className="text-2xl md:text-3xl font-headline font-bold text-accent">Quran Majeed</h1>
-            <p className="text-muted-foreground text-xs md:text-sm">Read, listen, and contemplate.</p>
+            <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100">Quran Majeed</h1>
+            <p className="text-zinc-500 text-xs md:text-sm">Read, listen, and contemplate the Word of Allah.</p>
           </div>
         </div>
         <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
             placeholder="Search Surah..." 
-            className="pl-10 bg-card border-border h-11"
+            className="pl-10 bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -86,9 +107,9 @@ export default function QuranPage() {
           "md:col-span-4 flex flex-col space-y-4 h-full",
           selectedSurah ? "hidden md:flex" : "flex"
         )}>
-          <ScrollArea className="flex-1 bg-card rounded-2xl border border-border p-2">
+          <ScrollArea className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-900 p-2">
             {loading ? (
-              <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
+              <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-500" /></div>
             ) : (
               <div className="space-y-1">
                 {filteredSurahs.map((surah) => (
@@ -96,21 +117,26 @@ export default function QuranPage() {
                     key={surah.number}
                     onClick={() => selectSurah(surah.number)}
                     className={cn(
-                      "w-full flex items-center justify-between p-4 rounded-xl transition-all hover:bg-secondary text-left group",
-                      selectedSurah?.info?.number === surah.number ? "bg-secondary ring-1 ring-primary" : ""
+                      "w-full flex items-center justify-between p-4 rounded-xl transition-all hover:bg-zinc-900 text-left group",
+                      selectedSurah?.info?.number === surah.number ? "bg-zinc-900 ring-1 ring-zinc-700" : ""
                     )}
                   >
                     <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center font-bold text-xs border border-border/50 group-hover:border-primary/50">
+                      <div className="w-10 h-10 bg-zinc-900 rounded-lg flex items-center justify-center font-bold text-xs border border-zinc-800 group-hover:border-zinc-700 text-zinc-400">
                         {surah.number}
                       </div>
                       <div>
-                        <p className="font-bold text-sm">{surah.englishName}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase">{surah.revelationType} • {surah.numberOfAyahs} Ayahs</p>
+                        <p className="font-bold text-sm text-zinc-200">{surah.englishName}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black h-4 px-1 border-zinc-800 text-zinc-500">
+                            {surah.revelationType === 'Meccan' ? 'Macci' : 'Madina'}
+                          </Badge>
+                          <span className="text-[10px] text-zinc-600 font-bold">{surah.numberOfAyahs} Ayahs</span>
+                        </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-arabic text-primary">{surah.name}</p>
+                      <p className="text-lg font-arabic text-zinc-400 group-hover:text-zinc-100 transition-colors">{surah.name}</p>
                     </div>
                   </button>
                 ))}
@@ -124,71 +150,126 @@ export default function QuranPage() {
           "md:col-span-8 flex flex-col min-h-0 h-full",
           selectedSurah ? "flex" : "hidden md:flex"
         )}>
-          <Card className="flex-1 bg-card border-border flex flex-col overflow-hidden shadow-xl rounded-2xl">
+          <Card className="flex-1 bg-zinc-950 border-zinc-900 flex flex-col overflow-hidden shadow-2xl rounded-2xl">
             {!selectedSurah ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground space-y-4 p-8">
-                <Book className="w-16 h-16 opacity-20" />
-                <p className="text-center text-sm">Select a surah to begin reading.</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-zinc-700 space-y-4 p-8">
+                <Book className="w-16 h-16 opacity-10" />
+                <p className="text-center text-sm font-medium">Select a surah to begin reading.</p>
               </div>
             ) : (
               <>
-                <CardHeader className="border-b border-border bg-card/50 p-4 md:p-6">
+                <CardHeader className="border-b border-zinc-900 bg-zinc-950/50 p-4 md:p-6 shrink-0">
                   <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle className="text-xl md:text-2xl text-accent">{selectedSurah.info.englishName}</CardTitle>
-                      <CardDescription className="text-xs md:text-sm">{selectedSurah.info.englishNameTranslation}</CardDescription>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-xl md:text-2xl text-zinc-100">{selectedSurah.info.englishName}</CardTitle>
+                        <Badge className={cn(
+                          "uppercase tracking-[0.2em] font-black text-[9px] px-3 h-6",
+                          selectedSurah.info.revelationType === 'Meccan' ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-900"
+                        )}>
+                          {selectedSurah.info.revelationType === 'Meccan' ? 'Macci' : 'Madina'}
+                        </Badge>
+                      </div>
+                      <CardDescription className="text-xs md:text-sm text-zinc-500">{selectedSurah.info.englishNameTranslation}</CardDescription>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl md:text-3xl font-arabic text-primary">{selectedSurah.info.name}</p>
+                      <p className="text-2xl md:text-3xl font-arabic text-zinc-100">{selectedSurah.info.name}</p>
                     </div>
                   </div>
                 </CardHeader>
-                <ScrollArea className="flex-1 p-4 md:p-6">
-                   {loadingDetails ? (
-                     <div className="p-12 flex flex-col items-center justify-center space-y-4">
-                        <Loader2 className="animate-spin text-primary w-8 h-8" />
-                        <p className="text-sm text-muted-foreground">Loading verses...</p>
-                     </div>
-                   ) : (
-                     <div className="space-y-10 md:space-y-12">
-                       {selectedSurah.ayats.map((ayat: any, idx: number) => (
-                         <div key={ayat.number} className="group space-y-6 pb-8 border-b border-border/50 last:border-none">
-                            <div className="flex items-start justify-between gap-4">
-                               <div className="flex flex-col gap-2">
-                                 <Badge variant="outline" className="w-fit h-fit text-[10px]">
-                                   {ayat.numberInSurah}
-                                 </Badge>
-                                 <Button 
-                                   variant="ghost" 
-                                   size="icon" 
-                                   className="h-9 w-9 text-accent hover:bg-accent/10"
-                                   onClick={() => {
-                                      const audio = new Audio(selectedSurah.audio[idx].audio);
-                                      if (playingAyat === ayat.number) {
-                                        setPlayingAyat(null);
-                                      } else {
-                                        setPlayingAyat(ayat.number);
-                                        audio.play();
-                                        audio.onended = () => setPlayingAyat(null);
-                                      }
-                                   }}
-                                 >
-                                   {playingAyat === ayat.number ? <PauseCircle className="w-6 h-6" /> : <PlayCircle className="w-6 h-6" />}
-                                 </Button>
-                               </div>
-                               <p className="flex-1 text-right text-2xl md:text-3xl font-arabic leading-loose text-primary">
-                                 {ayat.text}
-                               </p>
-                            </div>
-                            <div className="max-w-2xl bg-secondary/30 p-4 rounded-xl">
-                               <p className="text-sm md:text-base text-foreground/80 leading-relaxed italic">
-                                 {selectedSurah.translation[idx].text}
-                               </p>
-                            </div>
-                         </div>
-                       ))}
-                     </div>
-                   )}
+                
+                <ScrollArea className="flex-1">
+                  <div className="p-4 md:p-6 space-y-10">
+                    
+                    {/* AI Story Section */}
+                    <div className="bg-zinc-900/40 rounded-3xl border border-zinc-900 p-6 md:p-8 space-y-6">
+                      <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center">
+                             <Sparkles className="w-5 h-5 text-zinc-500" />
+                           </div>
+                           <h3 className="font-bold text-lg text-zinc-100">Historical Context</h3>
+                        </div>
+                        {aiContext && (
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                             <MapPin className="w-3 h-3" />
+                             {aiContext.historicalPeriod}
+                          </div>
+                        )}
+                      </div>
+
+                      {loadingAi ? (
+                        <div className="py-8 flex flex-col items-center justify-center space-y-4">
+                           <Loader2 className="w-8 h-8 animate-spin text-zinc-700" />
+                           <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Generating Revelation Narrative...</p>
+                        </div>
+                      ) : aiContext ? (
+                        <div className="space-y-6 animate-in fade-in duration-700">
+                           <div className="space-y-4">
+                              <p className="text-sm md:text-base leading-relaxed text-zinc-400 font-medium italic border-l-2 border-zinc-800 pl-6">
+                                {aiContext.revelationStory}
+                              </p>
+                           </div>
+                           <div className="flex flex-wrap gap-2 pt-4">
+                              {aiContext.keyThemes.map((theme, i) => (
+                                <Badge key={i} variant="secondary" className="bg-zinc-800/50 text-zinc-400 hover:text-zinc-100 border-none px-4 py-1 rounded-lg text-[10px] font-bold">
+                                  {theme}
+                                </Badge>
+                              ))}
+                           </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-zinc-600 text-center italic">Failed to load historical insights.</p>
+                      )}
+                    </div>
+
+                    {/* Ayats Grid */}
+                    <div className="space-y-12">
+                      {loadingDetails ? (
+                        <div className="p-12 flex flex-col items-center justify-center space-y-4">
+                            <Loader2 className="animate-spin text-zinc-700 w-8 h-8" />
+                            <p className="text-sm text-zinc-600">Syncing verses...</p>
+                        </div>
+                      ) : (
+                        selectedSurah.ayats.map((ayat: any, idx: number) => (
+                          <div key={ayat.number} className="group space-y-8 pb-10 border-b border-zinc-900/50 last:border-none">
+                              <div className="flex items-start justify-between gap-6">
+                                <div className="flex flex-col gap-3">
+                                  <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-[10px] font-black text-zinc-600">
+                                    {ayat.numberInSurah}
+                                  </div>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-10 w-10 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-900 rounded-xl border border-zinc-900 transition-all"
+                                    onClick={() => {
+                                        const audio = new Audio(selectedSurah.audio[idx].audio);
+                                        if (playingAyat === ayat.number) {
+                                          setPlayingAyat(null);
+                                        } else {
+                                          setPlayingAyat(ayat.number);
+                                          audio.play();
+                                          audio.onended = () => setPlayingAyat(null);
+                                        }
+                                    }}
+                                  >
+                                    {playingAyat === ayat.number ? <PauseCircle className="w-6 h-6" /> : <PlayCircle className="w-6 h-6" />}
+                                  </Button>
+                                </div>
+                                <p className="flex-1 text-right text-3xl md:text-4xl font-arabic leading-[1.8] text-zinc-100">
+                                  {ayat.text}
+                                </p>
+                              </div>
+                              <div className="max-w-3xl bg-zinc-900/30 p-6 rounded-3xl border border-zinc-900/50">
+                                <p className="text-sm md:text-lg text-zinc-400 leading-relaxed font-medium">
+                                  {selectedSurah.translation[idx].text}
+                                </p>
+                              </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </ScrollArea>
               </>
             )}
