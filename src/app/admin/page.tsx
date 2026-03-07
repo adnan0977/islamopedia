@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, getDoc, writeBatch, limit, orderBy } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -26,11 +26,12 @@ import {
   Languages,
   TrendingUp,
   History,
-  Eye,
   Database,
   Download,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  Eye
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -923,7 +924,7 @@ function EditionManagement({ editions }: { editions: any[] }) {
   }, [available]);
 
   const handleDeleteEdition = async (id: string) => {
-    // Delete all associated page data in Firestore first
+    // Delete all associated surah data in Firestore first
     const q = query(collection(db, 'quran'), where('editionId', '==', id));
     const snapshots = await getDocs(q);
     const batch = writeBatch(db);
@@ -1111,14 +1112,13 @@ function QuranDatabaseSync({
     setProgress(0);
     
     try {
-      // If we are syncing the base Arabic itself, we don't need a second edition
       const isArabicBase = targetId === 'quran-uthmani';
       
       let arabicRes, transRes;
       
       if (isArabicBase) {
         arabicRes = await getFullQuran('quran-uthmani');
-        transRes = arabicRes; // No translation for base
+        transRes = arabicRes;
       } else {
         const [a, t] = await Promise.all([
           getFullQuran('quran-uthmani'),
@@ -1133,57 +1133,42 @@ function QuranDatabaseSync({
       const arabicSurahs = arabicRes.data.surahs;
       const transSurahs = transRes.data.surahs;
 
-      // Map to track ayats by page for Firestore documents
-      const pageMap = new Map<number, any[]>();
-      
-      arabicSurahs.forEach((surah: any, sIdx: number) => {
-        surah.ayahs.forEach((ayah: any, aIdx: number) => {
-          const pageNum = ayah.page;
-          const transAyah = transSurahs[sIdx].ayahs[aIdx];
+      const batchSize = 10;
+      for (let i = 0; i < arabicSurahs.length; i += batchSize) {
+        const chunk = arabicSurahs.slice(i, i + batchSize);
+        const batch = writeBatch(db);
+        
+        chunk.forEach((surah: any, idxWithinChunk: number) => {
+          const sIdx = i + idxWithinChunk;
+          const surahNumber = surah.number;
+          const transSurah = transSurahs[sIdx];
+          const surahId = `${targetId}_surah_${surahNumber}`;
           
-          const combinedAyat = {
+          const ayats = surah.ayahs.map((ayah: any, aIdx: number) => ({
             number: ayah.number,
             numberInSurah: ayah.numberInSurah,
             text: ayah.text,
-            translationText: isArabicBase ? null : transAyah.text,
-            surah: {
-              number: surah.number,
-              name: surah.name,
-              englishName: surah.englishName
-            }
-          };
+            translationText: isArabicBase ? null : transSurah.ayahs[aIdx].text,
+            page: ayah.page,
+            juz: ayah.juz
+          }));
 
-          if (!pageMap.has(pageNum)) {
-            pageMap.set(pageNum, []);
-          }
-          pageMap.get(pageNum)?.push(combinedAyat);
-        });
-      });
-
-      const pages = Array.from(pageMap.entries());
-      const batchSize = 10;
-      
-      for (let i = 0; i < pages.length; i += batchSize) {
-        const chunk = pages.slice(i, i + batchSize);
-        const batch = writeBatch(db);
-        
-        chunk.forEach(([pageNum, ayats]) => {
-          const pageId = `${targetId}_page_${pageNum}`;
-          const pageRef = doc(db, 'quran', pageId);
-          batch.set(pageRef, {
-            id: pageId,
+          const surahRef = doc(db, 'quran', surahId);
+          batch.set(surahRef, {
+            id: surahId,
             editionId: targetId,
-            pageNumber: pageNum,
+            surahNumber: surahNumber,
+            name: surah.name,
+            englishName: surah.englishName,
             ayats: ayats,
             updatedAt: new Date().toISOString()
           }, { merge: true });
         });
 
         await batch.commit();
-        setProgress(Math.round(((i + chunk.length) / pages.length) * 100));
+        setProgress(Math.round(((i + chunk.length) / arabicSurahs.length) * 100));
       }
 
-      // Mark edition as synced
       if (isArabicBase) {
         setDocumentNonBlocking(doc(db, 'quran_editions', 'quran-uthmani'), {
           id: 'quran-uthmani',
@@ -1201,7 +1186,7 @@ function QuranDatabaseSync({
       }
 
       setSyncStatus('success');
-      toast({ title: "Database Synchronized", description: `Successfully synced ${pages.length} pages of ${targetId} to your database.` });
+      toast({ title: "Database Synchronized", description: `Successfully synced ${arabicSurahs.length} surahs of ${targetId} to your database.` });
     } catch (error) {
       console.error(error);
       setSyncStatus('error');
@@ -1266,7 +1251,7 @@ function QuranDatabaseSync({
         <div className="mt-8 border-t border-zinc-900 pt-8 flex items-center justify-between">
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-white">Standard Arabic Base</h4>
-            <p className="text-xs text-zinc-500">Fetch and store the master Uthmani text in your database.</p>
+            <p className="text-xs text-zinc-500">Fetch and store the master Uthmani text in your database chapter-by-chapter.</p>
           </div>
           <Button 
             variant="outline" 
@@ -1281,32 +1266,6 @@ function QuranDatabaseSync({
             {isArabicSynced ? 'Base Synced' : 'Sync Standard Arabic Base'}
           </Button>
         </div>
-
-        {syncStatus === 'success' && !syncing && (
-          <div className="mt-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3 animate-in zoom-in-95">
-            <CheckCircle className="w-5 h-5 text-emerald-500" />
-            <span className="text-sm font-bold text-emerald-500">Edition successfully stored in database.</span>
-          </div>
-        )}
-
-        {syncStatus === 'error' && !syncing && (
-          <div className="mt-8 p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-center gap-3 animate-in shake">
-            <AlertCircle className="w-5 h-5 text-destructive" />
-            <span className="text-sm font-bold text-destructive">Error occurred during synchronization.</span>
-          </div>
-        )}
-      </Card>
-
-      <Card className="bg-zinc-900/30 border border-zinc-900 p-8 rounded-3xl text-center space-y-4">
-        <div className="w-16 h-16 bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center mx-auto shadow-xl">
-           <Database className="w-8 h-8 text-zinc-600" />
-        </div>
-        <div className="space-y-2 max-w-md mx-auto">
-          <h4 className="font-bold text-white text-lg">Why Sync?</h4>
-          <p className="text-xs text-zinc-500 leading-relaxed">
-            Synchronizing data to your database allows for faster reader load times, customized verse annotations, and high-performance cross-surah searches without relying on external API rate limits.
-          </p>
-        </div>
       </Card>
     </div>
   );
@@ -1315,11 +1274,10 @@ function QuranDatabaseSync({
 function QuranDatabaseViewer({ editions }: { editions: any[] }) {
   const db = useFirestore();
   const [selectedEdition, setSelectedEdition] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentSurah, setCurrentSurah] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [pageData, setPageData] = useState<any>(null);
+  const [surahData, setSurahData] = useState<any>(null);
 
-  // Default to Arabic base if available
   useEffect(() => {
     if (!selectedEdition && editions.length > 0) {
       const hasArabic = editions.find(e => e.id === 'quran-uthmani');
@@ -1327,17 +1285,17 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
     }
   }, [editions, selectedEdition]);
 
-  const fetchPageFromDB = async () => {
+  const fetchSurahFromDB = async () => {
     if (!selectedEdition) return;
     setIsLoading(true);
     try {
-      const pageId = `${selectedEdition}_page_${currentPage}`;
-      const docRef = doc(db, 'quran', pageId);
+      const surahId = `${selectedEdition}_surah_${currentSurah}`;
+      const docRef = doc(db, 'quran', surahId);
       const snap = await getDoc(docRef);
       if (snap.exists()) {
-        setPageData(snap.data());
+        setSurahData(snap.data());
       } else {
-        setPageData(null);
+        setSurahData(null);
       }
     } catch (error) {
       console.error(error);
@@ -1347,15 +1305,15 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
   };
 
   useEffect(() => {
-    fetchPageFromDB();
-  }, [selectedEdition, currentPage]);
+    fetchSurahFromDB();
+  }, [selectedEdition, currentSurah]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
           <h3 className="font-bold text-lg text-white">Full Quran Viewer</h3>
-          <p className="text-xs text-zinc-500 font-medium">Inspect synchronized data directly from your database table.</p>
+          <p className="text-xs text-zinc-500 font-medium">Inspect chapter-wise synchronized data from your database.</p>
         </div>
         <div className="flex flex-col md:flex-row gap-4 w-full md:auto">
           <div className="w-full md:w-64">
@@ -1372,13 +1330,13 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
             </Select>
           </div>
           <div className="w-full md:w-32">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Page</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Surah</Label>
             <Input 
               type="number" 
               min={1} 
-              max={604} 
-              value={currentPage} 
-              onChange={(e) => setCurrentPage(parseInt(e.target.value) || 1)}
+              max={114} 
+              value={currentSurah} 
+              onChange={(e) => setCurrentSurah(parseInt(e.target.value) || 1)}
               className="bg-zinc-900 border-zinc-800 rounded-xl"
             />
           </div>
@@ -1389,23 +1347,23 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
         {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center text-zinc-800 space-y-4">
             <Loader2 className="animate-spin w-12 h-12" />
-            <p className="text-sm font-black uppercase tracking-widest">Querying Firestore Table...</p>
+            <p className="text-sm font-black uppercase tracking-widest">Querying Firestore Surah Table...</p>
           </div>
-        ) : pageData ? (
+        ) : surahData ? (
           <ScrollArea className="flex-1">
             <div className="p-8 space-y-12">
                <div className="flex items-center gap-4 border-b border-zinc-900 pb-2">
                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">
-                    Page {pageData.pageNumber} • Edition: {pageData.editionId}
+                    Surah {surahData.surahNumber}. {surahData.englishName} • Edition: {surahData.editionId}
                  </span>
                  <div className="flex-1 h-px bg-zinc-900" />
                </div>
                <div className="space-y-8">
-                 {pageData?.ayats?.map((ayat: any, idx: number) => (
+                 {surahData?.ayats?.map((ayat: any, idx: number) => (
                    <div key={idx} className="group p-8 bg-zinc-900/30 rounded-3xl border border-zinc-900/50 hover:border-zinc-800 transition-all space-y-8">
                       <div className="flex justify-between items-start gap-8">
                          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-zinc-900 text-zinc-600 shrink-0">
-                           {ayat.surah?.englishName} • {ayat.numberInSurah}
+                           Ayat {ayat.numberInSurah} • Page {ayat.page}
                          </Badge>
                          <p className="flex-1 text-right text-3xl font-arabic leading-relaxed text-zinc-100">
                            {ayat.text}
@@ -1425,13 +1383,8 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
           <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 space-y-4">
             <Eye className="w-12 h-12 opacity-10" />
             <p className="font-bold text-center px-8">
-              {selectedEdition ? `No data found for Page ${currentPage} of ${selectedEdition} in your database. Please sync this edition first.` : 'Select an edition and page to view synchronized data.'}
+              {selectedEdition ? `No data found for Surah ${currentSurah} of ${selectedEdition} in your database. Please sync this edition first.` : 'Select an edition and surah to view synchronized data.'}
             </p>
-            {selectedEdition && (
-              <Button variant="outline" className="rounded-xl border-zinc-800 font-bold" onClick={() => fetchPageFromDB()}>
-                Retry Fetch
-              </Button>
-            )}
           </div>
         )}
       </Card>

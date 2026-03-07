@@ -105,14 +105,16 @@
       },
       "required": ["id", "name", "language", "languageCode"]
     },
-    "QuranPage": {
-      "title": "QuranPage",
+    "QuranSurah": {
+      "title": "QuranSurah",
       "type": "object",
-      "description": "Represents a single page of the Quran for a specific edition, cached in Firestore.",
+      "description": "Represents a single surah of the Quran for a specific edition, cached in Firestore.",
       "properties": {
-        "id": { "type": "string", "description": "Format: {editionId}_page_{pageNumber}" },
+        "id": { "type": "string", "description": "Format: {editionId}_surah_{surahNumber}" },
         "editionId": { "type": "string" },
-        "pageNumber": { "type": "number" },
+        "surahNumber": { "type": "number" },
+        "name": { "type": "string" },
+        "englishName": { "type": "string" },
         "ayats": {
           "type": "array",
           "items": {
@@ -121,21 +123,15 @@
               "number": { "type": "number" },
               "text": { "type": "string" },
               "translationText": { "type": "string" },
-              "surah": {
-                "type": "object",
-                "properties": {
-                  "number": { "type": "number" },
-                  "name": { "type": "string" },
-                  "englishName": { "type": "string" }
-                }
-              },
-              "numberInSurah": { "type": "number" }
+              "numberInSurah": { "type": "number" },
+              "page": { "type": "number" },
+              "juz": { "type": "number" }
             }
           }
         },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "editionId", "pageNumber", "ayats"]
+      "required": ["id", "editionId", "surahNumber", "name", "englishName", "ayats"]
     }
   },
   "auth": {
@@ -160,8 +156,8 @@
         "definition": { "entityName": "QuranEdition" }
       },
       {
-        "path": "/quran/{pageId}",
-        "definition": { "entityName": "QuranPage" }
+        "path": "/quran/{surahId}",
+        "definition": { "entityName": "QuranSurah" }
       },
       {
         "path": "/roles_admin/{adminId}",

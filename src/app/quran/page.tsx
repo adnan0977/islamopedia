@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-context-flow';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   DropdownMenu,
@@ -29,11 +29,9 @@ type ViewMode = 'ayat' | 'page';
 export default function QuranPage() {
   const db = useFirestore();
   const { user } = useUser();
-  const [surahs, setSurahs] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchPage, setSearchPage] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [loadingSurahs, setLoadingSurahs] = useState(true);
   const [loadingContent, setLoadingContent] = useState(false);
   const [viewMode, setViewMode] = useState('page' as ViewMode);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -67,38 +65,56 @@ export default function QuranPage() {
   }, [activatedEditions]);
 
   useEffect(() => {
-    async function init() {
-      try {
-        const data = await getQuranSurahs();
-        setSurahs(data.data);
-      } catch (e) {
-        console.error("Failed to fetch surahs", e);
-      } finally {
-        setLoadingSurahs(false);
-      }
-    }
-    init();
-  }, []);
-
-  useEffect(() => {
     async function fetchFullContent() {
       if (!selectedEdition) return;
       setLoadingContent(true);
       try {
-        const [arabicRes, transRes] = await Promise.all([
-          getFullQuran('quran-uthmani'),
-          getFullQuran(selectedEdition)
-        ]);
-        setFullArabic(arabicRes.data);
-        setFullTranslation(transRes.data);
+        const currentEditionMeta = activatedEditions?.find(e => e.id === selectedEdition);
+        const isSynced = currentEditionMeta?.dataSync === 'yes';
+
+        if (isSynced) {
+          // Fetch from Firestore grouped by surah
+          const q = query(collection(db, 'quran'), where('editionId', 'in', ['quran-uthmani', selectedEdition]));
+          const snapshots = await getDocs(q);
+          const arabicSurahs: any[] = [];
+          const transSurahs: any[] = [];
+
+          snapshots.forEach((doc) => {
+            const data = doc.data();
+            if (data.editionId === 'quran-uthmani') {
+              arabicSurahs[data.surahNumber - 1] = {
+                number: data.surahNumber,
+                name: data.name,
+                englishName: data.englishName,
+                ayahs: data.ayats.map((a: any) => ({ ...a, page: a.page }))
+              };
+            } else {
+              transSurahs[data.surahNumber - 1] = {
+                number: data.surahNumber,
+                ayahs: data.ayats.map((a: any) => ({ ...a, page: a.page }))
+              };
+            }
+          });
+
+          setFullArabic({ surahs: arabicSurahs });
+          setFullTranslation({ surahs: transSurahs });
+        } else {
+          // Fallback to API if not synced
+          const [arabicRes, transRes] = await Promise.all([
+            getFullQuran('quran-uthmani'),
+            getFullQuran(selectedEdition)
+          ]);
+          setFullArabic(arabicRes.data);
+          setFullTranslation(transRes.data);
+        }
       } catch (error) {
-        console.error("Failed to fetch full Quran content", error);
+        console.error("Failed to fetch Quran content", error);
       } finally {
         setLoadingContent(false);
       }
     }
     fetchFullContent();
-  }, [selectedEdition]);
+  }, [selectedEdition, activatedEditions, db]);
 
   const selectedPageData = useMemo(() => {
     if (!fullArabic || !fullTranslation) return null;
@@ -106,16 +122,16 @@ export default function QuranPage() {
     const pageAyahsArabic: any[] = [];
     const pageAyahsTrans: any[] = [];
 
-    fullArabic.surahs.forEach((surah: any) => {
-      surah.ayahs.forEach((ayah: any) => {
+    fullArabic.surahs?.forEach((surah: any) => {
+      surah.ayahs?.forEach((ayah: any) => {
         if (ayah.page === currentPage) {
           pageAyahsArabic.push({ ...ayah, surah: { number: surah.number, name: surah.name, englishName: surah.englishName } });
         }
       });
     });
 
-    fullTranslation.surahs.forEach((surah: any) => {
-      surah.ayahs.forEach((ayah: any) => {
+    fullTranslation.surahs?.forEach((surah: any) => {
+      surah.ayahs?.forEach((ayah: any) => {
         if (ayah.page === currentPage) {
           pageAyahsTrans.push(ayah);
         }
