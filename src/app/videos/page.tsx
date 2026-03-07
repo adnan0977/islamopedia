@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from 'react';
@@ -34,8 +33,6 @@ export default function VideosPage() {
     
     // Filtering by speakerId (using the 'speakerIds' array field)
     if (speakerId) {
-      // Note: We remove orderBy when filtering by speakerId to avoid needing a composite index,
-      // which often triggers "Missing or insufficient permissions" errors if the index doesn't exist.
       return query(videosCol, where('speakerIds', 'array-contains', speakerId), limit(50));
     } 
     
@@ -54,15 +51,15 @@ export default function VideosPage() {
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10 pb-32">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-border pb-8">
         <div className="space-y-4">
-          <Link href="/" className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors">
+          <Link href="/" className="text-xs font-bold text-muted-foreground hover:text-zinc-100 flex items-center gap-1 transition-colors">
             <ArrowLeft className="w-3 h-3" /> Back to Home
           </Link>
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-2xl">
-              <VideoIcon className="w-8 h-8 text-primary" />
+            <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl">
+              <VideoIcon className="w-8 h-8 text-zinc-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-headline font-bold">
+              <h1 className="text-3xl font-headline font-bold text-zinc-100">
                 {speaker ? `Videos by ${speaker.name}` : channel ? `Videos from ${channel.title}` : 'All Videos'}
               </h1>
               <p className="text-muted-foreground text-sm">
@@ -74,10 +71,10 @@ export default function VideosPage() {
         <div className="flex items-center gap-3">
           {(speakerId || channelId) && (
             <Link href="/videos">
-              <Button variant="outline" size="sm" className="rounded-xl font-bold">Clear Filters</Button>
+              <Button variant="outline" size="sm" className="rounded-xl font-bold border-zinc-800 text-zinc-400">Clear Filters</Button>
             </Link>
           )}
-          <Badge variant="secondary" className="h-10 px-4 rounded-xl font-bold flex gap-2">
+          <Badge variant="secondary" className="h-10 px-4 rounded-xl font-bold flex gap-2 bg-zinc-900 border-zinc-800 text-zinc-300">
             <Filter className="w-3 h-3" />
             {videos?.length || 0} Results
           </Badge>
@@ -86,13 +83,13 @@ export default function VideosPage() {
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <Loader2 className="w-12 h-12 animate-spin text-zinc-500" />
           <p className="text-muted-foreground font-medium">Loading content library...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {videos?.map((video) => (
-            <Card key={video.id} className="overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/10">
+            <Card key={video.id} className="overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-zinc-500 transition-all duration-300 shadow-lg hover:shadow-zinc-500/10">
               <Link href={`/watch?v=${video.id}`}>
                 <div className="relative aspect-video">
                   <Image 
@@ -102,13 +99,13 @@ export default function VideosPage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all shadow-2xl">
+                    <div className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all shadow-2xl">
                       <Play className="text-white fill-white ml-1 w-5 h-5" />
                     </div>
                   </div>
                 </div>
                 <CardHeader className="p-6">
-                  <CardTitle className="text-lg font-bold leading-tight line-clamp-2 min-h-[3rem] group-hover:text-primary transition-colors">
+                  <CardTitle className="text-lg font-bold leading-tight line-clamp-2 min-h-[3rem] group-hover:text-zinc-100 transition-colors">
                     {video.title}
                   </CardTitle>
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground font-bold uppercase tracking-wider mt-6 pt-4 border-t border-border/30">
@@ -126,7 +123,7 @@ export default function VideosPage() {
               <VideoIcon className="w-12 h-12 text-muted-foreground mx-auto opacity-20" />
               <p className="text-muted-foreground font-medium">No videos found matching your criteria.</p>
               <Link href="/videos">
-                <Button variant="link" className="text-primary">View all videos</Button>
+                <Button variant="link" className="text-zinc-400">View all videos</Button>
               </Link>
             </div>
           )}

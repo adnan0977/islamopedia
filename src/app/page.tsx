@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -54,11 +53,11 @@ export default function Home() {
       {/* Header Info */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card/50 backdrop-blur-md p-6 rounded-3xl border border-border shadow-xl">
         <div className="space-y-2">
-          <h1 className="text-3xl font-headline font-bold text-primary flex items-center gap-2">
-            VlogNest <Sparkles className="w-5 h-5 text-accent" />
+          <h1 className="text-3xl font-headline font-bold text-zinc-100 flex items-center gap-2">
+            VlogNest <Sparkles className="w-5 h-5 text-zinc-500" />
           </h1>
           <div className="flex items-center text-muted-foreground text-sm">
-            <MapPin className="w-4 h-4 mr-1.5 text-primary" />
+            <MapPin className="w-4 h-4 mr-1.5 text-zinc-500" />
             <span className="font-medium">{location.city}, {location.country}</span>
           </div>
         </div>
@@ -68,7 +67,7 @@ export default function Home() {
             {Object.entries(prayerTimes.timings).filter(([k]) => ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(k)).map(([name, time]) => (
               <div key={name} className="flex flex-col items-center bg-secondary/50 backdrop-blur-sm px-4 py-2 rounded-2xl border border-border/50 min-w-[80px]">
                 <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">{name}</span>
-                <span className="text-sm font-headline font-bold text-accent">{time as string}</span>
+                <span className="text-sm font-headline font-bold text-zinc-300">{time as string}</span>
               </div>
             ))}
           </div>
@@ -80,15 +79,15 @@ export default function Home() {
         <section className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-headline font-bold flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-primary" />
+              <TrendingUp className="w-6 h-6 text-zinc-100" />
               Trending Now
             </h2>
-            <Link href="/videos" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+            <Link href="/videos" className="text-xs font-bold text-muted-foreground hover:text-zinc-100 flex items-center gap-1 transition-colors">
               See All <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
           {isTrendingLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-zinc-500" /></div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {trendingVideos?.map((video) => (
@@ -102,14 +101,14 @@ export default function Home() {
         <section className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-headline font-bold flex items-center gap-2">
-              <Users className="w-6 h-6 text-accent" />
+              <Users className="w-6 h-6 text-zinc-100" />
               Featured Scholars
             </h2>
           </div>
           <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
             {speakers?.map((speaker) => (
               <Link key={speaker.id} href={`/videos?speakerId=${speaker.id}`} className="flex flex-col items-center space-y-3 shrink-0 group">
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all p-1 ring-4 ring-secondary/50 group-hover:ring-primary/20 shadow-lg">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-transparent group-hover:border-zinc-500 transition-all p-1 ring-4 ring-secondary/50 group-hover:ring-zinc-500/20 shadow-lg">
                   <Image 
                     src={speaker.profileImageUrl || 'https://picsum.photos/seed/speaker/200'} 
                     alt={speaker.name} 
@@ -117,7 +116,7 @@ export default function Home() {
                     className="rounded-full object-cover transition-transform group-hover:scale-110"
                   />
                 </div>
-                <span className="text-xs font-bold text-center truncate w-24 px-1 group-hover:text-primary transition-colors">{speaker.name}</span>
+                <span className="text-xs font-bold text-center truncate w-24 px-1 text-muted-foreground group-hover:text-zinc-100 transition-colors">{speaker.name}</span>
               </Link>
             ))}
           </div>
@@ -127,15 +126,15 @@ export default function Home() {
         <section className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-headline font-bold flex items-center gap-2">
-              <Play className="w-6 h-6 text-green-500" />
+              <Play className="w-6 h-6 text-zinc-400" />
               Latest Uploads
             </h2>
-            <Link href="/videos" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+            <Link href="/videos" className="text-xs font-bold text-muted-foreground hover:text-zinc-100 flex items-center gap-1 transition-colors">
               See All <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
           {isLatestLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-zinc-500" /></div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {latestVideos?.map((video) => (
@@ -151,7 +150,7 @@ export default function Home() {
 
 function VideoCard({ video }: { video: any }) {
   return (
-    <Card className="overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/10 rounded-2xl">
+    <Card className="overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-zinc-500 transition-all duration-300 shadow-lg hover:shadow-zinc-500/10 rounded-2xl">
       <Link href={`/watch?v=${video.id}`}>
         <div className="relative aspect-video">
           <Image 
@@ -161,13 +160,13 @@ function VideoCard({ video }: { video: any }) {
             className="object-cover group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-            <div className="bg-primary rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all shadow-2xl">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all shadow-2xl">
               <Play className="text-white fill-white ml-1 w-5 h-5" />
             </div>
           </div>
         </div>
         <CardHeader className="p-5">
-          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors text-base">
+          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-zinc-100 transition-colors text-base">
             {video.title}
           </CardTitle>
           <div className="flex items-center text-[10px] text-muted-foreground font-bold uppercase tracking-wider space-x-2 pt-2 border-t border-border/30 mt-4">
