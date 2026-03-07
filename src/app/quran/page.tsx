@@ -269,26 +269,6 @@ export default function QuranPage() {
               </div>
             ) : (
               <>
-                <CardHeader className="border-b border-zinc-900 bg-zinc-950/50 p-4 md:p-6 shrink-0">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <CardTitle className="text-xl md:text-2xl text-zinc-100">{selectedSurah.info.englishName}</CardTitle>
-                        <Badge className={cn(
-                          "uppercase tracking-[0.2em] font-black text-[9px] px-3 h-6",
-                          selectedSurah.info.revelationType === 'Meccan' ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-900"
-                        )}>
-                          {selectedSurah.info.revelationType === 'Meccan' ? 'Macci' : 'Madina'}
-                        </Badge>
-                      </div>
-                      <CardDescription className="text-xs md:text-sm text-zinc-500">{selectedSurah.info.englishNameTranslation}</CardDescription>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl md:text-3xl font-arabic text-zinc-100">{selectedSurah.info.name}</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                
                 <ScrollArea className="flex-1">
                   <div className="p-4 md:p-6 space-y-10">
                     {/* Historical Context Card */}
