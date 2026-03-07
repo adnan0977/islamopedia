@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ import { Progress } from '@/components/ui/progress';
 // Feature Components
 import { DashboardOverview } from '@/features/admin/components/DashboardOverview';
 import { QuranHub } from '@/features/admin/components/QuranHub';
+import { AppSettings } from '@/features/admin/components/AppSettings';
 import { AdminTab, SyncState } from '@/features/admin/types';
 
 export default function AdminPanel() {
@@ -60,7 +61,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [copied, setCopied] = useState(false);
 
-  // Sync State
+  // Sync State for Quran Hub
   const [sync, setSync] = useState<SyncState>({ isSyncing: false, progress: 0, status: 'idle' });
 
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
@@ -189,9 +190,13 @@ export default function AdminPanel() {
                 setSyncStatus={(val) => setSync({ ...sync, status: val })}
               />
             )}
+            {activeTab === 'settings' && (
+              <AppSettings />
+            )}
           </main>
         </SidebarInset>
 
+        {/* Global Sync Dialog for Quran Hub */}
         <Dialog open={sync.isSyncing}>
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl p-10 outline-none">
             <DialogHeader className="flex flex-col items-center text-center space-y-6">
