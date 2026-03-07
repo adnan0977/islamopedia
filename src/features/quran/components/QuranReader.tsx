@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
 import Link from 'next/link';
@@ -38,18 +38,31 @@ export function QuranReader() {
   const db = useFirestore();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useUser();
   
   const initialMode = searchParams.get('mode') as 'ayat' | 'page' | 'index' || 'index';
   const initialIndexType = searchParams.get('type') as 'surah' | 'juz' || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
   const initialTrans = searchParams.get('trans') || 'en.sahih';
 
+  // State
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [viewMode, setViewMode] = useState<'ayat' | 'page' | 'index'>(initialMode);
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
   const [selectedTranslation, setSelectedTranslation] = useState(initialTrans);
+
+  // Profile data
+  const profileRef = useMemoFirebase(() => (user ? doc(db, 'users', user.uid) : null), [db, user]);
+  const { data: profile } = useDoc(profileRef);
+
+  // Sync initial translation with profile if available
+  useEffect(() => {
+    if (profile?.preferredTranslationId && !searchParams.get('trans')) {
+      setSelectedTranslation(profile.preferredTranslationId);
+    }
+  }, [profile, searchParams]);
 
   // Swipe Gesture State
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -86,7 +99,11 @@ export function QuranReader() {
 
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
-  const ayatFrameId = settings?.ayatFrameId || 'ornate-star';
+  
+  // Dynamic reading settings
+  const arabicFontSize = profile?.arabicFontSize || 40;
+  const transFontSize = profile?.translationFontSize || 16;
+  const ayatFrameId = profile?.ayatFrameId || settings?.ayatFrameId || 'ornate-star';
   const customAyatFramePath = settings?.customAyatFramePath;
   const frameImageUrl = settings?.frameImageUrl;
 
@@ -409,7 +426,7 @@ export function QuranReader() {
                           </span>
                         </div>
                         
-                        <p className="text-right text-3xl md:text-5xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
+                        <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                           {a.text}
                           <span className="inline-block ms-6 align-middle select-none">
                             <AyatFrame 
@@ -424,7 +441,7 @@ export function QuranReader() {
                         
                         {a.trans && (
                           <div className="py-1 flex items-start justify-start">
-                            <p className="text-zinc-400 text-sm md:text-base font-medium leading-relaxed text-left max-w-3xl">
+                            <p className="text-zinc-400 font-medium leading-relaxed text-left max-w-3xl" style={{ fontSize: `${transFontSize}px` }}>
                               {a.trans}
                             </p>
                           </div>
@@ -437,7 +454,7 @@ export function QuranReader() {
                 ))}
               </div>
             ) : (
-              <div className="text-right font-arabic leading-[2.5] text-3xl md:text-5xl text-zinc-100" style={{ direction: 'rtl' }}>
+              <div className="text-right font-arabic leading-[2.5] text-zinc-100" style={{ direction: 'rtl', fontSize: `${arabicFontSize}px` }}>
                 {quranData.arabic.map((a, idx) => {
                   const isNewSurah = a.numberInSurah === 1 && a.surah.number !== 9;
                   return (
