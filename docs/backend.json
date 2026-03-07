@@ -162,6 +162,19 @@
       "description": "Global configuration for the application, including UI branding and navigation.",
       "properties": {
         "logoUrl": { "type": "string", "format": "uri" },
+        "ayatFrameId": { "type": "string" },
+        "customAyatFramePath": { "type": "string" },
+        "savedCustomFrames": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "path": { "type": "string" }
+            }
+          }
+        },
         "navigationVisibility": {
           "type": "object",
           "properties": {

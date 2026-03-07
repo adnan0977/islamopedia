@@ -23,10 +23,13 @@ interface AyatFrameProps {
 }
 
 export function AyatFrame({ number, frameId = 'royal-ornate', customPath, size = "md", className }: AyatFrameProps) {
-  // Use custom path if provided or if the frameId is 'custom'
-  const pathData = (frameId === 'custom' && customPath) 
-    ? customPath 
-    : (AYAT_FRAMES.find(f => f.id === frameId)?.path || AYAT_FRAMES[0].path);
+  // Logic: 
+  // 1. If frameId is found in static AYAT_FRAMES, use its path.
+  // 2. Else if customPath is provided, use it.
+  // 3. Fallback to Royal Ornate.
+  
+  const staticFrame = AYAT_FRAMES.find(f => f.id === frameId);
+  const pathData = staticFrame ? staticFrame.path : (customPath || AYAT_FRAMES[0].path);
   
   const dimensions = {
     sm: "w-8 h-8",
