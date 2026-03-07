@@ -200,7 +200,6 @@ export function QuranReader() {
     }
   };
 
-  // Load more pages for infinite scroll
   const loadMorePages = useCallback(async () => {
     if (loadingContent) return;
     const lastPage = pagedData[pagedData.length - 1]?.pageNumber;
@@ -234,6 +233,21 @@ export function QuranReader() {
     initFetch();
   }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
+  const flattenedAyats = useMemo(() => {
+    const ayats: any[] = [];
+    pagedData.forEach(page => {
+      page.arabic.forEach((a, idx) => {
+        ayats.push({
+          ...a,
+          trans: page.trans[idx]?.text || page.trans[idx]?.translationText,
+          translit: page.translit[idx]?.text || page.translit[idx]?.translationText,
+          pageNumber: a.page || page.pageNumber
+        });
+      });
+    });
+    return ayats;
+  }, [pagedData]);
+
   // Observer for infinite scroll and header updates
   useEffect(() => {
     if (viewMode !== 'ayat' || !ayatScrollContainerRef.current || pagedData.length === 0) return;
@@ -266,21 +280,6 @@ export function QuranReader() {
 
     return () => observerRef.current?.disconnect();
   }, [viewMode, pagedData, loadMorePages, flattenedAyats.length]);
-
-  const flattenedAyats = useMemo(() => {
-    const ayats: any[] = [];
-    pagedData.forEach(page => {
-      page.arabic.forEach((a, idx) => {
-        ayats.push({
-          ...a,
-          trans: page.trans[idx]?.text || page.trans[idx]?.translationText,
-          translit: page.translit[idx]?.text || page.translit[idx]?.translationText,
-          pageNumber: a.page || page.pageNumber
-        });
-      });
-    });
-    return ayats;
-  }, [pagedData]);
 
   const scrollToAyat = (index: number) => {
     const target = ayatScrollContainerRef.current?.querySelector(`[data-ayat-index="${index}"]`);
@@ -509,10 +508,6 @@ export function QuranReader() {
             variant="ghost" 
             className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
             onClick={() => {
-              const next = Math.max(1, visiblePage - 1); // RTL Logic: Left button goes "Next" in Arabic flow which is decrementing page numbers towards 1 in most Mushafs or incrementing?
-              // Standard behavior: Left button should move to next page. In RTL, if Page 1 is on right, Page 2 is on left. 
-              // The user said: "left border from translation", "reverse the slide page".
-              // If we are at page 1, clicking left should go to page 2.
               const nextVal = Math.min(604, visiblePage + 1);
               setVisiblePage(nextVal);
               setPagedData([]);
