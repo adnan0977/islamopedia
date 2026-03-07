@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -45,7 +44,8 @@ import {
   LayoutList,
   TrendingUp,
   History,
-  Database
+  Database,
+  ArrowRight
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -127,8 +127,9 @@ import {
   MenubarSubContent,
   MenubarSubTrigger,
 } from "@/components/ui/menubar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'translations' | 'indexing';
+type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'translations';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
@@ -293,27 +294,10 @@ export default function AdminPanel() {
                   {activeTab === 'channels' && 'YouTube Channels'}
                   {activeTab === 'videos' && 'Video Catalog'}
                   {activeTab === 'speakers' && 'Scholar Management'}
-                  {activeTab === 'translations' && 'Quran Management'}
-                  {activeTab === 'indexing' && 'Quran Indexing'}
+                  {activeTab === 'translations' && 'Quran Tools'}
                 </h2>
 
                 <Menubar className="bg-transparent border-none shadow-none hidden lg:flex">
-                  <MenubarMenu>
-                    <MenubarTrigger className="text-zinc-400 focus:bg-zinc-900 focus:text-white data-[state=open]:bg-zinc-900 data-[state=open]:text-white cursor-pointer font-bold px-4 rounded-xl transition-colors">
-                      Quran
-                    </MenubarTrigger>
-                    <MenubarContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
-                      <MenubarItem onClick={() => setActiveTab('translations')} className="focus:bg-zinc-900">
-                        Active Translations
-                      </MenubarItem>
-                      <MenubarItem onClick={() => setActiveTab('indexing')} className="focus:bg-zinc-900">
-                        Index Pages
-                      </MenubarItem>
-                      <MenubarSeparator className="bg-zinc-800" />
-                      <MenubarItem disabled className="opacity-50">Surah Management</MenubarItem>
-                    </MenubarContent>
-                  </MenubarMenu>
-
                   <MenubarMenu>
                     <MenubarTrigger className="text-zinc-400 focus:bg-zinc-900 focus:text-white data-[state=open]:bg-zinc-900 data-[state=open]:text-white cursor-pointer font-bold px-4 rounded-xl transition-colors">
                       Studio
@@ -368,12 +352,38 @@ export default function AdminPanel() {
             {activeTab === 'channels' && <ChannelManagement channels={channels || []} existingVideos={videos || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
             {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
-            {activeTab === 'translations' && <TranslationManagement translations={translations || []} />}
-            {activeTab === 'indexing' && <QuranIndexing translations={translations || []} />}
+            {activeTab === 'translations' && <QuranToolsView translations={translations || []} />}
           </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+function QuranToolsView({ translations }: { translations: any[] }) {
+  return (
+    <Tabs defaultValue="management" className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <TabsList className="bg-zinc-950 border border-zinc-900 p-1 rounded-2xl h-14">
+          <TabsTrigger value="management" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black font-bold">
+            <Languages className="w-4 h-4 mr-2" />
+            Active Translations
+          </TabsTrigger>
+          <TabsTrigger value="indexing" className="px-8 rounded-xl h-full data-[state=active]:bg-white data-[state=active]:text-black font-bold">
+            <Database className="w-4 h-4 mr-2" />
+            Index Pages
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="management" className="mt-0">
+        <TranslationManagement translations={translations} />
+      </TabsContent>
+
+      <TabsContent value="indexing" className="mt-0">
+        <QuranIndexing translations={translations} />
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -526,7 +536,7 @@ function ChannelManagement({ channels, existingVideos }: { channels: any[], exis
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
         <div className="flex flex-col md:flex-row gap-6 items-end">
           <div className="flex-1 space-y-2">
@@ -615,7 +625,7 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
   const filtered = videos.filter(v => v.title.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
@@ -736,7 +746,7 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
           <h3 className="font-bold text-lg text-white">Featured Scholars</h3>
@@ -868,14 +878,14 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     <div className="space-y-8">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-1">
-          <h3 className="font-bold text-lg text-white">Language Management</h3>
+          <h3 className="font-bold text-lg text-white">Edition Directory</h3>
           <p className="text-xs text-zinc-500 font-medium">Control which translation editions are available on the Quran page.</p>
         </div>
         <Dialog open={openAdd} onOpenChange={setOpenAdd}>
           <DialogTrigger asChild>
             <Button className="rounded-xl h-11 px-6 font-bold bg-white text-black hover:bg-zinc-200 flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              Activate Translation
+              Activate New Edition
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 h-[80vh] flex flex-col rounded-3xl">
@@ -1010,7 +1020,7 @@ function QuranIndexing({ translations }: { translations: any[] }) {
       <div className="space-y-2">
         <h3 className="text-xl font-bold text-white flex items-center gap-2">
           <Database className="w-6 h-6 text-zinc-500" />
-          Page Indexing Tool
+          Content Sync Tool
         </h3>
         <p className="text-sm text-zinc-500">Fetch and cache Quranic pages in your local database for high-performance reading.</p>
       </div>
