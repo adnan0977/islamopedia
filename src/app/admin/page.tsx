@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Mic2,
   Database,
-  Settings
+  Settings,
+  Globe
 } from 'lucide-react';
 import { 
   Sidebar, 
@@ -51,6 +52,7 @@ import { Progress } from '@/components/ui/progress';
 import { DashboardOverview } from '@/features/admin/components/DashboardOverview';
 import { QuranHub } from '@/features/admin/components/QuranHub';
 import { AppSettings } from '@/features/admin/components/AppSettings';
+import { ChannelHub } from '@/features/admin/components/ChannelHub';
 import { AdminTab, SyncState } from '@/features/admin/types';
 
 export default function AdminPanel() {
@@ -138,7 +140,7 @@ export default function AdminPanel() {
                 <SidebarMenu>
                   {[
                     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-                    { id: 'channels', label: 'Channels', icon: Youtube },
+                    { id: 'channels', label: 'Channel Hub', icon: Youtube },
                     { id: 'videos', label: 'Video Catalog', icon: VideoIcon },
                     { id: 'scholars', label: 'Scholars', icon: Mic2 },
                     { id: 'quran-tools', label: 'Quran Tools', icon: Book },
@@ -180,6 +182,9 @@ export default function AdminPanel() {
                 speakers={speakers || []} 
                 editions={editions || []} 
               />
+            )}
+            {activeTab === 'channels' && (
+              <ChannelHub />
             )}
             {activeTab === 'quran-tools' && (
               <QuranHub 
