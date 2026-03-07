@@ -186,7 +186,7 @@ export default function AdminPanel() {
               />
             )}
             {activeTab === 'channels' && (
-              <ChannelHub />
+              <ChannelHub videos={videos || []} />
             )}
             {activeTab === 'videos' && (
               <VideoCatalog />
