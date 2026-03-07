@@ -33,7 +33,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/area"; // Corrected import path
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { 
   Select, 
@@ -115,7 +115,7 @@ export default function QuranSettingsPage() {
         setLangFilter(current.language);
       }
     }
-  }, [editions, localSettings.preferredTranslationId]);
+  }, [editions, localSettings.preferredTranslationId, langFilter]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -133,8 +133,6 @@ export default function QuranSettingsPage() {
   }
 
   const currentTranslation = editions?.find(e => e.id === localSettings.preferredTranslationId);
-  const currentTransliteration = editions?.find(e => e.id === localSettings.preferredTransliterationId);
-  const currentAudio = editions?.find(e => e.id === localSettings.preferredAudioId);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 pb-32">
@@ -200,7 +198,7 @@ export default function QuranSettingsPage() {
                       </SelectItem>
                     ))}
                     {translationEditions.length === 0 && (
-                      <div className="p-4 text-center text-xs text-zinc-500">No translations found</div>
+                      <div className="p-4 text-center text-xs text-zinc-500">No translations found for this language</div>
                     )}
                   </SelectContent>
                 </Select>
@@ -222,9 +220,6 @@ export default function QuranSettingsPage() {
                         {e.name}
                       </SelectItem>
                     ))}
-                    {transliterationEditions.length === 0 && (
-                      <div className="p-4 text-center text-xs text-zinc-500">No transliterations found</div>
-                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -245,9 +240,6 @@ export default function QuranSettingsPage() {
                         {e.name}
                       </SelectItem>
                     ))}
-                    {audioEditions.length === 0 && (
-                      <div className="p-4 text-center text-xs text-zinc-500">No audio editions found</div>
-                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -362,11 +354,6 @@ export default function QuranSettingsPage() {
                   >
                     {currentTranslation?.type === 'transliteration' ? 'al-ḥamdu lillāhi rabbi l-ʿālamīn' : '[All] praise is [due] to Allah, Lord of the worlds -'}
                   </p>
-                  {currentAudio && (
-                    <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-bold uppercase tracking-widest pl-4">
-                      <Volume2 className="w-3 h-3" /> Reciter: {currentAudio.name}
-                    </div>
-                  )}
                 </div>
               </div>
             </CardContent>

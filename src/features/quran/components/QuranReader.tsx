@@ -62,7 +62,6 @@ export function QuranReader() {
   const initialTranslit = searchParams.get('translit') || '';
   const initialAudio = searchParams.get('audio') || '';
 
-  // Local settings state
   const [localSettings, setLocalSettings] = useState({
     arabicFontSize: 40,
     translationFontSize: 16,
@@ -72,7 +71,6 @@ export function QuranReader() {
     ayatFrameId: 'royal-ornate'
   });
 
-  // State
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [viewMode, setViewMode] = useState<'ayat' | 'page' | 'index'>(initialMode);
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
@@ -82,10 +80,8 @@ export function QuranReader() {
   const [selectedTranslitId, setSelectedTranslitId] = useState(initialTranslit);
   const [selectedAudioId, setSelectedAudioId] = useState(initialAudio);
   
-  // Selection UI Filters
   const [langFilter, setLangFilter] = useState('all');
 
-  // Load from local storage on mount
   useEffect(() => {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
     const saved = localStorage.getItem(storageKey);
@@ -160,7 +156,7 @@ export function QuranReader() {
       const current = editions.find(e => e.id === selectedEditionId);
       if (current) setLangFilter(current.language);
     }
-  }, [editions, selectedEditionId]);
+  }, [editions, selectedEditionId, langFilter]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
@@ -282,7 +278,6 @@ export function QuranReader() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col space-y-4">
-      {/* Sticky Header */}
       <div className="sticky top-0 md:top-24 z-50 bg-background -mx-4 px-4 py-3">
         <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 rounded-[2rem] border border-zinc-900 shadow-2xl gap-4">
           <div className="flex items-center gap-4">
@@ -348,11 +343,11 @@ export function QuranReader() {
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <Globe className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">1. Select Language</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">1. Available Languages</span>
                       </div>
                       <Select value={langFilter} onValueChange={setLangFilter}>
                         <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
-                          <SelectValue placeholder="Language" />
+                          <SelectValue placeholder="Choose Language" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                           <SelectItem value="all">All Languages</SelectItem>
@@ -376,6 +371,9 @@ export function QuranReader() {
                           {translationEditions.map(e => (
                             <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                           ))}
+                          {translationEditions.length === 0 && (
+                            <div className="p-4 text-center text-xs text-zinc-500">No translations available</div>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
