@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { doc, writeBatch, setDoc, query, where, getDocs, collection } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { toArabicNumerals } from '@/lib/utils';
+import { toArabicNumerals, cn } from '@/lib/utils';
 
 interface QuranHubProps {
   editions: any[];
@@ -277,7 +277,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
               <PlusCircle className="w-4 h-4" /> Browse API Editions
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[750px] p-0 h-[85vh] flex flex-col rounded-3xl overflow-hidden">
+          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[750px] p-0 h-[85vh] flex flex-col rounded-3xl overflow-hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <DialogHeader className="p-8 border-b border-zinc-800 shrink-0 space-y-4 text-left">
               <DialogTitle className="text-white font-bold text-xl">Available Global Editions</DialogTitle>
               <DialogDescription className="text-zinc-500 text-sm">
