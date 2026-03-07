@@ -21,6 +21,9 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Video as VideoIcon, 
   Search, 
@@ -31,15 +34,36 @@ import {
   Eye,
   Calendar,
   Loader2,
-  TrendingUp
+  TrendingUp,
+  Plus
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from '@/hooks/use-toast';
 
 export function VideoCatalog() {
   const db = useFirestore();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newVideo, setNewVideo] = useState({
+    id: '',
+    title: '',
+    description: '',
+    thumbnailUrl: '',
+    channelId: '',
+    publishedAt: new Date().toISOString(),
+    isTrending: false
+  });
 
   const videosQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
@@ -53,6 +77,35 @@ export function VideoCatalog() {
     v.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.channelId.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleAddVideo = () => {
+    if (!newVideo.id || !newVideo.title) {
+      toast({ variant: "destructive", title: "Error", description: "YouTube ID and Title are required." });
+      return;
+    }
+
+    const videoRef = doc(db, 'videos', newVideo.id);
+    setDocumentNonBlocking(videoRef, {
+      ...newVideo,
+      externalUrl: `https://youtube.com/watch?v=${newVideo.id}`,
+      appViewCount: 0,
+      youtubeViewCount: 0,
+      likeCount: 0,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    toast({ title: "Video Cataloged", description: `${newVideo.title} has been added.` });
+    setIsAddDialogOpen(false);
+    setNewVideo({
+      id: '',
+      title: '',
+      description: '',
+      thumbnailUrl: '',
+      channelId: '',
+      publishedAt: new Date().toISOString(),
+      isTrending: false
+    });
+  };
 
   if (isLoading) {
     return (
@@ -68,17 +121,89 @@ export function VideoCatalog() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
+          <input 
             placeholder="Search titles or channels..." 
-            className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
+            className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner w-full outline-none focus:ring-1 focus:ring-zinc-800"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="rounded-xl h-14 px-6 border-zinc-900 bg-zinc-950 text-zinc-400 font-bold">
-            <Filter className="w-4 h-4 mr-2" /> Filter
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl h-14 px-8 font-bold flex items-center gap-2">
+                <Plus className="w-5 h-5" /> Add Video
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold">Catalog New Video</DialogTitle>
+                <DialogDescription className="text-zinc-500">Manually add spiritual content to your platform library.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">YouTube Video ID</Label>
+                    <Input 
+                      placeholder="e.g. dQw4w9WgXcQ" 
+                      className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                      value={newVideo.id}
+                      onChange={(e) => setNewVideo({ ...newVideo, id: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Channel ID</Label>
+                    <Input 
+                      placeholder="UC..." 
+                      className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                      value={newVideo.channelId}
+                      onChange={(e) => setNewVideo({ ...newVideo, channelId: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Video Title</Label>
+                  <Input 
+                    placeholder="Enter descriptive title" 
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                    value={newVideo.title}
+                    onChange={(e) => setNewVideo({ ...newVideo, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Thumbnail URL</Label>
+                  <Input 
+                    placeholder="https://i.ytimg.com/vi/..." 
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                    value={newVideo.thumbnailUrl}
+                    onChange={(e) => setNewVideo({ ...newVideo, thumbnailUrl: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Description</Label>
+                  <Textarea 
+                    placeholder="Detailed content summary..." 
+                    className="bg-zinc-900 border-zinc-800 rounded-xl min-h-[100px]"
+                    value={newVideo.description}
+                    onChange={(e) => setNewVideo({ ...newVideo, description: e.target.value })}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800">
+                  <div className="space-y-0.5">
+                    <Label className="font-bold">Trending Status</Label>
+                    <p className="text-[10px] text-zinc-500 font-medium">Feature this video in the trending sections.</p>
+                  </div>
+                  <Switch 
+                    checked={newVideo.isTrending}
+                    onCheckedChange={(val) => setNewVideo({ ...newVideo, isTrending: val })}
+                  />
+                </div>
+              </div>
+              <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl" onClick={handleAddVideo}>
+                Index Video Metadata
+              </Button>
+            </DialogContent>
+          </Dialog>
           <Badge variant="secondary" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold flex items-center gap-2">
             {videos?.length || 0} Total Videos
           </Badge>

@@ -14,23 +14,35 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Mic2, 
   Search, 
   Plus, 
   Trash2, 
-  ExternalLink, 
   Loader2,
   Settings,
   UserCheck,
   Video
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import Image from 'next/image';
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from '@/hooks/use-toast';
 
 export function ScholarDirectory() {
   const db = useFirestore();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newScholar, setNewScholar] = useState({ id: '', name: '', profileImageUrl: '' });
 
   const scholarsQuery = useMemoFirebase(() => query(
     collection(db, 'speakers'),
@@ -43,6 +55,24 @@ export function ScholarDirectory() {
   const filteredScholars = scholars?.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleAddScholar = () => {
+    if (!newScholar.name || !newScholar.id) {
+      toast({ variant: "destructive", title: "Missing Fields", description: "Name and ID (slug) are required." });
+      return;
+    }
+
+    const scholarRef = doc(db, 'speakers', newScholar.id);
+    setDocumentNonBlocking(scholarRef, {
+      ...newScholar,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    toast({ title: "Scholar Added", description: `${newScholar.name} has been saved.` });
+    setIsAddDialogOpen(false);
+    setNewScholar({ id: '', name: '', profileImageUrl: '' });
+  };
 
   if (isLoading) {
     return (
@@ -58,16 +88,59 @@ export function ScholarDirectory() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
+          <input 
             placeholder="Search scholars..." 
-            className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
+            className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner w-full outline-none focus:ring-1 focus:ring-zinc-800"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold h-14 px-8 flex items-center gap-2">
-          <Plus className="w-5 h-5" /> Add New Scholar
-        </Button>
+
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold h-14 px-8 flex items-center gap-2">
+              <Plus className="w-5 h-5" /> Add New Scholar
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">Register Scholar</DialogTitle>
+              <DialogDescription className="text-zinc-500">Create a new profile for a spiritual teacher.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-6">
+              <div className="space-y-2">
+                <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Scholar Name</Label>
+                <Input 
+                  placeholder="e.g. Dr. Israr Ahmed" 
+                  className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                  value={newScholar.name}
+                  onChange={(e) => setNewScholar({ ...newScholar, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Identifier (ID)</Label>
+                <Input 
+                  placeholder="e.g. dr-israr-ahmed" 
+                  className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                  value={newScholar.id}
+                  onChange={(e) => setNewScholar({ ...newScholar, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Profile Image URL</Label>
+                <Input 
+                  placeholder="https://..." 
+                  className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                  value={newScholar.profileImageUrl}
+                  onChange={(e) => setNewScholar({ ...newScholar, profileImageUrl: e.target.value })}
+                />
+              </div>
+            </div>
+            <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl" onClick={handleAddScholar}>
+              Save Scholar Profile
+            </Button>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
