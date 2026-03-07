@@ -113,8 +113,9 @@ export async function fetchYouTubeChannelByHandle(handle: string): Promise<YouTu
 
 /**
  * Fetches all videos from a specific YouTube channel's "Uploads" playlist.
+ * Implements pagination to fetch more than the default limit (500 max).
  */
-export async function fetchPlaylistVideos(playlistId: string, maxResults = 50): Promise<YouTubeVideoData[]> {
+export async function fetchPlaylistVideos(playlistId: string, limit = 500): Promise<YouTubeVideoData[]> {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
     throw new Error('YOUTUBE_API_KEY is not configured.');
@@ -124,26 +125,36 @@ export async function fetchPlaylistVideos(playlistId: string, maxResults = 50): 
     throw new Error('Missing playlist ID for synchronization.');
   }
 
-  const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=${maxResults}&key=${apiKey}`;
-
+  let allVideos: YouTubeVideoData[] = [];
+  let nextPageToken = '';
+  
   try {
-    const response = await fetch(url);
-    const data = await response.json();
+    do {
+      const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&pageToken=${nextPageToken}&key=${apiKey}`;
+      const response = await fetch(url);
+      const data = await response.json();
 
-    if (data.error) {
-      throw new Error(`YouTube API Error (Playlist): ${data.error.message}`);
-    }
+      if (data.error) {
+        throw new Error(`YouTube API Error (Playlist): ${data.error.message}`);
+      }
 
-    if (!data.items) return [];
+      if (!data.items) break;
 
-    return data.items.map((item: any) => ({
-      id: item.snippet.resourceId.videoId,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-      publishedAt: item.snippet.publishedAt,
-      channelId: item.snippet.channelId,
-    }));
+      const pageVideos = data.items.map((item: any) => ({
+        id: item.snippet.resourceId.videoId,
+        title: item.snippet.title,
+        description: item.snippet.description,
+        thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+        publishedAt: item.snippet.publishedAt,
+        channelId: item.snippet.channelId,
+      }));
+
+      allVideos = [...allVideos, ...pageVideos];
+      nextPageToken = data.nextPageToken;
+
+    } while (nextPageToken && allVideos.length < limit);
+
+    return allVideos;
   } catch (error: any) {
     console.error('Error fetching playlist videos:', error);
     throw new Error(error.message || 'Failed to fetch videos from YouTube.');

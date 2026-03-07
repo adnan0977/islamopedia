@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, collection, query, orderBy, limit, writeBatch, getDocs, where } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit, writeBatch, getDocs, where } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -95,12 +95,15 @@ export function ChannelHub({ videos }: { videos: any[] }) {
     // 2. Extract Handles (@name)
     const handleMatches = text.match(/@[\w.-]+/g) || [];
     
-    // 3. Extract Handles from URLs (youtube.com/@handle)
+    // 3. Extract Handles from URLs (youtube.com/@handle or youtube.com/channel/UC...)
     const urlHandleMatches = text.match(/youtube\.com\/(@[\w.-]+)/g) || [];
     const handlesFromUrls = urlHandleMatches.map(m => m.split('/').pop()).filter(Boolean) as string[];
 
+    const urlIdMatches = text.match(/youtube\.com\/channel\/(UC[a-zA-Z0-9_-]{22})/g) || [];
+    const idsFromUrls = urlIdMatches.map(m => m.split('/').pop()).filter(Boolean) as string[];
+
     return {
-      ids: Array.from(new Set(idMatches)),
+      ids: Array.from(new Set([...idMatches, ...idsFromUrls])),
       handles: Array.from(new Set([...handleMatches, ...handlesFromUrls]))
     };
   };
@@ -172,7 +175,6 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         const freshData = await fetchYouTubeChannels([channel.id]);
         if (freshData.length > 0 && freshData[0].uploadsPlaylistId) {
           uploadsId = freshData[0].uploadsPlaylistId;
-          // Silently update local record for next time
           updateDocumentNonBlocking(doc(db, 'channels', channel.id), { uploadsPlaylistId: uploadsId });
         }
       }
@@ -181,7 +183,8 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         throw new Error('Cannot find uploads playlist for this channel. It may have zero public videos.');
       }
 
-      const ytVideos = await fetchPlaylistVideos(uploadsId);
+      // Fetch more videos using pagination (up to 500)
+      const ytVideos = await fetchPlaylistVideos(uploadsId, 500);
       if (ytVideos.length === 0) {
         toast({ title: "No Videos", description: "No public uploads found for this channel." });
         return;
@@ -198,23 +201,31 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         return;
       }
 
-      const batch = writeBatch(db);
-      newVideos.forEach(v => {
-        const vRef = doc(db, 'videos', v.id);
-        batch.set(vRef, {
-          ...v,
-          externalUrl: `https://youtube.com/watch?v=${v.id}`,
-          isActive: !!channel.isActive,
-          isTrending: false,
-          appViewCount: 0,
-          youtubeViewCount: 0,
-          likeCount: 0,
-          updatedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
+      // Firestore batches are limited to 500 operations. 
+      // We process in chunks just in case.
+      const batchSize = 400;
+      for (let i = 0; i < newVideos.length; i += batchSize) {
+        const chunk = newVideos.slice(i, i + batchSize);
+        const batch = writeBatch(db);
+        
+        chunk.forEach(v => {
+          const vRef = doc(db, 'videos', v.id);
+          batch.set(vRef, {
+            ...v,
+            externalUrl: `https://youtube.com/watch?v=${v.id}`,
+            isActive: !!channel.isActive,
+            isTrending: false,
+            appViewCount: 0,
+            youtubeViewCount: 0,
+            likeCount: 0,
+            updatedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          });
         });
-      });
+        
+        await batch.commit();
+      }
 
-      await batch.commit();
       toast({ title: "Sync Successful", description: `Added ${newVideos.length} new videos from ${channel.title}.` });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Sync Failed', description: error.message });
@@ -328,7 +339,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                     onClick={() => handleSync(bulkIds)}
                   >
                     {isSyncing ? <Loader2 className="animate-spin h-5 w-5" /> : <RefreshCw className="h-5 w-5" />}
-                    Process & Sync Content
+                    Process & Sync All Content
                   </Button>
                 </TabsContent>
 
