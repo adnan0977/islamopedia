@@ -326,13 +326,13 @@ export default function AdminPanel() {
                <div className="space-y-2">
                  <h3 className="text-xl font-bold">Synchronizing Database</h3>
                  <p className="text-zinc-500 text-sm leading-relaxed">
-                   Fetching the complete Quran text and committing thousands of verses to your Firestore 'quran' table. Please do not close or switch tabs.
+                   Pulling thousands of verses from AlQuran Cloud and committing them to your Firestore storage. Please do not close this window.
                  </p>
                </div>
                <div className="w-full space-y-4">
                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-zinc-500">
                    <span>
-                    {syncStatus === 'fetching' ? 'Downloading from AlQuran Cloud API...' : 'Writing Batch to Firestore...'}
+                    {syncStatus === 'fetching' ? 'Fetching API Payload...' : 'Committing Batch Writes...'}
                    </span>
                    <span className="text-white">{syncProgress}%</span>
                  </div>
@@ -1088,17 +1088,31 @@ function QuranDatabaseSync({
   const { toast } = useToast();
   const [selectedEdition, setSelectedEdition] = useState('');
 
-  const handleSync = async () => {
-    if (!selectedEdition) return;
+  const handleSync = async (editionIdToSync?: string) => {
+    const targetId = editionIdToSync || selectedEdition;
+    if (!targetId) return;
+
     setSyncing(true);
     setSyncStatus('fetching');
     setProgress(0);
     
     try {
-      const [arabicRes, transRes] = await Promise.all([
-        getFullQuran('quran-uthmani'),
-        getFullQuran(selectedEdition)
-      ]);
+      // If we are syncing the base Arabic itself, we don't need a second edition
+      const isArabicBase = targetId === 'quran-uthmani';
+      
+      let arabicRes, transRes;
+      
+      if (isArabicBase) {
+        arabicRes = await getFullQuran('quran-uthmani');
+        transRes = arabicRes; // No translation for base
+      } else {
+        const [a, t] = await Promise.all([
+          getFullQuran('quran-uthmani'),
+          getFullQuran(targetId)
+        ]);
+        arabicRes = a;
+        transRes = t;
+      }
 
       setSyncStatus('saving');
       
@@ -1116,7 +1130,7 @@ function QuranDatabaseSync({
             number: ayah.number,
             numberInSurah: ayah.numberInSurah,
             text: ayah.text,
-            translationText: transAyah.text,
+            translationText: isArabicBase ? null : transAyah.text,
             surah: {
               number: surah.number,
               name: surah.name,
@@ -1139,11 +1153,11 @@ function QuranDatabaseSync({
         const batch = writeBatch(db);
         
         chunk.forEach(([pageNum, ayats]) => {
-          const pageId = `${selectedEdition}_page_${pageNum}`;
+          const pageId = `${targetId}_page_${pageNum}`;
           const pageRef = doc(db, 'quran', pageId);
           batch.set(pageRef, {
             id: pageId,
-            editionId: selectedEdition,
+            editionId: targetId,
             pageNumber: pageNum,
             ayats: ayats,
             updatedAt: new Date().toISOString()
@@ -1154,8 +1168,20 @@ function QuranDatabaseSync({
         setProgress(Math.round(((i + chunk.length) / pages.length) * 100));
       }
 
+      // Also ensure it's in the quran_editions table
+      if (isArabicBase) {
+        setDocumentNonBlocking(doc(db, 'quran_editions', 'quran-uthmani'), {
+          id: 'quran-uthmani',
+          name: 'Standard Arabic text',
+          language: 'Arabic',
+          languageCode: 'ar',
+          isActive: true,
+          isDefault: false
+        }, { merge: true });
+      }
+
       setSyncStatus('success');
-      toast({ title: "Database Synchronized", description: `Successfully synced ${pages.length} pages of ${selectedEdition} to your database.` });
+      toast({ title: "Database Synchronized", description: `Successfully synced ${pages.length} pages of ${targetId} to your database.` });
     } catch (error) {
       console.error(error);
       setSyncStatus('error');
@@ -1164,6 +1190,8 @@ function QuranDatabaseSync({
       setSyncing(false);
     }
   };
+
+  const isArabicSynced = editions.some(e => e.id === 'quran-uthmani');
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -1184,7 +1212,7 @@ function QuranDatabaseSync({
           </div>
           <Button 
             className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold min-w-[160px]"
-            onClick={handleSync}
+            onClick={() => handleSync()}
             disabled={syncing || !selectedEdition}
           >
             {syncing ? (
@@ -1193,6 +1221,22 @@ function QuranDatabaseSync({
               <Download className="w-4 h-4 mr-2" />
             )}
             {syncing ? 'Syncing...' : 'Start Data Sync'}
+          </Button>
+        </div>
+
+        <div className="mt-8 border-t border-zinc-900 pt-8 flex items-center justify-between">
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-white">Standard Arabic Base</h4>
+            <p className="text-xs text-zinc-500">Fetch and store the master Uthmani text in your database.</p>
+          </div>
+          <Button 
+            variant="outline" 
+            className="rounded-xl border-zinc-800 font-bold hover:bg-zinc-900 text-zinc-400"
+            disabled={syncing || isArabicSynced}
+            onClick={() => handleSync('quran-uthmani')}
+          >
+            {isArabicSynced ? <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" /> : <Download className="w-4 h-4 mr-2" />}
+            {isArabicSynced ? 'Base Synced' : 'Sync Standard Arabic Base'}
           </Button>
         </div>
 
@@ -1316,9 +1360,11 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
                            {ayat.text}
                          </p>
                       </div>
-                      <p className="text-zinc-500 text-sm md:text-lg font-medium leading-relaxed italic border-l-2 border-zinc-900 pl-6">
-                        {ayat.translationText}
-                      </p>
+                      {ayat.translationText && (
+                        <p className="text-zinc-500 text-sm md:text-lg font-medium leading-relaxed italic border-l-2 border-zinc-900 pl-6">
+                          {ayat.translationText}
+                        </p>
+                      )}
                    </div>
                  ))}
                </div>
