@@ -45,6 +45,7 @@ export function QuranReader() {
   const initialMode = (searchParams.get('mode') as 'ayat' | 'page' | 'index') || 'index';
   const initialIndexType = (searchParams.get('type') as 'surah' | 'juz') || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
+  const initialSurah = searchParams.get('surah') ? parseInt(searchParams.get('surah')!) : null;
 
   const [localSettings, setLocalSettings] = useState({
     arabicFontSize: 40,
@@ -59,6 +60,7 @@ export function QuranReader() {
   });
 
   const [visiblePage, setVisiblePage] = useState(initialPage);
+  const [selectedSurah, setSelectedSurah] = useState<number | null>(initialSurah);
   const [viewMode, setViewMode] = useState<'ayat' | 'page' | 'index'>(initialMode);
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
@@ -98,22 +100,24 @@ export function QuranReader() {
     return ayats;
   }, [pagedData]);
 
-  // Update URL
+  // Update URL logic
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
     params.set('mode', viewMode);
+    
     if (viewMode === 'index') {
       params.set('type', indexType);
-      params.delete('page');
+    } else if (viewMode === 'ayat' && selectedSurah) {
+      params.set('surah', selectedSurah.toString());
     } else {
-      params.delete('type');
       params.set('page', visiblePage.toString());
     }
+
     const newUrl = `/quran?${params.toString()}`;
     if (window.location.search !== `?${params.toString()}`) {
       router.replace(newUrl, { scroll: false });
     }
-  }, [viewMode, indexType, visiblePage, router, searchParams]);
+  }, [viewMode, indexType, visiblePage, selectedSurah, router]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
@@ -236,21 +240,33 @@ export function QuranReader() {
     if (viewMode === 'index') {
       setPagedData([]);
       setCurrentAyatIndex(0);
+      setSelectedSurah(null);
       return;
     }
     
     async function initFetch() {
       setLoadingContent(true);
-      const data = await fetchPageData(initialPage);
+      let pageToLoad = initialPage;
+
+      // Handle direct Surah entry from URL
+      if (viewMode === 'ayat' && initialSurah) {
+        const q = query(collection(db, 'quran'), where('editionId', '==', 'quran-uthmani'), where('surahNumber', '==', initialSurah));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          pageToLoad = snap.docs[0].data().pages[0];
+        }
+      }
+
+      const data = await fetchPageData(pageToLoad);
       if (data) {
         setPagedData([data]);
-        setVisiblePage(initialPage);
+        setVisiblePage(pageToLoad);
         setCurrentAyatIndex(0);
       }
       setLoadingContent(false);
     }
     initFetch();
-  }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
+  }, [viewMode, db]); // Removed searchParams to prevent loops
 
   useEffect(() => {
     if (viewMode !== 'ayat' || !ayatScrollContainerRef.current || pagedData.length === 0) return;
@@ -262,6 +278,12 @@ export function QuranReader() {
         if (entry.isIntersecting) {
           const ayatIndex = parseInt(entry.target.getAttribute('data-ayat-index') || '0');
           setCurrentAyatIndex(ayatIndex);
+          
+          const activeAyat = flattenedAyats[ayatIndex];
+          if (activeAyat?.surah?.number) {
+            setSelectedSurah(activeAyat.surah.number);
+            setVisiblePage(activeAyat.pageNumber);
+          }
           
           if (ayatIndex >= flattenedAyats.length - 3) {
             loadMorePages();
@@ -277,7 +299,7 @@ export function QuranReader() {
     blocks.forEach(b => observerRef.current?.observe(b));
 
     return () => observerRef.current?.disconnect();
-  }, [viewMode, pagedData, loadMorePages, flattenedAyats.length]);
+  }, [viewMode, pagedData, loadMorePages, flattenedAyats]);
 
   const scrollToAyat = (index: number) => {
     const target = ayatScrollContainerRef.current?.querySelector(`[data-ayat-index="${index}"]`);
@@ -315,6 +337,7 @@ export function QuranReader() {
                     setViewMode('index');
                     setPagedData([]);
                     setCurrentAyatIndex(0);
+                    setSelectedSurah(null);
                   }}
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -395,6 +418,7 @@ export function QuranReader() {
                       getDocs(q).then(snap => {
                         if (!snap.empty) {
                           const startPage = snap.docs[0].data().pages[0];
+                          setSelectedSurah(surah.number);
                           setVisiblePage(startPage);
                           setCurrentAyatIndex(0);
                           setViewMode('ayat');
