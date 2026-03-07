@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -110,7 +111,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -286,7 +287,7 @@ export default function AdminPanel() {
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset className="flex-1 overflow-auto bg-black p-0">
+        <SidebarInset className="flex-1 overflow-auto bg-black p-0 border-l-0">
           <header className="h-20 border-b border-zinc-900 flex items-center justify-between px-8 bg-zinc-950/50 sticky top-0 z-10 backdrop-blur-md">
              <div className="flex items-center gap-6">
                 <h2 className="font-headline font-bold text-2xl tracking-tight text-white">
@@ -999,7 +1000,6 @@ function QuranIndexing({ translations }: { translations: any[] }) {
 
         setProgress((p / 604) * 100);
         
-        // Small delay to prevent API rate limits
         if (p % 20 === 0) {
            await new Promise(r => setTimeout(r, 200));
         }
@@ -1062,3 +1062,4 @@ function QuranIndexing({ translations }: { translations: any[] }) {
     </Card>
   );
 }
+

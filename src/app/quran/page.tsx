@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { getQuranSurahs, getPageDetails } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Book, Loader2, PlayCircle, PauseCircle, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight, Settings, MoreVertical } from 'lucide-react';
+import { Search, Loader2, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,6 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -57,13 +57,11 @@ export default function QuranPage() {
     if (userProfile?.preferredTranslationId) {
       setSelectedEdition(userProfile.preferredTranslationId);
     } else if (activatedTranslations && activatedTranslations.length > 0) {
-      // Default to the first activated translation if user hasn't chosen one
       const defaultTrans = activatedTranslations.find(t => t.isDefault) || activatedTranslations[0];
       setSelectedEdition(defaultTrans.id);
     }
   }, [userProfile, activatedTranslations]);
 
-  // Fallback translation list for dropdown
   const displayTranslations = useMemo(() => {
     return activatedTranslations && activatedTranslations.length > 0 
       ? activatedTranslations 
@@ -105,7 +103,6 @@ export default function QuranPage() {
         fetchAiContext(primarySurah.number, primarySurah.englishName);
       }
 
-      // Persist progress to Firestore
       if (userProfileRef) {
         updateDocumentNonBlocking(userProfileRef, {
           lastReadPage: page,
@@ -141,7 +138,7 @@ export default function QuranPage() {
   const [loadingAi, setLoadingAi] = useState(false);
 
   const groupedAyats = useMemo(() => {
-    if (!selectedPageData) return [];
+    if (!selectedPageData?.ayats) return [];
     const groups: any[] = [];
     selectedPageData.ayats.forEach((ayat: any, idx: number) => {
       const lastGroup = groups[groups.length - 1];
@@ -319,7 +316,7 @@ export default function QuranPage() {
                 <Loader2 className="animate-spin w-12 h-12" />
                 <p className="text-sm font-black uppercase tracking-widest">Loading Page {currentPage}...</p>
               </div>
-            ) : (
+            ) : selectedPageData ? (
               <ScrollArea className="flex-1">
                 <div className="p-4 md:p-8 space-y-12">
                   {aiContext && (
@@ -381,7 +378,7 @@ export default function QuranPage() {
                                           }
                                       }}
                                     >
-                                      {playingAyat === ayat.number ? <PauseCircle className="w-8 h-8" /> : <PlayCircle className="w-8 h-8" />}
+                                      {playingAyat === ayat.number ? <Loader2 className="animate-spin w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                     </Button>
                                   </div>
                                   <p className="flex-1 text-right text-3xl md:text-5xl font-arabic leading-[1.8] text-zinc-100">
@@ -390,7 +387,7 @@ export default function QuranPage() {
                                 </div>
                                 <div className="bg-zinc-900/20 p-8 rounded-[2rem] border border-zinc-900/50">
                                   <p className="text-sm md:text-xl text-zinc-400 leading-relaxed font-medium">
-                                    {selectedPageData.translation[ayat.originalIdx].text}
+                                    {selectedPageData.translation[ayat.originalIdx]?.text}
                                   </p>
                                 </div>
                             </div>
@@ -404,7 +401,7 @@ export default function QuranPage() {
                         className="text-right font-arabic leading-[2.5] text-3xl md:text-6xl text-zinc-100"
                         style={{ textAlign: 'justify', direction: 'rtl' }}
                       >
-                        {selectedPageData.ayats.map((ayat: any) => (
+                        {selectedPageData?.ayats?.map((ayat: any) => (
                           <span key={ayat.number} className="inline group cursor-pointer hover:text-white transition-colors">
                             {ayat.text}
                             <span className="inline-flex items-center justify-center w-12 h-12 mx-3 text-sm border border-zinc-900 rounded-full text-zinc-700 font-sans font-black group-hover:border-zinc-600 group-hover:text-zinc-400 transition-all">
@@ -417,10 +414,11 @@ export default function QuranPage() {
                   )}
                 </div>
               </ScrollArea>
-            )}
+            ) : null}
           </Card>
         </div>
       </div>
     </div>
   );
 }
+
