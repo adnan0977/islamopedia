@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Loader2, Sparkles, ChevronRight, Users, Youtube, TrendingUp, MapPin } from 'lucide-react';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Play, Loader2, Sparkles, ChevronRight, Users, TrendingUp, MapPin } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
 import {
   Carousel,
   CarouselContent,
@@ -146,7 +145,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Latest Videos Slider */}
+        {/* Latest Videos Slider (Now Horizontal) */}
         <section className="space-y-8 relative">
           <div className="flex items-center justify-between px-2">
             <div className="space-y-1">
@@ -185,6 +184,12 @@ export default function Home() {
 }
 
 function VideoCard({ video }: { video: any }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-3xl">
       <Link href={`/watch?v=${video.id}`}>
@@ -196,19 +201,21 @@ function VideoCard({ video }: { video: any }) {
             className="object-cover group-hover:scale-105 transition-transform duration-1000"
           />
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl w-14 h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
+            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl w-14 h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
               <Play className="text-zinc-300 fill-zinc-300 ml-1 w-6 h-6" />
             </div>
           </div>
         </div>
-        <CardHeader className="p-6 space-y-4">
-          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[3rem] text-zinc-300 group-hover:text-white transition-colors text-base tracking-tight">
+        <CardHeader className="p-5 space-y-4">
+          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-sm tracking-tight">
             {video.title}
           </CardTitle>
           <div className="flex items-center justify-between text-[9px] text-zinc-600 font-black uppercase tracking-[0.2em] pt-4 border-t border-zinc-900 mt-2">
             <span>{video.viewCount?.toLocaleString() || 0} views</span>
             <span className="text-zinc-800">•</span>
-            <span>{new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+            <span>
+              {mounted ? new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+            </span>
           </div>
         </CardHeader>
       </Link>
