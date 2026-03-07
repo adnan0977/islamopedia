@@ -11,10 +11,10 @@ import {
   Type, 
   Languages, 
   Hash, 
-  Save, 
   Loader2, 
   Sparkles,
-  BookOpen
+  BookOpen,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,15 +70,12 @@ export default function QuranSettingsPage() {
     setIsLoaded(true);
   }, [user]);
 
-  const handleSave = () => {
+  // Auto-save to Local Storage whenever localSettings changes
+  useEffect(() => {
+    if (!isLoaded) return;
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
     localStorage.setItem(storageKey, JSON.stringify(localSettings));
-    
-    toast({
-      title: "Settings Saved Locally",
-      description: "Your reading preferences have been updated for this device."
-    });
-  };
+  }, [localSettings, isLoaded, user]);
 
   if (!isLoaded) {
     return (
@@ -109,13 +106,10 @@ export default function QuranSettingsPage() {
             <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Device-Specific Preferences</p>
           </div>
         </div>
-        <Button 
-          className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold h-11 px-6 shadow-xl"
-          onClick={handleSave}
-        >
-          <Save className="w-4 h-4 mr-2" />
-          Save Locally
-        </Button>
+        <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+           <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+           Changes saved instantly
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
