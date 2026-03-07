@@ -25,6 +25,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
+  DialogDescription
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -79,7 +81,6 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
       const isArabic = editionId === 'quran-uthmani';
       
       // Fetch data from API
-      // Use the full quran endpoint which returns all surahs and ayahs for the edition
       const payload = await getFullQuran(editionId);
       if (!payload?.data?.surahs) {
         throw new Error(`Failed to fetch edition ${editionId} from API.`);
@@ -89,7 +90,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
       const surahs = payload.data.surahs;
 
       // Process Surah by Surah
-      const batchSize = 5; // Smaller batch for Surah-wise documents as they are larger
+      const batchSize = 5; 
       for (let i = 0; i < surahs.length; i += batchSize) {
         const chunk = surahs.slice(i, i + batchSize);
         const batch = writeBatch(db);
@@ -102,7 +103,7 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
             number: a.number,
             numberInSurah: a.numberInSurah,
             text: a.text,
-            translationText: isArabic ? null : a.text, // If not Arabic, the 'text' is the translation
+            translationText: isArabic ? null : a.text,
             page: a.page,
             juz: a.juz
           }));
@@ -123,7 +124,6 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         setProgress(Math.round(((i + chunk.length) / surahs.length) * 100));
       }
 
-      // Update sync status in metadata
       const editionRef = doc(db, 'quran_editions', editionId);
       const editionMetadata = isArabic ? {
         id: 'quran-uthmani',
@@ -273,6 +273,9 @@ function EditionDirectory({ editions }: { editions: any[] }) {
           <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 h-[80vh] flex flex-col rounded-3xl">
             <DialogHeader className="p-6 border-b border-zinc-800 shrink-0">
               <DialogTitle className="text-white font-bold text-xl">Available Editions</DialogTitle>
+              <DialogDescription className="text-zinc-500 text-sm">
+                Browse and activate new translations from the global repository.
+              </DialogDescription>
               <div className="mt-4 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <Input 
