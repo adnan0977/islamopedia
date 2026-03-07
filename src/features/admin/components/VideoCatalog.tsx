@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { 
@@ -38,12 +38,13 @@ import {
   Trash2, 
   Smartphone,
   Eye,
-  Calendar,
   Loader2,
   TrendingUp,
   Plus,
   FilterX,
-  Youtube
+  Youtube,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import {
   Dialog,
@@ -66,6 +67,10 @@ export function VideoCatalog() {
   const [filterChannel, setFilterChannel] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
   const [newVideo, setNewVideo] = useState({
     id: '',
     title: '',
@@ -76,7 +81,7 @@ export function VideoCatalog() {
     isTrending: false
   });
 
-  // Fetch Videos
+  // Fetch Videos (fetching more than page limit to allow local filtering/paging)
   const videosQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     orderBy('publishedAt', 'desc'),
@@ -91,12 +96,29 @@ export function VideoCatalog() {
   ), [db]);
   const { data: channels } = useCollection(channelsQuery);
 
-  const filteredVideos = videos?.filter(v => {
-    const matchesSearch = v.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         v.channelId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesChannel = filterChannel === 'all' || v.channelId === filterChannel;
-    return matchesSearch && matchesChannel;
-  });
+  // Derived Filtered List
+  const filteredVideos = useMemo(() => {
+    if (!videos) return [];
+    return videos.filter(v => {
+      const matchesSearch = v.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           v.channelId.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesChannel = filterChannel === 'all' || v.channelId === filterChannel;
+      return matchesSearch && matchesChannel;
+    });
+  }, [videos, searchTerm, filterChannel]);
+
+  // Paginated Subset
+  const paginatedVideos = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredVideos.slice(start, start + itemsPerPage);
+  }, [filteredVideos, currentPage]);
+
+  const totalPages = Math.ceil(filteredVideos.length / itemsPerPage);
+
+  // Reset pagination on search/filter
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterChannel]);
 
   const handleAddVideo = () => {
     if (!newVideo.id || !newVideo.title) {
@@ -132,6 +154,7 @@ export function VideoCatalog() {
   const resetFilters = () => {
     setSearchTerm('');
     setFilterChannel('all');
+    setCurrentPage(1);
   };
 
   if (isLoadingVideos) {
@@ -278,7 +301,7 @@ export function VideoCatalog() {
             </DialogContent>
           </Dialog>
           <Badge variant="outline" className="h-14 px-6 rounded-2xl bg-zinc-900 border-zinc-800 text-zinc-300 font-bold hidden sm:flex items-center gap-2">
-            {filteredVideos?.length || 0} Listed
+            {filteredVideos.length} Listed
           </Badge>
         </div>
       </div>
@@ -296,7 +319,7 @@ export function VideoCatalog() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVideos?.map((video) => (
+              {paginatedVideos.map((video) => (
                 <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
                   <TableCell className="pl-6 max-w-0 w-[180px]">
                     <div className="flex items-center gap-3 min-w-0">
@@ -370,6 +393,63 @@ export function VideoCatalog() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-zinc-400">Showing {paginatedVideos.length} of {filteredVideos.length} videos</span>
+              <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 px-4 font-bold text-zinc-400 hover:text-white transition-all"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" /> Previous
+              </Button>
+              <div className="flex items-center gap-1 mx-2">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum = i + 1;
+                  // Simple window logic for many pages
+                  if (totalPages > 5 && currentPage > 3) {
+                    pageNum = currentPage - 3 + i;
+                    if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                  }
+                  if (pageNum <= 0) return null;
+                  if (pageNum > totalPages) return null;
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={cn(
+                        "w-8 h-8 rounded-lg text-[10px] font-black transition-all",
+                        currentPage === pageNum 
+                          ? "bg-zinc-100 text-black shadow-lg" 
+                          : "text-zinc-600 hover:text-zinc-300 hover:bg-zinc-900"
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 px-4 font-bold text-zinc-400 hover:text-white transition-all"
+              >
+                Next <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
