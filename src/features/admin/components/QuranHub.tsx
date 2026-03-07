@@ -198,6 +198,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
   const [filterFormat, setFilterFormat] = useState('all');
   const [filterLanguage, setFilterLanguage] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType, setFilterType] = useState('all');
   
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -209,6 +210,11 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
 
   const formats = useMemo(() => {
     const unique = new Set(editions.map(e => e.format).filter(Boolean));
+    return Array.from(unique).sort();
+  }, [editions]);
+
+  const types = useMemo(() => {
+    const unique = new Set(editions.map(e => e.type).filter(Boolean));
     return Array.from(unique).sort();
   }, [editions]);
 
@@ -258,6 +264,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
     setFilterFormat('all');
     setFilterLanguage('all');
     setFilterStatus('all');
+    setFilterType('all');
     setCurrentPage(1);
   };
 
@@ -269,6 +276,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
       
       const matchesLanguage = filterLanguage === 'all' || e.language === filterLanguage;
       const matchesFormat = filterFormat === 'all' || e.format === filterFormat;
+      const matchesType = filterType === 'all' || e.type === filterType;
       
       let matchesStatus = true;
       if (filterStatus === 'active') matchesStatus = e.isActive;
@@ -276,9 +284,9 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
       else if (filterStatus === 'synced') matchesStatus = e.dataSync === 'yes';
       else if (filterStatus === 'pending-sync') matchesStatus = e.dataSync === 'no' && e.isActive;
 
-      return matchesSearch && matchesLanguage && matchesFormat && matchesStatus;
+      return matchesSearch && matchesLanguage && matchesFormat && matchesType && matchesStatus;
     });
-  }, [editions, dirSearch, filterLanguage, filterFormat, filterStatus]);
+  }, [editions, dirSearch, filterLanguage, filterFormat, filterStatus, filterType]);
 
   const paginatedEditions = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -289,7 +297,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [dirSearch, filterFormat, filterLanguage, filterStatus]);
+  }, [dirSearch, filterFormat, filterLanguage, filterStatus, filterType]);
 
   return (
     <div className="space-y-6">
@@ -306,43 +314,55 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <div className="relative md:col-span-2 lg:col-span-2">
+      <div className="space-y-4">
+        {/* Search Bar - Single Line */}
+        <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
             placeholder="Search name, English name, or ID..." 
-            className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
+            className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner w-full"
             value={dirSearch}
             onChange={(e) => setDirSearch(e.target.value)}
           />
         </div>
 
-        <Select value={filterFormat} onValueChange={setFilterFormat}>
-          <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white">
-            <SelectValue placeholder="Format" />
-          </SelectTrigger>
-          <SelectContent className="bg-zinc-950 border-zinc-900 text-white">
-            <SelectItem value="all">All Formats</SelectItem>
-            {formats.map(f => <SelectItem key={f} value={f} className="capitalize">{f}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {/* Filters - All in One Line */}
+        <div className="flex flex-wrap md:flex-nowrap gap-4 items-center">
+          <Select value={filterFormat} onValueChange={setFilterFormat}>
+            <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white flex-1">
+              <SelectValue placeholder="Format" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+              <SelectItem value="all">All Formats</SelectItem>
+              {formats.map(f => <SelectItem key={f} value={f} className="capitalize">{f}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
-        <Select value={filterLanguage} onValueChange={setFilterLanguage}>
-          <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white">
-            <SelectValue placeholder="Language" />
-          </SelectTrigger>
-          <SelectContent className="bg-zinc-950 border-zinc-900 text-white">
-            <SelectItem value="all">All Languages</SelectItem>
-            {languages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-          </SelectContent>
-        </Select>
+          <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+            <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white flex-1">
+              <SelectValue placeholder="Language" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+              <SelectItem value="all">All Languages</SelectItem>
+              {languages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
-        <div className="flex gap-2">
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white flex-1">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+              <SelectItem value="all">All Types</SelectItem>
+              {types.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white flex-1">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-950 border-zinc-900 text-white">
+            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
@@ -350,11 +370,12 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
               <SelectItem value="pending-sync">Pending Sync</SelectItem>
             </SelectContent>
           </Select>
+
           <Button 
             variant="outline" 
             size="icon" 
             onClick={resetFilters} 
-            className="h-14 w-14 rounded-2xl border-zinc-900 bg-zinc-950 text-zinc-600 hover:text-white"
+            className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-zinc-600 hover:text-white"
             title="Reset Filters"
           >
             <FilterX className="w-5 h-5" />
