@@ -18,7 +18,8 @@ import {
   Check,
   Settings,
   Search,
-  FilterX
+  FilterX,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -66,7 +67,6 @@ export function QuranReader() {
   
   // Selection UI Filters
   const [editionSearch, setEditionSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'translation' | 'transliteration' | 'versebyverse'>('all');
   const [langFilter, setLangFilter] = useState('all');
 
   // Load from local storage on mount
@@ -107,21 +107,20 @@ export function QuranReader() {
   ), [db]);
   const { data: editions } = useCollection(editionsQuery);
 
+  const languages = useMemo(() => {
+    if (!editions) return [];
+    return Array.from(new Set(editions.map(e => e.language))).sort();
+  }, [editions]);
+
   const filteredEditions = useMemo(() => {
     if (!editions) return [];
     return editions.filter(e => {
       const matchesSearch = e.name.toLowerCase().includes(editionSearch.toLowerCase()) || 
                            e.englishName.toLowerCase().includes(editionSearch.toLowerCase());
-      const matchesType = typeFilter === 'all' || e.type === typeFilter;
       const matchesLang = langFilter === 'all' || e.language === langFilter;
-      return matchesSearch && matchesType && matchesLang;
+      return matchesSearch && matchesLang;
     });
-  }, [editions, editionSearch, typeFilter, langFilter]);
-
-  const languages = useMemo(() => {
-    if (!editions) return [];
-    return Array.from(new Set(editions.map(e => e.language))).sort();
-  }, [editions]);
+  }, [editions, editionSearch, langFilter]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
@@ -216,32 +215,9 @@ export function QuranReader() {
 
   const isReading = viewMode !== 'index';
 
-  // Swipe Gesture State
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd || !isReading) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isRightSwipe && currentPage < 604) {
-      setCurrentPage(prev => prev + 1);
-    } else if (isLeftSwipe && currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
-    }
-  };
+  const onTouchStart = (e: React.TouchEvent) => {};
+  const onTouchMove = (e: React.TouchEvent) => {};
+  const onTouchEnd = () => {};
 
   const BismillahHeader = () => (
     <div className="w-full flex flex-col items-center justify-center py-6 mb-4 relative">
@@ -253,21 +229,17 @@ export function QuranReader() {
   );
 
   return (
-    <div 
-      className="max-w-7xl mx-auto px-4 py-8 flex flex-col space-y-4"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
+    <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col space-y-4">
+      {/* Sticky Header */}
       <div className="sticky top-0 md:top-24 z-50 bg-background -mx-4 px-4 py-3">
-        <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 rounded-2xl md:rounded-[2rem] border border-zinc-900 shadow-2xl gap-4">
+        <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 rounded-[2rem] border border-zinc-900 shadow-2xl gap-4">
           <div className="flex items-center gap-4">
             {!isReading ? (
               <div className="flex items-center gap-3">
                  <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800">
                     <Database className="w-5 h-5 text-zinc-500" />
                  </div>
-                 <h1 className="text-lg md:text-2xl font-headline font-bold text-white tracking-tight">Quran Index</h1>
+                 <h1 className="text-lg md:text-2xl font-headline font-bold text-white tracking-tight">Recitation Index</h1>
               </div>
             ) : (
               <div className="flex items-center gap-3">
@@ -281,7 +253,7 @@ export function QuranReader() {
                 </Button>
                 <div className="flex flex-col justify-center">
                   <h1 className="text-sm md:text-xl font-headline font-bold text-white leading-tight">
-                    {groupedAyats[0]?.surah.englishName || 'Reading...'}
+                    {groupedAyats[0]?.surah.englishName || 'Reciting...'}
                   </h1>
                   <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">
                     Page {currentPage} / 604
@@ -317,16 +289,42 @@ export function QuranReader() {
                   <PopoverTrigger asChild>
                     <Button variant="ghost" className="rounded-xl h-10 px-3 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white transition-all">
                       <Languages className="w-4 h-4 md:mr-2" />
-                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Edition</span>
+                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Available Languages</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-96 bg-zinc-950 border-zinc-800 p-0 rounded-2xl overflow-hidden shadow-2xl z-[100]">
                     <div className="p-4 border-b border-zinc-900 bg-zinc-900/50 space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Edition Library</h3>
-                        <Languages className="w-3 h-3 text-zinc-700" />
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Available Languages</h3>
+                        <Globe className="w-3 h-3 text-zinc-700" />
                       </div>
                       
+                      <ScrollArea className="w-full">
+                        <div className="flex gap-2 pb-1">
+                           <button
+                             onClick={() => setLangFilter('all')}
+                             className={cn(
+                               "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
+                               langFilter === 'all' ? "bg-white text-black border-white" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
+                             )}
+                           >
+                             All
+                           </button>
+                           {languages.map(l => (
+                             <button
+                               key={l}
+                               onClick={() => setLangFilter(l)}
+                               className={cn(
+                                 "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
+                                 langFilter === l ? "bg-white text-black border-white" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
+                               )}
+                             >
+                               {l}
+                             </button>
+                           ))}
+                        </div>
+                      </ScrollArea>
+
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
                         <Input 
@@ -336,47 +334,6 @@ export function QuranReader() {
                           onChange={(e) => setEditionSearch(e.target.value)}
                         />
                       </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {['all', 'translation', 'transliteration'].map((t) => (
-                          <button
-                            key={t}
-                            onClick={() => setTypeFilter(t as any)}
-                            className={cn(
-                              "text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
-                              typeFilter === t ? "bg-white text-black border-white" : "text-zinc-500 border-zinc-800 hover:border-zinc-700"
-                            )}
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-
-                      <ScrollArea className="w-full">
-                        <div className="flex gap-2 pb-1">
-                           <button
-                             onClick={() => setLangFilter('all')}
-                             className={cn(
-                               "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
-                               langFilter === 'all' ? "bg-zinc-100 text-black border-zinc-100" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
-                             )}
-                           >
-                             All Languages
-                           </button>
-                           {languages.map(l => (
-                             <button
-                               key={l}
-                               onClick={() => setLangFilter(l)}
-                               className={cn(
-                                 "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
-                                 langFilter === l ? "bg-zinc-100 text-black border-zinc-100" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
-                               )}
-                             >
-                               {l}
-                             </button>
-                           ))}
-                        </div>
-                      </ScrollArea>
                     </div>
                     
                     <ScrollArea className="h-80">
@@ -391,28 +348,17 @@ export function QuranReader() {
                             )}
                           >
                             <div className="flex flex-col gap-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold leading-none">{t.name}</span>
-                                {t.type === 'transliteration' && <Badge variant="outline" className="text-[7px] py-0 px-1 border-zinc-800 text-zinc-500">TR</Badge>}
-                              </div>
+                              <span className="text-xs font-bold leading-none">{t.name}</span>
                               <span className={cn(
                                 "text-[9px] font-medium uppercase tracking-widest", 
                                 selectedEditionId === t.id ? "text-zinc-500" : "text-zinc-600"
                               )}>
-                                {t.language} • {t.englishName}
+                                {t.language} • {t.type}
                               </span>
                             </div>
-                            {selectedEditionId === t.id && (
-                              <Check className="w-4 h-4" />
-                            )}
+                            {selectedEditionId === t.id && <Check className="w-4 h-4" />}
                           </button>
                         ))}
-                        {filteredEditions.length === 0 && (
-                          <div className="py-12 text-center space-y-2">
-                             <FilterX className="w-8 h-8 text-zinc-900 mx-auto" />
-                             <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">No matching editions</p>
-                          </div>
-                        )}
                       </div>
                     </ScrollArea>
                   </PopoverContent>
@@ -491,7 +437,7 @@ export function QuranReader() {
                     className="group flex items-center justify-between p-6 bg-zinc-900/30 rounded-3xl border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-900/50 transition-all text-left"
                   >
                     <div className="flex items-center gap-5">
-                      <AyatFrame number={idx + 1} size="sm" frameId={ayatFrameId} customPath={customAyatFramePath} customImageUrl={frameImageUrl} />
+                      <AyatFrame number={idx + 1} size="sm" frameId={ayatFrameId} />
                       <div>
                         <h3 className="font-bold text-zinc-200">Juz {idx + 1}</h3>
                         <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Starts at Surah {juz.surah}</p>
@@ -509,78 +455,46 @@ export function QuranReader() {
           </div>
         ) : (
           <div className="p-8 md:p-16">
-            {viewMode === 'ayat' ? (
-              <div className="space-y-12">
-                {groupedAyats.map(group => (
-                  <div key={group.surah.number} className="space-y-12">
-                    {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
-                    {group.ayats.map((a: any) => (
-                      <div key={a.number} className="space-y-6">
-                        <div className="text-left">
-                          <span className="text-[10px] font-black text-zinc-700 select-none tracking-widest uppercase">
-                            {group.surah.number}:{a.numberInSurah}
-                          </span>
-                        </div>
-                        
-                        <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
-                          {a.text}
-                          <span className="inline-block ms-6 align-middle select-none">
-                            <AyatFrame 
-                              number={a.numberInSurah} 
-                              frameId={ayatFrameId} 
-                              customPath={customAyatFramePath} 
-                              customImageUrl={frameImageUrl}
-                              size="md"
-                            />
-                          </span>
-                        </p>
-                        
-                        {a.trans && (
-                          <div className="py-1 flex items-start justify-start">
-                            <p 
-                              className={cn(
-                                "font-medium leading-relaxed text-left max-w-3xl",
-                                editions?.find(e => e.id === selectedEditionId)?.type === 'transliteration' ? "text-zinc-500 italic" : "text-zinc-400"
-                              )} 
-                              style={{ fontSize: `${transFontSize}px` }}
-                            >
-                              {a.trans}
-                            </p>
-                          </div>
-                        )}
-                        
-                        <div className="h-px bg-zinc-900 w-full mt-8" />
+            <div className="space-y-12">
+              {groupedAyats.map(group => (
+                <div key={group.surah.number} className="space-y-12">
+                  {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
+                  {group.ayats.map((a: any) => (
+                    <div key={a.number} className="space-y-4">
+                      <div className="text-left">
+                        <span className="text-[10px] font-black text-zinc-700 tracking-widest uppercase">
+                          {group.surah.number}:{a.numberInSurah}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-right font-arabic leading-[2.5] text-zinc-100" style={{ direction: 'rtl', fontSize: `${arabicFontSize}px` }}>
-                {quranData.arabic.map((a, idx) => {
-                  const isNewSurah = a.numberInSurah === 1 && a.surah.number !== 9;
-                  return (
-                    <span key={a.number} className="inline">
-                      {isNewSurah && <BismillahHeader />}
-                      <span className="hover:text-white transition-colors">
+                      
+                      <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                         {a.text}
-                      </span>
-                      {" "}
-                      <span className="inline-block mx-6 md:mx-8 align-middle select-none shrink-0">
-                        <AyatFrame 
-                          number={a.numberInSurah} 
-                          size="sm" 
-                          frameId={ayatFrameId} 
-                          customPath={customAyatFramePath} 
-                          customImageUrl={frameImageUrl}
-                        />
-                      </span>
-                      {" "}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
+                        <span className="inline-block ms-6 align-middle select-none">
+                          <AyatFrame 
+                            number={a.numberInSurah} 
+                            frameId={ayatFrameId} 
+                            size="md"
+                          />
+                        </span>
+                      </p>
+                      
+                      {a.trans && (
+                        <div className="py-1">
+                          <p 
+                            className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
+                            style={{ fontSize: `${transFontSize}px` }}
+                          >
+                            {a.trans}
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="h-px bg-zinc-900 w-full mt-8" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </Card>
@@ -598,9 +512,6 @@ export function QuranReader() {
           >
             <ChevronLeft className="w-4 h-4" /> Next Page
           </Button>
-          <div className="hidden md:block text-zinc-700 text-[9px] font-black uppercase tracking-[0.4em] select-none">
-            Swipe Right to Advance
-          </div>
           <Button 
             variant="ghost" 
             className="rounded-xl h-10 md:h-12 px-3 md:px-6 gap-2 text-zinc-500 hover:text-white font-bold text-xs md:text-sm"

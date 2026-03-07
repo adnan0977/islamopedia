@@ -16,7 +16,8 @@ import {
   BookOpen,
   CheckCircle2,
   Search,
-  FilterX
+  FilterX,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +50,6 @@ export default function QuranSettingsPage() {
 
   const [isLoaded, setIsLoaded] = useState(false);
   const [editionSearch, setEditionSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'translation' | 'transliteration'>('all');
   const [langFilter, setLangFilter] = useState('all');
 
   const editionsQuery = useMemoFirebase(() => query(
@@ -69,11 +69,10 @@ export default function QuranSettingsPage() {
     return editions.filter(e => {
       const matchesSearch = e.name.toLowerCase().includes(editionSearch.toLowerCase()) || 
                            e.englishName.toLowerCase().includes(editionSearch.toLowerCase());
-      const matchesType = typeFilter === 'all' || e.type === typeFilter;
       const matchesLang = langFilter === 'all' || e.language === langFilter;
-      return matchesSearch && matchesType && matchesLang;
+      return matchesSearch && matchesLang;
     });
-  }, [editions, editionSearch, typeFilter, langFilter]);
+  }, [editions, editionSearch, langFilter]);
 
   const appSettingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: appSettings } = useDoc(appSettingsRef);
@@ -101,7 +100,7 @@ export default function QuranSettingsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-zinc-500" />
-        <p className="text-zinc-500 font-medium">Loading local preferences...</p>
+        <p className="text-zinc-500 font-medium">Loading preferences...</p>
       </div>
     );
   }
@@ -123,17 +122,77 @@ export default function QuranSettingsPage() {
           </Button>
           <div className="space-y-1">
             <h1 className="text-2xl font-headline font-bold text-white">Quran Settings</h1>
-            <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Device-Specific Preferences</p>
+            <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Personalize Recitation</p>
           </div>
         </div>
         <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-black uppercase tracking-widest">
            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-           Changes saved instantly
+           Auto-saved locally
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
+          <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
+            <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
+              <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                <Globe className="w-4 h-4 text-zinc-500" />
+                Available Languages
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <ScrollArea className="w-full">
+                <div className="flex gap-2 pb-2">
+                   <button
+                     onClick={() => setLangFilter('all')}
+                     className={cn(
+                       "shrink-0 text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border transition-all",
+                       langFilter === 'all' ? "bg-white text-black border-white" : "text-zinc-500 border-zinc-900 hover:border-zinc-700"
+                     )}
+                   >
+                     All
+                   </button>
+                   {languages.map(l => (
+                     <button
+                       key={l}
+                       onClick={() => setLangFilter(l)}
+                       className={cn(
+                         "shrink-0 text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border transition-all",
+                         langFilter === l ? "bg-white text-black border-white" : "text-zinc-500 border-zinc-900 hover:border-zinc-700"
+                       )}
+                     >
+                       {l}
+                     </button>
+                   ))}
+                </div>
+              </ScrollArea>
+
+              <div className="space-y-4">
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Edition for {langFilter === 'all' ? 'any language' : langFilter}</Label>
+                <ScrollArea className="h-64 border border-zinc-900 rounded-2xl bg-zinc-900/20">
+                  <div className="p-2 space-y-1">
+                    {filteredEditions.map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setLocalSettings(prev => ({ ...prev, preferredTranslationId: t.id }))}
+                        className={cn(
+                          "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group",
+                          localSettings.preferredTranslationId === t.id ? "bg-zinc-100 text-black shadow-lg" : "text-zinc-400 hover:bg-zinc-900"
+                        )}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold">{t.name}</span>
+                          <span className="text-[9px] text-zinc-500 font-medium uppercase tracking-widest">{t.language} • {t.type}</span>
+                        </div>
+                        {localSettings.preferredTranslationId === t.id && <CheckCircle2 className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
@@ -144,7 +203,7 @@ export default function QuranSettingsPage() {
             <CardContent className="p-6 space-y-8">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <Label className="text-zinc-400 text-xs uppercase tracking-widest font-black">Arabic Font Size</Label>
+                  <Label className="text-zinc-400 text-[10px] uppercase tracking-widest font-black">Arabic Font Size</Label>
                   <span className="text-xs font-mono text-zinc-500">{localSettings.arabicFontSize}px</span>
                 </div>
                 <Slider 
@@ -159,7 +218,7 @@ export default function QuranSettingsPage() {
 
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <Label className="text-zinc-400 text-xs uppercase tracking-widest font-black">Translation Font Size</Label>
+                  <Label className="text-zinc-400 text-[10px] uppercase tracking-widest font-black">Translation Font Size</Label>
                   <span className="text-xs font-mono text-zinc-500">{localSettings.translationFontSize}px</span>
                 </div>
                 <Slider 
@@ -173,106 +232,9 @@ export default function QuranSettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
 
-          <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
-            <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
-              <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
-                <Languages className="w-4 h-4 text-zinc-500" />
-                Selected Edition
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between bg-zinc-900 border-zinc-800 rounded-xl h-14 text-white hover:bg-zinc-900/80">
-                    <div className="flex flex-col items-start text-left">
-                      <span className="text-xs font-bold">{currentEdition?.name || 'Select Edition'}</span>
-                      <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">{currentEdition?.language || 'Language'} • {currentEdition?.type || 'Type'}</span>
-                    </div>
-                    <Languages className="w-4 h-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 bg-zinc-950 border-zinc-800 p-0 rounded-2xl overflow-hidden shadow-2xl z-[100]">
-                  <div className="p-4 border-b border-zinc-900 bg-zinc-900/50 space-y-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
-                      <Input 
-                        placeholder="Search translations..." 
-                        className="bg-zinc-950 border-zinc-800 h-9 pl-9 text-xs rounded-lg"
-                        value={editionSearch}
-                        onChange={(e) => setEditionSearch(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      {['all', 'translation', 'transliteration'].map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => setTypeFilter(t as any)}
-                          className={cn(
-                            "text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border",
-                            typeFilter === t ? "bg-white text-black border-white" : "text-zinc-500 border-zinc-800"
-                          )}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                    <ScrollArea className="w-full">
-                      <div className="flex gap-2 pb-2">
-                         <button
-                           onClick={() => setLangFilter('all')}
-                           className={cn(
-                             "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
-                             langFilter === 'all' ? "bg-zinc-100 text-black border-zinc-100" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
-                           )}
-                         >
-                           All Languages
-                         </button>
-                         {languages.map(l => (
-                           <button
-                             key={l}
-                             onClick={() => setLangFilter(l)}
-                             className={cn(
-                               "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
-                               langFilter === l ? "bg-zinc-100 text-black border-zinc-100" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
-                             )}
-                           >
-                             {l}
-                           </button>
-                         ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                  <ScrollArea className="h-64">
-                    <div className="p-2 space-y-1">
-                      {filteredEditions.map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => setLocalSettings(prev => ({ ...prev, preferredTranslationId: t.id }))}
-                          className={cn(
-                            "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group",
-                            localSettings.preferredTranslationId === t.id ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:bg-zinc-900"
-                          )}
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold">{t.name}</span>
-                            <span className="text-[9px] text-zinc-500">{t.language}</span>
-                          </div>
-                          {localSettings.preferredTranslationId === t.id && <CheckCircle2 className="w-4 h-4" />}
-                        </button>
-                      ))}
-                      {filteredEditions.length === 0 && (
-                        <div className="py-12 text-center text-[10px] font-black uppercase tracking-widest text-zinc-700">
-                          No matching editions
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-            </CardContent>
-          </Card>
-
+        <div className="space-y-6">
           <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
@@ -289,7 +251,7 @@ export default function QuranSettingsPage() {
                     className={cn(
                       "flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all",
                       localSettings.ayatFrameId === frame.id 
-                        ? "bg-zinc-900 border-zinc-500" 
+                        ? "bg-zinc-900 border-zinc-500 shadow-lg" 
                         : "bg-zinc-950 border-zinc-900 hover:border-zinc-700"
                     )}
                   >
@@ -297,51 +259,19 @@ export default function QuranSettingsPage() {
                     <span className="text-[8px] font-black uppercase text-zinc-600 tracking-tight">{frame.name}</span>
                   </button>
                 ))}
-                {customFrames.map((frame: any) => (
-                  <button
-                    key={frame.id}
-                    onClick={() => setLocalSettings(prev => ({ ...prev, ayatFrameId: frame.id }))}
-                    className={cn(
-                      "flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all",
-                      localSettings.ayatFrameId === frame.id 
-                        ? "bg-zinc-900 border-zinc-500" 
-                        : "bg-zinc-950 border-zinc-900 hover:border-zinc-700"
-                    )}
-                  >
-                    <AyatFrame 
-                      number={7} 
-                      customPath={frame.path} 
-                      customImageUrl={frame.imageUrl}
-                      size="sm" 
-                    />
-                    <span className="text-[8px] font-black uppercase text-zinc-600 tracking-tight truncate w-full px-1">{frame.name}</span>
-                  </button>
-                ))}
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="space-y-6">
           <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl sticky top-32">
             <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                  <Sparkles className="w-3 h-3" />
-                  Live Preview
-                </CardTitle>
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                <Sparkles className="w-3 h-3" />
+                Live Preview
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-8 space-y-10">
               <div className="space-y-6">
-                <p 
-                  className="text-right font-arabic leading-relaxed text-zinc-100 transition-all duration-300" 
-                  style={{ fontSize: `${localSettings.arabicFontSize}px` }}
-                  dir="rtl"
-                >
-                  بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
-                </p>
                 <p 
                   className="text-right font-arabic leading-relaxed text-zinc-100 transition-all duration-300" 
                   style={{ fontSize: `${localSettings.arabicFontSize}px` }}
@@ -352,33 +282,16 @@ export default function QuranSettingsPage() {
                     <AyatFrame 
                       number={2} 
                       frameId={localSettings.ayatFrameId} 
-                      customPath={appSettings?.savedCustomFrames?.find((f: any) => f.id === localSettings.ayatFrameId)?.path}
-                      customImageUrl={appSettings?.savedCustomFrames?.find((f: any) => f.id === localSettings.ayatFrameId)?.imageUrl}
                       size="md"
                     />
                   </span>
                 </p>
                 <p 
-                  className={cn(
-                    "font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left",
-                    currentEdition?.type === 'transliteration' ? "text-zinc-500" : "text-zinc-400"
-                  )}
+                  className="font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left text-zinc-400"
                   style={{ fontSize: `${localSettings.translationFontSize}px` }}
                 >
                   {currentEdition?.type === 'transliteration' ? 'al-ḥamdu lillāhi rabbi l-ʿālamīn' : '[All] praise is [due] to Allah, Lord of the worlds -'}
                 </p>
-              </div>
-
-              <div className="h-px bg-zinc-900 w-full" />
-
-              <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                 <div className="w-12 h-12 bg-zinc-900/50 rounded-full flex items-center justify-center border border-zinc-900">
-                    <BookOpen className="w-6 h-6 text-zinc-700" />
-                 </div>
-                 <div className="space-y-1">
-                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Reading Context</p>
-                   <p className="text-xs text-zinc-500 font-medium italic">Previewing {currentEdition?.englishName}, Verse 2</p>
-                 </div>
               </div>
             </CardContent>
           </Card>
