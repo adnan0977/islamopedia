@@ -1,11 +1,10 @@
-
 {
   "entities": {
     "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user's profile information and personalized settings within the VlogNest application. Authentication details are managed externally.",
+      "description": "Represents a user's profile information and personalized settings within the VlogNest application.",
       "properties": {
         "id": {
           "type": "string",
@@ -13,31 +12,27 @@
         },
         "youtubeChannelId": {
           "type": "string",
-          "description": "Reference to the user's primary linked YouTubeChannel, if connected. (Relationship: UserProfile 1:1 YouTubeChannel)"
+          "description": "Reference to the user's primary linked YouTubeChannel, if connected."
         },
         "favoriteVideoIds": {
           "type": "array",
-          "description": "References to YouTubeVideo entities the user has marked as favorites. (Relationship: UserProfile N:N YouTubeVideo)",
           "items": {
             "type": "string"
           }
         },
         "namazLocation": {
           "type": "string",
-          "description": "The user's location used for calculating Namaz timings, e.g., 'London, UK' or coordinates."
+          "description": "The user's location used for calculating Namaz timings."
         },
         "hijriAdjustment": {
-          "type": "number",
-          "description": "An optional integer adjustment value (e.g., +/- days) for the Hijri calendar, adapting to local conventions."
+          "type": "number"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was last updated.",
           "format": "date-time"
         }
       },
@@ -47,508 +42,113 @@
       ]
     },
     "YouTubeChannel": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "YouTubeChannel",
       "type": "object",
-      "description": "Represents a YouTube channel, either linked by a user or discovered within the app.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the YouTubeChannel entity, typically the official YouTube Channel ID."
-        },
-        "title": {
-          "type": "string",
-          "description": "The display name of the YouTube channel."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of the YouTube channel."
-        },
-        "thumbnailUrl": {
-          "type": "string",
-          "description": "URL of the channel's thumbnail image.",
-          "format": "uri"
-        },
-        "externalUrl": {
-          "type": "string",
-          "description": "Direct URL to the YouTube channel on youtube.com.",
-          "format": "uri"
-        },
-        "subscribersCount": {
-          "type": "number",
-          "description": "The number of subscribers the channel has."
-        },
-        "videoCount": {
-          "type": "number",
-          "description": "The total number of videos published by the channel."
-        },
-        "viewCount": {
-          "type": "number",
-          "description": "The total view count across all videos for the channel."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the channel information was first recorded or imported into VlogNest.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the channel information was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnailUrl": { "type": "string", "format": "uri" },
+        "externalUrl": { "type": "string", "format": "uri" },
+        "subscribersCount": { "type": "number" },
+        "videoCount": { "type": "number" },
+        "viewCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "title",
-        "thumbnailUrl",
-        "externalUrl"
-      ]
+      "required": ["id", "title", "thumbnailUrl", "externalUrl"]
     },
     "YouTubeVideo": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "YouTubeVideo",
       "type": "object",
-      "description": "Represents a YouTube video, including metadata, AI-generated insights, and its relationship to channels and users.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the YouTubeVideo entity, typically the official YouTube Video ID."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the YouTube video."
-        },
-        "description": {
-          "type": "string",
-          "description": "The original description of the YouTube video."
-        },
-        "thumbnailUrl": {
-          "type": "string",
-          "description": "URL of the video's thumbnail image.",
-          "format": "uri"
-        },
-        "externalUrl": {
-          "type": "string",
-          "description": "Direct URL to the YouTube video on youtube.com.",
-          "format": "uri"
-        },
-        "duration": {
-          "type": "string",
-          "description": "The duration of the video (e.g., ISO 8601 format like 'PT1M3S')."
-        },
-        "publishedAt": {
-          "type": "string",
-          "description": "The date and time the video was published on YouTube.",
-          "format": "date-time"
-        },
-        "channelId": {
-          "type": "string",
-          "description": "Reference to the YouTubeChannel this video belongs to. (Relationship: YouTubeChannel 1:N YouTubeVideo)"
-        },
-        "uploadedByUserId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who uploaded or imported this video into VlogNest. (Relationship: UserProfile 1:N YouTubeVideo)"
-        },
-        "speakerIds": {
-          "type": "array",
-          "description": "References to Speaker entities associated with this video. (Relationship: Speaker N:N YouTubeVideo)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "youtubeViewCount": {
-          "type": "number",
-          "description": "The number of views the video has on YouTube."
-        },
-        "appViewCount": {
-          "type": "number",
-          "description": "The number of views recorded within the VlogNest application."
-        },
-        "likeCount": {
-          "type": "number",
-          "description": "The number of likes the video has on YouTube."
-        },
-        "commentCount": {
-          "type": "number",
-          "description": "The number of comments the video has on YouTube."
-        },
-        "aiGeneratedTitle": {
-          "type": "string",
-          "description": "An AI-generated title suggestion for the video, enhancing discoverability."
-        },
-        "aiGeneratedDescription": {
-          "type": "string",
-          "description": "An AI-generated description suggestion for the video, providing creative content."
-        },
-        "aiCategoryIds": {
-          "type": "array",
-          "description": "References to Category entities automatically generated by AI for this video. (Relationship: YouTubeVideo N:N Category)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "aiTagIds": {
-          "type": "array",
-          "description": "References to Tag entities automatically generated by AI for this video. (Relationship: YouTubeVideo N:N Tag)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "isTrending": {
-          "type": "boolean",
-          "description": "Flag indicating if the video is currently considered trending within the application."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the video information was first recorded or imported.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the video information was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnailUrl": { "type": "string", "format": "uri" },
+        "externalUrl": { "type": "string", "format": "uri" },
+        "duration": { "type": "string" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "channelId": { "type": "string" },
+        "uploadedByUserId": { "type": "string" },
+        "speakerIds": { "type": "array", "items": { "type": "string" } },
+        "youtubeViewCount": { "type": "number" },
+        "appViewCount": { "type": "number" },
+        "likeCount": { "type": "number" },
+        "isTrending": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "thumbnailUrl",
-        "externalUrl",
-        "duration",
-        "publishedAt",
-        "channelId"
-      ]
+      "required": ["id", "title", "thumbnailUrl", "externalUrl", "channelId"]
     },
-    "Speaker": {
+    "QuranTranslation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Speaker",
+      "title": "QuranTranslation",
       "type": "object",
-      "description": "Represents a speaker or reciter associated with videos.",
+      "description": "Represents an activated Quran translation edition.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Speaker entity."
+          "description": "The unique identifier of the translation edition (e.g., 'en.sahih')."
         },
         "name": {
           "type": "string",
-          "description": "The name of the speaker."
+          "description": "The full name of the translation."
         },
-        "bio": {
+        "language": {
           "type": "string",
-          "description": "A brief biography of the speaker."
+          "description": "The language name (e.g., 'English')."
         },
-        "profileImageUrl": {
+        "languageCode": {
           "type": "string",
-          "description": "URL of the speaker's profile image.",
-          "format": "uri"
+          "description": "The language code (e.g., 'en')."
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "isActive": {
+          "type": "boolean"
         }
       },
-      "required": [
-        "id",
-        "name"
-      ]
-    },
-    "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Category",
-      "type": "object",
-      "description": "Represents a category, often AI-generated or curated, used to classify YouTube videos.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Category entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the category (e.g., 'Islamic Lecture', 'Quran Recitation')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of what this category entails."
-        }
-      },
-      "required": [
-        "id",
-        "name"
-      ]
-    },
-    "Tag": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Tag",
-      "type": "object",
-      "description": "Represents a tag, often AI-generated or curated, used to keyword YouTube videos for searchability.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Tag entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the tag (e.g., 'Jannah', 'ProphetMuhammad', 'Dua')."
-        }
-      },
-      "required": [
-        "id",
-        "name"
-      ]
-    },
-    "QuranSurah": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "QuranSurah",
-      "type": "object",
-      "description": "Represents a Surah (chapter) from the Holy Quran, containing metadata about the chapter.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the QuranSurah entity (e.g., '1', '18').",
-          "format": "uuid"
-        },
-        "number": {
-          "type": "number",
-          "description": "The official surah number (1 to 114)."
-        },
-        "nameArabic": {
-          "type": "string",
-          "description": "The name of the Surah in Arabic script."
-        },
-        "nameEnglish": {
-          "type": "string",
-          "description": "The name of the Surah in English."
-        },
-        "revelationPlace": {
-          "type": "string",
-          "description": "The place where the Surah was revealed (e.g., 'Makkah', 'Madinah')."
-        },
-        "numberOfAyahs": {
-          "type": "number",
-          "description": "The total number of Ayahs (verses) in this Surah."
-        },
-        "defaultAudioUrl": {
-          "type": "string",
-          "description": "URL for a default full Surah recitation, if available.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id",
-        "number",
-        "nameArabic",
-        "nameEnglish",
-        "revelationPlace",
-        "numberOfAyahs"
-      ]
-    },
-    "QuranAyah": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "QuranAyah",
-      "type": "object",
-      "description": "Represents an Ayah (verse) from the Holy Quran, including its text, translations, and audio.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the QuranAyah entity (e.g., '1:1' for Surah 1, Ayah 1)."
-        },
-        "surahId": {
-          "type": "string",
-          "description": "Reference to the QuranSurah this Ayah belongs to. (Relationship: QuranSurah 1:N QuranAyah)"
-        },
-        "ayahNumber": {
-          "type": "number",
-          "description": "The number of the Ayah within its Surah."
-        },
-        "textArabic": {
-          "type": "string",
-          "description": "The original Arabic text of the Ayah."
-        },
-        "textTranslation": {
-          "type": "string",
-          "description": "A primary translation of the Ayah's text."
-        },
-        "translationLanguage": {
-          "type": "string",
-          "description": "The language of the `textTranslation` (e.g., 'en' for English)."
-        },
-        "audioUrl": {
-          "type": "string",
-          "description": "URL for the audio recitation of this specific Ayah.",
-          "format": "uri"
-        },
-        "transcription": {
-          "type": "string",
-          "description": "A phonetic or transliterated transcription of the Ayah."
-        },
-        "isTodaysAyah": {
-          "type": "boolean",
-          "description": "Flag indicating if this Ayah is currently featured as 'Today's Ayah'."
-        },
-        "aiImportanceScore": {
-          "type": "number",
-          "description": "An AI-generated score indicating the importance or relevance of the Ayah for dynamic selection."
-        }
-      },
-      "required": [
-        "id",
-        "surahId",
-        "ayahNumber",
-        "textArabic",
-        "textTranslation",
-        "translationLanguage",
-        "audioUrl"
-      ]
-    },
-    "UserCustomIndex": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserCustomIndex",
-      "type": "object",
-      "description": "Represents a personalized content index created by AI for each user, adapting to their viewing patterns.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserCustomIndex entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile this custom index belongs to. (Relationship: UserProfile 1:1 UserCustomIndex)"
-        },
-        "indexedVideoIds": {
-          "type": "array",
-          "description": "References to YouTubeVideo entities included in this user's personalized index. (Relationship: UserCustomIndex N:N YouTubeVideo)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "lastUpdated": {
-          "type": "string",
-          "description": "Timestamp when the custom index was last regenerated or updated.",
-          "format": "date-time"
-        },
-        "algorithmVersion": {
-          "type": "string",
-          "description": "Identifier for the version of the AI algorithm used to create the index."
-        },
-        "preferencesApplied": {
-          "type": "string",
-          "description": "Description or summary of user preferences and viewing patterns used for generating the index."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "indexedVideoIds",
-        "lastUpdated"
-      ]
+      "required": ["id", "name", "language", "languageCode"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information, private to each user. Authorization is path-based: `request.auth.uid` must match `{userId}`."
-        }
-      },
-      {
-        "path": "/users/{userId}/custom_index",
-        "definition": {
-          "entityName": "UserCustomIndex",
-          "schema": {
-            "$ref": "#/backend/entities/UserCustomIndex"
-          },
-          "description": "Stores a personalized content index for each user, private to them. Authorization is path-based: `request.auth.uid` must match `{userId}`. Includes denormalized `userId` field for robust rule validation."
+          "entityName": "UserProfile"
         }
       },
       {
         "path": "/channels/{channelId}",
         "definition": {
-          "entityName": "YouTubeChannel",
-          "schema": {
-            "$ref": "#/backend/entities/YouTubeChannel"
-          },
-          "description": "Stores information about YouTube channels, accessible for browsing by all authenticated users. Write access is restricted to administrators only."
+          "entityName": "YouTubeChannel"
         }
       },
       {
         "path": "/videos/{videoId}",
         "definition": {
-          "entityName": "YouTubeVideo",
-          "schema": {
-            "$ref": "#/backend/entities/YouTubeVideo"
-          },
-          "description": "Stores YouTube video metadata. Readable by all authenticated users (and potentially unauthenticated for public features like trending videos). Write access is granted to administrators or to the user specified in the denormalized `uploadedByUserId` field, ensuring Authorization Independence for user-uploaded content."
+          "entityName": "YouTubeVideo"
         }
       },
       {
-        "path": "/speakers/{speakerId}",
+        "path": "/quran_translations/{translationId}",
         "definition": {
-          "entityName": "Speaker",
-          "schema": {
-            "$ref": "#/backend/entities/Speaker"
-          },
-          "description": "Stores information about speakers or reciters. Publicly readable, admin writable."
-        }
-      },
-      {
-        "path": "/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": {
-            "$ref": "#/backend/entities/Category"
-          },
-          "description": "Stores global categories for videos. Readable by all authenticated users. Write access is restricted to administrators."
-        }
-      },
-      {
-        "path": "/tags/{tagId}",
-        "definition": {
-          "entityName": "Tag",
-          "schema": {
-            "$ref": "#/backend/entities/Tag"
-          },
-          "description": "Stores global tags for videos. Readable by all authenticated users. Write access is restricted to administrators."
-        }
-      },
-      {
-        "path": "/quran_surahs/{surahId}",
-        "definition": {
-          "entityName": "QuranSurah",
-          "schema": {
-            "$ref": "#/backend/entities/QuranSurah"
-          },
-          "description": "Stores metadata for Quranic Surahs. Readable by all users (authenticated and unauthenticated). Write access is restricted to administrators."
-        }
-      },
-      {
-        "path": "/quran_surahs/{surahId}/ayats/{ayahId}",
-        "definition": {
-          "entityName": "QuranAyah",
-          "schema": {
-            "$ref": "#/backend/entities/QuranAyah"
-          },
-          "description": "Stores detailed information for Quranic Ayats. Readable by all users (authenticated and unauthenticated). Write access is restricted to administrators."
+          "entityName": "QuranTranslation",
+          "description": "Stores activated Quran translations. Publicly readable, admin writable."
         }
       },
       {
         "path": "/roles_admin/{adminId}",
         "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Manages administrator roles. A document's existence with `adminId` matching `request.auth.uid` grants administrative privileges. Read access is restricted to the admin themselves (for rule evaluation); write access is highly restricted to privileged operations (e.g., Cloud Function)."
+          "entityName": "UserProfile"
         }
       }
-    ],
-    "reasoning": "The structure maintains strict Authorization Independence and Structural Segregation. Speakers are top-level and public, while video ownership remains verified via denormalized owner IDs."
+    ]
   }
 }

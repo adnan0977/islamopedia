@@ -4,14 +4,24 @@ import { useEffect, useState } from 'react';
 import { getQuranSurahs, getSurahDetails } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, History, MapPin } from 'lucide-react';
+import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, MapPin, Languages } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-context-flow';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function QuranPage() {
+  const db = useFirestore();
   const [surahs, setSurahs] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -19,6 +29,11 @@ export default function QuranPage() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [playingAyat, setPlayingAyat] = useState<number | null>(null);
   
+  // Translation State
+  const translationsRef = useMemoFirebase(() => collection(db, 'quran_translations'), [db]);
+  const { data: activatedTranslations } = useCollection(translationsRef);
+  const [selectedEdition, setSelectedEdition] = useState<string>('en.sahih');
+
   // AI Context State
   const [aiContext, setAiContext] = useState<SurahContextOutput | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
@@ -32,11 +47,18 @@ export default function QuranPage() {
     init();
   }, []);
 
+  // Update surah content if translation changes
+  useEffect(() => {
+    if (selectedSurah) {
+      selectSurah(selectedSurah.info.number);
+    }
+  }, [selectedEdition]);
+
   const selectSurah = async (id: number) => {
     setLoadingDetails(true);
     setAiContext(null);
     try {
-      const data = await getSurahDetails(id);
+      const data = await getSurahDetails(id, selectedEdition);
       const surahInfo = surahs.find(s => s.number === id);
       setSelectedSurah({
         info: surahInfo,
@@ -45,7 +67,6 @@ export default function QuranPage() {
         audio: data.data[2].ayahs
       });
       
-      // Auto-fetch AI context
       fetchAiContext(id, surahInfo.englishName);
     } catch (error) {
       console.error(error);
@@ -90,14 +111,31 @@ export default function QuranPage() {
             <p className="text-zinc-500 text-xs md:text-sm">Read, listen, and contemplate the Word of Allah.</p>
           </div>
         </div>
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
-            placeholder="Search Surah..." 
-            className="pl-10 bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+          {activatedTranslations && activatedTranslations.length > 0 && (
+            <div className="w-full md:w-56">
+              <Select value={selectedEdition} onValueChange={setSelectedEdition}>
+                <SelectTrigger className="bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white">
+                  <Languages className="w-4 h-4 mr-2 text-zinc-500" />
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-950 border-zinc-800">
+                  {activatedTranslations.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.language})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+            <Input 
+              placeholder="Search Surah..." 
+              className="pl-10 bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -40,7 +39,8 @@ import {
   Upload as UploadIcon,
   X,
   Smartphone,
-  Globe
+  Globe,
+  Languages
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -106,8 +106,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { getAvailableTranslations } from '@/lib/api';
 
-type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran';
+type AdminTab = 'dashboard' | 'channels' | 'videos' | 'speakers' | 'quran' | 'translations';
 
 export default function AdminPanel() {
   const { user, isUserLoading } = useUser();
@@ -131,8 +132,8 @@ export default function AdminPanel() {
   const speakersRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'speakers') : null), [db, isVerifiedAdmin]);
   const { data: speakers } = useCollection(speakersRef);
 
-  const surahsRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'quran_surahs') : null), [db, isVerifiedAdmin]);
-  const { data: surahs } = useCollection(surahsRef);
+  const translationsRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'quran_translations') : null), [db, isVerifiedAdmin]);
+  const { data: translations } = useCollection(translationsRef);
 
   const copyUid = () => {
     if (user?.uid) {
@@ -224,7 +225,7 @@ export default function AdminPanel() {
                     { id: 'channels', label: 'Channels', icon: Youtube },
                     { id: 'videos', label: 'Video Catalog', icon: VideoIcon },
                     { id: 'speakers', label: 'Scholars', icon: Mic2 },
-                    { id: 'quran', label: 'Quran Content', icon: Book },
+                    { id: 'translations', label: 'Translations', icon: Languages },
                   ].map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton 
@@ -263,7 +264,7 @@ export default function AdminPanel() {
                {activeTab === 'channels' && 'YouTube Channels'}
                {activeTab === 'videos' && 'Video Catalog'}
                {activeTab === 'speakers' && 'Scholar Management'}
-               {activeTab === 'quran' && 'Quranic Metadata'}
+               {activeTab === 'translations' && 'Quran Translations'}
              </h2>
              <div className="flex items-center gap-4">
                <Button variant="outline" size="sm" className="rounded-xl px-4 h-10 font-bold border-zinc-800 hover:bg-zinc-900 text-white" onClick={() => window.location.href = '/'}>Live Site</Button>
@@ -275,11 +276,157 @@ export default function AdminPanel() {
             {activeTab === 'channels' && <ChannelManagement channels={channels || []} existingVideos={videos || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} channels={channels || []} speakers={speakers || []} />}
             {activeTab === 'speakers' && <SpeakerManagement speakers={speakers || []} />}
-            {activeTab === 'quran' && <QuranManagement surahs={surahs || []} />}
+            {activeTab === 'translations' && <TranslationManagement translations={translations || []} />}
           </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+function TranslationManagement({ translations }: { translations: any[] }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [available, setAvailable] = useState<any[]>([]);
+  const [openAdd, setOpenAdd] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const fetchAvailable = async () => {
+    setLoading(true);
+    try {
+      const data = await getAvailableTranslations();
+      setAvailable(data.data || []);
+    } catch (e) {
+      toast({ variant: "destructive", title: "API Error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (openAdd && available.length === 0) {
+      fetchAvailable();
+    }
+  }, [openAdd]);
+
+  const toggleTranslation = (edition: any) => {
+    const existing = translations.find(t => t.id === edition.identifier);
+    if (existing) {
+      deleteDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier));
+      toast({ title: "Translation Removed" });
+    } else {
+      setDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier), {
+        id: edition.identifier,
+        name: edition.name,
+        language: edition.language,
+        languageCode: edition.language, // API uses language field for the code sometimes, or name for display. 
+        isActive: true,
+        isDefault: translations.length === 0
+      }, { merge: true });
+      toast({ title: "Translation Activated" });
+    }
+  };
+
+  const filtered = available.filter(a => 
+    a.name.toLowerCase().includes(search.toLowerCase()) || 
+    a.language.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-2xl border border-zinc-900">
+        <div className="space-y-1">
+          <h3 className="font-bold text-lg text-white">Language Management</h3>
+          <p className="text-xs text-zinc-500 font-medium">Control which translation editions are available on the Quran page.</p>
+        </div>
+        <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+          <DialogTrigger asChild>
+            <Button className="rounded-xl h-11 px-6 font-bold bg-white text-black hover:bg-zinc-200 flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Activate New Translation
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 h-[80vh] flex flex-col">
+            <DialogHeader className="p-6 border-b border-zinc-800 shrink-0">
+              <DialogTitle className="text-white font-bold text-xl">Available Editions</DialogTitle>
+              <div className="mt-4 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Input 
+                  placeholder="Search by language or name..." 
+                  className="pl-10 bg-zinc-900 border-zinc-800 text-white rounded-xl"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </DialogHeader>
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-6">
+                  {loading ? (
+                    <div className="flex justify-center p-12"><Loader2 className="animate-spin text-zinc-500" /></div>
+                  ) : (
+                    <div className="grid gap-2">
+                      {filtered.map((item) => {
+                        const isActivated = translations.some(t => t.id === item.identifier);
+                        return (
+                          <div key={item.identifier} className="flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors">
+                            <div className="flex flex-col">
+                              <span className="text-white font-bold text-sm">{item.name}</span>
+                              <span className="text-zinc-500 text-[10px] uppercase font-black tracking-widest">{item.language} • {item.identifier}</span>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant={isActivated ? "destructive" : "secondary"}
+                              className="rounded-xl font-bold"
+                              onClick={() => toggleTranslation(item)}
+                            >
+                              {isActivated ? <Trash2 className="w-4 h-4" /> : 'Activate'}
+                            </Button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-2xl shadow-xl">
+        <Table>
+          <TableHeader className="bg-zinc-900/50">
+            <TableRow className="border-zinc-900">
+              <TableHead className="text-[10px] font-black uppercase tracking-widest py-5 text-zinc-500">Edition Name</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Language</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Identifier</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {translations.map((t) => (
+              <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-20">
+                <TableCell className="font-bold text-white">{t.name}</TableCell>
+                <TableCell className="text-zinc-500 font-medium">{t.language}</TableCell>
+                <TableCell className="text-zinc-500 font-mono text-xs">{t.id}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_translations', t.id))} className="text-destructive hover:bg-destructive/10 rounded-xl">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {translations.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="h-40 text-center text-zinc-600 italic font-medium">No translations activated yet.</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
 
@@ -396,7 +543,7 @@ function ThumbnailSelector({
         onChange={handleFileUpload} 
       />
 
-      <Dialog galleryOpen={galleryOpen} onOpenChange={setGalleryOpen}>
+      <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
         <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 overflow-hidden flex flex-col h-[70vh]">
           <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
             <DialogTitle className="text-xl font-bold text-white">System Gallery</DialogTitle>
@@ -1742,48 +1889,5 @@ function DeleteConfirm({ onConfirm, trigger, title, description }: { onConfirm: 
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-}
-
-function QuranManagement({ surahs }: { surahs: any[] }) {
-  const db = useFirestore();
-  const { toast } = useToast();
-  
-  return (
-    <div className="space-y-8">
-      <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
-        <h3 className="font-bold text-lg mb-1 text-white">Quranic Metadata</h3>
-        <p className="text-xs text-zinc-500 font-medium">Review verified Quranic content stored in Firestore.</p>
-      </div>
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-2xl shadow-xl">
-        <Table>
-          <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-zinc-900">
-              <TableHead className="w-20 text-[10px] font-black uppercase tracking-widest py-5 text-zinc-500">No.</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">English Identity</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Arabic Script</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Ayahs</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500">Management</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {surahs.sort((a,b) => a.number - b.number).map((surah) => (
-              <TableRow key={surah.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-20">
-                <TableCell className="font-black text-xl text-white opacity-50">{surah.number}</TableCell>
-                <TableCell className="font-bold text-base text-white">{surah.nameEnglish}</TableCell>
-                <TableCell className="font-arabic text-2xl text-white">{surah.nameArabic}</TableCell>
-                <TableCell className="text-zinc-500 font-bold">{surah.numberOfAyahs} Verses</TableCell>
-                <TableCell className="text-right">
-                   <DeleteConfirm onConfirm={() => {
-                     deleteDocumentNonBlocking(doc(db, 'quran_surahs', surah.id));
-                     toast({ title: "Surah Metadata Removed" });
-                   }} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-    </div>
   );
 }

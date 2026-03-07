@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -10,13 +9,18 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // Public Content: Open access for browsing
+    // Public Content
     match /videos/{videoId} {
       allow read, list: if true;
       allow write: if isAdmin();
     }
 
     match /channels/{channelId} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+
+    match /quran_translations/{translationId} {
       allow read, list: if true;
       allow write: if isAdmin();
     }
@@ -35,23 +39,9 @@ service cloud.firestore {
       }
     }
 
-    match /categories/{categoryId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /tags/{tagId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
-    }
-
     // User-specific data
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
-      
-      match /custom_index/{indexId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
-      }
     }
 
     // Roles management
