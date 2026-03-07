@@ -30,6 +30,24 @@ To upload this project to your `quranproject` repository:
     git push -u origin main
     ```
 
+## Development Workflow
+
+When working on new features, it's best practice to use branches:
+
+1.  **Create a new branch**:
+    ```bash
+    git checkout -b feature/my-new-feature
+    ```
+2.  **Stage and Commit**:
+    ```bash
+    git add .
+    git commit -m "Description of changes"
+    ```
+3.  **Push the branch**:
+    ```bash
+    git push origin feature/my-new-feature
+    ```
+
 ## Development
 
 Run the development server:
