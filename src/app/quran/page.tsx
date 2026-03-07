@@ -37,20 +37,17 @@ export default function QuranPage() {
   const [selectedPageData, setSelectedPageData] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [playingAyat, setPlayingAyat] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('page');
+  const [viewMode, setViewMode] = useState('page' as ViewMode);
   const [isUsingIndexedData, setIsUsingIndexedData] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
-  // User Profile for Persistence
   const userProfileRef = useMemoFirebase(() => (user ? doc(db, 'users', user.uid) : null), [db, user]);
   const { data: userProfile } = useDoc(userProfileRef);
 
-  // Translation State from Database
   const translationsRef = useMemoFirebase(() => collection(db, 'quran_translations'), [db]);
-  const { data: activatedTranslations, isLoading: isTranslationsLoading } = useCollection(translationsRef);
+  const { data: activatedTranslations } = useCollection(translationsRef);
   const [selectedEdition, setSelectedEdition] = useState<string>('en.sahih');
 
-  // Load initial settings from User Profile or activated translations
   useEffect(() => {
     if (userProfile?.lastReadPage) {
       setCurrentPage(userProfile.lastReadPage);
@@ -89,7 +86,6 @@ export default function QuranPage() {
     setIsUsingIndexedData(false);
     
     try {
-      // Database-First: Try to get indexed content from Firestore
       const indexedDocRef = doc(db, 'quran_pages', `${selectedEdition}_${page}`);
       const indexedDocSnap = await getDoc(indexedDocRef);
       
@@ -103,12 +99,11 @@ export default function QuranPage() {
         });
         setIsUsingIndexedData(true);
       } else {
-        // Fallback: Fetch from API if not indexed
         const data = await getPageDetails(page, selectedEdition);
         
         if (data && data.data && Array.isArray(data.data)) {
-          const ayahs = data.data[0]?.ayahs || []; // Arabic base
-          const translation = data.data[1]?.ayahs || []; // Translation
+          const ayahs = data.data[0]?.ayahs || [];
+          const translation = data.data[1]?.ayahs || [];
 
           setSelectedPageData({
             number: page,
@@ -377,7 +372,7 @@ export default function QuranPage() {
                       {groupedAyats.map((group) => (
                         <div key={group.surah.number} className="space-y-10">
                           <div className="flex items-center gap-4 border-b border-zinc-900 pb-4">
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">Surah {group.surah.englishName}</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">Surah {group.surah.number}. {group.surah.englishName}</span>
                             <div className="flex-1 h-px bg-zinc-900" />
                           </div>
                           {group.ayats.map((ayat: any) => (
@@ -386,27 +381,8 @@ export default function QuranPage() {
                                   <div className="flex md:flex-col gap-4 shrink-0">
                                     <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col items-center justify-center text-[8px] font-black text-zinc-600">
                                       <span className="leading-none">{ayat.numberInSurah}</span>
-                                      <span className="text-[6px] opacity-40 mt-1">PAGE {currentPage}</span>
+                                      <span className="text-[6px] opacity-40 mt-1 uppercase">Page {currentPage}</span>
                                     </div>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 rounded-2xl border border-zinc-900 transition-all"
-                                      onClick={() => {
-                                          if (isUsingIndexedData || !selectedPageData?.audio?.[ayat.originalIdx]) return;
-                                          const audioUrl = selectedPageData.audio[ayat.originalIdx].audio;
-                                          const audio = new Audio(audioUrl);
-                                          if (playingAyat === ayat.number) {
-                                            setPlayingAyat(null);
-                                          } else {
-                                            setPlayingAyat(ayat.number);
-                                            audio.play();
-                                            audio.onended = () => setPlayingAyat(null);
-                                          }
-                                      }}
-                                    >
-                                      {playingAyat === ayat.number ? <Loader2 className="animate-spin w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                    </Button>
                                   </div>
                                   <p className="flex-1 text-right text-3xl md:text-5xl font-arabic leading-[1.8] text-zinc-100">
                                     {ayat.text}

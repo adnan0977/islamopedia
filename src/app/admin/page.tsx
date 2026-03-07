@@ -300,18 +300,6 @@ export default function AdminPanel() {
                   {activeTab === 'speakers' && 'Scholar Management'}
                   {activeTab === 'translations' && 'Quran Tools Hub'}
                 </h2>
-
-                <Menubar className="bg-transparent border-none shadow-none hidden lg:flex">
-                  <MenubarMenu>
-                    <MenubarTrigger className="text-zinc-400 focus:bg-zinc-900 focus:text-white data-[state=open]:bg-zinc-900 data-[state=open]:text-white cursor-pointer font-bold px-4 rounded-xl transition-colors">
-                      Studio
-                    </MenubarTrigger>
-                    <MenubarContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
-                      <MenubarItem onClick={() => setActiveTab('channels')} className="focus:bg-zinc-900">Link Channels</MenubarItem>
-                      <MenubarItem onClick={() => setActiveTab('videos')} className="focus:bg-zinc-900">Video Indexing</MenubarItem>
-                    </MenubarContent>
-                  </MenubarMenu>
-                </Menubar>
              </div>
 
              <div className="flex items-center gap-4">
@@ -869,11 +857,39 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     return Array.from(set).sort();
   }, [available]);
 
+  const handleDeleteTranslation = async (id: string) => {
+    // 1. Delete the translation record
+    deleteDocumentNonBlocking(doc(db, 'quran_translations', id));
+
+    // 2. Cascade delete all 604 indexed pages in batches
+    toast({ title: "Removing Translation", description: "Cleaning up indexed pages..." });
+    
+    try {
+      // First batch (1-500)
+      const batch1 = writeBatch(db);
+      for (let p = 1; p <= 500; p++) {
+        batch1.delete(doc(db, 'quran_pages', `${id}_${p}`));
+      }
+      await batch1.commit();
+
+      // Second batch (501-604)
+      const batch2 = writeBatch(db);
+      for (let p = 501; p <= 604; p++) {
+        batch2.delete(doc(db, 'quran_pages', `${id}_${p}`));
+      }
+      await batch2.commit();
+      
+      toast({ title: "Deletion Complete", description: "Translation and all cached pages removed." });
+    } catch (e: any) {
+      console.error("Cleanup error:", e);
+      toast({ variant: "destructive", title: "Cleanup Error", description: "Some pages might not have been removed." });
+    }
+  };
+
   const toggleTranslation = (edition: any) => {
     const existing = translations.find(t => t.id === edition.identifier);
     if (existing) {
-      deleteDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier));
-      toast({ title: "Translation Removed" });
+      handleDeleteTranslation(edition.identifier);
     } else {
       setDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier), {
         id: edition.identifier,
@@ -986,7 +1002,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
                 <TableCell className="text-zinc-500 font-medium">{t.language}</TableCell>
                 <TableCell className="text-zinc-500 font-mono text-xs">{t.id}</TableCell>
                 <TableCell className="text-right pr-8">
-                  <Button variant="ghost" size="icon" onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_translations', t.id))} className="text-destructive hover:bg-destructive/10 rounded-xl">
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteTranslation(t.id)} className="text-destructive hover:bg-destructive/10 rounded-xl">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </TableCell>
@@ -1037,10 +1053,9 @@ function QuranIndexing({ translations }: { translations: any[] }) {
     try {
       for (let p = 1; p <= 604; p++) {
         setStatus(`Fetching Page ${p} of 604...`);
-        // Fetch combined data (Arabic + Translation) for indexing
         const data = await getPageDetails(p, selectedEdition);
         
-        if (!data || !data.data || !Array.isArray(data.data) || data.data.length < 2) {
+        if (!data || !data.data || !Array.isArray(data.data)) {
           throw new Error(`Invalid response for page ${p}. Check edition identifier.`);
         }
 
@@ -1048,7 +1063,6 @@ function QuranIndexing({ translations }: { translations: any[] }) {
         setDocumentNonBlocking(doc(db, 'quran_pages', pageId), {
           pageNumber: p,
           translationId: selectedEdition,
-          // Content now stores Arabic ayats [0] and Translation ayats [1]
           arabicContent: data.data[0]?.ayahs || [],
           translationContent: data.data[1]?.ayahs || [],
           updatedAt: new Date().toISOString()
@@ -1056,7 +1070,6 @@ function QuranIndexing({ translations }: { translations: any[] }) {
 
         setProgress((p / 604) * 100);
         
-        // Anti-throttle delay
         if (p % 20 === 0) {
            await new Promise(r => setTimeout(r, 200));
         }
@@ -1168,9 +1181,6 @@ function QuranIndexing({ translations }: { translations: any[] }) {
                   </p>
                 </div>
               ))}
-              <div className="text-center py-2">
-                <span className="text-[10px] font-black text-zinc-800 uppercase tracking-widest">Showing first 3 ayats for validation</span>
-              </div>
             </div>
           </ScrollArea>
         </Card>
@@ -1187,7 +1197,6 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
   const [loading, setLoading] = useState(false);
   const [indexedEditions, setIndexedEditions] = useState<string[]>([]);
 
-  // Find which translations have been indexed by checking page 1 existence
   useEffect(() => {
     async function findIndexed() {
       const indexed: string[] = [];
@@ -1235,9 +1244,6 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
                 {indexedList.map((t) => (
                   <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
                 ))}
-                {indexedList.length === 0 && (
-                  <SelectItem value="none" disabled>No indexed translations found</SelectItem>
-                )}
               </SelectContent>
             </Select>
           </div>
@@ -1298,12 +1304,6 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
                   </div>
                 </div>
               ))}
-              {(!pageData?.arabicContent || pageData.arabicContent.length === 0) && (
-                <div className="text-center py-12">
-                   <AlertCircle className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-                   <p className="text-zinc-500">No content found in this page record.</p>
-                </div>
-              )}
             </div>
           </div>
         ) : (
