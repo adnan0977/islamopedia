@@ -15,6 +15,17 @@ export async function getSurahDetails(id: number, translationEdition: string = '
   return res.json();
 }
 
+/**
+ * Fetches Quran content by page number with specific editions.
+ * @param pageNumber Page number (1-604)
+ * @param translationEdition The identifier of the translation edition (e.g., 'en.sahih')
+ */
+export async function getPageDetails(pageNumber: number, translationEdition: string = 'en.sahih') {
+  const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/editions/quran-uthmani,${translationEdition},ar.alafasy`);
+  if (!res.ok) throw new Error('Failed to fetch page details');
+  return res.json();
+}
+
 export async function getPrayerTimes(city: string, country: string) {
   const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${city}&country=${country}&method=2`);
   if (!res.ok) throw new Error('Failed to fetch prayer times');

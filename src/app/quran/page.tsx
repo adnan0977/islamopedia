@@ -1,11 +1,10 @@
-
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
-import { getQuranSurahs, getSurahDetails } from '@/lib/api';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { getQuranSurahs, getPageDetails } from '@/lib/api';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, MapPin, Languages, LayoutList, BookOpen, X } from 'lucide-react';
+import { Search, Book, Loader2, PlayCircle, PauseCircle, ArrowLeft, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -26,13 +25,14 @@ type ViewMode = 'ayat' | 'page';
 export default function QuranPage() {
   const db = useFirestore();
   const [surahs, setSurahs] = useState<any[]>([]);
-  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchPage, setSearchPage] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedSurah, setSelectedSurah] = useState<any>(null);
+  const [selectedPageData, setSelectedPageData] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [playingAyat, setPlayingAyat] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('ayat');
+  const [viewMode, setViewMode] = useState<ViewMode>('page');
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Translation State
@@ -41,9 +41,11 @@ export default function QuranPage() {
   const [selectedEdition, setSelectedEdition] = useState<string>('en.sahih');
 
   // Fallback translation if none activated
-  const displayTranslations = activatedTranslations && activatedTranslations.length > 0 
-    ? activatedTranslations 
-    : [{ id: 'en.sahih', name: 'Sahih International', language: 'English' }];
+  const displayTranslations = useMemo(() => {
+    return activatedTranslations && activatedTranslations.length > 0 
+      ? activatedTranslations 
+      : [{ id: 'en.sahih', name: 'Sahih International', language: 'English' }];
+  }, [activatedTranslations]);
 
   useEffect(() => {
     async function init() {
@@ -59,20 +61,27 @@ export default function QuranPage() {
     init();
   }, []);
 
-  const selectSurah = async (id: number) => {
+  const fetchPage = async (page: number) => {
     setLoadingDetails(true);
     setAiContext(null);
     try {
-      const data = await getSurahDetails(id, selectedEdition);
-      const surahInfo = surahs.find(s => s.number === id);
-      setSelectedSurah({
-        info: surahInfo,
-        ayats: data.data[0].ayahs,
-        translation: data.data[1].ayahs,
-        audio: data.data[2].ayahs
+      const data = await getPageDetails(page, selectedEdition);
+      const ayahs = data.data[0].ayahs;
+      const translation = data.data[1].ayahs;
+      const audio = data.data[2].ayahs;
+
+      setSelectedPageData({
+        number: page,
+        ayats: ayahs,
+        translation: translation,
+        audio: audio
       });
       
-      fetchAiContext(id, surahInfo.englishName);
+      // Determine the primary surah on this page for context
+      const primarySurah = ayahs[0]?.surah;
+      if (primarySurah) {
+        fetchAiContext(primarySurah.number, primarySurah.englishName);
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -81,10 +90,8 @@ export default function QuranPage() {
   };
 
   useEffect(() => {
-    if (selectedSurah) {
-      selectSurah(selectedSurah.info.number);
-    }
-  }, [selectedEdition]);
+    fetchPage(currentPage);
+  }, [currentPage, selectedEdition]);
 
   const fetchAiContext = async (number: number, name: string) => {
     setLoadingAi(true);
@@ -101,10 +108,39 @@ export default function QuranPage() {
   const [aiContext, setAiContext] = useState<SurahContextOutput | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
 
-  const filteredSurahs = surahs.filter(s => 
-    s.englishName.toLowerCase().includes(search.toLowerCase()) || 
-    s.name.includes(search)
-  );
+  // Group ayats by Surah on the current page
+  const groupedAyats = useMemo(() => {
+    if (!selectedPageData) return [];
+    const groups: any[] = [];
+    selectedPageData.ayats.forEach((ayat: any, idx: number) => {
+      const lastGroup = groups[groups.length - 1];
+      if (!lastGroup || lastGroup.surah.number !== ayat.surah.number) {
+        groups.push({
+          surah: ayat.surah,
+          ayats: [{ ...ayat, originalIdx: idx }]
+        });
+      } else {
+        lastGroup.ayats.push({ ...ayat, originalIdx: idx });
+      }
+    });
+    return groups;
+  }, [selectedPageData]);
+
+  const handlePageSelect = (page: number) => {
+    if (page >= 1 && page <= 604) {
+      setCurrentPage(page);
+    }
+  };
+
+  const jumpToSurahPage = (surahNumber: number) => {
+    const surah = surahs.find(s => s.number === surahNumber);
+    // Find where the surah starts. This logic is an approximation without a direct mapping, 
+    // but the API v1/surah returns the starting ayah index which we can use to guess or 
+    // we can use a lookup if we had one. For now, selecting a surah in the sidebar will
+    // navigate to its first page if we can fetch it.
+    // In a real app, you'd have a mapping of Surah -> Start Page.
+    // For now, let's keep the sidebar as pages since the user wants "always page wise".
+  };
 
   useEffect(() => {
     if (isSearchExpanded && searchInputRef.current) {
@@ -114,45 +150,53 @@ export default function QuranPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 h-auto md:h-[calc(100vh-120px)] flex flex-col space-y-6 pb-24 md:pb-0">
-      {/* Header with Actions Aligned to Right */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4 flex-1 w-full">
-          {selectedSurah && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="md:hidden text-zinc-400" 
-              onClick={() => setSelectedSurah(null)}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          )}
           <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex-1 flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100 whitespace-nowrap">
-                {selectedSurah ? selectedSurah.info.englishName : 'Quran Majeed'}
+              <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100 whitespace-nowrap flex items-center gap-3">
+                Page {currentPage}
+                <span className="text-zinc-600 text-lg font-medium hidden md:inline">/ 604</span>
               </h1>
               <p className="text-zinc-500 text-xs md:text-sm truncate">
-                {selectedSurah 
-                  ? `${selectedSurah.info.englishNameTranslation} • ${selectedSurah.info.numberOfAyahs} Ayahs` 
-                  : 'Read, listen, and contemplate the Word of Allah.'}
+                {selectedPageData?.ayats?.[0]?.surah?.englishName || 'Loading...'} 
+                {groupedAyats.length > 1 && ` & ${groupedAyats[groupedAyats.length-1].surah.englishName}`}
               </p>
             </div>
             
-            {/* Action Buttons Clustered on the Right */}
             <div className="flex items-center gap-2 shrink-0">
-              {selectedSurah && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 bg-zinc-950 border-zinc-900 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all shadow-lg shrink-0"
-                  onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
+              {/* Pagination Controls */}
+              <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-900 rounded-xl p-1 shadow-lg mr-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-zinc-500 hover:text-white"
+                  onClick={() => handlePageSelect(currentPage - 1)}
+                  disabled={currentPage <= 1}
                 >
-                  {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
+                  <ChevronLeft className="w-4 h-4" />
                 </Button>
-              )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-zinc-500 hover:text-white"
+                  onClick={() => handlePageSelect(currentPage + 1)}
+                  disabled={currentPage >= 604}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
 
-              {/* Translation Selector */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 bg-zinc-950 border-zinc-900 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all shadow-lg shrink-0"
+                onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
+              >
+                {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
+              </Button>
+
               <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
                 <SelectTrigger className="w-10 h-10 p-0 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors">
                   <Languages className="w-5 h-5 shrink-0" />
@@ -169,7 +213,6 @@ export default function QuranPage() {
                 </SelectContent>
               </Select>
 
-              {/* Expandable Search */}
               <div className={cn(
                 "relative transition-all duration-300 flex items-center",
                 isSearchExpanded ? "w-40 md:w-64" : "w-10"
@@ -179,10 +222,19 @@ export default function QuranPage() {
                     <Search className="ml-2 w-3.5 h-3.5 text-zinc-600 shrink-0" />
                     <Input 
                       ref={searchInputRef}
-                      placeholder="Search..." 
+                      placeholder="Go to page (1-604)..." 
                       className="bg-transparent border-none focus-visible:ring-0 text-white placeholder:text-zinc-600 h-full w-full text-xs"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
+                      value={searchPage}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (/^\d*$/.test(val)) {
+                          setSearchPage(val);
+                          const pageNum = parseInt(val);
+                          if (pageNum >= 1 && pageNum <= 604) {
+                            setCurrentPage(pageNum);
+                          }
+                        }
+                      }}
                     />
                     <Button 
                       variant="ghost" 
@@ -190,7 +242,7 @@ export default function QuranPage() {
                       className="h-full w-8 text-zinc-600 hover:text-white"
                       onClick={() => {
                         setIsSearchExpanded(false);
-                        setSearch('');
+                        setSearchPage('');
                       }}
                     >
                       <X className="w-3.5 h-3.5" />
@@ -213,42 +265,23 @@ export default function QuranPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
-        {/* Surah List Column */}
-        <div className={cn(
-          "md:col-span-4 flex flex-col space-y-4 h-full",
-          selectedSurah ? "hidden md:flex" : "flex"
-        )}>
+        {/* Page List Column */}
+        <div className="md:col-span-4 flex flex-col space-y-4 h-full hidden md:flex">
           <ScrollArea className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-900 p-2 shadow-inner">
             {loading ? (
               <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-500" /></div>
             ) : (
-              <div className="space-y-1">
-                {filteredSurahs.map((surah) => (
+              <div className="grid grid-cols-4 gap-1">
+                {Array.from({ length: 604 }, (_, i) => i + 1).map((pageNum) => (
                   <button
-                    key={surah.number}
-                    onClick={() => selectSurah(surah.number)}
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
                     className={cn(
-                      "w-full flex items-center justify-between p-4 rounded-xl transition-all hover:bg-zinc-900 text-left group",
-                      selectedSurah?.info?.number === surah.number ? "bg-zinc-900 ring-1 ring-zinc-700 shadow-lg" : ""
+                      "flex items-center justify-center p-3 rounded-xl transition-all hover:bg-zinc-900 text-xs font-bold",
+                      currentPage === pageNum ? "bg-zinc-900 ring-1 ring-zinc-700 text-white shadow-lg" : "text-zinc-500"
                     )}
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-zinc-900 rounded-lg flex items-center justify-center font-bold text-xs border border-zinc-800 group-hover:border-zinc-700 text-zinc-400">
-                        {surah.number}
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm text-zinc-200">{surah.englishName}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black h-4 px-1 border-zinc-800 text-zinc-500">
-                            {surah.revelationType === 'Meccan' ? 'Macci' : 'Madina'}
-                          </Badge>
-                          <span className="text-[10px] text-zinc-600 font-bold">{surah.numberOfAyahs} Ayahs</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-arabic text-zinc-400 group-hover:text-zinc-100 transition-colors">{surah.name}</p>
-                    </div>
+                    {pageNum}
                   </button>
                 ))}
               </div>
@@ -257,128 +290,126 @@ export default function QuranPage() {
         </div>
 
         {/* Content View Column */}
-        <div className={cn(
-          "md:col-span-8 flex flex-col min-h-0 h-full",
-          selectedSurah ? "flex" : "hidden md:flex"
-        )}>
+        <div className="md:col-span-8 flex flex-col min-h-0 h-full">
           <Card className="flex-1 bg-zinc-950 border-zinc-900 flex flex-col overflow-hidden shadow-2xl rounded-2xl">
-            {!selectedSurah ? (
+            {loadingDetails ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-zinc-700 space-y-4 p-8">
+                <Loader2 className="animate-spin text-zinc-700 w-12 h-12" />
+                <p className="text-center text-sm font-medium uppercase tracking-widest">Loading Page {currentPage}...</p>
+              </div>
+            ) : !selectedPageData ? (
               <div className="flex-1 flex flex-col items-center justify-center text-zinc-700 space-y-4 p-8">
                 <Book className="w-16 h-16 opacity-10" />
-                <p className="text-center text-sm font-medium">Select a surah to begin reading.</p>
+                <p className="text-center text-sm font-medium">Unable to load page data.</p>
               </div>
             ) : (
-              <>
-                <ScrollArea className="flex-1">
-                  <div className="p-4 md:p-6 space-y-10">
-                    {/* Historical Context Card */}
+              <ScrollArea className="flex-1">
+                <div className="p-4 md:p-6 space-y-10">
+                  {/* Historical Context Card */}
+                  {aiContext && (
                     <div className="bg-zinc-900/40 rounded-3xl border border-zinc-900 p-6 md:p-8 space-y-6">
                       <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
                         <div className="flex items-center gap-3">
                            <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center">
                              <Sparkles className="w-5 h-5 text-zinc-500" />
                            </div>
-                           <h3 className="font-bold text-lg text-zinc-100">Historical Context</h3>
+                           <h3 className="font-bold text-lg text-zinc-100">Revelation Insights</h3>
                         </div>
-                        {aiContext && (
-                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                             <MapPin className="w-3 h-3" />
-                             {aiContext.historicalPeriod}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                           <MapPin className="w-3 h-3" />
+                           {aiContext.historicalPeriod}
+                        </div>
                       </div>
-
-                      {loadingAi ? (
-                        <div className="py-8 flex flex-col items-center justify-center space-y-4">
-                           <Loader2 className="w-8 h-8 animate-spin text-zinc-700" />
-                           <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Generating Revelation Narrative...</p>
-                        </div>
-                      ) : aiContext ? (
-                        <div className="space-y-6 animate-in fade-in duration-700">
-                           <div className="space-y-4">
-                              <p className="text-sm md:text-base leading-relaxed text-zinc-400 font-medium italic border-l-2 border-zinc-800 pl-6">
-                                {aiContext.revelationStory}
-                              </p>
-                           </div>
-                           <div className="flex flex-wrap gap-2 pt-4">
-                              {aiContext.keyThemes.map((theme, i) => (
-                                <Badge key={i} variant="secondary" className="bg-zinc-800/50 text-zinc-400 hover:text-zinc-100 border-none px-4 py-1 rounded-lg text-[10px] font-bold">
-                                  {theme}
-                                </Badge>
-                              ))}
-                           </div>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-zinc-600 text-center italic">Failed to load historical insights.</p>
-                      )}
+                      <div className="space-y-6 animate-in fade-in duration-700">
+                         <div className="space-y-4">
+                            <p className="text-sm md:text-base leading-relaxed text-zinc-400 font-medium italic border-l-2 border-zinc-800 pl-6">
+                              {aiContext.revelationStory}
+                            </p>
+                         </div>
+                         <div className="flex flex-wrap gap-2 pt-4">
+                            {aiContext.keyThemes.map((theme, i) => (
+                              <Badge key={i} variant="secondary" className="bg-zinc-800/50 text-zinc-400 hover:text-zinc-100 border-none px-4 py-1 rounded-lg text-[10px] font-bold">
+                                {theme}
+                              </Badge>
+                            ))}
+                         </div>
+                      </div>
                     </div>
+                  )}
 
-                    {loadingDetails ? (
-                      <div className="p-12 flex flex-col items-center justify-center space-y-4">
-                          <Loader2 className="animate-spin text-zinc-700 w-8 h-8" />
-                          <p className="text-sm text-zinc-600">Syncing verses...</p>
-                      </div>
-                    ) : viewMode === 'ayat' ? (
-                      /* Ayat View */
-                      <div className="space-y-12">
-                        {selectedSurah.ayats.map((ayat: any, idx: number) => (
-                          <div key={ayat.number} className="group space-y-8 pb-10 border-b border-zinc-900/50 last:border-none">
-                              <div className="flex items-start justify-between gap-6">
-                                <div className="flex flex-col gap-3">
-                                  <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-[10px] font-black text-zinc-600">
-                                    {ayat.numberInSurah}
-                                  </div>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-10 w-10 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-900 rounded-xl border border-zinc-900 transition-all"
-                                    onClick={() => {
-                                        const audio = new Audio(selectedSurah.audio[idx].audio);
-                                        if (playingAyat === ayat.number) {
-                                          setPlayingAyat(null);
-                                        } else {
-                                          setPlayingAyat(ayat.number);
-                                          audio.play();
-                                          audio.onended = () => setPlayingAyat(null);
-                                        }
-                                    }}
-                                  >
-                                    {playingAyat === ayat.number ? <PauseCircle className="w-6 h-6" /> : <PlayCircle className="w-6 h-6" />}
-                                  </Button>
-                                </div>
-                                <p className="flex-1 text-right text-3xl md:text-4xl font-arabic leading-[1.8] text-zinc-100">
-                                  {ayat.text}
-                                </p>
-                              </div>
-                              <div className="max-w-3xl bg-zinc-900/30 p-6 rounded-3xl border border-zinc-900/50">
-                                <p className="text-sm md:text-lg text-zinc-400 leading-relaxed font-medium">
-                                  {selectedSurah.translation[idx].text}
-                                </p>
-                              </div>
+                  {viewMode === 'ayat' ? (
+                    /* Ayat View */
+                    <div className="space-y-12">
+                      {groupedAyats.map((group) => (
+                        <div key={group.surah.number} className="space-y-8">
+                          <div className="flex items-center gap-4 py-4 border-b border-zinc-900">
+                            <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-xs font-black text-zinc-600">
+                              {group.surah.number}
+                            </div>
+                            <h2 className="text-xl font-headline font-bold text-zinc-300">
+                              Surah {group.surah.englishName}
+                            </h2>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      /* Page View */
-                      <div className="py-8 px-4 md:px-12 bg-zinc-950 rounded-[3rem] border border-zinc-900 shadow-inner">
-                        <div 
-                          className="text-right font-arabic leading-[2.5] text-3xl md:text-5xl text-zinc-100 space-x-1 space-x-reverse"
-                          style={{ textAlign: 'justify', direction: 'rtl' }}
-                        >
-                          {selectedSurah.ayats.map((ayat: any) => (
-                            <span key={ayat.number} className="inline group cursor-pointer hover:text-white transition-colors">
-                              {ayat.text}
-                              <span className="inline-flex items-center justify-center w-10 h-10 mx-2 text-xs border border-zinc-800 rounded-full text-zinc-600 font-sans font-bold group-hover:border-zinc-500 group-hover:text-zinc-300">
-                                {ayat.numberInSurah}
-                              </span>
-                            </span>
+                          {group.ayats.map((ayat: any) => (
+                            <div key={ayat.number} className="group space-y-8 pb-10 border-b border-zinc-900/50 last:border-none">
+                                <div className="flex items-start justify-between gap-6">
+                                  <div className="flex flex-col gap-3">
+                                    <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-[10px] font-black text-zinc-600">
+                                      {ayat.numberInSurah}
+                                    </div>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-10 w-10 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-900 rounded-xl border border-zinc-900 transition-all"
+                                      onClick={() => {
+                                          const audioUrl = selectedPageData.audio[ayat.originalIdx].audio;
+                                          const audio = new Audio(audioUrl);
+                                          if (playingAyat === ayat.number) {
+                                            setPlayingAyat(null);
+                                          } else {
+                                            setPlayingAyat(ayat.number);
+                                            audio.play();
+                                            audio.onended = () => setPlayingAyat(null);
+                                          }
+                                      }}
+                                    >
+                                      {playingAyat === ayat.number ? <PauseCircle className="w-6 h-6" /> : <PlayCircle className="w-6 h-6" />}
+                                    </Button>
+                                  </div>
+                                  <p className="flex-1 text-right text-3xl md:text-4xl font-arabic leading-[1.8] text-zinc-100">
+                                    {ayat.text}
+                                  </p>
+                                </div>
+                                <div className="max-w-3xl bg-zinc-900/30 p-6 rounded-3xl border border-zinc-900/50">
+                                  <p className="text-sm md:text-lg text-zinc-400 leading-relaxed font-medium">
+                                    {selectedPageData.translation[ayat.originalIdx].text}
+                                  </p>
+                                </div>
+                            </div>
                           ))}
                         </div>
+                      ))}
+                    </div>
+                  ) : (
+                    /* Page View */
+                    <div className="py-8 px-4 md:px-12 bg-zinc-950 rounded-[3rem] border border-zinc-900 shadow-inner">
+                      <div 
+                        className="text-right font-arabic leading-[2.5] text-3xl md:text-5xl text-zinc-100 space-x-1 space-x-reverse"
+                        style={{ textAlign: 'justify', direction: 'rtl' }}
+                      >
+                        {selectedPageData.ayats.map((ayat: any) => (
+                          <span key={ayat.number} className="inline group cursor-pointer hover:text-white transition-colors">
+                            {ayat.text}
+                            <span className="inline-flex items-center justify-center w-10 h-10 mx-2 text-xs border border-zinc-800 rounded-full text-zinc-600 font-sans font-bold group-hover:border-zinc-500 group-hover:text-zinc-300">
+                              {ayat.numberInSurah}
+                            </span>
+                          </span>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
             )}
           </Card>
         </div>
