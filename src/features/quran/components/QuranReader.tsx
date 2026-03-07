@@ -393,8 +393,23 @@ export function QuranReader() {
       
       {isReading && (
         <div className="flex items-center justify-between px-6 pb-32">
-          <Button variant="ghost" className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage <= 1}><ChevronLeft className="w-4 h-4" /> Next Page</Button>
-          <Button variant="ghost" className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} disabled={currentPage >= 604}>Prev Page <ChevronRight className="w-4 h-4" /></Button>
+          {/* RTL Context: Left button goes FORWARD (Next), Right button goes BACK (Previous) */}
+          <Button 
+            variant="ghost" 
+            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
+            onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
+            disabled={currentPage >= 604}
+          >
+            <ChevronLeft className="w-4 h-4" /> Next Page
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+            disabled={currentPage <= 1}
+          >
+            Previous Page <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
       )}
     </div>
