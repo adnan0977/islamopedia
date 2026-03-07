@@ -25,7 +25,8 @@ import {
   Plus, 
   Code,
   CheckCircle2,
-  FileImage
+  FileImage,
+  Globe
 } from 'lucide-react';
 import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
 import { cn } from '@/lib/utils';
@@ -34,8 +35,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export function AppSettings() {
   const db = useFirestore();
   const { toast } = useToast();
+  
+  // Refs for file inputs
   const svgInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings, isLoading } = useDoc(settingsRef);
@@ -81,6 +85,24 @@ export function AppSettings() {
       title: "Settings Saved",
       description: "App configuration has been updated successfully."
     });
+  };
+
+  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1000000) {
+      toast({ variant: "destructive", title: "Logo too large", description: "Please upload an image smaller than 1MB." });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUri = event.target?.result as string;
+      setLocalSettings({ ...localSettings, logoUrl: dataUri });
+      toast({ title: "Logo Uploaded", description: "Branding updated successfully." });
+    };
+    reader.readAsDataURL(file);
   };
 
   const parseSvgPath = (svgString: string) => {
@@ -198,21 +220,58 @@ export function AppSettings() {
               <ImageIcon className="w-4 h-4 text-zinc-600" />
               <h3 className="text-xs font-black uppercase tracking-widest text-zinc-600">Branding</h3>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="logo" className="text-zinc-400">Logo Image URL</Label>
-              <div className="flex gap-4">
-                <Input 
-                  id="logo"
-                  placeholder="https://example.com/logo.png"
-                  className="bg-zinc-900 border-zinc-800 text-white rounded-xl h-12"
-                  value={localSettings.logoUrl}
-                  onChange={(e) => setLocalSettings({ ...localSettings, logoUrl: e.target.value })}
-                />
-                {localSettings.logoUrl && (
-                  <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
-                    <img src={localSettings.logoUrl} alt="Preview" className="w-8 h-8 object-contain" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="logo" className="text-zinc-400">Logo Image URL</Label>
+                  <Input 
+                    id="logo"
+                    placeholder="https://example.com/logo.png"
+                    className="bg-zinc-900 border-zinc-800 text-white rounded-xl h-12"
+                    value={localSettings.logoUrl}
+                    onChange={(e) => setLocalSettings({ ...localSettings, logoUrl: e.target.value })}
+                  />
+                </div>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-zinc-900" />
                   </div>
-                )}
+                  <div className="relative flex justify-center text-[10px] uppercase">
+                    <span className="bg-zinc-950 px-2 text-zinc-600 font-black">Or</span>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label className="text-zinc-400">Upload Logo File</Label>
+                  <Button 
+                    variant="outline" 
+                    className="w-full rounded-xl border-zinc-800 bg-zinc-900 h-12 text-zinc-400 font-bold"
+                    onClick={() => logoInputRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Choose File
+                  </Button>
+                  <input 
+                    type="file" 
+                    ref={logoInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleLogoFileUpload} 
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center justify-center bg-zinc-900/30 rounded-3xl border border-zinc-900 p-8">
+                <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest mb-6">Logo Preview</p>
+                <div className="w-32 h-32 bg-zinc-950 border border-zinc-800 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl">
+                  {localSettings.logoUrl ? (
+                    <img src={localSettings.logoUrl} alt="Preview" className="w-20 h-20 object-contain" />
+                  ) : (
+                    <ImageIcon className="w-12 h-12 text-zinc-800" />
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -258,7 +317,7 @@ export function AppSettings() {
                 </button>
               ))}
 
-              {/* Saved Custom Frames (SVG or Image) */}
+              {/* Saved Custom Frames */}
               {localSettings.savedCustomFrames.map((frame) => (
                 <div key={frame.id} className="relative group/frame">
                   <button
@@ -298,7 +357,7 @@ export function AppSettings() {
               ))}
             </div>
 
-            {/* Custom Design Management */}
+            {/* Custom Design Management hub */}
             <Card className="bg-zinc-900/20 border-zinc-900 rounded-3xl p-8 border-dashed border-2">
               <div className="flex flex-col md:flex-row gap-10">
                 <div className="flex-1 space-y-6">
@@ -310,7 +369,7 @@ export function AppSettings() {
                   <Tabs defaultValue="svg" className="w-full">
                     <TabsList className="bg-zinc-950 p-1 rounded-xl h-10 border border-zinc-800 mb-6">
                       <TabsTrigger value="svg" className="flex-1 rounded-lg text-xs font-bold"><Code className="w-3 h-3 mr-2" /> SVG Path</TabsTrigger>
-                      <TabsTrigger value="image" className="flex-1 rounded-lg text-xs font-bold"><FileImage className="w-3 h-3 mr-2" /> Bitmap Image</TabsTrigger>
+                      <TabsTrigger value="image" className="flex-1 rounded-lg text-xs font-bold"><FileImage className="w-3 h-3 mr-2" /> Image File</TabsTrigger>
                     </TabsList>
 
                     <div className="space-y-4">
@@ -357,7 +416,7 @@ export function AppSettings() {
 
                       <TabsContent value="image" className="m-0 space-y-4">
                         <div className="grid gap-2">
-                          <Label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Image File</Label>
+                          <Label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Upload Graphic</Label>
                           <Button 
                             variant="outline" 
                             className="w-full rounded-xl border-zinc-800 bg-zinc-950 h-12 text-zinc-400 font-bold"
@@ -367,7 +426,7 @@ export function AppSettings() {
                             Choose Image (PNG/JPG)
                           </Button>
                           <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-                          <p className="text-[10px] text-zinc-600 italic">Transparent PNGs recommended for best results.</p>
+                          <p className="text-[10px] text-zinc-600 italic">Recommended: Transparent PNG, 100x100px size.</p>
                         </div>
                       </TabsContent>
 
@@ -384,7 +443,7 @@ export function AppSettings() {
 
                 <div className="w-full md:w-64 space-y-4">
                   <Label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block text-center">Live Preview</Label>
-                  <div className="bg-zinc-950 rounded-3xl border border-zinc-800 aspect-square flex flex-col items-center justify-center p-8">
+                  <div className="bg-zinc-950 rounded-3xl border border-zinc-800 aspect-square flex flex-col items-center justify-center p-8 shadow-inner">
                     {(newFrame.path || newFrame.imageUrl) ? (
                       <>
                         <AyatFrame 
@@ -403,9 +462,6 @@ export function AppSettings() {
                       </div>
                     )}
                   </div>
-                  <p className="text-[9px] text-zinc-600 leading-relaxed text-center px-4">
-                    Images will be scaled to fit the frame. SVGs use a normalized 100x100 viewBox.
-                  </p>
                 </div>
               </div>
             </Card>
