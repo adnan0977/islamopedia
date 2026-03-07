@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { 
@@ -13,19 +13,14 @@ import {
   ArrowLeft,
   Database,
   Settings,
-  Volume2,
-  Mic2,
-  WifiOff,
-  ChevronDown,
-  ChevronUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
-import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
 import Link from 'next/link';
-import { getOfflineSurah } from '@/lib/offline-db';
+import { useDoc } from '@/firebase';
 
 const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
@@ -50,6 +45,7 @@ export function QuranReader() {
   const [selectedJuz, setSelectedJuz] = useState<number | null>(searchParams.get('juz') ? parseInt(searchParams.get('juz')!) : null);
   const [selectedPage, setSelectedPage] = useState<number | null>(searchParams.get('page') ? parseInt(searchParams.get('page')!) : null);
 
+  // 2. Define isReading early to prevent initialization errors in effects
   const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
                     (viewMode === 'juz' && selectedJuz !== null) || 
                     (viewMode === 'page' && selectedPage !== null);
@@ -68,7 +64,6 @@ export function QuranReader() {
 
   const [loadingContent, setLoadingContent] = useState(false);
   const [content, setContent] = useState<PageContent[]>([]);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [currentAyatIndex, setCurrentAyatIndex] = useState(0);
   
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -129,17 +124,13 @@ export function QuranReader() {
 
         const results: Record<string, any[]> = {};
         
-        // Fetch all required editions
         for (const editionId of editionsToFetch) {
           let q;
           if (viewMode === 'surah' && selectedSurah) {
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('surahNumber', '==', selectedSurah));
           } else if (viewMode === 'juz' && selectedJuz) {
-            // For Juz, we fetch surahs that overlap with the juz pages
             const juzMap: Record<number, number[]> = { 1: [1, 21], 2: [22, 41], 3: [42, 61], 4: [62, 81], 5: [82, 101], 6: [102, 120], 7: [121, 141], 8: [142, 161], 9: [162, 181], 10: [182, 200], 11: [201, 221], 12: [222, 241], 13: [242, 261], 14: [262, 281], 15: [282, 301], 16: [302, 321], 17: [322, 341], 18: [342, 361], 19: [362, 381], 20: [382, 401], 21: [402, 421], 22: [422, 441], 23: [442, 461], 24: [462, 481], 25: [482, 501], 26: [502, 521], 27: [522, 541], 28: [542, 561], 29: [562, 581], 30: [582, 604] };
             const [start, end] = juzMap[selectedJuz] || [1, 604];
-            
-            // Note: This is an approximation fetching Surahs by page overlap
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('pages', 'array-contains-any', Array.from({length: end - start + 1}, (_, i) => start + i)));
           } else if (viewMode === 'page' && selectedPage) {
             q = query(collection(db, 'quran'), where('editionId', '==', editionId), where('pages', 'array-contains', selectedPage));
@@ -151,7 +142,6 @@ export function QuranReader() {
           }
         }
 
-        // Process and Merge
         const uthmaniSurahs = results['quran-uthmani'] || [];
         const mergedContent: PageContent[] = uthmaniSurahs.map(s => {
           const ayats = s.ayats.filter((a: any) => {
@@ -194,14 +184,6 @@ export function QuranReader() {
     return content.flatMap(c => c.ayats.map(a => ({ ...a, surahName: c.englishName })));
   }, [content]);
 
-  const scrollToAyat = (index: number) => {
-    const target = ayatScrollContainerRef.current?.querySelector(`[data-ayat-index="${index}"]`);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' });
-      setCurrentAyatIndex(index);
-    }
-  };
-
   const handleModeToggle = (mode: QuranViewMode) => {
     const params = new URLSearchParams();
     params.set('mode', mode);
@@ -216,14 +198,20 @@ export function QuranReader() {
     router.push(`/quran?mode=juz&juz=${num}`);
   };
 
-  const selectPage = (num: number) => {
-    router.push(`/quran?mode=page&page=${num}`);
-  };
-
   const goBackToIndex = () => {
     const params = new URLSearchParams();
     params.set('mode', viewMode === 'page' ? 'surah' : viewMode);
     router.push(`/quran?${params.toString()}`);
+  };
+
+  const toggleReaderViewMode = (newMode: 'ayat' | 'page') => {
+    if (newMode === 'page') {
+      const firstPage = content[0]?.ayats[0]?.page || 1;
+      router.push(`/quran?mode=page&page=${firstPage}`);
+    } else {
+      const firstSurah = content[0]?.surahNumber || 1;
+      router.push(`/quran?mode=surah&surah=${firstSurah}`);
+    }
   };
 
   return (
@@ -289,13 +277,30 @@ export function QuranReader() {
                 </Button>
               </div>
             ) : (
-              <Button 
-                variant="outline" size="sm" 
-                onClick={() => setViewMode(viewMode === 'page' ? 'surah' : 'page')} 
-                className="rounded-xl font-bold h-10 border-zinc-800 bg-zinc-900 text-zinc-400"
-              >
-                {viewMode === 'page' ? <BookIcon className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
-              </Button>
+              <div className="flex items-center gap-1 bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-900 shadow-inner">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => toggleReaderViewMode('ayat')} 
+                  className={cn(
+                    "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
+                    viewMode !== 'page' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  Ayat
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => toggleReaderViewMode('page')} 
+                  className={cn(
+                    "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
+                    viewMode === 'page' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  Page
+                </Button>
+              </div>
             )}
             <Link href="/quran/settings">
               <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white">
