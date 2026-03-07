@@ -21,7 +21,8 @@ import {
   Languages,
   PlusCircle,
   Power,
-  PowerOff
+  PowerOff,
+  CloudDownload
 } from 'lucide-react';
 import { 
   Dialog,
@@ -43,7 +44,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { getAvailableTranslations, getFullQuran } from '@/lib/api';
+import { getAllAlQuranEditions, getFullQuran } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -125,19 +126,8 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
       }
 
       const editionRef = doc(db, 'quran_editions', editionId);
-      const updateData = isArabic ? {
-        id: 'quran-uthmani',
-        name: 'Standard Arabic (Uthmani)',
-        language: 'Arabic',
-        languageCode: 'ar',
-        isActive: true,
-        isDefault: true,
-        dataSync: 'yes'
-      } : {
-        dataSync: 'yes'
-      };
-
-      await setDoc(editionRef, updateData, { merge: true });
+      updateDocumentNonBlocking(editionRef, { dataSync: 'yes' });
+      
       setSyncStatus('success');
       toast({ title: "Synchronization Complete", description: `Successfully indexed ${editionId}.` });
     } catch (e: any) {
@@ -214,38 +204,36 @@ function EditionDirectory({ editions }: { editions: any[] }) {
   const [search, setSearch] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('all');
 
-  const fetchAvailable = async () => {
+  const fetchAndSeedRegistry = async () => {
     setLoading(true);
     try {
-      const data = await getAvailableTranslations();
-      setAvailable(data.data || []);
-    } catch (e) {
-      toast({ variant: "destructive", title: "API Error" });
+      const payload = await getAllAlQuranEditions();
+      const availableList = payload.data || [];
+      setAvailable(availableList);
+
+      const batch = writeBatch(db);
+      availableList.forEach((item: any) => {
+        const docRef = doc(db, 'quran_editions', item.identifier);
+        batch.set(docRef, {
+          id: item.identifier,
+          name: item.name,
+          language: languageNameMap[item.language] || item.language.toUpperCase(),
+          languageCode: item.language,
+          type: item.type,
+          format: item.format,
+          isActive: editions.some(e => e.id === item.identifier && e.isActive) || item.identifier === 'quran-uthmani',
+          dataSync: editions.find(e => e.id === item.identifier)?.dataSync || 'no',
+          isDefault: item.identifier === 'quran-uthmani'
+        }, { merge: true });
+      });
+
+      await batch.commit();
+      toast({ title: "Registry Seeded", description: `Successfully stored ${availableList.length} editions in database.` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Seed Failed", description: e.message });
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (openAdd && available.length === 0) fetchAvailable();
-  }, [openAdd, available.length]);
-
-  const addEditionToDirectory = (edition: any) => {
-    const existing = editions.find(t => t.id === edition.identifier);
-    if (existing) {
-      toast({ title: "Already in Directory" });
-      return;
-    }
-    setDoc(doc(db, 'quran_editions', edition.identifier), {
-      id: edition.identifier,
-      name: edition.name,
-      language: languageNameMap[edition.language] || edition.language.toUpperCase(),
-      languageCode: edition.language,
-      isActive: false,
-      isDefault: false,
-      dataSync: 'no'
-    }, { merge: true });
-    toast({ title: "Added to Directory" });
   };
 
   const toggleActivation = (editionId: string, currentStatus: boolean) => {
@@ -257,122 +245,117 @@ function EditionDirectory({ editions }: { editions: any[] }) {
     });
   };
 
-  const uniqueLanguages = Array.from(new Set(available.map(a => a.language))).sort();
-  const filteredAvailable = available.filter(a => {
-    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.identifier.toLowerCase().includes(search.toLowerCase());
-    const matchesLang = selectedLanguage === 'all' || a.language === selectedLanguage;
-    return matchesSearch && matchesLang;
-  });
+  // Filter current directory
+  const [dirSearch, setDirSearch] = useState('');
+  const filteredEditions = editions.filter(e => 
+    e.name.toLowerCase().includes(dirSearch.toLowerCase()) || 
+    e.id.toLowerCase().includes(dirSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
-        <div className="space-y-1">
-          <h3 className="font-bold text-lg text-white">Edition Directory</h3>
-          <p className="text-xs text-zinc-500 font-medium">Add, activate, and manage Quranic editions.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-950 p-8 rounded-3xl border border-zinc-900 shadow-xl">
+        <div className="space-y-2">
+          <h3 className="font-bold text-xl text-white">Platform Registry</h3>
+          <p className="text-sm text-zinc-500 font-medium">Manage all indexed Quranic translations and recitations.</p>
         </div>
-        <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-          <DialogTrigger asChild>
-            <Button className="rounded-xl h-11 px-6 font-bold bg-white text-black hover:bg-zinc-200 flex items-center gap-2">
-              <PlusCircle className="w-4 h-4" /> Browse API Editions
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[750px] p-0 h-[85vh] flex flex-col rounded-3xl overflow-hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <DialogHeader className="p-8 border-b border-zinc-800 shrink-0 space-y-4 text-left">
-              <DialogTitle className="text-white font-bold text-xl">Available Global Editions</DialogTitle>
-              <DialogDescription className="text-zinc-500 text-sm">
-                Browse the cloud registry to add new translations to your platform.
-              </DialogDescription>
-              <div className="flex flex-col md:flex-row gap-4 mt-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <Input 
-                    placeholder="Search by name or ID..." 
-                    className="pl-10 bg-zinc-900 border-zinc-800 text-white rounded-xl h-11"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-zinc-400 hover:bg-zinc-900">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CloudDownload className="w-4 h-4 mr-2" />}
+            Sync Registry from Cloud
+          </Button>
+          <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+            <DialogTrigger asChild>
+              <Button className="rounded-xl h-11 px-6 font-bold bg-white text-black hover:bg-zinc-200 flex items-center gap-2">
+                <PlusCircle className="w-4 h-4" /> Browse Full Library
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[850px] p-0 h-[85vh] flex flex-col rounded-3xl overflow-hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-[0_0_100px_rgba(0,0,0,1)]">
+              <DialogHeader className="p-8 border-b border-zinc-800 shrink-0 space-y-4 text-left">
+                <DialogTitle className="text-white font-bold text-2xl">Global Quranic Library</DialogTitle>
+                <DialogDescription className="text-zinc-500 text-sm">
+                  Filter and activate specific editions for your platform's synchronized feed.
+                </DialogDescription>
+                <div className="flex flex-col md:flex-row gap-4 mt-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                    <Input 
+                      placeholder="Search by name, ID or author..." 
+                      className="pl-10 bg-zinc-900 border-zinc-800 text-white rounded-xl h-12"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="w-full md:w-56">
-                   <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                      <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-11 rounded-xl">
-                         <div className="flex items-center gap-2">
-                            <Languages className="w-4 h-4 text-zinc-500" />
-                            <SelectValue placeholder="All Languages" />
-                         </div>
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 border-zinc-800 text-white max-h-60">
-                         <SelectItem value="all">All Languages</SelectItem>
-                         {uniqueLanguages.map(lang => (
-                           <SelectItem key={lang} value={lang}>
-                             {languageNameMap[lang] || lang.toUpperCase()}
-                           </SelectItem>
-                         ))}
-                      </SelectContent>
-                   </Select>
-                </div>
-              </div>
-            </DialogHeader>
-            <div className="flex-1 overflow-hidden relative">
-              <ScrollArea className="h-full">
-                <div className="p-8 grid gap-3 pb-24">
-                  {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                      <Loader2 className="animate-spin text-zinc-500 w-8 h-8" />
-                      <p className="text-zinc-600 text-xs font-black uppercase tracking-widest">Querying Cloud Registry...</p>
-                    </div>
-                  ) : filteredAvailable.length > 0 ? (
-                    filteredAvailable.map((item) => {
-                      const isInDirectory = editions.some(t => t.id === item.identifier);
-                      return (
-                        <div key={item.identifier} className="flex items-center justify-between p-5 bg-zinc-900/40 rounded-2xl border border-zinc-900/50 hover:border-zinc-800 transition-colors">
-                          <div className="flex flex-col space-y-1">
-                            <span className="text-zinc-200 font-bold text-sm">{item.name}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-zinc-600 text-[9px] uppercase font-black tracking-widest">{languageNameMap[item.language] || item.language}</span>
-                              <span className="text-zinc-800 text-[9px]">•</span>
-                              <span className="text-zinc-600 text-[9px] font-mono">{item.identifier}</span>
-                            </div>
+              </DialogHeader>
+              <div className="flex-1 overflow-hidden relative bg-black/20">
+                <ScrollArea className="h-full">
+                  <div className="p-8 grid gap-4 pb-24">
+                    {editions.length > 0 ? editions.filter(e => e.name.toLowerCase().includes(search.toLowerCase())).map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-6 bg-zinc-900/30 rounded-2xl border border-zinc-900/50 hover:border-zinc-800 transition-all group">
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex items-center gap-3">
+                            <span className="text-zinc-100 font-bold text-base">{item.name}</span>
+                            <Badge variant="outline" className="text-[8px] border-zinc-800 text-zinc-600 uppercase tracking-widest px-2">{item.type}</Badge>
                           </div>
-                          <Button 
-                            size="sm" 
-                            variant={isInDirectory ? "outline" : "secondary"} 
-                            className="rounded-xl font-bold min-w-[120px] h-9" 
-                            disabled={isInDirectory}
-                            onClick={() => addEditionToDirectory(item)}
-                          >
-                            {isInDirectory ? 'Added' : 'Add to Feed'}
-                          </Button>
+                          <div className="flex items-center gap-3 text-zinc-600 text-[10px] font-black uppercase tracking-widest">
+                            <span>{item.language}</span>
+                            <span>•</span>
+                            <span className="font-mono">{item.id}</span>
+                          </div>
                         </div>
-                      )
-                    })
-                  ) : (
-                    <div className="text-center py-20 bg-zinc-900/20 rounded-3xl border border-dashed border-zinc-900">
-                      <p className="text-zinc-600 font-medium">No results matching your filters.</p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </div>
-          </DialogContent>
-        </Dialog>
+                        <Button 
+                          variant={item.isActive ? "outline" : "secondary"} 
+                          className={cn("rounded-xl font-bold min-w-[120px] h-10 transition-all", item.isActive ? "border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/5" : "")} 
+                          onClick={() => toggleActivation(item.id, !!item.isActive)}
+                        >
+                          {item.isActive ? 'Active' : 'Activate'}
+                        </Button>
+                      </div>
+                    )) : (
+                      <div className="text-center py-24 bg-zinc-900/20 rounded-[2rem] border-2 border-dashed border-zinc-900">
+                        <Database className="w-12 h-12 text-zinc-900 mx-auto mb-4" />
+                        <p className="text-zinc-600 font-medium">Registry is empty. Click "Sync Registry from Cloud" first.</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+        <Input 
+          placeholder="Filter your local directory..." 
+          className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14"
+          value={dirSearch}
+          onChange={(e) => setDirSearch(e.target.value)}
+        />
       </div>
 
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-3xl shadow-2xl">
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900">
-              <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 text-zinc-500 pl-8">Edition Name</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 text-zinc-500 pl-8">Edition Detail</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Language</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Status</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Platform Status</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500 pr-8">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {editions.map((t) => (
-              <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-20">
-                <TableCell className="font-bold text-white pl-8">{t.name}</TableCell>
-                <TableCell className="text-zinc-500 font-medium">{t.language}</TableCell>
+            {filteredEditions.slice(0, 50).map((t) => (
+              <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
+                <TableCell className="pl-8">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-zinc-100">{t.name}</span>
+                    <span className="text-[9px] font-mono text-zinc-700 uppercase">{t.id}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-zinc-500 font-medium text-xs">{t.language}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     {t.isActive ? (
@@ -380,8 +363,10 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                     ) : (
                       <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[9px] font-black uppercase">Inactive</Badge>
                     )}
-                    {t.dataSync === 'yes' && (
+                    {t.dataSync === 'yes' ? (
                       <Badge className="bg-blue-500/10 text-blue-500 border-none rounded-lg text-[9px] font-black uppercase">Synced</Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-amber-500/10 text-amber-500/50 rounded-lg text-[9px] font-black uppercase">Pending Sync</Badge>
                     )}
                   </div>
                 </TableCell>
@@ -390,7 +375,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                     variant="ghost" 
                     size="icon" 
                     onClick={() => toggleActivation(t.id, !!t.isActive)} 
-                    className={cn("rounded-xl", t.isActive ? "text-amber-500 hover:bg-amber-500/10" : "text-emerald-500 hover:bg-emerald-500/10")}
+                    className={cn("rounded-xl h-10 w-10", t.isActive ? "text-amber-500 hover:bg-amber-500/10" : "text-emerald-500 hover:bg-emerald-500/10")}
                     title={t.isActive ? "Deactivate" : "Activate"}
                   >
                     {t.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
@@ -399,7 +384,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                     variant="ghost" 
                     size="icon" 
                     onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_editions', t.id))} 
-                    className="text-destructive hover:bg-destructive/10 rounded-xl"
+                    className="text-destructive hover:bg-destructive/10 rounded-xl h-10 w-10"
                     title="Remove"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -407,12 +392,12 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                 </TableCell>
               </TableRow>
             ))}
-            {editions.length === 0 && (
+            {filteredEditions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="h-40 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-3">
-                     <BookOpen className="w-8 h-8 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">Directory is empty. Browse the API to add editions.</p>
+                <TableCell colSpan={4} className="h-60 text-center">
+                  <div className="flex flex-col items-center justify-center space-y-4">
+                     <BookOpen className="w-12 h-12 text-zinc-900" />
+                     <p className="text-zinc-600 font-medium">No editions found. Pull the registry from the cloud to begin.</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -420,6 +405,9 @@ function EditionDirectory({ editions }: { editions: any[] }) {
           </TableBody>
         </Table>
       </Card>
+      {filteredEditions.length > 50 && (
+        <p className="text-center text-[10px] text-zinc-600 font-black uppercase tracking-widest pt-4">Showing first 50 results. Use search to find others.</p>
+      )}
     </div>
   );
 }
@@ -454,12 +442,12 @@ function SyncTool({ editions, syncing, performSync, handleStandardSync, isStanda
         </Card>
       )}
 
-      <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
-        <div className="flex flex-col md:flex-row gap-6 items-end">
+      <Card className="bg-zinc-950 border-zinc-900 p-10 rounded-3xl shadow-2xl">
+        <div className="flex flex-col md:flex-row gap-8 items-end">
           <div className="flex-1 space-y-4 w-full">
             <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Active Edition</Label>
             <Select value={selectedEdition} onValueChange={setSelectedEdition}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-14 text-white">
                 <SelectValue placeholder="Select an active translation..." />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
@@ -475,11 +463,11 @@ function SyncTool({ editions, syncing, performSync, handleStandardSync, isStanda
             </Select>
           </div>
           <Button 
-            className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 px-8 font-bold w-full md:w-auto" 
+            className="bg-white text-black hover:bg-zinc-200 rounded-xl h-14 px-10 font-bold w-full md:w-auto transition-transform active:scale-95" 
             onClick={() => performSync(selectedEdition)} 
             disabled={syncing || !selectedEdition}
           >
-            <Download className="mr-2 w-4 h-4" /> Start Sync
+            <Download className="mr-2 w-5 h-5" /> Start Full Sync
           </Button>
         </div>
       </Card>

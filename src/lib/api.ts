@@ -22,7 +22,16 @@ export async function getPrayerTimes(city: string, country: string) {
 }
 
 /**
- * Fetches all available translation editions from AlQuran Cloud API.
+ * Fetches all available editions (translations, recitations, etc.) from AlQuran Cloud API.
+ */
+export async function getAllAlQuranEditions() {
+  const res = await fetch('https://api.alquran.cloud/v1/edition');
+  if (!res.ok) throw new Error('Failed to fetch editions from registry');
+  return res.json();
+}
+
+/**
+ * Fetches available translation editions from AlQuran Cloud API.
  */
 export async function getAvailableTranslations() {
   const res = await fetch('https://api.alquran.cloud/v1/edition?type=translation');
