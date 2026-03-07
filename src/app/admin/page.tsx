@@ -113,12 +113,12 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
+import { Switch } from '@/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { getAvailableTranslations, getPageEdition } from '@/lib/api';
+import { getAvailableTranslations, getPageDetails } from '@/lib/api';
 import {
   Menubar,
   MenubarContent,
@@ -1037,22 +1037,26 @@ function QuranIndexing({ translations }: { translations: any[] }) {
     try {
       for (let p = 1; p <= 604; p++) {
         setStatus(`Fetching Page ${p} of 604...`);
-        const data = await getPageEdition(p, selectedEdition);
+        // Fetch combined data (Arabic + Translation) for indexing
+        const data = await getPageDetails(p, selectedEdition);
         
-        if (!data.data) {
-          throw new Error(`Failed to fetch data for page ${p}`);
+        if (!data.data || data.data.length < 2) {
+          throw new Error(`Failed to fetch combined data for page ${p}`);
         }
 
         const pageId = `${selectedEdition}_${p}`;
         setDocumentNonBlocking(doc(db, 'quran_pages', pageId), {
           pageNumber: p,
           translationId: selectedEdition,
-          content: data.data.ayahs || [],
+          // Content now stores Arabic ayats [0] and Translation ayats [1]
+          arabicContent: data.data[0].ayahs || [],
+          translationContent: data.data[1].ayahs || [],
           updatedAt: new Date().toISOString()
         }, { merge: true });
 
         setProgress((p / 604) * 100);
         
+        // Anti-throttle delay
         if (p % 20 === 0) {
            await new Promise(r => setTimeout(r, 200));
         }
@@ -1078,7 +1082,7 @@ function QuranIndexing({ translations }: { translations: any[] }) {
             <Database className="w-6 h-6 text-zinc-500" />
             Content Sync Tool
           </h3>
-          <p className="text-sm text-zinc-500">Fetch and cache Quranic pages in your local database for high-performance reading.</p>
+          <p className="text-sm text-zinc-500">Fetch and cache Quranic pages (Arabic + Translation) in your local database for high-performance reading.</p>
         </div>
 
         <div className="grid gap-6">
@@ -1112,7 +1116,7 @@ function QuranIndexing({ translations }: { translations: any[] }) {
                 <CheckCircle className="w-5 h-5 shrink-0" />
                 <div className="flex flex-col">
                   <span className="text-xs font-bold uppercase tracking-widest">Edition Synced</span>
-                  <span className="text-[10px] opacity-80">This translation content is already available in your database.</span>
+                  <span className="text-[10px] opacity-80">Arabic base and {selectedEdition} content are available in your database.</span>
                 </div>
               </div>
             )}
@@ -1148,19 +1152,19 @@ function QuranIndexing({ translations }: { translations: any[] }) {
             <Badge variant="outline" className="text-[9px] font-black border-zinc-800 text-zinc-600">PREVIEW MODE</Badge>
           </div>
 
-          <ScrollArea className="h-[200px] w-full pr-4">
-            <div className="space-y-6">
-              {previewData.content.slice(0, 3).map((ayat: any, idx: number) => (
-                <div key={idx} className="space-y-3 border-b border-zinc-900 pb-4 last:border-none">
+          <ScrollArea className="h-[250px] w-full pr-4">
+            <div className="space-y-10">
+              {previewData.arabicContent.slice(0, 3).map((ayat: any, idx: number) => (
+                <div key={idx} className="space-y-4 border-b border-zinc-900 pb-6 last:border-none">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Ayat {ayat.numberInSurah}</span>
                     <span className="text-[9px] font-medium text-zinc-800 italic">{ayat.surah?.englishName}</span>
                   </div>
-                  <p className="text-right text-xl font-arabic text-zinc-200 leading-relaxed" style={{ direction: 'rtl' }}>
+                  <p className="text-right text-2xl font-arabic text-zinc-200 leading-relaxed" style={{ direction: 'rtl' }}>
                     {ayat.text}
                   </p>
-                  <p className="text-xs text-zinc-500 leading-relaxed">
-                    {ayat.text}
+                  <p className="text-xs text-zinc-500 leading-relaxed italic border-l-2 border-zinc-800 pl-4">
+                    {previewData.translationContent[idx]?.text}
                   </p>
                 </div>
               ))}
@@ -1270,7 +1274,7 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
             </div>
 
             <div className="space-y-16">
-              {pageData.content.map((ayat: any, idx: number) => (
+              {pageData.arabicContent.map((ayat: any, idx: number) => (
                 <div key={idx} className="space-y-8 pb-16 border-b border-zinc-900 last:border-none">
                   <div className="flex flex-col md:flex-row items-start justify-between gap-8">
                      <div className="shrink-0 flex md:flex-col gap-3">
@@ -1287,7 +1291,7 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
                         </p>
                         <div className="bg-zinc-900/40 p-6 md:p-8 rounded-2xl md:rounded-3xl border border-zinc-900/50">
                           <p className="text-sm md:text-lg text-zinc-400 leading-relaxed font-medium italic">
-                            {ayat.text}
+                            {pageData.translationContent[idx]?.text}
                           </p>
                         </div>
                      </div>

@@ -5,14 +5,14 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { getQuranSurahs, getPageDetails } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Loader2, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Loader2, Sparkles, MapPin, Languages, LayoutList, BookOpen, X, ChevronLeft, ChevronRight, Database } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { getSurahContext, type SurahContextOutput } from '@/ai/flows/quran-context-flow';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, getDoc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   DropdownMenu,
@@ -38,6 +38,7 @@ export default function QuranPage() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [playingAyat, setPlayingAyat] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('page');
+  const [isUsingIndexedData, setIsUsingIndexedData] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   // User Profile for Persistence
@@ -85,20 +86,38 @@ export default function QuranPage() {
   const fetchPage = async (page: number) => {
     setLoadingDetails(true);
     setAiContext(null);
+    setIsUsingIndexedData(false);
+    
     try {
-      const data = await getPageDetails(page, selectedEdition);
-      const ayahs = data.data[0].ayahs;
-      const translation = data.data[1].ayahs;
-      const audio = data.data[2].ayahs;
-
-      setSelectedPageData({
-        number: page,
-        ayats: ayahs,
-        translation: translation,
-        audio: audio
-      });
+      // Database-First: Try to get indexed content from Firestore
+      const indexedDocRef = doc(db, 'quran_pages', `${selectedEdition}_${page}`);
+      const indexedDocSnap = await getDoc(indexedDocRef);
       
-      const primarySurah = ayahs[0]?.surah;
+      if (indexedDocSnap.exists()) {
+        const indexedData = indexedDocSnap.data();
+        setSelectedPageData({
+          number: page,
+          ayats: indexedData.arabicContent,
+          translation: indexedData.translationContent,
+          audio: [] // Audio is handled separately or not stored to save quota
+        });
+        setIsUsingIndexedData(true);
+      } else {
+        // Fallback: Fetch from API if not indexed
+        const data = await getPageDetails(page, selectedEdition);
+        const ayahs = data.data[0].ayahs; // Arabic base
+        const translation = data.data[1].ayahs; // Translation
+        const audio = data.data[2].ayahs;
+
+        setSelectedPageData({
+          number: page,
+          ayats: ayahs,
+          translation: translation,
+          audio: audio
+        });
+      }
+      
+      const primarySurah = selectedPageData?.ayats?.[0]?.surah;
       if (primarySurah) {
         fetchAiContext(primarySurah.number, primarySurah.englishName);
       }
@@ -177,6 +196,11 @@ export default function QuranPage() {
             <Badge variant="outline" className="bg-zinc-900 border-zinc-800 text-zinc-500 font-black tracking-widest text-[10px] h-6 px-3">
               PAGE {currentPage}
             </Badge>
+            {isUsingIndexedData && (
+              <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-500 font-black tracking-widest text-[8px] h-5 px-2 flex items-center gap-1">
+                <Database className="w-2.5 h-2.5" /> SYNCED
+              </Badge>
+            )}
           </div>
           <p className="text-zinc-500 text-xs md:text-sm truncate mt-1">
             Edition: {displayTranslations.find(t => t.id === selectedEdition)?.name || selectedEdition}
@@ -367,6 +391,7 @@ export default function QuranPage() {
                                       size="icon" 
                                       className="h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 rounded-2xl border border-zinc-900 transition-all"
                                       onClick={() => {
+                                          if (isUsingIndexedData || !selectedPageData?.audio?.[ayat.originalIdx]) return;
                                           const audioUrl = selectedPageData.audio[ayat.originalIdx].audio;
                                           const audio = new Audio(audioUrl);
                                           if (playingAyat === ayat.number) {
@@ -387,7 +412,7 @@ export default function QuranPage() {
                                 </div>
                                 <div className="bg-zinc-900/20 p-8 rounded-[2rem] border border-zinc-900/50">
                                   <p className="text-sm md:text-xl text-zinc-400 leading-relaxed font-medium">
-                                    {selectedPageData.translation[ayat.originalIdx]?.text}
+                                    {selectedPageData.translation?.[ayat.originalIdx]?.text}
                                   </p>
                                 </div>
                             </div>
@@ -421,4 +446,3 @@ export default function QuranPage() {
     </div>
   );
 }
-
