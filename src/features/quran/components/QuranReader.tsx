@@ -15,7 +15,9 @@ import {
   Settings,
   Volume2,
   Mic2,
-  WifiOff
+  WifiOff,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -24,12 +26,6 @@ import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
 import Link from 'next/link';
 import { getOfflineSurah } from '@/lib/offline-db';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from "@/components/ui/carousel";
 
 const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
@@ -68,9 +64,10 @@ export function QuranReader() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [pagedData, setPagedData] = useState<PageContent[]>([]);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [currentAyatIndex, setCurrentAyatIndex] = useState(0);
   
-  const [api, setApi] = useState<CarouselApi>();
-  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Load settings
   useEffect(() => {
@@ -197,6 +194,21 @@ export function QuranReader() {
     }
   };
 
+  // Load more pages for infinite scroll
+  const loadMorePages = useCallback(async () => {
+    if (loadingContent) return;
+    const lastPage = pagedData[pagedData.length - 1]?.pageNumber;
+    if (!lastPage || lastPage >= 604) return;
+
+    const nextPage = lastPage + 1;
+    setLoadingContent(true);
+    const data = await fetchPageData(nextPage);
+    if (data) {
+      setPagedData(prev => [...prev, data]);
+    }
+    setLoadingContent(false);
+  }, [loadingContent, pagedData]);
+
   // Initial fetch
   useEffect(() => {
     if (viewMode === 'index') {
@@ -216,7 +228,41 @@ export function QuranReader() {
     initFetch();
   }, [viewMode, initialPage, localSettings.preferredTranslationId, localSettings.preferredTransliterationId]);
 
-  // Flattened Ayats for Carousel
+  // Observer for dynamic header and infinite scroll
+  useEffect(() => {
+    if (viewMode !== 'ayat' || !ayatScrollContainerRef.current || pagedData.length === 0) return;
+
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const pageNum = parseInt(entry.target.getAttribute('data-page-number') || '0');
+          const ayatIndex = parseInt(entry.target.getAttribute('data-ayat-index') || '0');
+          
+          if (pageNum > 0) setVisiblePage(pageNum);
+          setCurrentAyatIndex(ayatIndex);
+
+          // Trigger infinite load if near end
+          const totalAyats = entries.length; // Approximate
+          if (ayatIndex >= flattenedAyats.length - 10) {
+            loadMorePages();
+          }
+        }
+      });
+    }, { 
+      root: ayatScrollContainerRef.current,
+      threshold: 0.6,
+      rootMargin: '0px'
+    });
+
+    const blocks = ayatScrollContainerRef.current.querySelectorAll('.ayat-block');
+    blocks.forEach(b => observerRef.current?.observe(b));
+
+    return () => observerRef.current?.disconnect();
+  }, [viewMode, pagedData, loadMorePages]);
+
+  // Flattened Ayats for indexed access
   const flattenedAyats = useMemo(() => {
     const ayats: any[] = [];
     pagedData.forEach(page => {
@@ -232,39 +278,11 @@ export function QuranReader() {
     return ayats;
   }, [pagedData]);
 
-  // Carousel Select Logic
-  useEffect(() => {
-    if (!api || viewMode !== 'ayat') return;
-
-    api.on("select", () => {
-      const index = api.selectedScrollSnap();
-      const currentAyat = flattenedAyats[index];
-      if (currentAyat) {
-        setVisiblePage(currentAyat.pageNumber);
-        
-        // Load more if near the end
-        if (index >= flattenedAyats.length - 5 && !loadingContent) {
-          const lastPage = pagedData[pagedData.length - 1]?.pageNumber;
-          if (lastPage && lastPage < 604) {
-            loadMorePages();
-          }
-        }
-      }
-    });
-  }, [api, viewMode, flattenedAyats, pagedData, loadingContent]);
-
-  const loadMorePages = async () => {
-    if (loadingContent) return;
-    const lastPage = pagedData[pagedData.length - 1]?.pageNumber;
-    if (!lastPage || lastPage >= 604) return;
-
-    const nextPage = lastPage + 1;
-    setLoadingContent(true);
-    const data = await fetchPageData(nextPage);
-    if (data) {
-      setPagedData(prev => [...prev, data]);
+  const scrollToAyat = (index: number) => {
+    const target = ayatScrollContainerRef.current?.querySelector(`[data-ayat-index="${index}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth' });
     }
-    setLoadingContent(false);
   };
 
   const isReading = viewMode !== 'index';
@@ -301,7 +319,7 @@ export function QuranReader() {
                 </Button>
                 <div className="flex flex-col justify-center">
                   <h1 className="text-sm md:text-xl font-headline font-bold text-white leading-tight">
-                    {flattenedAyats[api?.selectedScrollSnap() || 0]?.surah.englishName || 'Reciting...'}
+                    {flattenedAyats[currentAyatIndex]?.surah.englishName || 'Reciting...'}
                   </h1>
                   <div className="flex items-center gap-2">
                     <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">Page {visiblePage}</p>
@@ -339,7 +357,7 @@ export function QuranReader() {
         </div>
       </div>
 
-      <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] mt-4 min-h-[60vh]">
+      <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] mt-4 min-h-[60vh] flex flex-col">
         {viewMode === 'index' ? (
           <div className="p-8 md:p-12 space-y-8">
             {isMetaLoading ? (
@@ -395,35 +413,46 @@ export function QuranReader() {
             )}
           </div>
         ) : viewMode === 'ayat' ? (
-          <div className="h-full">
-            <Carousel setApi={setApi} className="w-full h-full" opts={{ direction: 'rtl', align: 'start' }}>
-              <CarouselContent className="h-full">
-                {flattenedAyats.map((ayat, idx) => (
-                  <CarouselItem key={`${ayat.number}-${idx}`} className="h-full flex flex-col items-center justify-center p-8 md:p-24 min-h-[60vh]">
-                    <div className="w-full max-w-4xl space-y-12 text-center">
-                      {ayat.numberInSurah === 1 && ayat.surah.number !== 9 && <BismillahHeader />}
-                      <div className="space-y-12">
-                         <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
-                          {ayat.text}
-                          <span className="inline-block mr-4 align-middle"><AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} size="md" /></span>
-                        </p>
-                        <div className="space-y-6 text-left">
-                          {localSettings.showTransliteration && ayat.translit && (
-                            <p className="text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{ayat.translit}</p>
-                          )}
-                          {localSettings.showTranslation && ayat.trans && (
-                            <p className="text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{ayat.trans}</p>
-                          )}
-                        </div>
+          <div 
+            ref={ayatScrollContainerRef}
+            className="flex-1 overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+          >
+            <div className="p-0">
+              {flattenedAyats.map((ayat, idx) => (
+                <div 
+                  key={`${ayat.number}-${idx}`} 
+                  data-ayat-index={idx}
+                  data-page-number={ayat.pageNumber}
+                  className="ayat-block snap-start min-h-[60vh] flex flex-col items-center justify-center p-8 md:p-24 border-b border-zinc-900/30"
+                >
+                  <div className="w-full max-w-4xl space-y-12">
+                    {ayat.numberInSurah === 1 && ayat.surah.number !== 9 && <BismillahHeader />}
+                    <div className="space-y-12 text-center">
+                       <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
+                        {ayat.text}
+                        <span className="inline-block mr-4 align-middle"><AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                      </p>
+                      <div className="space-y-6 text-left">
+                        {localSettings.showTransliteration && ayat.translit && (
+                          <p className="text-zinc-500 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize - 2}px` }}>{ayat.translit}</p>
+                        )}
+                        {localSettings.showTranslation && ayat.trans && (
+                          <p className="text-zinc-400 font-medium leading-relaxed italic" style={{ fontSize: `${transFontSize}px` }}>{ayat.trans}</p>
+                        )}
                       </div>
                     </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
+                  </div>
+                </div>
+              ))}
+              {loadingContent && (
+                <div className="p-12 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-zinc-800" />
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="p-8 md:p-16">
+          <div className="flex-1 overflow-y-auto p-8 md:p-16">
             <div className="space-y-12">
               {pagedData.map((page) => (
                 <div 
@@ -448,24 +477,24 @@ export function QuranReader() {
 
       {isReading && viewMode === 'ayat' && (
         <div className="flex items-center justify-between px-6 pb-32">
-           <Button 
+          <Button 
             variant="ghost" 
             className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
-            onClick={() => api?.scrollNext()}
-            disabled={!api?.canScrollNext()}
+            onClick={() => scrollToAyat(currentAyatIndex + 1)}
+            disabled={currentAyatIndex >= flattenedAyats.length - 1}
           >
-            Next Ayat <ChevronLeft className="w-4 h-4 ml-2" />
+            Next Ayat <ChevronDown className="w-4 h-4 ml-2" />
           </Button>
           <div className="text-zinc-600 font-black text-[10px] uppercase tracking-widest">
-            {api?.selectedScrollSnap() + 1} / {flattenedAyats.length}
+            {currentAyatIndex + 1} / {flattenedAyats.length}
           </div>
           <Button 
             variant="ghost" 
             className="rounded-xl h-12 px-6 gap-2 text-zinc-500 font-bold" 
-            onClick={() => api?.scrollPrev()}
-            disabled={!api?.canScrollPrev()}
+            onClick={() => scrollToAyat(currentAyatIndex - 1)}
+            disabled={currentAyatIndex <= 0}
           >
-            <ChevronRight className="w-4 h-4 mr-2" /> Previous Ayat
+            <ChevronUp className="w-4 h-4 mr-2" /> Previous Ayat
           </Button>
         </div>
       )}
@@ -508,9 +537,9 @@ export function QuranReader() {
                <p className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Available Offline</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-400" onClick={() => api?.scrollPrev()}><ChevronLeft className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-400" onClick={() => scrollToAyat(currentAyatIndex - 1)}><ChevronUp className="w-5 h-5" /></Button>
               <Button className="h-12 w-12 rounded-2xl bg-white text-black"><Mic2 className="w-5 h-5" /></Button>
-              <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-400" onClick={() => api?.scrollNext()}><ChevronRight className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-400" onClick={() => scrollToAyat(currentAyatIndex + 1)}><ChevronDown className="w-5 h-5" /></Button>
             </div>
           </Card>
         </div>
@@ -518,4 +547,3 @@ export function QuranReader() {
     </div>
   );
 }
-
