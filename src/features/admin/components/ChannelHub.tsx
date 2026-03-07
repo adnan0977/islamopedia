@@ -382,7 +382,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[180px]">Creator branding</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[150px]">Creator branding</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-24">Inventory</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-24 text-center">Subs</TableHead>
                 <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-32">Actions</TableHead>
@@ -396,14 +396,14 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                   const videosInDbCount = videos.filter(v => v.channelId === channel.id).length;
                   return (
                     <TableRow key={channel.id} className={cn("hover:bg-zinc-900/40 transition-all border-zinc-900 h-24", !channel.isActive && "opacity-50 grayscale")}>
-                      <TableCell className="pl-6 max-w-[180px]">
+                      <TableCell className="pl-6 max-w-0 w-[150px]">
                         <div className="flex items-center gap-3 min-w-0 overflow-hidden">
                           <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-zinc-800 bg-black shrink-0">
                             {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                           </div>
                           <div className="flex flex-col min-w-0 overflow-hidden">
                             <div className="flex items-center gap-1 min-w-0">
-                              <span className="font-bold text-zinc-100 truncate text-[11px]" title={channel.title}>
+                              <span className="font-bold text-zinc-100 truncate text-[11px] block w-full" title={channel.title}>
                                 {channel.title}
                               </span>
                               {channel.isActive && <CheckCircle2 className="w-2.5 h-2.5 text-zinc-600 shrink-0" />}

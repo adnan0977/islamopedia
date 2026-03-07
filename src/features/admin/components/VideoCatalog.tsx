@@ -288,7 +288,7 @@ export function VideoCatalog() {
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[220px]">Video Details</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[180px]">Video Details</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-24">Engagement</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-24">Published</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-24">Status</TableHead>
@@ -298,14 +298,14 @@ export function VideoCatalog() {
             <TableBody>
               {filteredVideos?.map((video) => (
                 <TableRow key={video.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
-                  <TableCell className="pl-6 max-w-[220px]">
+                  <TableCell className="pl-6 max-w-0 w-[180px]">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="relative w-14 h-9 rounded-md overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
                         {video.thumbnailUrl && <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />}
                       </div>
                       <div className="flex flex-col min-w-0 overflow-hidden">
-                        <span className="font-bold text-zinc-100 truncate text-[11px] leading-tight" title={video.title}>{video.title}</span>
-                        <span className="text-[8px] text-zinc-600 truncate uppercase mt-0.5">
+                        <span className="font-bold text-zinc-100 truncate text-[11px] leading-tight block w-full" title={video.title}>{video.title}</span>
+                        <span className="text-[8px] text-zinc-600 truncate uppercase mt-0.5 block w-full">
                           {channels?.find(c => c.id === video.channelId)?.title || video.channelId}
                         </span>
                       </div>
