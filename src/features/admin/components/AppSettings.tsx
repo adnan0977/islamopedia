@@ -23,7 +23,7 @@ export function AppSettings() {
 
   const [localSettings, setLocalSettings] = useState({
     logoUrl: '',
-    ayatFrameId: 'star',
+    ayatFrameId: 'royal-ornate',
     navigationVisibility: {
       home: true,
       upload: true,
@@ -36,7 +36,7 @@ export function AppSettings() {
     if (settings) {
       setLocalSettings({
         logoUrl: settings.logoUrl || '',
-        ayatFrameId: settings.ayatFrameId || 'star',
+        ayatFrameId: settings.ayatFrameId || 'royal-ornate',
         navigationVisibility: {
           home: settings.navigationVisibility?.home ?? true,
           upload: settings.navigationVisibility?.upload ?? true,
@@ -108,13 +108,13 @@ export function AppSettings() {
               <Hash className="w-4 h-4 text-zinc-600" />
               <h3 className="text-xs font-black uppercase tracking-widest text-zinc-600">Verse Numbering Style</h3>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {AYAT_FRAMES.map((frame) => (
                 <button
                   key={frame.id}
                   onClick={() => setLocalSettings({ ...localSettings, ayatFrameId: frame.id })}
                   className={cn(
-                    "flex flex-col items-center gap-4 p-6 rounded-2xl border transition-all group",
+                    "flex flex-col items-center gap-4 p-6 rounded-2xl border transition-all group h-full",
                     localSettings.ayatFrameId === frame.id 
                       ? "bg-zinc-900 border-zinc-500 shadow-lg" 
                       : "bg-zinc-950 border-zinc-900 hover:border-zinc-700"
