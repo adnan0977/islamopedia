@@ -101,9 +101,9 @@ export function ScholarDirectory() {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button 
-                className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 flex items-center gap-3 shadow-lg"
+                className="rounded-full h-14 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95 flex items-center gap-3 shadow-lg group"
               >
-                <Plus className="w-5 h-5 text-emerald-600" />
+                <Plus className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
                 <span className="text-sm">Add New Scholar</span>
               </Button>
             </DialogTrigger>
