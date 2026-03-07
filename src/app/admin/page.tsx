@@ -69,17 +69,17 @@ export default function AdminPanel() {
 
   const isVerifiedAdmin = !!adminData;
 
-  // Real Data Queries for Dashboard
-  const channelsQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'channels'), limit(100)) : null), [db, isVerifiedAdmin]);
+  // Real Data Queries for Dashboard - increased limits to show full catalog
+  const channelsQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'channels'), limit(1000)) : null), [db, isVerifiedAdmin]);
   const { data: channels } = useCollection(channelsQuery);
 
-  const videosQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'videos'), limit(100)) : null), [db, isVerifiedAdmin]);
+  const videosQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'videos'), limit(1000)) : null), [db, isVerifiedAdmin]);
   const { data: videos } = useCollection(videosQuery);
 
-  const speakersQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'speakers'), limit(100)) : null), [db, isVerifiedAdmin]);
+  const speakersQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'speakers'), limit(1000)) : null), [db, isVerifiedAdmin]);
   const { data: speakers } = useCollection(speakersQuery);
 
-  const editionsQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'quran_editions'), limit(100)) : null), [db, isVerifiedAdmin]);
+  const editionsQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'quran_editions'), limit(1000)) : null), [db, isVerifiedAdmin]);
   const { data: editions } = useCollection(editionsQuery);
 
   const copyUid = () => {
