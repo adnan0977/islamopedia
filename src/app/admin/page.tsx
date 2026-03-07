@@ -31,7 +31,8 @@ import {
   CheckCircle,
   AlertCircle,
   BookOpen,
-  Eye
+  Eye,
+  ArrowRight
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -1153,6 +1154,8 @@ function QuranDatabaseSync({
             juz: ayah.juz
           }));
 
+          const uniquePages = Array.from(new Set(ayats.map((a: any) => a.page)));
+
           const surahRef = doc(db, 'quran', surahId);
           batch.set(surahRef, {
             id: surahId,
@@ -1161,6 +1164,7 @@ function QuranDatabaseSync({
             name: surah.name,
             englishName: surah.englishName,
             ayats: ayats,
+            pages: uniquePages,
             updatedAt: new Date().toISOString()
           }, { merge: true });
         });
@@ -1274,9 +1278,10 @@ function QuranDatabaseSync({
 function QuranDatabaseViewer({ editions }: { editions: any[] }) {
   const db = useFirestore();
   const [selectedEdition, setSelectedEdition] = useState('');
-  const [currentSurah, setCurrentSurah] = useState(1);
+  const [filterMode, setFilterMode] = useState<'surah' | 'page'>('surah');
+  const [currentNumber, setCurrentNumber] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [surahData, setSurahData] = useState<any>(null);
+  const [surahData, setSurahData] = useState<any[]>([]);
 
   useEffect(() => {
     if (!selectedEdition && editions.length > 0) {
@@ -1285,17 +1290,30 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
     }
   }, [editions, selectedEdition]);
 
-  const fetchSurahFromDB = async () => {
+  const fetchFromDB = async () => {
     if (!selectedEdition) return;
     setIsLoading(true);
     try {
-      const surahId = `${selectedEdition}_surah_${currentSurah}`;
-      const docRef = doc(db, 'quran', surahId);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        setSurahData(snap.data());
+      if (filterMode === 'surah') {
+        const surahId = `${selectedEdition}_surah_${currentNumber}`;
+        const docRef = doc(db, 'quran', surahId);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          setSurahData([snap.data()]);
+        } else {
+          setSurahData([]);
+        }
       } else {
-        setSurahData(null);
+        // Page mode - Find all surahs that cover this page
+        const q = query(
+          collection(db, 'quran'), 
+          where('editionId', '==', selectedEdition), 
+          where('pages', 'array-contains', currentNumber)
+        );
+        const snap = await getDocs(q);
+        const results = snap.docs.map(d => d.data());
+        // Sort to maintain order if page spans surahs
+        setSurahData(results.sort((a, b) => a.surahNumber - b.surahNumber));
       }
     } catch (error) {
       console.error(error);
@@ -1305,8 +1323,8 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
   };
 
   useEffect(() => {
-    fetchSurahFromDB();
-  }, [selectedEdition, currentSurah]);
+    fetchFromDB();
+  }, [selectedEdition, currentNumber, filterMode]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -1330,13 +1348,27 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
             </Select>
           </div>
           <div className="w-full md:w-32">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Surah</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Filter Mode</Label>
+            <Select value={filterMode} onValueChange={(val: any) => { setFilterMode(val); setCurrentNumber(1); }}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                <SelectItem value="surah">By Surah</SelectItem>
+                <SelectItem value="page">By Page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full md:w-32">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">
+              {filterMode === 'surah' ? 'Surah Number' : 'Page Number'}
+            </Label>
             <Input 
               type="number" 
               min={1} 
-              max={114} 
-              value={currentSurah} 
-              onChange={(e) => setCurrentSurah(parseInt(e.target.value) || 1)}
+              max={filterMode === 'surah' ? 114 : 604} 
+              value={currentNumber} 
+              onChange={(e) => setCurrentNumber(parseInt(e.target.value) || 1)}
               className="bg-zinc-900 border-zinc-800 rounded-xl"
             />
           </div>
@@ -1349,41 +1381,47 @@ function QuranDatabaseViewer({ editions }: { editions: any[] }) {
             <Loader2 className="animate-spin w-12 h-12" />
             <p className="text-sm font-black uppercase tracking-widest">Querying Firestore Surah Table...</p>
           </div>
-        ) : surahData ? (
+        ) : surahData.length > 0 ? (
           <ScrollArea className="flex-1">
             <div className="p-8 space-y-12">
-               <div className="flex items-center gap-4 border-b border-zinc-900 pb-2">
-                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">
-                    Surah {surahData.surahNumber}. {surahData.englishName} • Edition: {surahData.editionId}
-                 </span>
-                 <div className="flex-1 h-px bg-zinc-900" />
-               </div>
-               <div className="space-y-8">
-                 {surahData?.ayats?.map((ayat: any, idx: number) => (
-                   <div key={idx} className="group p-8 bg-zinc-900/30 rounded-3xl border border-zinc-900/50 hover:border-zinc-800 transition-all space-y-8">
-                      <div className="flex justify-between items-start gap-8">
-                         <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-zinc-900 text-zinc-600 shrink-0">
-                           Ayat {ayat.numberInSurah} • Page {ayat.page}
-                         </Badge>
-                         <p className="flex-1 text-right text-3xl font-arabic leading-relaxed text-zinc-100">
-                           {ayat.text}
-                         </p>
-                      </div>
-                      {ayat.translationText && (
-                        <p className="text-zinc-500 text-sm md:text-lg font-medium leading-relaxed italic border-l-2 border-zinc-900 pl-6">
-                          {ayat.translationText}
-                        </p>
-                      )}
+               {surahData.map((surah) => (
+                 <div key={surah.id} className="space-y-8">
+                   <div className="flex items-center gap-4 border-b border-zinc-900 pb-2">
+                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">
+                        Surah {surah.surahNumber}. {surah.englishName} • {surah.ayats.length} Ayats
+                     </span>
+                     <div className="flex-1 h-px bg-zinc-900" />
                    </div>
-                 ))}
-               </div>
+                   <div className="space-y-8">
+                     {surah.ayats
+                      .filter((a: any) => filterMode === 'surah' || a.page === currentNumber)
+                      .map((ayat: any, idx: number) => (
+                       <div key={idx} className="group p-8 bg-zinc-900/30 rounded-3xl border border-zinc-900/50 hover:border-zinc-800 transition-all space-y-8">
+                          <div className="flex justify-between items-start gap-8">
+                             <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-zinc-900 text-zinc-600 shrink-0">
+                               Ayat {ayat.numberInSurah} • Page {ayat.page}
+                             </Badge>
+                             <p className="flex-1 text-right text-3xl font-arabic leading-relaxed text-zinc-100">
+                               {ayat.text}
+                             </p>
+                          </div>
+                          {ayat.translationText && (
+                            <p className="text-zinc-500 text-sm md:text-lg font-medium leading-relaxed italic border-l-2 border-zinc-900 pl-6">
+                              {ayat.translationText}
+                            </p>
+                          )}
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               ))}
             </div>
           </ScrollArea>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 space-y-4">
             <Eye className="w-12 h-12 opacity-10" />
             <p className="font-bold text-center px-8">
-              {selectedEdition ? `No data found for Surah ${currentSurah} of ${selectedEdition} in your database. Please sync this edition first.` : 'Select an edition and surah to view synchronized data.'}
+              {selectedEdition ? `No data found for ${filterMode} ${currentNumber} of ${selectedEdition} in your database. Please sync this edition first.` : 'Select an edition and surah to view synchronized data.'}
             </p>
           </div>
         )}

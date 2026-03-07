@@ -115,6 +115,11 @@
         "surahNumber": { "type": "number" },
         "name": { "type": "string" },
         "englishName": { "type": "string" },
+        "pages": {
+          "type": "array",
+          "items": { "type": "number" },
+          "description": "List of page numbers this surah covers."
+        },
         "ayats": {
           "type": "array",
           "items": {
@@ -131,7 +136,7 @@
         },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "editionId", "surahNumber", "name", "englishName", "ayats"]
+      "required": ["id", "editionId", "surahNumber", "name", "englishName", "ayats", "pages"]
     }
   },
   "auth": {
