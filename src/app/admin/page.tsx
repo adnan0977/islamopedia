@@ -110,7 +110,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '@/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -294,7 +294,7 @@ export default function AdminPanel() {
                   {activeTab === 'channels' && 'YouTube Channels'}
                   {activeTab === 'videos' && 'Video Catalog'}
                   {activeTab === 'speakers' && 'Scholar Management'}
-                  {activeTab === 'translations' && 'Quran Tools'}
+                  {activeTab === 'translations' && 'Quran Tools Hub'}
                 </h2>
 
                 <Menubar className="bg-transparent border-none shadow-none hidden lg:flex">

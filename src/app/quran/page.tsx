@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from 'react';
@@ -174,12 +173,16 @@ export default function QuranPage() {
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 h-auto md:h-[calc(100vh-120px)] flex flex-col space-y-6 pb-24 md:pb-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex flex-col min-w-0">
-          <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100 whitespace-nowrap">
-            {selectedPageData?.ayats?.[0]?.surah?.englishName || 'Quran Majeed'}
-            <span className="text-zinc-600 ml-3 text-lg font-medium">Page {currentPage}</span>
-          </h1>
-          <p className="text-zinc-500 text-xs md:text-sm truncate">
-            The Noble Quran • Page {currentPage} of 604
+          <div className="flex items-center gap-3">
+             <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100 whitespace-nowrap">
+              {selectedPageData?.ayats?.[0]?.surah?.englishName || 'Quran Majeed'}
+            </h1>
+            <Badge variant="outline" className="bg-zinc-900 border-zinc-800 text-zinc-500 font-black tracking-widest text-[10px] h-6 px-3">
+              PAGE {currentPage}
+            </Badge>
+          </div>
+          <p className="text-zinc-500 text-xs md:text-sm truncate mt-1">
+            Edition: {displayTranslations.find(t => t.id === selectedEdition)?.name || selectedEdition}
           </p>
         </div>
 
@@ -194,6 +197,9 @@ export default function QuranPage() {
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
+            <div className="px-3 text-[10px] font-black text-zinc-600 border-x border-zinc-900/50">
+              {currentPage} / 604
+            </div>
             <Button 
               variant="ghost" 
               size="icon" 
@@ -347,12 +353,17 @@ export default function QuranPage() {
                     <div className="space-y-16">
                       {groupedAyats.map((group) => (
                         <div key={group.surah.number} className="space-y-10">
+                          <div className="flex items-center gap-4 border-b border-zinc-900 pb-4">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">Surah {group.surah.englishName}</span>
+                            <div className="flex-1 h-px bg-zinc-900" />
+                          </div>
                           {group.ayats.map((ayat: any) => (
                             <div key={ayat.number} className="group space-y-10 pb-16 border-b border-zinc-900/50 last:border-none">
                                 <div className="flex flex-col md:flex-row items-start justify-between gap-8">
                                   <div className="flex md:flex-col gap-4 shrink-0">
-                                    <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center text-xs font-black text-zinc-600">
-                                      {ayat.numberInSurah}
+                                    <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col items-center justify-center text-[8px] font-black text-zinc-600">
+                                      <span className="leading-none">{ayat.numberInSurah}</span>
+                                      <span className="text-[6px] opacity-40 mt-1">PAGE {currentPage}</span>
                                     </div>
                                     <Button 
                                       variant="ghost" 
