@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, writeBatch, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, writeBatch, orderBy, limit, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -46,7 +46,9 @@ import {
   TrendingUp,
   History,
   Database,
-  ArrowRight
+  ArrowRight,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -972,8 +974,29 @@ function QuranIndexing({ translations }: { translations: any[] }) {
   const { toast } = useToast();
   const [selectedEdition, setSelectedEdition] = useState<string>('');
   const [isIndexing, setIsIndexing] = useState(false);
+  const [isDataSynced, setIsDataSynced] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('');
+
+  const checkSyncStatus = async (editionId: string) => {
+    if (!editionId) return;
+    const docRef = doc(db, 'quran_pages', `${editionId}_1`);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      setIsDataSynced(true);
+      setPreviewData(docSnap.data());
+    } else {
+      setIsDataSynced(false);
+      setPreviewData(null);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedEdition) {
+      checkSyncStatus(selectedEdition);
+    }
+  }, [selectedEdition]);
 
   const startIndexing = async () => {
     if (!selectedEdition) return;
@@ -1005,6 +1028,8 @@ function QuranIndexing({ translations }: { translations: any[] }) {
         }
       }
       setStatus('Indexing Complete');
+      setIsDataSynced(true);
+      checkSyncStatus(selectedEdition);
       toast({ title: "Indexing Finished", description: `Successfully stored 604 pages for ${selectedEdition}.` });
     } catch (e: any) {
       console.error(e);
@@ -1016,50 +1041,107 @@ function QuranIndexing({ translations }: { translations: any[] }) {
   };
 
   return (
-    <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-8 shadow-2xl space-y-8">
-      <div className="space-y-2">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-          <Database className="w-6 h-6 text-zinc-500" />
-          Content Sync Tool
-        </h3>
-        <p className="text-sm text-zinc-500">Fetch and cache Quranic pages in your local database for high-performance reading.</p>
-      </div>
-
-      <div className="grid gap-6">
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-8 shadow-2xl space-y-8">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Select Translation to Index</Label>
-          <Select value={selectedEdition} onValueChange={setSelectedEdition}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-              <SelectValue placeholder="Choose edition..." />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-              {translations.map((t) => (
-                <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <Database className="w-6 h-6 text-zinc-500" />
+            Content Sync Tool
+          </h3>
+          <p className="text-sm text-zinc-500">Fetch and cache Quranic pages in your local database for high-performance reading.</p>
         </div>
 
-        {isIndexing && (
-          <div className="space-y-4 animate-in fade-in duration-500">
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
-              <span>{status}</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="h-2 bg-zinc-900" />
+        <div className="grid gap-6">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Select Translation to Index</Label>
+            <Select value={selectedEdition} onValueChange={setSelectedEdition}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                <SelectValue placeholder="Choose edition..." />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                {translations.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
 
-        <Button 
-          className="bg-white text-black hover:bg-zinc-200 rounded-xl h-12 font-bold"
-          onClick={startIndexing}
-          disabled={isIndexing || !selectedEdition}
-        >
-          {isIndexing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-          Start Data Sync
-        </Button>
-      </div>
-    </Card>
+          {isIndexing && (
+            <div className="space-y-4 animate-in fade-in duration-500">
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                <span>{status}</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <Progress value={progress} className="h-2 bg-zinc-900" />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4">
+            {isDataSynced && !isIndexing && (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3 text-emerald-500">
+                <CheckCircle className="w-5 h-5 shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold uppercase tracking-widest">Edition Synced</span>
+                  <span className="text-[10px] opacity-80">This translation content is already available in your database.</span>
+                </div>
+              </div>
+            )}
+
+            <Button 
+              className={cn(
+                "rounded-xl h-12 font-bold transition-all",
+                isDataSynced ? "bg-zinc-900 text-zinc-500 cursor-not-allowed" : "bg-white text-black hover:bg-zinc-200"
+              )}
+              onClick={startIndexing}
+              disabled={isIndexing || !selectedEdition || isDataSynced}
+            >
+              {isIndexing ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : isDataSynced ? (
+                <Check className="w-4 h-4 mr-2" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              {isDataSynced ? 'Already Synced' : 'Start Data Sync'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {previewData && (
+        <Card className="bg-zinc-950 border-zinc-900 rounded-3xl p-8 shadow-2xl space-y-6 animate-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
+            <div className="flex items-center gap-3">
+              <Eye className="w-5 h-5 text-zinc-500" />
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-500">Live Data Validation (Page 1)</h4>
+            </div>
+            <Badge variant="outline" className="text-[9px] font-black border-zinc-800 text-zinc-600">PREVIEW MODE</Badge>
+          </div>
+
+          <ScrollArea className="h-[200px] w-full pr-4">
+            <div className="space-y-6">
+              {previewData.content.slice(0, 3).map((ayat: any, idx: number) => (
+                <div key={idx} className="space-y-3 border-b border-zinc-900 pb-4 last:border-none">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Ayat {ayat.numberInSurah}</span>
+                    <span className="text-[9px] font-medium text-zinc-800 italic">{ayat.surah?.englishName}</span>
+                  </div>
+                  <p className="text-right text-xl font-arabic text-zinc-200 leading-relaxed" style={{ direction: 'rtl' }}>
+                    {ayat.text}
+                  </p>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    {ayat.text}
+                  </p>
+                </div>
+              ))}
+              <div className="text-center py-2">
+                <span className="text-[10px] font-black text-zinc-800 uppercase tracking-widest">Showing first 3 ayats for validation</span>
+              </div>
+            </div>
+          </ScrollArea>
+        </Card>
+      )}
+    </div>
   );
 }
 
