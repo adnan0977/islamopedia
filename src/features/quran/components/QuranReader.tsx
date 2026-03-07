@@ -15,16 +15,16 @@ import {
   Languages,
   ArrowLeft,
   Database,
-  Sparkles
+  Check,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
@@ -192,8 +192,8 @@ export function QuranReader() {
   };
 
   const BismillahHeader = () => (
-    <div className="w-full flex flex-col items-center justify-center py-8 mb-4 relative">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.08)_0%,_transparent_70%)] pointer-events-none" />
+    <div className="w-full flex flex-col items-center justify-center py-4 mb-2 relative">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_0%,_transparent_70%)] pointer-events-none" />
       <span className="text-3xl md:text-5xl font-arabic text-white select-none drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] relative">
         {BISMILLAH_TEXT}
       </span>
@@ -208,12 +208,11 @@ export function QuranReader() {
       onTouchEnd={onTouchEnd}
     >
       {/* 
-          Sticky Header Wrapper: 
-          Uses bg-background and negative margin to create a solid curtain that 
-          covers scrolling content perfectly.
+          Sticky Header: 
+          Solid background color ensuring no content leakage behind.
       */}
-      <div className="sticky top-0 md:top-24 z-50 bg-background -mx-4 px-4 py-2">
-        <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] border border-zinc-900 shadow-2xl gap-4">
+      <div className="sticky top-0 md:top-24 z-50 bg-background -mx-4 px-4 py-3">
+        <div className="flex flex-row justify-between items-center bg-zinc-950 p-4 rounded-2xl md:rounded-[2rem] border border-zinc-900 shadow-2xl gap-4">
           <div className="flex items-center gap-4">
             {!isReading ? (
               <div className="flex items-center gap-3">
@@ -266,23 +265,52 @@ export function QuranReader() {
               </div>
             ) : (
               <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-24 md:w-48">
-                  <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
-                    <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[9px] md:text-[10px] font-bold">
-                      <div className="flex items-center gap-2">
-                        <Languages className="w-3 h-3 text-zinc-500 hidden md:inline" />
-                        <SelectValue placeholder="Translation" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="rounded-xl h-10 px-3 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white transition-all">
+                      <Languages className="w-4 h-4 md:mr-2" />
+                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Translation</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 bg-zinc-950 border-zinc-800 p-0 rounded-2xl overflow-hidden shadow-2xl z-[100]">
+                    <div className="p-4 border-b border-zinc-900 bg-zinc-900/50 flex items-center justify-between">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Available Editions</h3>
+                      <Languages className="w-3 h-3 text-zinc-700" />
+                    </div>
+                    <ScrollArea className="h-72">
+                      <div className="p-2 space-y-1">
+                        {translations.map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => setSelectedTranslation(t.id)}
+                            className={cn(
+                              "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group relative overflow-hidden",
+                              selectedTranslation === t.id ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:bg-zinc-900"
+                            )}
+                          >
+                            <div className="flex flex-col relative z-10">
+                              <span className="text-xs font-bold leading-none mb-1">{t.name}</span>
+                              <span className={cn(
+                                "text-[9px] font-medium uppercase tracking-widest", 
+                                selectedTranslation === t.id ? "text-zinc-500" : "text-zinc-600"
+                              )}>
+                                {t.englishName}
+                              </span>
+                            </div>
+                            {selectedTranslation === t.id && (
+                              <Check className="w-4 h-4 relative z-10" />
+                            )}
+                          </button>
+                        ))}
+                        {translations.length === 0 && (
+                          <div className="p-6 text-center">
+                            <p className="text-xs text-zinc-600 font-medium italic">No translations synced.</p>
+                          </div>
+                        )}
                       </div>
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                      {translations.map((t) => (
-                        <SelectItem key={t.id} value={t.id} className="text-xs font-medium focus:bg-zinc-900 focus:text-white">
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
 
                 <Button 
                   variant="outline" 
@@ -379,12 +407,12 @@ export function QuranReader() {
             {viewMode === 'ayat' ? (
               <div className="space-y-12">
                 {groupedAyats.map(group => (
-                  <div key={group.surah.number} className="space-y-8">
+                  <div key={group.surah.number} className="space-y-12">
                     {group.ayats[0]?.numberInSurah === 1 && group.surah.number !== 9 && <BismillahHeader />}
                     {group.ayats.map((a: any) => (
-                      <div key={a.number} className="space-y-4">
+                      <div key={a.number} className="space-y-6">
                         <div className="text-left">
-                          <span className="text-xs font-bold text-zinc-700 select-none">
+                          <span className="text-[10px] font-black text-zinc-700 select-none tracking-widest uppercase">
                             {group.surah.number}:{a.numberInSurah}
                           </span>
                         </div>
