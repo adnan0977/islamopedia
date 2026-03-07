@@ -311,11 +311,11 @@ export function VideoCatalog() {
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900 hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[30%]">Video Details</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] py-6 text-zinc-600 pl-6 w-[25%]">Video Details</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-[15%]">Engagement</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 text-center w-[15%]">Published</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 w-[20%]">Status</TableHead>
-                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-[20%]">Actions</TableHead>
+                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.1em] text-zinc-600 pr-6 w-[25%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -362,8 +362,8 @@ export function VideoCatalog() {
                       <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[7px] font-black uppercase w-fit px-1.5 py-0">Standard</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right pr-6">
-                    <div className="flex justify-end gap-1">
+                  <TableCell className="text-right pr-6 max-w-0">
+                    <div className="flex justify-end gap-1 flex-nowrap">
                       <a href={video.externalUrl} target="_blank" rel="noopener noreferrer">
                         <Button variant="ghost" size="icon" className="rounded-lg h-8 w-8 text-zinc-600 hover:text-white hover:bg-zinc-900">
                           <ExternalLink className="w-3.5 h-3.5" />

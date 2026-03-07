@@ -264,10 +264,10 @@ export function ChannelHub({ videos }: { videos: any[] }) {
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900">
-                <TableHead className="py-6 text-zinc-600 pl-6 w-[30%]">Creator Branding</TableHead>
+                <TableHead className="py-6 text-zinc-600 pl-6 w-[25%]">Creator Branding</TableHead>
                 <TableHead className="text-zinc-600 text-center w-[20%]">Inventory</TableHead>
                 <TableHead className="text-zinc-600 text-center w-[20%]">Subs</TableHead>
-                <TableHead className="text-right text-zinc-600 pr-6 w-[30%]">Actions</TableHead>
+                <TableHead className="text-right text-zinc-600 pr-6 w-[35%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -297,8 +297,8 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                   <TableCell className="text-center text-[10px] font-bold text-zinc-400">
                     {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount}
                   </TableCell>
-                  <TableCell className="text-right pr-6">
-                    <div className="flex justify-end gap-1">
+                  <TableCell className="text-right pr-6 max-w-0">
+                    <div className="flex justify-end gap-1 flex-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => handleSyncVideos(channel)} className="h-8 w-8 text-zinc-600 hover:text-emerald-500">
                         <RefreshCw className={cn("w-3.5 h-3.5", syncingVideosFor === channel.id && "animate-spin")} />
                       </Button>
