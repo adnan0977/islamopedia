@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ViewMode = 'ayat' | 'page';
 
@@ -57,7 +56,6 @@ export default function QuranPage() {
     init();
   }, []);
 
-  // Update surah content if translation or Surah selection changes
   const selectSurah = async (id: number) => {
     setLoadingDetails(true);
     setAiContext(null);
@@ -97,7 +95,6 @@ export default function QuranPage() {
     }
   };
 
-  // AI Context State
   const [aiContext, setAiContext] = useState<SurahContextOutput | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
 
@@ -108,7 +105,6 @@ export default function QuranPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 h-auto md:h-[calc(100vh-120px)] flex flex-col space-y-6 pb-24 md:pb-0">
-      {/* Dynamic Header Action Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-3">
           {selectedSurah && (
@@ -134,7 +130,6 @@ export default function QuranPage() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Translation Selection Trigger */}
           <div className="relative">
             <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
               <SelectTrigger className="bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white min-w-[140px] md:min-w-[180px] shadow-lg hover:border-zinc-700 transition-colors">
@@ -156,7 +151,6 @@ export default function QuranPage() {
             </Select>
           </div>
 
-          {/* Search Trigger/Input */}
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
             <Input 
@@ -170,7 +164,6 @@ export default function QuranPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
-        {/* Surah List Column */}
         <div className={cn(
           "md:col-span-4 flex flex-col space-y-4 h-full",
           selectedSurah ? "hidden md:flex" : "flex"
@@ -213,7 +206,6 @@ export default function QuranPage() {
           </ScrollArea>
         </div>
 
-        {/* Content Viewer Column */}
         <div className={cn(
           "md:col-span-8 flex flex-col min-h-0 h-full",
           selectedSurah ? "flex" : "hidden md:flex"
@@ -243,27 +235,21 @@ export default function QuranPage() {
                     <div className="flex flex-col items-end gap-3">
                       <p className="text-2xl md:text-3xl font-arabic text-zinc-100">{selectedSurah.info.name}</p>
                       
-                      {/* View Mode Switcher Moved Inside Ayat Page */}
-                      <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as ViewMode)} className="mt-2">
-                        <TabsList className="bg-zinc-900 border border-zinc-800 h-9 p-1 rounded-lg">
-                          <TabsTrigger value="ayat" className="h-7 rounded-md data-[state=active]:bg-zinc-800 text-[10px] font-bold gap-1.5 px-3">
-                            <LayoutList className="w-3.5 h-3.5" />
-                            Ayat
-                          </TabsTrigger>
-                          <TabsTrigger value="page" className="h-7 rounded-md data-[state=active]:bg-zinc-800 text-[10px] font-bold gap-1.5 px-3">
-                            <BookOpen className="w-3.5 h-3.5" />
-                            Page
-                          </TabsTrigger>
-                        </TabsList>
-                      </Tabs>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 bg-zinc-900 border-zinc-800 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all shadow-lg mt-2"
+                        onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
+                        title={viewMode === 'ayat' ? "Switch to Page View" : "Switch to Ayat View"}
+                      >
+                        {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
                 
                 <ScrollArea className="flex-1">
                   <div className="p-4 md:p-6 space-y-10">
-                    
-                    {/* AI Historical Insight Section */}
                     <div className="bg-zinc-900/40 rounded-3xl border border-zinc-900 p-6 md:p-8 space-y-6">
                       <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
                         <div className="flex items-center gap-3">
@@ -311,7 +297,6 @@ export default function QuranPage() {
                           <p className="text-sm text-zinc-600">Syncing verses...</p>
                       </div>
                     ) : viewMode === 'ayat' ? (
-                      /* Ayat Reading View */
                       <div className="space-y-12">
                         {selectedSurah.ayats.map((ayat: any, idx: number) => (
                           <div key={ayat.number} className="group space-y-8 pb-10 border-b border-zinc-900/50 last:border-none">
@@ -351,7 +336,6 @@ export default function QuranPage() {
                         ))}
                       </div>
                     ) : (
-                      /* Page Reading View */
                       <div className="py-8 px-4 md:px-12 bg-zinc-950 rounded-[3rem] border border-zinc-900 shadow-inner">
                         <div 
                           className="text-right font-arabic leading-[2.5] text-3xl md:text-5xl text-zinc-100 space-x-1 space-x-reverse"
