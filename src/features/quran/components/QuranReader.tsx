@@ -13,7 +13,7 @@ import {
   Type, 
   Book as BookIcon,
   Languages,
-  ArrowLeftRight
+  ArrowLeft
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -177,89 +177,111 @@ export function QuranReader() {
     setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat');
   };
 
+  const isReading = viewMode !== 'index';
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-4">
-      {/* Primary Header */}
+      {/* Unified Primary Header */}
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
-        <div className="flex flex-col justify-center">
-          <h1 className="text-xl md:text-2xl font-headline font-bold text-white">
-            {viewMode === 'index' ? 'Quran' : (groupedAyats[0]?.surah.englishName || 'Quran')}
-          </h1>
-          {viewMode !== 'index' && (
-            <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">
-              Page {currentPage} / 604
-            </p>
+        <div className="flex items-center gap-4">
+          {!isReading ? (
+            <h1 className="text-xl md:text-2xl font-headline font-bold text-white">Quran</h1>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
+                onClick={() => setViewMode('index')}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div className="flex flex-col justify-center">
+                <h1 className="text-lg md:text-xl font-headline font-bold text-white leading-tight">
+                  {groupedAyats[0]?.surah.englishName || 'Reading...'}
+                </h1>
+                <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">
+                  Page {currentPage} / 604
+                </p>
+              </div>
+            </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => toggleIndex('surah')} 
-            className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-          >
-            <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => toggleIndex('juz')} 
-            className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-          >
-            <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
-          </Button>
+        {/* Right Side Action Area */}
+        <div className="flex items-center gap-2">
+          {!isReading ? (
+            <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => toggleIndex('surah')} 
+                className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+              >
+                <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => toggleIndex('juz')} 
+                className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+              >
+                <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {/* Translation Selection in Header */}
+              <div className="w-28 md:w-48 hidden sm:block">
+                <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
+                  <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[10px] font-bold">
+                    <div className="flex items-center gap-2">
+                      <Languages className="w-3 h-3 text-zinc-500" />
+                      <SelectValue placeholder="Translation" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                    {translations.map((t) => (
+                      <SelectItem key={t.id} value={t.id} className="text-xs font-medium">
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Single Toggle Button for Page/Ayat in Header */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleViewMode} 
+                className="rounded-xl font-bold h-10 px-4 border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white shadow-lg"
+              >
+                {viewMode === 'ayat' ? (
+                  <div className="flex items-center gap-2">
+                    <BookIcon className="w-4 h-4" />
+                    <span className="text-[10px] uppercase tracking-widest hidden md:inline">Page View</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Type className="w-4 h-4" />
+                    <span className="text-[10px] uppercase tracking-widest hidden md:inline">Ayat View</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Reading Controls Bar - Simplified single toggle */}
-      {viewMode !== 'index' && (
-        <div className="flex items-center justify-between bg-zinc-950/50 backdrop-blur-md p-3 rounded-2xl border border-zinc-900 gap-3">
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={toggleViewMode} 
-              className="rounded-xl font-bold h-9 px-4 border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-white"
-            >
-              {viewMode === 'ayat' ? (
-                <>
-                  <BookIcon className="w-4 h-4 mr-2" />
-                  <span className="text-xs uppercase tracking-widest">Switch to Page View</span>
-                </>
-              ) : (
-                <>
-                  <Type className="w-4 h-4 mr-2" />
-                  <span className="text-xs uppercase tracking-widest">Switch to Ayat View</span>
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="w-32 md:w-48">
-              <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 h-9 rounded-xl text-zinc-300 text-[10px] font-bold">
-                  <div className="flex items-center gap-2">
-                    <Languages className="w-3 h-3 text-zinc-500" />
-                    <SelectValue placeholder="Translation" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                  {translations.map((t) => (
-                    <SelectItem key={t.id} value={t.id} className="text-xs font-medium">
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Button 
+      {/* Pagination Controls Bar (Only when reading) */}
+      {isReading && (
+        <div className="flex items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+             <Button 
                 variant="outline" 
                 size="icon" 
-                className="rounded-xl border-zinc-800 h-9 w-9 shrink-0"
+                className="rounded-xl border-zinc-900 bg-zinc-950 h-10 w-10 shrink-0"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
                 disabled={currentPage <= 1}
               >
@@ -268,13 +290,27 @@ export function QuranReader() {
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="rounded-xl border-zinc-800 h-9 w-9 shrink-0"
+                className="rounded-xl border-zinc-900 bg-zinc-950 h-10 w-10 shrink-0"
                 onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
                 disabled={currentPage >= 604}
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
-            </div>
+          </div>
+          
+          {/* Mobile-only translation selector if screen is very small */}
+          <div className="sm:hidden w-32">
+             <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
+                <SelectTrigger className="bg-zinc-950 border-zinc-900 h-10 rounded-xl text-zinc-400 text-[9px] font-bold">
+                  <Languages className="w-3 h-3 mr-1" />
+                  <SelectValue placeholder="Trans" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                  {translations.map((t) => (
+                    <SelectItem key={t.id} value={t.id} className="text-[10px]">{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
           </div>
         </div>
       )}
