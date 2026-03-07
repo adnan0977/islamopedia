@@ -24,13 +24,6 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -57,6 +50,7 @@ export default function QuranSettingsPage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [editionSearch, setEditionSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'translation' | 'transliteration'>('all');
+  const [langFilter, setLangFilter] = useState('all');
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
@@ -65,15 +59,21 @@ export default function QuranSettingsPage() {
   ), [db]);
   const { data: editions } = useCollection(editionsQuery);
 
+  const languages = useMemo(() => {
+    if (!editions) return [];
+    return Array.from(new Set(editions.map(e => e.language))).sort();
+  }, [editions]);
+
   const filteredEditions = useMemo(() => {
     if (!editions) return [];
     return editions.filter(e => {
       const matchesSearch = e.name.toLowerCase().includes(editionSearch.toLowerCase()) || 
                            e.englishName.toLowerCase().includes(editionSearch.toLowerCase());
       const matchesType = typeFilter === 'all' || e.type === typeFilter;
-      return matchesSearch && matchesType;
+      const matchesLang = langFilter === 'all' || e.language === langFilter;
+      return matchesSearch && matchesType && matchesLang;
     });
-  }, [editions, editionSearch, typeFilter]);
+  }, [editions, editionSearch, typeFilter, langFilter]);
 
   const appSettingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: appSettings } = useDoc(appSettingsRef);
@@ -217,6 +217,31 @@ export default function QuranSettingsPage() {
                         </button>
                       ))}
                     </div>
+                    <ScrollArea className="w-full">
+                      <div className="flex gap-2 pb-2">
+                         <button
+                           onClick={() => setLangFilter('all')}
+                           className={cn(
+                             "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
+                             langFilter === 'all' ? "bg-zinc-100 text-black border-zinc-100" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
+                           )}
+                         >
+                           All Languages
+                         </button>
+                         {languages.map(l => (
+                           <button
+                             key={l}
+                             onClick={() => setLangFilter(l)}
+                             className={cn(
+                               "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
+                               langFilter === l ? "bg-zinc-100 text-black border-zinc-100" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
+                             )}
+                           >
+                             {l}
+                           </button>
+                         ))}
+                      </div>
+                    </ScrollArea>
                   </div>
                   <ScrollArea className="h-64">
                     <div className="p-2 space-y-1">
@@ -236,6 +261,11 @@ export default function QuranSettingsPage() {
                           {localSettings.preferredTranslationId === t.id && <CheckCircle2 className="w-4 h-4" />}
                         </button>
                       ))}
+                      {filteredEditions.length === 0 && (
+                        <div className="py-12 text-center text-[10px] font-black uppercase tracking-widest text-zinc-700">
+                          No matching editions
+                        </div>
+                      )}
                     </div>
                   </ScrollArea>
                 </PopoverContent>
@@ -357,4 +387,3 @@ export default function QuranSettingsPage() {
     </div>
   );
 }
-

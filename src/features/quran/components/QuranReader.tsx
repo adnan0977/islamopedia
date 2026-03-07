@@ -18,9 +18,7 @@ import {
   Check,
   Settings,
   Search,
-  Mic2,
-  FilterX,
-  Languages as LanguagesIcon
+  FilterX
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -354,29 +352,31 @@ export function QuranReader() {
                         ))}
                       </div>
 
-                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                         <button
-                           onClick={() => setLangFilter('all')}
-                           className={cn(
-                             "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border",
-                             langFilter === 'all' ? "bg-zinc-100 text-black" : "text-zinc-600 border-zinc-900"
-                           )}
-                         >
-                           All Languages
-                         </button>
-                         {languages.map(l => (
+                      <ScrollArea className="w-full">
+                        <div className="flex gap-2 pb-1">
                            <button
-                             key={l}
-                             onClick={() => setLangFilter(l)}
+                             onClick={() => setLangFilter('all')}
                              className={cn(
-                               "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border",
-                               langFilter === l ? "bg-zinc-100 text-black" : "text-zinc-600 border-zinc-900"
+                               "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
+                               langFilter === 'all' ? "bg-zinc-100 text-black border-zinc-100" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
                              )}
                            >
-                             {l}
+                             All Languages
                            </button>
-                         ))}
-                      </div>
+                           {languages.map(l => (
+                             <button
+                               key={l}
+                               onClick={() => setLangFilter(l)}
+                               className={cn(
+                                 "shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all",
+                                 langFilter === l ? "bg-zinc-100 text-black border-zinc-100" : "text-zinc-600 border-zinc-900 hover:border-zinc-700"
+                               )}
+                             >
+                               {l}
+                             </button>
+                           ))}
+                        </div>
+                      </ScrollArea>
                     </div>
                     
                     <ScrollArea className="h-80">
@@ -617,4 +617,3 @@ export function QuranReader() {
     </div>
   );
 }
-
