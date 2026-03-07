@@ -16,7 +16,8 @@ import {
   BookOpen,
   ChevronRight,
   ChevronLeft,
-  Database
+  Database,
+  Languages
 } from 'lucide-react';
 import { 
   Dialog,
@@ -220,6 +221,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
   const [available, setAvailable] = useState<any[]>([]);
   const [openAdd, setOpenAdd] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('all');
 
   const fetchAvailable = async () => {
     setLoading(true);
@@ -256,6 +258,14 @@ function EditionDirectory({ editions }: { editions: any[] }) {
     }
   };
 
+  const uniqueLanguages = Array.from(new Set(available.map(a => a.language))).sort();
+
+  const filteredAvailable = available.filter(a => {
+    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.identifier.toLowerCase().includes(search.toLowerCase());
+    const matchesLang = selectedLanguage === 'all' || a.language === selectedLanguage;
+    return matchesSearch && matchesLang;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
@@ -269,38 +279,78 @@ function EditionDirectory({ editions }: { editions: any[] }) {
               Browse API Editions
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 h-[80vh] flex flex-col rounded-3xl">
-            <DialogHeader className="p-6 border-b border-zinc-800 shrink-0">
+          <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[750px] p-0 h-[85vh] flex flex-col rounded-3xl">
+            <DialogHeader className="p-8 border-b border-zinc-800 shrink-0 space-y-4">
               <DialogTitle className="text-white font-bold text-xl">Available Editions</DialogTitle>
               <DialogDescription className="text-zinc-500 text-sm">
                 Browse and activate new translations from the global repository.
               </DialogDescription>
-              <div className="mt-4 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <Input 
-                  placeholder="Search API directory..." 
-                  className="pl-10 bg-zinc-900 border-zinc-800 text-white rounded-xl"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+              <div className="flex flex-col md:flex-row gap-4 mt-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <Input 
+                    placeholder="Search by name or ID..." 
+                    className="pl-10 bg-zinc-900 border-zinc-800 text-white rounded-xl h-11"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <div className="w-full md:w-56">
+                   <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                      <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-11 rounded-xl">
+                         <div className="flex items-center gap-2">
+                            <Languages className="w-4 h-4 text-zinc-500" />
+                            <SelectValue placeholder="All Languages" />
+                         </div>
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-950 border-zinc-800 text-white max-h-60">
+                         <SelectItem value="all">All Languages</SelectItem>
+                         {uniqueLanguages.map(lang => (
+                           <SelectItem key={lang} value={lang}>
+                             {languageNameMap[lang] || lang.toUpperCase()}
+                           </SelectItem>
+                         ))}
+                      </SelectContent>
+                   </Select>
+                </div>
               </div>
             </DialogHeader>
-            <ScrollArea className="flex-1 p-6">
-              <div className="grid gap-2">
-                {loading ? <Loader2 className="animate-spin text-zinc-500 mx-auto" /> : available.filter(a => a.name.toLowerCase().includes(search.toLowerCase())).map((item) => {
-                  const isActivated = editions.some(t => t.id === item.identifier);
-                  return (
-                    <div key={item.identifier} className="flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800">
-                      <div className="flex flex-col">
-                        <span className="text-white font-bold text-sm">{item.name}</span>
-                        <span className="text-zinc-500 text-[10px] uppercase font-black tracking-widest">{languageNameMap[item.language] || item.language}</span>
+            <ScrollArea className="flex-1 p-8">
+              <div className="grid gap-3">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                    <Loader2 className="animate-spin text-zinc-500 w-8 h-8" />
+                    <p className="text-zinc-600 text-xs font-black uppercase tracking-widest">Querying Cloud Registry...</p>
+                  </div>
+                ) : filteredAvailable.length > 0 ? (
+                  filteredAvailable.map((item) => {
+                    const isActivated = editions.some(t => t.id === item.identifier);
+                    return (
+                      <div key={item.identifier} className="flex items-center justify-between p-5 bg-zinc-900/40 rounded-2xl border border-zinc-900/50 hover:border-zinc-800 transition-colors">
+                        <div className="flex flex-col space-y-1">
+                          <span className="text-zinc-200 font-bold text-sm">{item.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-zinc-600 text-[9px] uppercase font-black tracking-widest">{languageNameMap[item.language] || item.language}</span>
+                            <span className="text-zinc-800 text-[9px]">•</span>
+                            <span className="text-zinc-600 text-[9px] font-mono">{item.identifier}</span>
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant={isActivated ? "destructive" : "secondary"} 
+                          className="rounded-xl font-bold min-w-[110px] h-9" 
+                          onClick={() => toggleEdition(item)}
+                        >
+                          {isActivated ? <Trash2 className="w-4 h-4" /> : 'Activate'}
+                        </Button>
                       </div>
-                      <Button size="sm" variant={isActivated ? "destructive" : "secondary"} className="rounded-xl font-bold min-w-[100px]" onClick={() => toggleEdition(item)}>
-                        {isActivated ? <Trash2 className="w-4 h-4" /> : 'Activate'}
-                      </Button>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-20 bg-zinc-900/20 rounded-3xl border border-dashed border-zinc-900">
+                    <p className="text-zinc-600 font-medium">No translations match your search.</p>
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </DialogContent>
@@ -332,6 +382,16 @@ function EditionDirectory({ editions }: { editions: any[] }) {
                 </TableCell>
               </TableRow>
             ))}
+            {editions.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="h-40 text-center">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                     <BookOpen className="w-8 h-8 text-zinc-900" />
+                     <p className="text-zinc-600 font-medium">Your edition directory is empty.</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Card>
@@ -370,16 +430,16 @@ function SyncTool({ editions, syncing, performSync, handleStandardSync, isStanda
 
       <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
         <div className="flex flex-col md:flex-row gap-6 items-end">
-          <div className="flex-1 space-y-2 w-full">
+          <div className="flex-1 space-y-4 w-full">
             <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Select Sync Target</Label>
             <Select value={selectedEdition} onValueChange={setSelectedEdition}>
               <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                <SelectValue placeholder="Select edition..." />
+                <SelectValue placeholder="Choose an edition to sync..." />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                 {editions.map((t) => (
                   <SelectItem key={t.id} value={t.id} disabled={t.dataSync === 'yes'}>
-                    {t.name} {t.dataSync === 'yes' ? ' (Already Synced)' : ''}
+                    {t.name} {t.dataSync === 'yes' ? ' (Synced)' : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -550,4 +610,3 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
     </div>
   );
 }
-
