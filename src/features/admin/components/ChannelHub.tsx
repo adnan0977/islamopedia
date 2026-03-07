@@ -130,9 +130,12 @@ export function ChannelHub() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              className="bg-white text-black hover:bg-zinc-200 rounded-2xl font-bold h-14 px-10 shadow-xl transition-all active:scale-95 flex items-center gap-2 w-full md:w-auto text-base"
+              className="bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-700 rounded-full h-14 px-8 font-bold shadow-2xl transition-all active:scale-95 flex items-center gap-3 group"
             >
-              <Plus className="w-5 h-5" /> Add New Channels
+              <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+                <Plus className="w-5 h-5 text-emerald-500" />
+              </div>
+              <span className="text-sm">Add New Channels</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-0 overflow-hidden outline-none shadow-2xl">
