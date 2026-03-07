@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -109,7 +108,7 @@ export default function QuranPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 h-auto md:h-[calc(100vh-120px)] flex flex-col space-y-6 pb-24 md:pb-0">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-3">
           {selectedSurah && (
             <Button 
@@ -126,41 +125,48 @@ export default function QuranPage() {
             <p className="text-zinc-500 text-xs md:text-sm">Read, listen, and contemplate the Word of Allah.</p>
           </div>
         </div>
-        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-center">
-          <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as ViewMode)} className="w-full md:w-auto">
-            <TabsList className="bg-zinc-950 border border-zinc-900 h-11 p-1 rounded-xl">
-              <TabsTrigger value="ayat" className="rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
-                <LayoutList className="w-4 h-4" />
-                Ayat
-              </TabsTrigger>
-              <TabsTrigger value="page" className="rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
-                <BookOpen className="w-4 h-4" />
-                Page
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="w-full md:w-64">
+        
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Translation Selector in Header */}
+          <div className="relative">
             <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
-              <SelectTrigger className="bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white">
+              <SelectTrigger className="bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white min-w-[140px] md:min-w-[180px] shadow-lg hover:border-zinc-700 transition-colors">
                 <div className="flex items-center gap-2 truncate">
                   <Languages className="w-4 h-4 text-zinc-500 shrink-0" />
-                  <SelectValue placeholder="Select Translation" />
+                  <SelectValue placeholder="Translation" />
                 </div>
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-zinc-800">
                 {displayTranslations.map(t => (
                   <SelectItem key={t.id} value={t.id} className="text-zinc-300 focus:bg-zinc-900">
-                    {t.name} <span className="text-[10px] text-zinc-600 ml-2 uppercase">({t.language})</span>
+                    <div className="flex flex-col py-0.5">
+                      <span className="font-bold text-xs">{t.name}</span>
+                      <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as ViewMode)} className="flex-1 md:flex-none">
+            <TabsList className="bg-zinc-950 border border-zinc-900 h-11 p-1 rounded-xl w-full md:w-auto">
+              <TabsTrigger value="ayat" className="flex-1 md:flex-none rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
+                <LayoutList className="w-4 h-4" />
+                Ayat
+              </TabsTrigger>
+              <TabsTrigger value="page" className="flex-1 md:flex-none rounded-lg data-[state=active]:bg-zinc-900 text-xs font-bold gap-2">
+                <BookOpen className="w-4 h-4" />
+                Page
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
             <Input 
               placeholder="Search Surah..." 
-              className="pl-10 bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white"
+              className="pl-10 bg-zinc-950 border-zinc-900 h-11 rounded-xl text-white shadow-lg focus:border-zinc-700 transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -174,7 +180,7 @@ export default function QuranPage() {
           "md:col-span-4 flex flex-col space-y-4 h-full",
           selectedSurah ? "hidden md:flex" : "flex"
         )}>
-          <ScrollArea className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-900 p-2">
+          <ScrollArea className="flex-1 bg-zinc-950 rounded-2xl border border-zinc-900 p-2 shadow-inner">
             {loading ? (
               <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-500" /></div>
             ) : (
@@ -185,7 +191,7 @@ export default function QuranPage() {
                     onClick={() => selectSurah(surah.number)}
                     className={cn(
                       "w-full flex items-center justify-between p-4 rounded-xl transition-all hover:bg-zinc-900 text-left group",
-                      selectedSurah?.info?.number === surah.number ? "bg-zinc-900 ring-1 ring-zinc-700" : ""
+                      selectedSurah?.info?.number === surah.number ? "bg-zinc-900 ring-1 ring-zinc-700 shadow-lg" : ""
                     )}
                   >
                     <div className="flex items-center space-x-4">
