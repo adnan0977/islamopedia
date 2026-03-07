@@ -20,7 +20,9 @@ import {
   Search,
   FilterX,
   Globe,
-  ChevronDown
+  ChevronDown,
+  Volume2,
+  Mic2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -56,12 +58,14 @@ export function QuranReader() {
   const initialIndexType = (searchParams.get('type') as 'surah' | 'juz') || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
   const initialTrans = searchParams.get('trans') || 'en.sahih';
+  const initialAudio = searchParams.get('audio') || '';
 
   // Local settings state
   const [localSettings, setLocalSettings] = useState({
     arabicFontSize: 40,
     translationFontSize: 16,
     preferredTranslationId: initialTrans,
+    preferredAudioId: initialAudio,
     ayatFrameId: 'royal-ornate'
   });
 
@@ -72,6 +76,7 @@ export function QuranReader() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
   const [selectedEditionId, setSelectedEditionId] = useState(initialTrans);
+  const [selectedAudioId, setSelectedAudioId] = useState(initialAudio);
   
   // Selection UI Filters
   const [langFilter, setLangFilter] = useState('all');
@@ -87,6 +92,9 @@ export function QuranReader() {
         if (parsed.preferredTranslationId && !searchParams.get('trans')) {
           setSelectedEditionId(parsed.preferredTranslationId);
         }
+        if (parsed.preferredAudioId && !searchParams.get('audio')) {
+          setSelectedAudioId(parsed.preferredAudioId);
+        }
       } catch (e) {
         console.error("Error parsing local quran settings", e);
       }
@@ -97,6 +105,7 @@ export function QuranReader() {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
     params.set('trans', selectedEditionId);
+    if (selectedAudioId) params.set('audio', selectedAudioId);
     if (viewMode === 'index') {
       params.set('type', indexType);
       params.delete('page');
@@ -105,7 +114,7 @@ export function QuranReader() {
       params.set('page', currentPage.toString());
     }
     router.replace(`/quran?${params.toString()}`, { scroll: false });
-  }, [viewMode, indexType, currentPage, selectedEditionId, router, searchParams]);
+  }, [viewMode, indexType, currentPage, selectedEditionId, selectedAudioId, router, searchParams]);
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
@@ -125,7 +134,14 @@ export function QuranReader() {
     return editions.filter(e => e.language === langFilter);
   }, [editions, langFilter]);
 
-  // Sync lang filter if edition changes externally
+  const textEditions = useMemo(() => {
+    return editionsForSelectedLang.filter(e => e.format === 'text' || e.type !== 'audio');
+  }, [editionsForSelectedLang]);
+
+  const audioEditions = useMemo(() => {
+    return editionsForSelectedLang.filter(e => e.format === 'audio' || e.type === 'audio');
+  }, [editionsForSelectedLang]);
+
   useEffect(() => {
     if (editions && selectedEditionId && langFilter === 'all') {
       const current = editions.find(e => e.id === selectedEditionId);
@@ -296,14 +312,14 @@ export function QuranReader() {
                   <PopoverTrigger asChild>
                     <Button variant="ghost" className="rounded-xl h-10 px-3 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white transition-all">
                       <Languages className="w-4 h-4 md:mr-2" />
-                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Translation</span>
+                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Recitation Hub</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 bg-zinc-950 border-zinc-800 p-6 rounded-2xl shadow-2xl z-[100] space-y-6">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <Globe className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">1. Language</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">1. Select Language</span>
                       </div>
                       <Select value={langFilter} onValueChange={setLangFilter}>
                         <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
@@ -321,17 +337,37 @@ export function QuranReader() {
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <Type className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">2. Edition</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">2. Text Edition</span>
                       </div>
                       <Select value={selectedEditionId} onValueChange={setSelectedEditionId}>
                         <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
-                          <SelectValue placeholder="Edition" />
+                          <SelectValue placeholder="Translation/Translit" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          {editionsForSelectedLang.map(e => (
+                          {textEditions.map(e => (
                             <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                           ))}
-                          {editionsForSelectedLang.length === 0 && (
+                          {textEditions.length === 0 && (
+                            <div className="p-4 text-center text-xs text-zinc-700">None found</div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Volume2 className="w-3 h-3 text-zinc-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">3. Audio Reciter</span>
+                      </div>
+                      <Select value={selectedAudioId} onValueChange={setSelectedAudioId}>
+                        <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
+                          <SelectValue placeholder="Choose Qari" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          {audioEditions.map(e => (
+                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                          ))}
+                          {audioEditions.length === 0 && (
                             <div className="p-4 text-center text-xs text-zinc-700">None found</div>
                           )}
                         </SelectContent>

@@ -18,7 +18,9 @@ import {
   Search,
   FilterX,
   Globe,
-  Book
+  Book,
+  Volume2,
+  Mic2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { 
   Select, 
@@ -53,6 +55,7 @@ export default function QuranSettingsPage() {
     arabicFontSize: 40,
     translationFontSize: 16,
     preferredTranslationId: 'en.sahih',
+    preferredAudioId: '',
     ayatFrameId: 'royal-ornate'
   });
 
@@ -77,6 +80,14 @@ export default function QuranSettingsPage() {
     return editions.filter(e => e.language === langFilter);
   }, [editions, langFilter]);
 
+  const textEditions = useMemo(() => {
+    return editionsForSelectedLang.filter(e => e.format === 'text' || e.type !== 'audio');
+  }, [editionsForSelectedLang]);
+
+  const audioEditions = useMemo(() => {
+    return editionsForSelectedLang.filter(e => e.format === 'audio' || e.type === 'audio');
+  }, [editionsForSelectedLang]);
+
   useEffect(() => {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
     const saved = localStorage.getItem(storageKey);
@@ -91,7 +102,6 @@ export default function QuranSettingsPage() {
     setIsLoaded(true);
   }, [user]);
 
-  // When editions load, if we have a preferred ID, try to set the lang filter correctly
   useEffect(() => {
     if (editions && localSettings.preferredTranslationId && langFilter === 'all') {
       const current = editions.find(e => e.id === localSettings.preferredTranslationId);
@@ -117,6 +127,7 @@ export default function QuranSettingsPage() {
   }
 
   const currentEdition = editions?.find(e => e.id === localSettings.preferredTranslationId);
+  const currentAudio = editions?.find(e => e.id === localSettings.preferredAudioId);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 pb-32">
@@ -147,12 +158,12 @@ export default function QuranSettingsPage() {
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
                 <Globe className="w-4 h-4 text-zinc-500" />
-                Language & Translation
+                Editions & Audio
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="space-y-4">
-                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">1. Select Language</Label>
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">1. Available Languages</Label>
                 <Select value={langFilter} onValueChange={setLangFilter}>
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                     <SelectValue placeholder="Choose Language" />
@@ -167,30 +178,47 @@ export default function QuranSettingsPage() {
               </div>
 
               <div className="space-y-4">
-                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">2. Select Edition</Label>
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">2. Translation Edition</Label>
                 <Select 
                   value={localSettings.preferredTranslationId} 
                   onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredTranslationId: val }))}
                 >
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                    <SelectValue placeholder="Choose Edition" />
+                    <SelectValue placeholder="Choose Translation" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                    {editionsForSelectedLang.map((e) => (
+                    {textEditions.map((e) => (
                       <SelectItem key={e.id} value={e.id}>
                         {e.name} ({e.type})
                       </SelectItem>
                     ))}
-                    {editionsForSelectedLang.length === 0 && (
-                      <div className="p-4 text-center text-xs text-zinc-500">No editions available for this language</div>
+                    {textEditions.length === 0 && (
+                      <div className="p-4 text-center text-xs text-zinc-500">No translations found</div>
                     )}
                   </SelectContent>
                 </Select>
-                {currentEdition && (
-                   <p className="text-[10px] text-zinc-600 font-medium italic mt-2">
-                     Current: {currentEdition.englishName} ({currentEdition.language})
-                   </p>
-                )}
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">3. Audio Recitation</Label>
+                <Select 
+                  value={localSettings.preferredAudioId} 
+                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredAudioId: val }))}
+                >
+                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                    <SelectValue placeholder="Choose Qari" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                    {audioEditions.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}
+                      </SelectItem>
+                    ))}
+                    {audioEditions.length === 0 && (
+                      <div className="p-4 text-center text-xs text-zinc-500">No audio editions found</div>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -288,12 +316,19 @@ export default function QuranSettingsPage() {
                     />
                   </span>
                 </p>
-                <p 
-                  className="font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left text-zinc-400"
-                  style={{ fontSize: `${localSettings.translationFontSize}px` }}
-                >
-                  {currentEdition?.type === 'transliteration' ? 'al-ḥamdu lillāhi rabbi l-ʿālamīn' : '[All] praise is [due] to Allah, Lord of the worlds -'}
-                </p>
+                <div className="space-y-2">
+                  <p 
+                    className="font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left text-zinc-400"
+                    style={{ fontSize: `${localSettings.translationFontSize}px` }}
+                  >
+                    {currentEdition?.type === 'transliteration' ? 'al-ḥamdu lillāhi rabbi l-ʿālamīn' : '[All] praise is [due] to Allah, Lord of the worlds -'}
+                  </p>
+                  {currentAudio && (
+                    <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-bold uppercase tracking-widest pl-4">
+                      <Volume2 className="w-3 h-3" /> Reciter: {currentAudio.name}
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
