@@ -114,7 +114,7 @@ export default function QuranPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 h-auto md:h-[calc(100vh-120px)] flex flex-col space-y-6 pb-24 md:pb-0">
-      {/* Header with Unified Controls clustered near title */}
+      {/* Header with Actions Aligned to Right */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4 flex-1 w-full">
           {selectedSurah && (
@@ -127,89 +127,87 @@ export default function QuranPage() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
-          <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
+          <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex-1 flex items-center justify-between gap-4">
+            <div className="min-w-0">
               <h1 className="text-2xl md:text-3xl font-headline font-bold text-zinc-100 whitespace-nowrap">
                 {selectedSurah ? selectedSurah.info.englishName : 'Quran Majeed'}
               </h1>
-              
-              {/* Actions clustered next to title */}
-              <div className="flex items-center gap-2">
-                {selectedSurah && (
-                  <Button
+              <p className="text-zinc-500 text-xs md:text-sm truncate">
+                {selectedSurah 
+                  ? `${selectedSurah.info.englishNameTranslation} • ${selectedSurah.info.numberOfAyahs} Ayahs` 
+                  : 'Read, listen, and contemplate the Word of Allah.'}
+              </p>
+            </div>
+            
+            {/* Action Buttons Clustered on the Right */}
+            <div className="flex items-center gap-2 shrink-0">
+              {selectedSurah && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 bg-zinc-950 border-zinc-900 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all shadow-lg shrink-0"
+                  onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
+                >
+                  {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
+                </Button>
+              )}
+
+              {/* Translation Selector */}
+              <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
+                <SelectTrigger className="w-10 h-10 p-0 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors">
+                  <Languages className="w-5 h-5 shrink-0" />
+                </SelectTrigger>
+                <SelectContent align="end" className="bg-zinc-950 border-zinc-800">
+                  {displayTranslations.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="text-zinc-300 focus:bg-zinc-900">
+                      <div className="flex flex-col py-0.5">
+                        <span className="font-bold text-xs">{t.name}</span>
+                        <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Expandable Search */}
+              <div className={cn(
+                "relative transition-all duration-300 flex items-center",
+                isSearchExpanded ? "w-40 md:w-64" : "w-10"
+              )}>
+                {isSearchExpanded ? (
+                  <div className="flex items-center w-full bg-zinc-950 border border-zinc-900 rounded-xl h-10 shadow-lg animate-in slide-in-from-right-2 duration-300">
+                    <Search className="ml-2 w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                    <Input 
+                      ref={searchInputRef}
+                      placeholder="Search..." 
+                      className="bg-transparent border-none focus-visible:ring-0 text-white placeholder:text-zinc-600 h-full w-full text-xs"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-full w-8 text-zinc-600 hover:text-white"
+                      onClick={() => {
+                        setIsSearchExpanded(false);
+                        setSearch('');
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={() => setIsSearchExpanded(true)}
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 bg-zinc-950 border-zinc-900 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all shadow-lg shrink-0"
-                    onClick={() => setViewMode(viewMode === 'ayat' ? 'page' : 'ayat')}
+                    className="w-10 h-10 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors"
                   >
-                    {viewMode === 'ayat' ? <BookOpen className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
+                    <Search className="w-5 h-5" />
                   </Button>
                 )}
-
-                {/* Translation Icon Selector */}
-                {!isSearchExpanded && (
-                  <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={isTranslationsLoading}>
-                    <SelectTrigger className="w-10 h-10 p-0 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors">
-                      <Languages className="w-5 h-5 shrink-0" />
-                    </SelectTrigger>
-                    <SelectContent align="end" className="bg-zinc-950 border-zinc-800">
-                      {displayTranslations.map(t => (
-                        <SelectItem key={t.id} value={t.id} className="text-zinc-300 focus:bg-zinc-900">
-                          <div className="flex flex-col py-0.5">
-                            <span className="font-bold text-xs">{t.name}</span>
-                            <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{t.language}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                {/* Expandable Search Input */}
-                <div className={cn(
-                  "relative transition-all duration-300 flex items-center",
-                  isSearchExpanded ? "w-40 md:w-64" : "w-10"
-                )}>
-                  {isSearchExpanded ? (
-                    <div className="flex items-center w-full bg-zinc-950 border border-zinc-900 rounded-xl h-10 shadow-lg animate-in slide-in-from-right-2 duration-300">
-                      <Search className="ml-2 w-3.5 h-3.5 text-zinc-600 shrink-0" />
-                      <Input 
-                        ref={searchInputRef}
-                        placeholder="Search..." 
-                        className="bg-transparent border-none focus-visible:ring-0 text-white placeholder:text-zinc-600 h-full w-full text-xs"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-full w-8 text-zinc-600 hover:text-white"
-                        onClick={() => {
-                          setIsSearchExpanded(false);
-                          setSearch('');
-                        }}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button 
-                      onClick={() => setIsSearchExpanded(true)}
-                      variant="outline"
-                      size="icon"
-                      className="w-10 h-10 bg-zinc-950 border-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white shadow-lg hover:border-zinc-700 transition-colors"
-                    >
-                      <Search className="w-5 h-5" />
-                    </Button>
-                  )}
-                </div>
               </div>
             </div>
-            <p className="text-zinc-500 text-xs md:text-sm truncate">
-              {selectedSurah 
-                ? `${selectedSurah.info.englishNameTranslation} • ${selectedSurah.info.numberOfAyahs} Ayahs` 
-                : 'Read, listen, and contemplate the Word of Allah.'}
-            </p>
           </div>
         </div>
       </div>
