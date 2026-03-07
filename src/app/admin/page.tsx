@@ -53,7 +53,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -319,17 +320,18 @@ export default function AdminPanel() {
 
         <Dialog open={globalSyncing}>
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl sm:max-w-md p-10 outline-none">
-            <div className="flex flex-col items-center text-center space-y-8">
+            <DialogHeader className="flex flex-col items-center text-center space-y-8">
                <div className="w-20 h-20 bg-zinc-900 border border-zinc-800 rounded-3xl flex items-center justify-center animate-pulse">
                  <Database className="w-10 h-10 text-white" />
                </div>
                <div className="space-y-2">
-                 <h3 className="text-xl font-bold">Synchronizing Database</h3>
-                 <p className="text-zinc-500 text-sm leading-relaxed">
+                 <DialogTitle className="text-xl font-bold">Synchronizing Database</DialogTitle>
+                 <DialogDescription className="text-zinc-500 text-sm leading-relaxed">
                    Pulling thousands of verses from AlQuran Cloud and committing them to your Firestore storage. Please do not close this window.
-                 </p>
+                 </DialogDescription>
                </div>
-               <div className="w-full space-y-4">
+            </DialogHeader>
+            <div className="w-full space-y-4">
                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-zinc-500">
                    <span>
                     {syncStatus === 'fetching' ? 'Fetching API Payload...' : 'Committing Batch Writes...'}
@@ -337,8 +339,9 @@ export default function AdminPanel() {
                    <span className="text-white">{syncProgress}%</span>
                  </div>
                  <Progress value={syncProgress} className="h-2 bg-zinc-900" />
-               </div>
-               <Loader2 className="animate-spin text-zinc-500 w-6 h-6" />
+            </div>
+            <div className="flex justify-center">
+              <Loader2 className="animate-spin text-zinc-500 w-6 h-6" />
             </div>
           </DialogContent>
         </Dialog>
