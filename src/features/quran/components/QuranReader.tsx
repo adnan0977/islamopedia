@@ -19,7 +19,8 @@ import {
   Settings,
   Search,
   FilterX,
-  Globe
+  Globe,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -73,7 +74,6 @@ export function QuranReader() {
   const [selectedEditionId, setSelectedEditionId] = useState(initialTrans);
   
   // Selection UI Filters
-  const [editionSearch, setEditionSearch] = useState('');
   const [langFilter, setLangFilter] = useState('all');
 
   // Load from local storage on mount
@@ -119,15 +119,19 @@ export function QuranReader() {
     return Array.from(new Set(editions.map(e => e.language))).sort();
   }, [editions]);
 
-  const filteredEditions = useMemo(() => {
+  const editionsForSelectedLang = useMemo(() => {
     if (!editions) return [];
-    return editions.filter(e => {
-      const matchesSearch = e.name.toLowerCase().includes(editionSearch.toLowerCase()) || 
-                           e.englishName.toLowerCase().includes(editionSearch.toLowerCase());
-      const matchesLang = langFilter === 'all' || e.language === langFilter;
-      return matchesSearch && matchesLang;
-    });
-  }, [editions, editionSearch, langFilter]);
+    if (langFilter === 'all') return editions;
+    return editions.filter(e => e.language === langFilter);
+  }, [editions, langFilter]);
+
+  // Sync lang filter if edition changes externally
+  useEffect(() => {
+    if (editions && selectedEditionId && langFilter === 'all') {
+      const current = editions.find(e => e.id === selectedEditionId);
+      if (current) setLangFilter(current.language);
+    }
+  }, [editions, selectedEditionId]);
 
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
@@ -292,19 +296,18 @@ export function QuranReader() {
                   <PopoverTrigger asChild>
                     <Button variant="ghost" className="rounded-xl h-10 px-3 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white transition-all">
                       <Languages className="w-4 h-4 md:mr-2" />
-                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Available Languages</span>
+                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest">Translation</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-96 bg-zinc-950 border-zinc-800 p-0 rounded-2xl overflow-hidden shadow-2xl z-[100]">
-                    <div className="p-4 border-b border-zinc-900 bg-zinc-900/50 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Language Filter</h3>
-                        <Globe className="w-3 h-3 text-zinc-700" />
+                  <PopoverContent className="w-80 bg-zinc-950 border-zinc-800 p-6 rounded-2xl shadow-2xl z-[100] space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-3 h-3 text-zinc-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">1. Language</span>
                       </div>
-                      
                       <Select value={langFilter} onValueChange={setLangFilter}>
-                        <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 h-10 text-xs rounded-lg text-white">
-                          <SelectValue placeholder="All Languages" />
+                        <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
+                          <SelectValue placeholder="Language" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                           <SelectItem value="all">All Languages</SelectItem>
@@ -313,43 +316,27 @@ export function QuranReader() {
                           ))}
                         </SelectContent>
                       </Select>
-
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
-                        <Input 
-                          placeholder="Search editions..." 
-                          className="bg-zinc-950 border-zinc-800 h-9 pl-9 text-xs rounded-lg"
-                          value={editionSearch}
-                          onChange={(e) => setEditionSearch(e.target.value)}
-                        />
-                      </div>
                     </div>
-                    
-                    <ScrollArea className="h-80">
-                      <div className="p-2 space-y-1">
-                        {filteredEditions.map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => setSelectedEditionId(t.id)}
-                            className={cn(
-                              "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group",
-                              selectedEditionId === t.id ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:bg-zinc-900"
-                            )}
-                          >
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-xs font-bold leading-none">{t.name}</span>
-                              <span className={cn(
-                                "text-[9px] font-medium uppercase tracking-widest", 
-                                selectedEditionId === t.id ? "text-zinc-500" : "text-zinc-600"
-                              )}>
-                                {t.language} • {t.type}
-                              </span>
-                            </div>
-                            {selectedEditionId === t.id && <Check className="w-4 h-4" />}
-                          </button>
-                        ))}
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Type className="w-3 h-3 text-zinc-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">2. Edition</span>
                       </div>
-                    </ScrollArea>
+                      <Select value={selectedEditionId} onValueChange={setSelectedEditionId}>
+                        <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
+                          <SelectValue placeholder="Edition" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          {editionsForSelectedLang.map(e => (
+                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                          ))}
+                          {editionsForSelectedLang.length === 0 && (
+                            <div className="p-4 text-center text-xs text-zinc-700">None found</div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </PopoverContent>
                 </Popover>
 

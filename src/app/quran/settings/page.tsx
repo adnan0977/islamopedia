@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   Search,
   FilterX,
-  Globe
+  Globe,
+  Book
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +30,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/area";
 import { Badge } from "@/components/ui/badge";
 import { 
   Select, 
@@ -56,7 +57,6 @@ export default function QuranSettingsPage() {
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
-  const [editionSearch, setEditionSearch] = useState('');
   const [langFilter, setLangFilter] = useState('all');
 
   const editionsQuery = useMemoFirebase(() => query(
@@ -71,31 +71,35 @@ export default function QuranSettingsPage() {
     return Array.from(new Set(editions.map(e => e.language))).sort();
   }, [editions]);
 
-  const filteredEditions = useMemo(() => {
+  const editionsForSelectedLang = useMemo(() => {
     if (!editions) return [];
-    return editions.filter(e => {
-      const matchesSearch = e.name.toLowerCase().includes(editionSearch.toLowerCase()) || 
-                           e.englishName.toLowerCase().includes(editionSearch.toLowerCase());
-      const matchesLang = langFilter === 'all' || e.language === langFilter;
-      return matchesSearch && matchesLang;
-    });
-  }, [editions, editionSearch, langFilter]);
-
-  const appSettingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
-  const { data: appSettings } = useDoc(appSettingsRef);
+    if (langFilter === 'all') return editions;
+    return editions.filter(e => e.language === langFilter);
+  }, [editions, langFilter]);
 
   useEffect(() => {
     const storageKey = user ? `vlognest_quran_settings_${user.uid}` : 'vlognest_quran_settings_guest';
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
-        setLocalSettings(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setLocalSettings(parsed);
       } catch (e) {
         console.error("Failed to parse local quran settings", e);
       }
     }
     setIsLoaded(true);
   }, [user]);
+
+  // When editions load, if we have a preferred ID, try to set the lang filter correctly
+  useEffect(() => {
+    if (editions && localSettings.preferredTranslationId && langFilter === 'all') {
+      const current = editions.find(e => e.id === localSettings.preferredTranslationId);
+      if (current) {
+        setLangFilter(current.language);
+      }
+    }
+  }, [editions, localSettings.preferredTranslationId]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -143,15 +147,15 @@ export default function QuranSettingsPage() {
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
                 <Globe className="w-4 h-4 text-zinc-500" />
-                Available Languages
+                Language & Translation
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="space-y-4">
-                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Language</Label>
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">1. Select Language</Label>
                 <Select value={langFilter} onValueChange={setLangFilter}>
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                    <SelectValue placeholder="All Languages" />
+                    <SelectValue placeholder="Choose Language" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                     <SelectItem value="all">All Languages</SelectItem>
@@ -162,44 +166,31 @@ export default function QuranSettingsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-4 pt-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Edition</Label>
-                  <div className="relative w-40">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
-                    <Input 
-                      placeholder="Search scholar..." 
-                      className="bg-zinc-900 border-zinc-800 h-8 pl-8 text-[10px] rounded-lg"
-                      value={editionSearch}
-                      onChange={(e) => setEditionSearch(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <ScrollArea className="h-64 border border-zinc-900 rounded-2xl bg-zinc-900/20">
-                  <div className="p-2 space-y-1">
-                    {filteredEditions.map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => setLocalSettings(prev => ({ ...prev, preferredTranslationId: t.id }))}
-                        className={cn(
-                          "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between group",
-                          localSettings.preferredTranslationId === t.id ? "bg-zinc-100 text-black shadow-lg" : "text-zinc-400 hover:bg-zinc-900"
-                        )}
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold">{t.name}</span>
-                          <span className="text-[9px] text-zinc-500 font-medium uppercase tracking-widest">{t.language} • {t.type}</span>
-                        </div>
-                        {localSettings.preferredTranslationId === t.id && <CheckCircle2 className="w-4 h-4" />}
-                      </button>
+              <div className="space-y-4">
+                <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">2. Select Edition</Label>
+                <Select 
+                  value={localSettings.preferredTranslationId} 
+                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredTranslationId: val }))}
+                >
+                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
+                    <SelectValue placeholder="Choose Edition" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                    {editionsForSelectedLang.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name} ({e.type})
+                      </SelectItem>
                     ))}
-                    {filteredEditions.length === 0 && (
-                      <div className="p-8 text-center text-zinc-600 text-[10px] font-bold uppercase tracking-widest">
-                        No editions found
-                      </div>
+                    {editionsForSelectedLang.length === 0 && (
+                      <div className="p-4 text-center text-xs text-zinc-500">No editions available for this language</div>
                     )}
-                  </div>
-                </ScrollArea>
+                  </SelectContent>
+                </Select>
+                {currentEdition && (
+                   <p className="text-[10px] text-zinc-600 font-medium italic mt-2">
+                     Current: {currentEdition.englishName} ({currentEdition.language})
+                   </p>
+                )}
               </div>
             </CardContent>
           </Card>
