@@ -21,13 +21,16 @@ import {
   Book,
   Volume2,
   Mic2,
-  Languages as TransliterationIcon
+  Languages as TransliterationIcon,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { 
   Popover,
   PopoverContent,
@@ -56,9 +59,12 @@ export default function QuranSettingsPage() {
     arabicFontSize: 40,
     translationFontSize: 16,
     preferredTranslationId: 'en.sahih',
-    preferredTransliterationId: '',
-    preferredAudioId: '',
-    ayatFrameId: 'royal-ornate'
+    preferredTransliterationId: 'none',
+    preferredAudioId: 'none',
+    ayatFrameId: 'royal-ornate',
+    showTranslation: true,
+    showTransliteration: true,
+    showAudio: true
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
@@ -100,7 +106,16 @@ export default function QuranSettingsPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setLocalSettings(prev => ({ ...prev, ...parsed }));
+        setLocalSettings(prev => ({ 
+          ...prev, 
+          ...parsed,
+          preferredTranslationId: parsed.preferredTranslationId || 'en.sahih',
+          preferredTransliterationId: parsed.preferredTransliterationId || 'none',
+          preferredAudioId: parsed.preferredAudioId || 'none',
+          showTranslation: parsed.showTranslation ?? true,
+          showTransliteration: parsed.showTransliteration ?? true,
+          showAudio: parsed.showAudio ?? true
+        }));
       } catch (e) {
         console.error("Failed to parse local quran settings", e);
       }
@@ -109,7 +124,7 @@ export default function QuranSettingsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (editions && localSettings.preferredTranslationId && langFilter === 'all') {
+    if (editions && localSettings.preferredTranslationId && localSettings.preferredTranslationId !== 'none' && langFilter === 'all') {
       const current = editions.find(e => e.id === localSettings.preferredTranslationId);
       if (current) {
         setLangFilter(current.language);
@@ -207,8 +222,8 @@ export default function QuranSettingsPage() {
               <div className="space-y-4">
                 <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">3. Transliteration Edition</Label>
                 <Select 
-                  value={localSettings.preferredTransliterationId || "none"} 
-                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredTransliterationId: val === 'none' ? '' : val }))}
+                  value={localSettings.preferredTransliterationId} 
+                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredTransliterationId: val }))}
                 >
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                     <SelectValue placeholder="Choose Transliteration" />
@@ -227,8 +242,8 @@ export default function QuranSettingsPage() {
               <div className="space-y-4">
                 <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">4. Audio Recitation</Label>
                 <Select 
-                  value={localSettings.preferredAudioId || "none"} 
-                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredAudioId: val === 'none' ? '' : val }))}
+                  value={localSettings.preferredAudioId} 
+                  onValueChange={(val) => setLocalSettings(prev => ({ ...prev, preferredAudioId: val }))}
                 >
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                     <SelectValue placeholder="Choose Qari" />
@@ -246,6 +261,51 @@ export default function QuranSettingsPage() {
             </CardContent>
           </Card>
 
+          <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
+            <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
+              <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                <Eye className="w-4 h-4 text-zinc-500" />
+                Display Toggles
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-bold text-zinc-300">Show Translation</Label>
+                  <p className="text-[10px] text-zinc-500 font-medium">Display English meanings</p>
+                </div>
+                <Switch 
+                  checked={localSettings.showTranslation}
+                  onCheckedChange={(val) => setLocalSettings(prev => ({ ...prev, showTranslation: val }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-bold text-zinc-300">Show Transliteration</Label>
+                  <p className="text-[10px] text-zinc-500 font-medium">Display phonetic guide</p>
+                </div>
+                <Switch 
+                  checked={localSettings.showTransliteration}
+                  onCheckedChange={(val) => setLocalSettings(prev => ({ ...prev, showTransliteration: val }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-bold text-zinc-300">Show Audio Player</Label>
+                  <p className="text-[10px] text-zinc-500 font-medium">Display recitation controls</p>
+                </div>
+                <Switch 
+                  checked={localSettings.showAudio}
+                  onCheckedChange={(val) => setLocalSettings(prev => ({ ...prev, showAudio: val }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
           <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
@@ -285,9 +345,7 @@ export default function QuranSettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="space-y-6">
           <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
             <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
@@ -340,7 +398,7 @@ export default function QuranSettingsPage() {
                   </span>
                 </p>
                 <div className="space-y-4">
-                  {localSettings.preferredTransliterationId && (
+                  {localSettings.showTransliteration && localSettings.preferredTransliterationId !== 'none' && (
                     <p 
                       className="font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left text-zinc-500"
                       style={{ fontSize: `${localSettings.translationFontSize - 2}px` }}
@@ -348,12 +406,14 @@ export default function QuranSettingsPage() {
                       al-ḥamdu lillāhi rabbi l-ʿālamīn
                     </p>
                   )}
-                  <p 
-                    className="font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left text-zinc-400"
-                    style={{ fontSize: `${localSettings.translationFontSize}px` }}
-                  >
-                    {currentTranslation?.type === 'transliteration' ? 'al-ḥamdu lillāhi rabbi l-ʿālamīn' : '[All] praise is [due] to Allah, Lord of the worlds -'}
-                  </p>
+                  {localSettings.showTranslation && (
+                    <p 
+                      className="font-medium leading-relaxed italic border-l border-zinc-900 pl-4 transition-all duration-300 text-left text-zinc-400"
+                      style={{ fontSize: `${localSettings.translationFontSize}px` }}
+                    >
+                      {currentTranslation?.type === 'transliteration' ? 'al-ḥamdu lillāhi rabbi l-ʿālamīn' : '[All] praise is [due] to Allah, Lord of the worlds -'}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
