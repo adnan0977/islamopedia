@@ -342,7 +342,7 @@ export function QuranReader() {
                       {group.ayats.map((a: any) => (
                         <span key={a.number} className="inline transition-all">
                           <span className="text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }}>{a.text}</span>
-                          <span className="inline-block mx-8 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                          <span className="inline-block mx-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
                         </span>
                       ))}
                     </div>
@@ -352,7 +352,7 @@ export function QuranReader() {
                         <div key={a.number} className="space-y-4">
                           <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                             {a.text}
-                            <span className="inline-block mx-8 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                            <span className="inline-block mx-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
                           </p>
                           <div className="space-y-2">
                             {localSettings.showTransliteration && a.translit && (
