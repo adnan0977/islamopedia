@@ -124,108 +124,94 @@ export function ChannelHub() {
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
-      {/* Top Action Card */}
-      <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] shadow-2xl p-10 border-2 border-dashed border-zinc-800">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-inner shrink-0">
-              <Youtube className="w-8 h-8 text-zinc-500" />
-            </div>
-            <div className="text-left space-y-1">
-              <h2 className="text-2xl font-bold text-white tracking-tight">Channel Synchronization</h2>
-              <p className="text-zinc-500 text-sm max-w-sm">
-                Index creators to populate your spiritual feed and scholar directory.
-              </p>
-            </div>
-          </div>
+      {/* Action Bar */}
+      <div className="flex justify-end">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              className="bg-zinc-100 text-black hover:bg-white rounded-2xl font-bold h-14 px-10 shadow-xl transition-all active:scale-95 flex items-center gap-3 shrink-0"
+            >
+              <Plus className="w-5 h-5" /> Add New Channels
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-0 overflow-hidden outline-none shadow-2xl">
+            <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
+              <DialogTitle className="text-2xl font-bold">Import Content Registry</DialogTitle>
+              <DialogDescription className="text-zinc-500">Fetch metadata from YouTube and persist it to Firestore.</DialogDescription>
+            </DialogHeader>
+            
+            <Tabs defaultValue="bulk" className="w-full">
+              <div className="px-8 pt-6">
+                <TabsList className="bg-zinc-900 p-1 rounded-xl h-12 w-full border border-zinc-800">
+                  <TabsTrigger value="bulk" className="flex-1 rounded-lg font-bold"><Database className="w-4 h-4 mr-2" /> Bulk Sync</TabsTrigger>
+                  <TabsTrigger value="single" className="flex-1 rounded-lg font-bold"><Globe className="w-4 h-4 mr-2" /> Single ID</TabsTrigger>
+                </TabsList>
+              </div>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                className="bg-zinc-100 text-black hover:bg-white rounded-2xl font-bold h-14 px-10 shadow-xl transition-all active:scale-95 flex items-center gap-3 shrink-0"
-              >
-                <Plus className="w-5 h-5" /> Add New Channels
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] max-w-2xl p-0 overflow-hidden outline-none shadow-2xl">
-              <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
-                <DialogTitle className="text-2xl font-bold">Import Content Registry</DialogTitle>
-                <DialogDescription className="text-zinc-500">Fetch metadata from YouTube and persist it to Firestore.</DialogDescription>
-              </DialogHeader>
-              
-              <Tabs defaultValue="bulk" className="w-full">
-                <div className="px-8 pt-6">
-                  <TabsList className="bg-zinc-900 p-1 rounded-xl h-12 w-full border border-zinc-800">
-                    <TabsTrigger value="bulk" className="flex-1 rounded-lg font-bold"><Database className="w-4 h-4 mr-2" /> Bulk Sync</TabsTrigger>
-                    <TabsTrigger value="single" className="flex-1 rounded-lg font-bold"><Globe className="w-4 h-4 mr-2" /> Single ID</TabsTrigger>
-                  </TabsList>
-                </div>
+              <div className="p-8">
+                <TabsContent value="bulk" className="m-0 space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black uppercase tracking-widest text-zinc-600">
+                        IDs Detected: <span className="text-zinc-300 ml-1">{extractIds(bulkIds).length}</span>
+                      </label>
+                      <Button variant="link" className="text-zinc-600 text-xs h-auto p-0 hover:text-white" onClick={() => setBulkBulkIds('')}>Clear Input</Button>
+                    </div>
+                    <Textarea 
+                      placeholder="Paste list of IDs or links..."
+                      className="bg-zinc-900 border-zinc-800 text-white font-mono text-[11px] min-h-[250px] rounded-2xl p-6 focus:ring-zinc-700 scrollbar-hide resize-none"
+                      value={bulkIds}
+                      onChange={(e) => setBulkBulkIds(e.target.value)}
+                    />
+                  </div>
+                  <div className="pt-2">
+                    <Button 
+                      className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md flex items-center justify-center gap-2 shadow-lg"
+                      disabled={isSyncing || extractIds(bulkIds).length === 0}
+                      onClick={() => handleSync(extractIds(bulkIds))}
+                    >
+                      {isSyncing ? (
+                        <>
+                          <Loader2 className="animate-spin h-5 w-5" />
+                          Indexing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-5 w-5" />
+                          Sync All Detected Channels
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </TabsContent>
 
-                <div className="p-8">
-                  <TabsContent value="bulk" className="m-0 space-y-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-black uppercase tracking-widest text-zinc-600">
-                          IDs Detected: <span className="text-zinc-300 ml-1">{extractIds(bulkIds).length}</span>
-                        </label>
-                        <Button variant="link" className="text-zinc-600 text-xs h-auto p-0 hover:text-white" onClick={() => setBulkBulkIds('')}>Clear Input</Button>
-                      </div>
-                      <Textarea 
-                        placeholder="Paste list of IDs or links..."
-                        className="bg-zinc-900 border-zinc-800 text-white font-mono text-[11px] min-h-[250px] rounded-2xl p-6 focus:ring-zinc-700 scrollbar-hide resize-none"
-                        value={bulkIds}
-                        onChange={(e) => setBulkBulkIds(e.target.value)}
-                      />
-                    </div>
-                    <div className="pt-2">
-                      <Button 
-                        className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md flex items-center justify-center gap-2 shadow-lg"
-                        disabled={isSyncing || extractIds(bulkIds).length === 0}
-                        onClick={() => handleSync(extractIds(bulkIds))}
-                      >
-                        {isSyncing ? (
-                          <>
-                            <Loader2 className="animate-spin h-5 w-5" />
-                            Indexing...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="h-5 w-5" />
-                            Sync All Detected Channels
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="single" className="m-0 space-y-6">
-                    <div className="space-y-4">
-                      <label className="text-xs font-black uppercase tracking-widest text-zinc-600">Specific YouTube Channel ID</label>
-                      <Input 
-                        placeholder="e.g. UCp4Vf-IOn66Xv_Xf7oN7tLg"
-                        className="bg-zinc-900 border-zinc-800 text-white rounded-xl h-14 focus:ring-zinc-700"
-                        value={singleId}
-                        onChange={(e) => setSingleId(e.target.value)}
-                      />
-                      <p className="text-[10px] text-zinc-600 italic px-1">Example: UC followed by 22 alphanumeric characters.</p>
-                    </div>
-                    <div className="pt-2">
-                      <Button 
-                        className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md flex items-center justify-center gap-2 shadow-lg"
-                        disabled={isSyncing || !singleId.startsWith('UC') || singleId.length < 24}
-                        onClick={() => handleSync([singleId])}
-                      >
-                        {isSyncing ? <Loader2 className="animate-spin h-5 w-5" /> : <Link2 className="h-5 w-5" />}
-                        Fetch & Link Channel
-                      </Button>
-                    </div>
-                  </TabsContent>
-                </div>
-              </Tabs>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </Card>
+                <TabsContent value="single" className="m-0 space-y-6">
+                  <div className="space-y-4">
+                    <label className="text-xs font-black uppercase tracking-widest text-zinc-600">Specific YouTube Channel ID</label>
+                    <Input 
+                      placeholder="e.g. UCp4Vf-IOn66Xv_Xf7oN7tLg"
+                      className="bg-zinc-900 border-zinc-800 text-white rounded-xl h-14 focus:ring-zinc-700"
+                      value={singleId}
+                      onChange={(e) => setSingleId(e.target.value)}
+                    />
+                    <p className="text-[10px] text-zinc-600 italic px-1">Example: UC followed by 22 alphanumeric characters.</p>
+                  </div>
+                  <div className="pt-2">
+                    <Button 
+                      className="w-full bg-white text-black hover:bg-zinc-200 h-14 font-bold rounded-xl text-md flex items-center justify-center gap-2 shadow-lg"
+                      disabled={isSyncing || !singleId.startsWith('UC') || singleId.length < 24}
+                      onClick={() => handleSync([singleId])}
+                    >
+                      {isSyncing ? <Loader2 className="animate-spin h-5 w-5" /> : <Link2 className="h-5 w-5" />}
+                      Fetch & Link Channel
+                    </Button>
+                  </div>
+                </TabsContent>
+              </div>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* Linked Channels Registry */}
       <div className="space-y-6">
