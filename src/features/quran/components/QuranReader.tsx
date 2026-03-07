@@ -33,7 +33,6 @@ export function QuranReader() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  // URL Params for initial state - defaulting to Index mode with Surah list
   const initialMode = searchParams.get('mode') as 'ayat' | 'page' | 'index' || 'index';
   const initialIndexType = searchParams.get('type') as 'surah' | 'juz' || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
@@ -46,7 +45,6 @@ export function QuranReader() {
   const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
   const [selectedTranslation, setSelectedTranslation] = useState(initialTrans);
 
-  // Handle URL updates when state changes
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
@@ -61,7 +59,6 @@ export function QuranReader() {
     router.replace(`/quran?${params.toString()}`, { scroll: false });
   }, [viewMode, indexType, currentPage, selectedTranslation, router, searchParams]);
 
-  // Fetch available translations
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
     where('isActive', '==', true),
@@ -73,11 +70,9 @@ export function QuranReader() {
     return editions?.filter(e => e.type === 'translation' || e.id !== 'quran-uthmani') || [];
   }, [editions]);
 
-  // Fetch Global Metadata for Indexing
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
 
-  // Fetch global settings for Ayat Frame style
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
   const ayatFrameId = settings?.ayatFrameId || 'royal-ornate';
@@ -94,14 +89,12 @@ export function QuranReader() {
         const pageArabic: any[] = [];
         const pageTrans: any[] = [];
 
-        // Organize snapshots by edition for easy lookup
         const docsByEdition: Record<string, any> = {};
         snapshots.forEach(doc => {
           const data = doc.data();
           docsByEdition[data.editionId] = data;
         });
 
-        // Get Arabic base
         const arabicSurahDocs = snapshots.docs
           .map(d => d.data())
           .filter(d => d.editionId === 'quran-uthmani');
@@ -114,7 +107,6 @@ export function QuranReader() {
                 surah: { number: s.surahNumber, name: s.name, englishName: s.englishName } 
               });
               
-              // Find matching translation ayat
               const transSurah = docsByEdition[selectedTranslation];
               if (transSurah) {
                 const matchingAyat = transSurah.ayats.find((ta: any) => ta.number === a.number);
@@ -182,30 +174,20 @@ export function QuranReader() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-6">
-      {/* Header Bar */}
+      {/* Updated Header Bar */}
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
-        <div className="flex items-center gap-4 shrink-0">
-          <AyatFrame 
-            number={viewMode === 'index' ? (indexType === 'surah' ? '١' : '٣٠') : (groupedAyats[0]?.surah.number || currentPage)} 
-            frameId={ayatFrameId} 
-            customPath={customAyatFramePath} 
-            customImageUrl={frameImageUrl}
-            size="md" 
-          />
-          <div className="hidden md:block">
-            <h1 className="text-xl md:text-2xl font-headline font-bold text-white">
-              {viewMode === 'index' ? 'Quran' : (groupedAyats[0]?.surah.englishName || 'Quran')}
-            </h1>
-            {viewMode !== 'index' && (
-              <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">
-                Page {currentPage} / 604
-              </p>
-            )}
-          </div>
+        <div className="flex flex-col justify-center">
+          <h1 className="text-xl md:text-2xl font-headline font-bold text-white">
+            {viewMode === 'index' ? 'Quran' : (groupedAyats[0]?.surah.englishName || 'Quran')}
+          </h1>
+          {viewMode !== 'index' && (
+            <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">
+              Page {currentPage} / 604
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide no-scrollbar">
-          {/* Main List Navigation - Always present on same line */}
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900 shrink-0">
             <Button 
               variant="ghost" 
@@ -224,74 +206,76 @@ export function QuranReader() {
               <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
             </Button>
           </div>
-
-          {/* Reading Controls - Added when viewing scripture */}
-          {viewMode !== 'index' && (
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="hidden lg:flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setViewMode('ayat')} 
-                  className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'ayat') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-                >
-                  <Type className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Ayat View</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setViewMode('page')} 
-                  className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'page') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-                >
-                  <BookIcon className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Page View</span>
-                </Button>
-              </div>
-
-              <div className="w-32 md:w-48">
-                <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[10px] md:text-xs font-bold">
-                    <div className="flex items-center gap-2">
-                      <Languages className="w-3 h-3 text-zinc-500" />
-                      <SelectValue placeholder="Translation" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                    {translations.map((t) => (
-                      <SelectItem key={t.id} value={t.id} className="text-xs font-medium">
-                        {t.name} ({t.language})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="rounded-xl border-zinc-800 h-10 w-10 shrink-0"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
-                  disabled={currentPage <= 1}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <div className="bg-zinc-900 px-3 h-10 flex items-center justify-center rounded-xl font-bold text-[10px] text-zinc-400 min-w-[60px] border border-zinc-800 shrink-0">
-                  {currentPage}
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="rounded-xl border-zinc-800 h-10 w-10 shrink-0"
-                  onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
-                  disabled={currentPage >= 604}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Dynamic Sub-header for Reading Controls */}
+      {viewMode !== 'index' && (
+        <div className="flex flex-wrap items-center justify-between bg-zinc-950/50 backdrop-blur-md p-4 rounded-3xl border border-zinc-900 gap-4">
+          <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setViewMode('ayat')} 
+              className={cn("rounded-xl font-bold h-9 px-4 md:px-6", (viewMode === 'ayat') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+            >
+              <Type className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Ayat View</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setViewMode('page')} 
+              className={cn("rounded-xl font-bold h-9 px-4 md:px-6", (viewMode === 'page') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+            >
+              <BookIcon className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Page View</span>
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-40 md:w-56">
+              <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
+                <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[10px] md:text-xs font-bold">
+                  <div className="flex items-center gap-2">
+                    <Languages className="w-3 h-3 text-zinc-500" />
+                    <SelectValue placeholder="Translation" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                  {translations.map((t) => (
+                    <SelectItem key={t.id} value={t.id} className="text-xs font-medium">
+                      {t.name} ({t.language})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-xl border-zinc-800 h-10 w-10 shrink-0"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                disabled={currentPage <= 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <div className="bg-zinc-900 px-3 h-10 flex items-center justify-center rounded-xl font-bold text-[10px] text-zinc-400 min-w-[50px] border border-zinc-800 shrink-0">
+                {currentPage}
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-xl border-zinc-800 h-10 w-10 shrink-0"
+                onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
+                disabled={currentPage >= 604}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col">
