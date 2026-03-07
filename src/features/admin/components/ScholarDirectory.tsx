@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -190,7 +191,7 @@ export function ScholarDirectory() {
                  </div>
               </div>
             </CardContent>
-            <CardFooter className="p-6 bg-zinc-900/10 border-t border-zinc-900 flex justify-between gap-3">
+            <CardFooter className="p-6 bg-zinc-900/10 border-t border-zinc-900 flex justify-between gap-2">
                <Button variant="ghost" size="sm" className="flex-1 rounded-xl font-bold h-11 text-zinc-500 hover:text-white hover:bg-zinc-900">
                   <Settings className="w-4 h-4 mr-2" /> Manage
                </Button>

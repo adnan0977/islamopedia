@@ -171,19 +171,16 @@ export function ChannelHub({ videos }: { videos: any[] }) {
 
     setSyncingVideosFor(channel.id);
     try {
-      // 1. Fetch latest videos from YouTube
       const ytVideos = await fetchPlaylistVideos(channel.uploadsPlaylistId);
       if (ytVideos.length === 0) {
         toast({ title: "No Videos", description: "No public uploads found for this channel." });
         return;
       }
 
-      // 2. Get existing video IDs from Firestore for this channel
       const existingVideosQ = query(collection(db, 'videos'), where('channelId', '==', channel.id));
       const existingSnap = await getDocs(existingVideosQ);
       const existingIds = new Set(existingSnap.docs.map(d => d.id));
 
-      // 3. Filter for new videos
       const newVideos = ytVideos.filter(v => !existingIds.has(v.id));
 
       if (newVideos.length === 0) {
@@ -191,7 +188,6 @@ export function ChannelHub({ videos }: { videos: any[] }) {
         return;
       }
 
-      // 4. Batch add new videos
       const batch = writeBatch(db);
       newVideos.forEach(v => {
         const vRef = doc(db, 'videos', v.id);
@@ -427,7 +423,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                       </div>
                     </TableCell>
                     <TableCell className="text-right pr-10">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <Button 
                           variant="ghost" 
                           size="icon" 

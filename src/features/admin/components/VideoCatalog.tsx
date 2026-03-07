@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -273,7 +274,7 @@ export function VideoCatalog() {
                   )}
                 </TableCell>
                 <TableCell className="text-right pr-8">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-1">
                     <a href={video.externalUrl} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800">
                         <ExternalLink className="w-4 h-4" />
