@@ -56,7 +56,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // User-specific data
+    // User-specific data: Ownership-based rules for profile management
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }

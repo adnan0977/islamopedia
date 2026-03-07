@@ -29,7 +29,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -71,8 +71,19 @@ export default function QuranSettingsPage() {
   }, [profile]);
 
   const handleSave = () => {
-    if (!profileRef) return;
-    updateDocumentNonBlocking(profileRef, localSettings);
+    if (!profileRef || !user) return;
+    
+    // Use setDocumentNonBlocking with merge: true to handle cases where the doc doesn't exist yet.
+    // Also include required fields from UserProfile schema.
+    const dataToSave = {
+      ...localSettings,
+      id: user.uid,
+      namazLocation: profile?.namazLocation || 'London, UK',
+      updatedAt: new Date().toISOString()
+    };
+
+    setDocumentNonBlocking(profileRef, dataToSave, { merge: true });
+    
     toast({
       title: "Settings Saved",
       description: "Your Quran reading preferences have been updated."
