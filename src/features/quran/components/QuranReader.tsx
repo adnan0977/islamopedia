@@ -181,6 +181,7 @@ export function QuranReader() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-4">
+      {/* Primary Header */}
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex items-center gap-4">
           {!isReading ? (
@@ -270,6 +271,7 @@ export function QuranReader() {
         </div>
       </div>
 
+      {/* Secondary Controls Bar (Only when reading) */}
       {isReading && (
         <div className="flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
@@ -309,6 +311,7 @@ export function QuranReader() {
         </div>
       )}
 
+      {/* Main Content Area */}
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col">
         {viewMode === 'index' ? (
           <ScrollArea className="flex-1">
@@ -398,13 +401,14 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                <div className="text-right font-arabic leading-[3] text-3xl md:text-5xl text-zinc-100" style={{ direction: 'rtl' }}>
+                /* Improved Page View with generous leading and horizontal margins */
+                <div className="text-right font-arabic leading-[4] text-3xl md:text-5xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
-                    <span key={a.number} className="inline group">
+                    <span key={a.number} className="inline-flex items-center flex-wrap">
                       <span className="hover:text-white transition-colors">
                         {a.text}
                       </span>
-                      <span className="inline-flex mx-4 md:mx-6 align-middle select-none">
+                      <span className="inline-flex mx-6 md:mx-8 align-middle select-none shrink-0 justify-center items-center">
                         <AyatFrame 
                           number={a.numberInSurah} 
                           size="sm" 
