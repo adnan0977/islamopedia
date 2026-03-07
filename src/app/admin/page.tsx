@@ -114,7 +114,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { getAvailableTranslations, getPageDetails } from '@/lib/api';
+import { getAvailableTranslations, getPageEdition } from '@/lib/api';
 import {
   Menubar,
   MenubarContent,
@@ -285,7 +285,7 @@ export default function AdminPanel() {
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset className="flex-1 overflow-auto bg-black">
+        <SidebarInset className="flex-1 overflow-auto bg-black p-0">
           <header className="h-20 border-b border-zinc-900 flex items-center justify-between px-8 bg-zinc-950/50 sticky top-0 z-10 backdrop-blur-md">
              <div className="flex items-center gap-6">
                 <h2 className="font-headline font-bold text-2xl tracking-tight text-white">
@@ -971,32 +971,35 @@ function QuranIndexing({ translations }: { translations: any[] }) {
     setStatus('Initializing indexer...');
 
     try {
-      // Indexing logic: Fetch 604 pages and store in Firestore
-      // For demonstration, we'll index a smaller batch or provide a controlled loop
       for (let p = 1; p <= 604; p++) {
         setStatus(`Fetching Page ${p} of 604...`);
-        const data = await getPageDetails(p, selectedEdition);
+        const data = await getPageEdition(p, selectedEdition);
         
+        if (!data.data) {
+          throw new Error(`Failed to fetch data for page ${p}`);
+        }
+
         const pageId = `${selectedEdition}_${p}`;
         setDocumentNonBlocking(doc(db, 'quran_pages', pageId), {
           pageNumber: p,
           translationId: selectedEdition,
-          content: data.data,
+          content: data.data.ayahs || [],
           updatedAt: new Date().toISOString()
         }, { merge: true });
 
         setProgress((p / 604) * 100);
         
-        // Small delay to prevent API rate limits if necessary
+        // Small delay to prevent API rate limits
         if (p % 20 === 0) {
-           await new Promise(r => setTimeout(r, 500));
+           await new Promise(r => setTimeout(r, 200));
         }
       }
       setStatus('Indexing Complete');
       toast({ title: "Indexing Finished", description: `Successfully stored 604 pages for ${selectedEdition}.` });
     } catch (e: any) {
+      console.error(e);
       setStatus('Indexing Failed');
-      toast({ variant: "destructive", title: "Error", description: e.message });
+      toast({ variant: "destructive", title: "Error", description: e.message || "Failed during indexing loop." });
     } finally {
       setIsIndexing(false);
     }

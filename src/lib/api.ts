@@ -18,15 +18,24 @@ export async function getSurahDetails(id: number, translationEdition: string = '
 
 /**
  * Fetches Quran content by page number with specific editions.
- * Uses the dynamic edition identifier provided.
  * @param pageNumber Page number (1-604)
  * @param translationEdition The identifier of the translation edition (e.g., 'en.sahih')
  */
 export async function getPageDetails(pageNumber: number, translationEdition: string = 'en.sahih') {
-  // Pattern: https://api.alquran.cloud/v1/page/{{page}}/{{editions}}
-  // We include Arabic text (quran-uthmani), Translation (dynamic), and Audio (ar.alafasy)
+  // Use the combined editions endpoint for reading
   const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/editions/quran-uthmani,${translationEdition},ar.alafasy`);
   if (!res.ok) throw new Error('Failed to fetch page details');
+  return res.json();
+}
+
+/**
+ * Fetches a single translation edition for a specific page.
+ * @param pageNumber Page number (1-604)
+ * @param edition The identifier of the translation edition (e.g., 'en.asad')
+ */
+export async function getPageEdition(pageNumber: number, edition: string) {
+  const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/${edition}`);
+  if (!res.ok) throw new Error('Failed to fetch page edition data');
   return res.json();
 }
 
