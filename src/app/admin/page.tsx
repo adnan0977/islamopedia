@@ -53,6 +53,8 @@ import { DashboardOverview } from '@/features/admin/components/DashboardOverview
 import { QuranHub } from '@/features/admin/components/QuranHub';
 import { AppSettings } from '@/features/admin/components/AppSettings';
 import { ChannelHub } from '@/features/admin/components/ChannelHub';
+import { VideoCatalog } from '@/features/admin/components/VideoCatalog';
+import { ScholarDirectory } from '@/features/admin/components/ScholarDirectory';
 import { AdminTab, SyncState } from '@/features/admin/types';
 
 export default function AdminPanel() {
@@ -185,6 +187,12 @@ export default function AdminPanel() {
             )}
             {activeTab === 'channels' && (
               <ChannelHub />
+            )}
+            {activeTab === 'videos' && (
+              <VideoCatalog />
+            )}
+            {activeTab === 'scholars' && (
+              <ScholarDirectory />
             )}
             {activeTab === 'quran-tools' && (
               <QuranHub 
