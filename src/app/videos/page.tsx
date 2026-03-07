@@ -1,12 +1,13 @@
+
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Play, Filter, Loader2, ArrowLeft, Video as VideoIcon } from 'lucide-react';
+import { Play, Filter, Loader2, ArrowLeft, Video as VideoIcon, Smartphone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -89,34 +90,7 @@ export default function VideosPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {videos?.map((video) => (
-            <Card key={video.id} className="overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-zinc-500 transition-all duration-300 shadow-lg hover:shadow-zinc-500/10">
-              <Link href={`/watch?v=${video.id}`}>
-                <div className="relative aspect-video">
-                  <Image 
-                    src={video.thumbnailUrl} 
-                    alt={video.title} 
-                    fill 
-                    className="object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-                    <div className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all shadow-2xl">
-                      <Play className="text-white fill-white ml-1 w-5 h-5" />
-                    </div>
-                  </div>
-                </div>
-                <CardHeader className="p-6">
-                  <CardTitle className="text-lg font-bold leading-tight line-clamp-2 min-h-[3rem] group-hover:text-zinc-100 transition-colors">
-                    {video.title}
-                  </CardTitle>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground font-bold uppercase tracking-wider mt-6 pt-4 border-t border-border/30">
-                    <div className="flex items-center gap-2">
-                       <span>{video.viewCount?.toLocaleString() || 0} views</span>
-                    </div>
-                    <span>{new Date(video.publishedAt).toLocaleDateString()}</span>
-                  </div>
-                </CardHeader>
-              </Link>
-            </Card>
+            <VideoCard key={video.id} video={video} />
           ))}
           {(!videos || videos.length === 0) && (
             <div className="col-span-full py-32 text-center bg-secondary/10 rounded-3xl border-2 border-dashed border-border space-y-4">
@@ -130,5 +104,45 @@ export default function VideosPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function VideoCard({ video }: { video: any }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  return (
+    <Card className="overflow-hidden group cursor-pointer bg-card border-border/50 hover:border-zinc-500 transition-all duration-300 shadow-lg hover:shadow-zinc-500/10 rounded-3xl h-full flex flex-col">
+      <Link href={`/watch?v=${video.id}`} className="flex flex-col h-full">
+        <div className="relative aspect-video">
+          <Image 
+            src={video.thumbnailUrl} 
+            alt={video.title} 
+            fill 
+            className="object-cover group-hover:scale-105 transition-transform duration-700"
+          />
+          <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+            <div className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all shadow-2xl">
+              <Play className="text-white fill-white ml-1 w-5 h-5" />
+            </div>
+          </div>
+        </div>
+        <CardHeader className="p-6 flex-1 flex flex-col justify-between">
+          <CardTitle className="text-lg font-bold leading-tight line-clamp-2 min-h-[3rem] group-hover:text-zinc-100 transition-colors">
+            {video.title}
+          </CardTitle>
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground font-bold uppercase tracking-wider mt-6 pt-4 border-t border-border/30">
+            <div className="flex items-center gap-2">
+               <Smartphone className="w-3.5 h-3.5" />
+               <span>{video.appViewCount?.toLocaleString() || 0} app views</span>
+            </div>
+            <span>{mounted ? new Date(video.publishedAt).toLocaleDateString() : ''}</span>
+          </div>
+        </CardHeader>
+      </Link>
+    </Card>
   );
 }

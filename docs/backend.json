@@ -156,17 +156,21 @@
             "type": "string"
           }
         },
-        "viewCount": {
+        "youtubeViewCount": {
           "type": "number",
-          "description": "The number of views the video has."
+          "description": "The number of views the video has on YouTube."
+        },
+        "appViewCount": {
+          "type": "number",
+          "description": "The number of views recorded within the VlogNest application."
         },
         "likeCount": {
           "type": "number",
-          "description": "The number of likes the video has."
+          "description": "The number of likes the video has on YouTube."
         },
         "commentCount": {
           "type": "number",
-          "description": "The number of comments the video has."
+          "description": "The number of comments the video has on YouTube."
         },
         "aiGeneratedTitle": {
           "type": "string",

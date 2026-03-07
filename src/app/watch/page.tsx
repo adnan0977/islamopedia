@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, limit } from 'firebase/firestore';
+import { doc, collection, query, limit, increment } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { 
   Loader2, 
@@ -14,11 +14,13 @@ import {
   ThumbsDown, 
   MoreHorizontal,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Smartphone
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function WatchPage() {
   const searchParams = useSearchParams();
@@ -38,6 +40,15 @@ export default function WatchPage() {
   // Smart suggestions pool (speaker/tag matching)
   const allVideosQuery = useMemoFirebase(() => query(collection(db, 'videos'), limit(40)), [db]);
   const { data: allVideos } = useCollection(allVideosQuery);
+
+  // Increment internal app view count on mount
+  useEffect(() => {
+    if (videoId && videoRef) {
+      updateDocumentNonBlocking(videoRef, {
+        appViewCount: increment(1)
+      });
+    }
+  }, [videoId, videoRef]);
 
   const suggestedVideos = useMemo(() => {
     if (!video || !allVideos) return [];
@@ -145,12 +156,13 @@ export default function WatchPage() {
 
               <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
                 <div className="flex items-center bg-secondary/50 rounded-full h-9 border border-border/50">
-                  <button className="flex items-center gap-2 px-4 hover:bg-white/10 transition-colors border-r border-border/50 h-full rounded-l-full">
+                  <div className="flex items-center gap-2 px-4 h-full border-r border-border/50 rounded-l-full">
+                    <Smartphone className="w-4 h-4 text-zinc-400" />
+                    <span className="text-xs font-bold">{video.appViewCount?.toLocaleString() || 0}</span>
+                  </div>
+                  <button className="flex items-center gap-2 px-4 hover:bg-white/10 transition-colors h-full rounded-r-full">
                     <ThumbsUp className="w-4 h-4" />
-                    <span className="text-xs font-bold">{video.viewCount?.toLocaleString() || 0}</span>
-                  </button>
-                  <button className="px-4 hover:bg-white/10 transition-colors h-full rounded-r-full">
-                    <ThumbsDown className="w-4 h-4" />
+                    <span className="text-xs font-bold">{video.likeCount?.toLocaleString() || 0}</span>
                   </button>
                 </div>
                 <Button variant="secondary" className="rounded-full h-9 gap-2 font-bold text-xs bg-secondary/50 border border-border/50">
@@ -172,7 +184,7 @@ export default function WatchPage() {
               onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
             >
               <div className="flex items-center gap-2 font-black text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
-                <span>{video.viewCount?.toLocaleString() || 0} views</span>
+                <span className="flex items-center gap-1"><Smartphone className="w-3 h-3" /> {video.appViewCount?.toLocaleString() || 0} app views</span>
                 <span>•</span>
                 <span>{new Date(video.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
@@ -212,8 +224,8 @@ export default function WatchPage() {
                   <p className="text-[11px] text-muted-foreground mt-1.5 font-bold uppercase tracking-wider truncate">
                     {allVideos?.find(v => v.id === sVideo.id)?.channelId || 'Channel'}
                   </p>
-                  <p className="text-[10px] text-muted-foreground opacity-70">
-                    {sVideo.viewCount?.toLocaleString()} views
+                  <p className="text-[10px] text-muted-foreground opacity-70 flex items-center gap-1">
+                    <Smartphone className="w-2.5 h-2.5" /> {sVideo.appViewCount?.toLocaleString()} views
                   </p>
                 </div>
               </Link>

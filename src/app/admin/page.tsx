@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -37,7 +38,9 @@ import {
   Square,
   Image as ImageIcon,
   Upload as UploadIcon,
-  X
+  X,
+  Smartphone,
+  Globe
 } from 'lucide-react';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
@@ -291,7 +294,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
   ];
 
   const totalSubs = channels.reduce((acc, curr) => acc + (curr.subscribersCount || 0), 0);
-  const totalViews = channels.reduce((acc, curr) => acc + (curr.viewCount || 0), 0);
+  const totalViews = videos.reduce((acc, curr) => acc + (curr.appViewCount || 0), 0);
 
   return (
     <div className="space-y-8">
@@ -299,7 +302,7 @@ function DashboardOverview({ channels, videos }: { channels: any[], videos: any[
         <StatCard icon={Youtube} label="Channels" value={channels.length} color="text-white" bgColor="bg-zinc-900 border-zinc-800" />
         <StatCard icon={VideoIcon} label="Videos" value={videos.length} color="text-white" bgColor="bg-zinc-900 border-zinc-800" />
         <StatCard icon={Users} label="Total Subs" value={`${(totalSubs / 1000000).toFixed(1)}M`} color="text-white" bgColor="bg-zinc-900 border-zinc-800" />
-        <StatCard icon={Eye} label="Total Views" value={`${(totalViews / 1000000).toFixed(1)}M`} color="text-white" bgColor="bg-zinc-900 border-zinc-800" />
+        <StatCard icon={Smartphone} label="App Views" value={`${(totalViews / 1000).toFixed(1)}K`} color="text-white" bgColor="bg-zinc-900 border-zinc-800" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -393,7 +396,7 @@ function ThumbnailSelector({
         onChange={handleFileUpload} 
       />
 
-      <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+      <Dialog galleryOpen={galleryOpen} onOpenChange={setGalleryOpen}>
         <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[700px] p-0 overflow-hidden flex flex-col h-[70vh]">
           <DialogHeader className="px-6 py-5 border-b border-zinc-800 bg-zinc-950/50">
             <DialogTitle className="text-xl font-bold text-white">System Gallery</DialogTitle>
@@ -568,7 +571,8 @@ function AddChannelDialog({ open, onOpenChange, channels, existingVideos }: { op
       publishedAt: video.snippet.publishedAt,
       channelId: fetchedData.id,
       uploadedByUserId: user.uid,
-      viewCount: 0,
+      youtubeViewCount: 0,
+      appViewCount: 0,
       likeCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -795,7 +799,8 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
   const [channelId, setChannelId] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
-  const [viewCount, setViewCount] = useState(0);
+  const [youtubeViewCount, setYoutubeViewCount] = useState(0);
+  const [appViewCount, setAppViewCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -830,7 +835,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
       setDescription(video.snippet.description);
       setThumbnailUrl(video.snippet.thumbnails.high?.url || video.snippet.thumbnails.default?.url);
       setVideoUrl(`https://www.youtube.com/watch?v=${videoId}`);
-      setViewCount(Number(video.statistics.viewCount || 0));
+      setYoutubeViewCount(Number(video.statistics.viewCount || 0));
       setLikeCount(Number(video.statistics.likeCount || 0));
       
       const matchingChannel = channels.find(c => c.id === video.snippet.channelId);
@@ -865,7 +870,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
       id, title, description, channelId, thumbnailUrl: thumbnailUrl || 'https://picsum.photos/seed/vid/600/400',
       externalUrl: videoUrl, duration: 'PT0S', publishedAt: new Date().toISOString(),
       uploadedByUserId: user.uid, speakerIds: selectedSpeakerIds,
-      viewCount: Number(viewCount), likeCount: Number(likeCount),
+      youtubeViewCount: Number(youtubeViewCount), appViewCount: Number(appViewCount), likeCount: Number(likeCount),
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
     }, { merge: true });
     
@@ -876,7 +881,7 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
 
   const resetForm = () => {
     setTitle(''); setDescription(''); setChannelId(''); setThumbnailUrl(''); setVideoUrl(''); 
-    setSelectedSpeakerIds([]); setViewCount(0); setLikeCount(0); setYtInput(''); setIsFetched(false);
+    setSelectedSpeakerIds([]); setYoutubeViewCount(0); setAppViewCount(0); setLikeCount(0); setYtInput(''); setIsFetched(false);
     setErrors({});
   };
 
@@ -936,14 +941,18 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                       <ThumbnailSelector currentUrl={thumbnailUrl} onUrlChange={setThumbnailUrl} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Initial Views</Label>
-                        <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono" />
+                        <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">YT Views</Label>
+                        <Input type="number" value={youtubeViewCount} onChange={(e) => setYoutubeViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono text-xs" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Initial Likes</Label>
-                        <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} disabled={loading} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono" />
+                        <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">App Views</Label>
+                        <Input type="number" value={appViewCount} onChange={(e) => setAppViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono text-xs" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">YT Likes</Label>
+                        <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono text-xs" />
                       </div>
                     </div>
 
@@ -968,7 +977,6 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                             setTitle(e.target.value);
                             if (errors.title) setErrors(prev => ({ ...prev, title: "" }));
                           }} 
-                          disabled={loading}
                           className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-12 text-sm text-white font-bold", errors.title && "border-destructive")}
                         />
                       </div>
@@ -981,7 +989,6 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                             setChannelId(val);
                             if (errors.channelId) setErrors(prev => ({ ...prev, channelId: "" }));
                           }} 
-                          disabled={loading}
                         >
                           <SelectTrigger className={cn("bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white", errors.channelId && "border-destructive")}>
                             <SelectValue placeholder="Link to YouTube Channel" />
@@ -1006,7 +1013,6 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                               <Checkbox 
                                 id={`av-s-${s.id}`} 
                                 checked={selectedSpeakerIds.includes(s.id)} 
-                                disabled={loading}
                                 onCheckedChange={(checked) => {
                                   setSelectedSpeakerIds(prev => checked ? [...prev, s.id] : prev.filter(x => x !== s.id));
                                 }} 
@@ -1024,7 +1030,6 @@ function AddVideoDialog({ channels, speakers }: { channels: any[], speakers: any
                           value={description} 
                           onChange={(e) => setDescription(e.target.value)} 
                           className="min-h-[160px] bg-zinc-900 border-zinc-800 rounded-2xl p-4 text-xs leading-relaxed text-white resize-none"
-                          disabled={loading}
                         />
                       </div>
                     </div>
@@ -1253,7 +1258,8 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
   const [description, setDescription] = useState(video.description || '');
   const [channelId, setChannelId] = useState(video.channelId || '');
   const [thumbnailUrl, setThumbnailUrl] = useState(video.thumbnailUrl || '');
-  const [viewCount, setViewCount] = useState(video.viewCount || 0);
+  const [youtubeViewCount, setYoutubeViewCount] = useState(video.youtubeViewCount || 0);
+  const [appViewCount, setAppViewCount] = useState(video.appViewCount || 0);
   const [likeCount, setLikeCount] = useState(video.likeCount || 0);
   const [isTrending, setIsTrending] = useState(video.isTrending || false);
   const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>(video.speakerIds || []);
@@ -1262,7 +1268,7 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
     if (!title.trim() || !channelId) return;
     updateDocumentNonBlocking(doc(db, 'videos', video.id), {
       title, description, channelId, isTrending, speakerIds: selectedSpeakerIds, 
-      thumbnailUrl, viewCount: Number(viewCount), likeCount: Number(likeCount),
+      thumbnailUrl, youtubeViewCount: Number(youtubeViewCount), appViewCount: Number(appViewCount), likeCount: Number(likeCount),
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Video Record Updated" });
@@ -1292,14 +1298,18 @@ function EditVideoDialog({ video, channels, speakers }: { video: any, channels: 
                     <ThumbnailSelector currentUrl={thumbnailUrl} onUrlChange={setThumbnailUrl} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Live Views</Label>
-                      <Input type="number" value={viewCount} onChange={(e) => setViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono" />
+                      <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">YT Views</Label>
+                      <Input type="number" value={youtubeViewCount} onChange={(e) => setYoutubeViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono text-xs" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Live Likes</Label>
-                      <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono" />
+                      <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">App Views</Label>
+                      <Input type="number" value={appViewCount} onChange={(e) => setAppViewCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono text-xs" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">YT Likes</Label>
+                      <Input type="number" value={likeCount} onChange={(e) => setLikeCount(Number(e.target.value))} className="bg-zinc-900 border-zinc-800 rounded-xl h-11 text-white font-mono text-xs" />
                     </div>
                   </div>
 
@@ -1537,7 +1547,7 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
               </TableHead>
               <TableHead className="w-[450px] text-[10px] font-black uppercase tracking-widest py-5 text-zinc-500">Video Metadata</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Parent Channel</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Engagement</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Engagement (YT / App)</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500">Management</TableHead>
             </TableRow>
           </TableHeader>
@@ -1569,8 +1579,12 @@ function VideoManagement({ videos, channels, speakers }: { videos: any[], channe
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500"><Eye className="w-3 h-3" /> {video.viewCount?.toLocaleString() || 0}</div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500"><ThumbsUp className="w-3 h-3" /> {video.likeCount?.toLocaleString() || 0}</div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500">
+                      <Globe className="w-3 h-3" /> {video.youtubeViewCount?.toLocaleString() || 0}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-white">
+                      <Smartphone className="w-3 h-3" /> {video.appViewCount?.toLocaleString() || 0}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -1737,7 +1751,7 @@ function QuranManagement({ surahs }: { surahs: any[] }) {
   
   return (
     <div className="space-y-8">
-      <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-900">
+      <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
         <h3 className="font-bold text-lg mb-1 text-white">Quranic Metadata</h3>
         <p className="text-xs text-zinc-500 font-medium">Review verified Quranic content stored in Firestore.</p>
       </div>

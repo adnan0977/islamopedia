@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Loader2, Sparkles, ChevronRight, Users, TrendingUp, MapPin } from 'lucide-react';
+import { Play, Loader2, Sparkles, ChevronRight, Users, TrendingUp, MapPin, Smartphone } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
@@ -32,7 +33,7 @@ export default function Home() {
   const latestQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     orderBy('publishedAt', 'desc'),
-    limit(10)
+    limit(12)
   ), [db]);
   const { data: latestVideos, isLoading: isLatestLoading } = useCollection(latestQuery);
 
@@ -104,7 +105,7 @@ export default function Home() {
             <Carousel opts={{ align: "start", loop: true }} className="w-full">
               <CarouselContent className="-ml-2">
                 {trendingVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-2 basis-1/4">
+                  <CarouselItem key={video.id} className="pl-2 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
@@ -145,7 +146,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Latest Videos Slider */}
+        {/* Latest Uploads Slider */}
         <section className="space-y-8 relative">
           <div className="flex items-center justify-between px-2">
             <div className="space-y-1">
@@ -166,7 +167,7 @@ export default function Home() {
             <Carousel opts={{ align: "start", loop: true }} className="w-full">
               <CarouselContent className="-ml-2">
                 {latestVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-2 basis-1/4">
+                  <CarouselItem key={video.id} className="pl-2 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
@@ -191,8 +192,8 @@ function VideoCard({ video }: { video: any }) {
   }, []);
 
   return (
-    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-xl md:rounded-3xl">
-      <Link href={`/watch?v=${video.id}`}>
+    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-xl md:rounded-3xl h-full">
+      <Link href={`/watch?v=${video.id}`} className="flex flex-col h-full">
         <div className="relative aspect-video overflow-hidden">
           <Image 
             src={video.thumbnailUrl} 
@@ -206,14 +207,15 @@ function VideoCard({ video }: { video: any }) {
             </div>
           </div>
         </div>
-        <CardHeader className="p-2 md:p-5 space-y-2 md:space-y-4">
-          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[1.5rem] md:min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-[9px] md:text-sm tracking-tight">
+        <CardHeader className="p-4 md:p-5 flex-1 flex flex-col justify-between">
+          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2rem] text-zinc-300 group-hover:text-white transition-colors text-xs md:text-sm tracking-tight mb-4">
             {video.title}
           </CardTitle>
-          <div className="flex items-center justify-between text-[7px] md:text-[9px] text-zinc-600 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] pt-1 md:pt-4 border-t border-zinc-900 mt-1 md:mt-2">
-            <span className="hidden xs:inline">{video.viewCount?.toLocaleString() || 0} views</span>
-            <span className="xs:hidden">{video.viewCount ? (video.viewCount / 1000).toFixed(0) + 'K' : 0}</span>
-            <span className="text-zinc-800">•</span>
+          <div className="flex items-center justify-between text-[8px] md:text-[9px] text-zinc-600 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] pt-4 border-t border-zinc-900">
+            <span className="flex items-center gap-1">
+              <Smartphone className="w-2.5 h-2.5" />
+              {video.appViewCount?.toLocaleString() || 0} app views
+            </span>
             <span>
               {mounted ? new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
             </span>
