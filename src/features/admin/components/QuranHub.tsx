@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
-import { doc, writeBatch, setDoc, query, where, getDocs, collection } from 'firebase/firestore';
+import { doc, writeBatch, query, where, getDocs, collection } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,22 +18,10 @@ import {
   ChevronRight,
   ChevronLeft,
   Database,
-  Languages,
-  PlusCircle,
   Power,
   PowerOff,
   CloudDownload,
-  ChevronsLeft,
-  ChevronsRight
 } from 'lucide-react';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { 
@@ -201,25 +189,11 @@ function EditionDirectory({ editions }: { editions: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [openAdd, setOpenAdd] = useState(false);
-  const [search, setSearch] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState('all');
+  const [dirSearch, setDirSearch] = useState('');
   
   // Pagination State for Main Table
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
-
-  // Pagination State for Browse Dialog
-  const [browsePage, setBrowsePage] = useState(1);
-  const browseItemsPerPage = 10;
-
-  const languages = useMemo(() => {
-    const langs = new Set<string>();
-    editions.forEach(e => {
-      if (e.language) langs.add(e.language);
-    });
-    return Array.from(langs).sort();
-  }, [editions]);
 
   const fetchAndSeedRegistry = async () => {
     setLoading(true);
@@ -237,7 +211,7 @@ function EditionDirectory({ editions }: { editions: any[] }) {
           languageCode: item.language,
           type: item.type,
           format: item.format,
-          isActive: editions.some(e => e.id === item.identifier && e.isActive) || item.identifier === 'quran-uthmani',
+          isActive: editions.find(e => e.id === item.identifier)?.isActive ?? (item.identifier === 'quran-uthmani'),
           dataSync: editions.find(e => e.id === item.identifier)?.dataSync || 'no',
           isDefault: item.identifier === 'quran-uthmani'
         }, { merge: true });
@@ -262,11 +236,11 @@ function EditionDirectory({ editions }: { editions: any[] }) {
   };
 
   // Filter Main Directory
-  const [dirSearch, setDirSearch] = useState('');
   const filteredEditions = useMemo(() => {
     return editions.filter(e => 
       e.name.toLowerCase().includes(dirSearch.toLowerCase()) || 
-      e.id.toLowerCase().includes(dirSearch.toLowerCase())
+      e.id.toLowerCase().includes(dirSearch.toLowerCase()) ||
+      e.language.toLowerCase().includes(dirSearch.toLowerCase())
     );
   }, [editions, dirSearch]);
 
@@ -277,30 +251,9 @@ function EditionDirectory({ editions }: { editions: any[] }) {
 
   const totalPages = Math.ceil(filteredEditions.length / itemsPerPage);
 
-  // Filter Browse Dialog
-  const filteredBrowse = useMemo(() => {
-    return editions.filter(e => {
-      const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase()) || 
-                           e.id.toLowerCase().includes(search.toLowerCase());
-      const matchesLang = selectedLanguage === 'all' || e.language === selectedLanguage;
-      return matchesSearch && matchesLang;
-    });
-  }, [editions, search, selectedLanguage]);
-
-  const paginatedBrowse = useMemo(() => {
-    const start = (browsePage - 1) * browseItemsPerPage;
-    return filteredBrowse.slice(start, start + browseItemsPerPage);
-  }, [filteredBrowse, browsePage]);
-
-  const totalBrowsePages = Math.ceil(filteredBrowse.length / browseItemsPerPage);
-
   useEffect(() => {
     setCurrentPage(1);
   }, [dirSearch]);
-
-  useEffect(() => {
-    setBrowsePage(1);
-  }, [search, selectedLanguage]);
 
   return (
     <div className="space-y-6">
@@ -314,126 +267,13 @@ function EditionDirectory({ editions }: { editions: any[] }) {
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CloudDownload className="w-4 h-4 mr-2" />}
             Sync Registry from Cloud
           </Button>
-          <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-            <DialogTrigger asChild>
-              <Button className="rounded-xl h-11 px-6 font-bold bg-white text-black hover:bg-zinc-200 flex items-center gap-2">
-                <PlusCircle className="w-4 h-4" /> Browse Full Library
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-800 sm:max-w-[850px] p-0 h-[85vh] flex flex-col rounded-3xl overflow-hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-[0_0_100px_rgba(0,0,0,1)]">
-              <DialogHeader className="p-8 border-b border-zinc-800 shrink-0 space-y-4 text-left">
-                <DialogTitle className="text-white font-bold text-2xl">Global Quranic Library</DialogTitle>
-                <DialogDescription className="text-zinc-500 text-sm">
-                  Filter and activate specific editions for your platform's synchronized feed.
-                </DialogDescription>
-                <div className="flex flex-col md:flex-row gap-4 mt-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <Input 
-                      placeholder="Search by name, ID or author..." 
-                      className="pl-10 bg-zinc-900 border-zinc-800 text-white rounded-xl h-12"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
-                  </div>
-                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                    <SelectTrigger className="w-full md:w-48 bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
-                      <SelectValue placeholder="All Languages" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                      <SelectItem value="all">All Languages</SelectItem>
-                      {languages.map(lang => (
-                        <SelectItem key={lang} value={lang}>{lang}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </DialogHeader>
-              <div className="flex-1 overflow-hidden relative bg-black/20">
-                <ScrollArea className="h-full">
-                  <div className="p-8 grid gap-4 pb-32">
-                    {paginatedBrowse.length > 0 ? paginatedBrowse.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-6 bg-zinc-900/30 rounded-2xl border border-zinc-900/50 hover:border-zinc-800 transition-all group">
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex items-center gap-3">
-                            <span className="text-zinc-100 font-bold text-base">{item.name}</span>
-                            <Badge variant="outline" className="text-[8px] border-zinc-800 text-zinc-600 uppercase tracking-widest px-2">{item.type}</Badge>
-                          </div>
-                          <div className="flex items-center gap-3 text-zinc-600 text-[10px] font-black uppercase tracking-widest">
-                            <span>{item.language}</span>
-                            <span>•</span>
-                            <span className="font-mono">{item.id}</span>
-                          </div>
-                        </div>
-                        <Button 
-                          variant={item.isActive ? "outline" : "secondary"} 
-                          className={cn("rounded-xl font-bold min-w-[120px] h-10 transition-all", item.isActive ? "border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/5" : "")} 
-                          onClick={() => toggleActivation(item.id, !!item.isActive)}
-                        >
-                          {item.isActive ? 'Active' : 'Activate'}
-                        </Button>
-                      </div>
-                    )) : (
-                      <div className="text-center py-24 bg-zinc-900/20 rounded-[2rem] border-2 border-dashed border-zinc-900">
-                        <Database className="w-12 h-12 text-zinc-900 mx-auto mb-4" />
-                        <p className="text-zinc-600 font-medium">No editions match your criteria.</p>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-                
-                {/* Browse Pagination Footer */}
-                <div className="absolute bottom-0 left-0 right-0 bg-zinc-950/80 backdrop-blur-md border-t border-zinc-800 p-4 flex items-center justify-between">
-                   <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest pl-4">Page {browsePage} of {totalBrowsePages || 1}</p>
-                   <div className="flex gap-2 pr-4">
-                     <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       onClick={() => setBrowsePage(1)} 
-                       disabled={browsePage === 1}
-                       className="rounded-lg hover:bg-zinc-900 text-zinc-500"
-                     >
-                       <ChevronsLeft className="w-4 h-4" />
-                     </Button>
-                     <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       onClick={() => setBrowsePage(prev => Math.max(1, prev - 1))} 
-                       disabled={browsePage === 1}
-                       className="rounded-lg hover:bg-zinc-900 text-zinc-500"
-                     >
-                       <ChevronLeft className="w-4 h-4" />
-                     </Button>
-                     <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       onClick={() => setBrowsePage(prev => Math.min(totalBrowsePages, prev + 1))} 
-                       disabled={browsePage === totalBrowsePages || totalBrowsePages === 0}
-                       className="rounded-lg hover:bg-zinc-900 text-zinc-500"
-                     >
-                       <ChevronRight className="w-4 h-4" />
-                     </Button>
-                     <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       onClick={() => setBrowsePage(totalBrowsePages)} 
-                       disabled={browsePage === totalBrowsePages || totalBrowsePages === 0}
-                       className="rounded-lg hover:bg-zinc-900 text-zinc-500"
-                     >
-                       <ChevronsRight className="w-4 h-4" />
-                     </Button>
-                   </div>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
         <Input 
-          placeholder="Filter your local directory..." 
+          placeholder="Filter by name, ID, or language..." 
           className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-2xl h-14 shadow-inner"
           value={dirSearch}
           onChange={(e) => setDirSearch(e.target.value)}
@@ -754,3 +594,4 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
     </div>
   );
 }
+
