@@ -26,7 +26,7 @@ import {
   Code,
   CheckCircle2,
   FileImage,
-  Globe
+  Sparkles
 } from 'lucide-react';
 import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
 import { cn } from '@/lib/utils';
@@ -203,7 +203,7 @@ export function AppSettings() {
   }
 
   return (
-    <div className="max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-5xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Card className="bg-zinc-950 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
         <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
           <div className="flex items-center gap-3">
@@ -276,7 +276,7 @@ export function AppSettings() {
             </div>
           </section>
 
-          {/* Ayat Number Frames Section */}
+          {/* Verse Numbering Style Section */}
           <section className="space-y-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

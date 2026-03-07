@@ -28,7 +28,7 @@ export function AyatFrame({ number, frameId = 'royal-ornate', customPath, custom
   
   // Decide what to render: Image or SVG
   const isImage = !!customImageUrl;
-  const pathData = staticFrame ? staticFrame.path : (customPath || AYAT_FRAMES[0].path);
+  const pathData = staticFrame ? staticFrame.path : (customPath || (AYAT_FRAMES.find(f => f.id === 'royal-ornate')?.path || AYAT_FRAMES[0].path));
   
   const dimensions = {
     sm: "w-8 h-8",
