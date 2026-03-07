@@ -12,7 +12,8 @@ import {
   Layers, 
   Type, 
   Book as BookIcon,
-  Languages
+  Languages,
+  ArrowLeftRight
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -172,8 +173,12 @@ export function QuranReader() {
     setViewMode('index');
   };
 
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat');
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-6">
+    <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-120px)] flex flex-col space-y-4">
       {/* Primary Header */}
       <div className="flex flex-row justify-between items-center bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-xl gap-4">
         <div className="flex flex-col justify-center">
@@ -207,32 +212,34 @@ export function QuranReader() {
         </div>
       </div>
 
-      {/* Reading Controls Bar - Visible only when not in index mode */}
+      {/* Reading Controls Bar - Simplified single toggle */}
       {viewMode !== 'index' && (
-        <div className="flex flex-wrap items-center justify-between bg-zinc-950/50 backdrop-blur-md p-4 rounded-3xl border border-zinc-900 gap-4">
-          <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
+        <div className="flex items-center justify-between bg-zinc-950/50 backdrop-blur-md p-3 rounded-2xl border border-zinc-900 gap-3">
+          <div className="flex items-center gap-2">
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
-              onClick={() => setViewMode('ayat')} 
-              className={cn("rounded-xl font-bold h-9 px-4 md:px-6", (viewMode === 'ayat') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+              onClick={toggleViewMode} 
+              className="rounded-xl font-bold h-9 px-4 border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-white"
             >
-              <Type className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Ayat View</span>
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setViewMode('page')} 
-              className={cn("rounded-xl font-bold h-9 px-4 md:px-6", (viewMode === 'page') ? "bg-zinc-800 text-white" : "text-zinc-500")}
-            >
-              <BookIcon className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Page View</span>
+              {viewMode === 'ayat' ? (
+                <>
+                  <BookIcon className="w-4 h-4 mr-2" />
+                  <span className="text-xs uppercase tracking-widest">Switch to Page View</span>
+                </>
+              ) : (
+                <>
+                  <Type className="w-4 h-4 mr-2" />
+                  <span className="text-xs uppercase tracking-widest">Switch to Ayat View</span>
+                </>
+              )}
             </Button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="w-40 md:w-56">
+          <div className="flex items-center gap-2">
+            <div className="w-32 md:w-48">
               <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[10px] md:text-xs font-bold">
+                <SelectTrigger className="bg-zinc-900 border-zinc-800 h-9 rounded-xl text-zinc-300 text-[10px] font-bold">
                   <div className="flex items-center gap-2">
                     <Languages className="w-3 h-3 text-zinc-500" />
                     <SelectValue placeholder="Translation" />
@@ -241,30 +248,27 @@ export function QuranReader() {
                 <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                   {translations.map((t) => (
                     <SelectItem key={t.id} value={t.id} className="text-xs font-medium">
-                      {t.name} ({t.language})
+                      {t.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="rounded-xl border-zinc-800 h-10 w-10 shrink-0"
+                className="rounded-xl border-zinc-800 h-9 w-9 shrink-0"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
                 disabled={currentPage <= 1}
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <div className="bg-zinc-900 px-3 h-10 flex items-center justify-center rounded-xl font-bold text-[10px] text-zinc-400 min-w-[50px] border border-zinc-800 shrink-0">
-                {currentPage}
-              </div>
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="rounded-xl border-zinc-800 h-10 w-10 shrink-0"
+                className="rounded-xl border-zinc-800 h-9 w-9 shrink-0"
                 onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
                 disabled={currentPage >= 604}
               >
@@ -333,14 +337,14 @@ export function QuranReader() {
           </div>
         ) : (
           <ScrollArea className="flex-1">
-            <div className="p-10 md:p-20">
+            <div className="p-8 md:p-16">
               {viewMode === 'ayat' ? (
-                <div className="space-y-16">
+                <div className="space-y-12">
                   {groupedAyats.map(group => (
-                    <div key={group.surah.number} className="space-y-12">
+                    <div key={group.surah.number} className="space-y-10">
                       {group.ayats.map((a: any) => (
-                        <div key={a.number} className="flex gap-8 group">
-                          <div className="w-10 pt-2 shrink-0 flex justify-center">
+                        <div key={a.number} className="flex gap-6 group">
+                          <div className="w-10 pt-1 shrink-0 flex justify-center">
                             <AyatFrame 
                               number={a.numberInSurah} 
                               frameId={ayatFrameId} 
@@ -349,12 +353,12 @@ export function QuranReader() {
                               size="sm"
                             />
                           </div>
-                          <div className="flex-1 space-y-8">
-                            <p className="text-right text-4xl md:text-6xl font-arabic leading-[2] text-zinc-100" dir="rtl">
+                          <div className="flex-1 space-y-6">
+                            <p className="text-right text-4xl md:text-6xl font-arabic leading-[1.8] text-zinc-100" dir="rtl">
                               {a.text}
                             </p>
                             {a.trans && (
-                              <p className="text-zinc-500 text-xl font-medium border-l-2 border-zinc-900 pl-8 italic">
+                              <p className="text-zinc-500 text-lg md:text-xl font-medium border-l border-zinc-900 pl-6 italic">
                                 {a.trans}
                               </p>
                             )}
@@ -365,14 +369,14 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                <div className="text-right font-arabic leading-[3] text-4xl md:text-7xl text-zinc-100" style={{ direction: 'rtl' }}>
+                <div className="text-right font-arabic leading-[2.5] text-3xl md:text-5xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
                     <span key={a.number} className="hover:text-white transition-colors group relative inline-block">
                       {a.text} 
-                      <span className="inline-flex mx-2 align-middle">
+                      <span className="inline-flex mx-1.5 align-middle">
                         <AyatFrame 
                           number={a.numberInSurah} 
-                          size="md" 
+                          size="sm" 
                           frameId={ayatFrameId} 
                           customPath={customAyatFramePath} 
                           customImageUrl={frameImageUrl}
