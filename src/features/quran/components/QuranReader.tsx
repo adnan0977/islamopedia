@@ -201,27 +201,28 @@ export function QuranReader() {
 
         <div className="flex items-center gap-2">
           {!isReading ? (
-            <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-900">
+            <div className="flex items-center gap-2">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => { setIndexType('surah'); setViewMode('index'); }} 
-                className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'surah') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                onClick={() => setIndexType('surah')} 
+                className={cn("rounded-xl font-bold h-10 px-4 md:px-6", indexType === 'surah' ? "bg-zinc-800 text-white" : "text-zinc-500")}
               >
                 <Grid3X3 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Surah List</span>
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => { setIndexType('juz'); setViewMode('index'); }} 
-                className={cn("rounded-xl font-bold h-10 px-4 md:px-6", (viewMode === 'index' && indexType === 'juz') ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                onClick={() => setIndexType('juz')} 
+                className={cn("rounded-xl font-bold h-10 px-4 md:px-6", indexType === 'juz' ? "bg-zinc-800 text-white" : "text-zinc-500")}
               >
                 <Layers className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Juz List</span>
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <div className="w-28 md:w-48 hidden sm:block">
+            <div className="flex items-center gap-3">
+              {/* Moved Translation to Main Header */}
+              <div className="w-32 md:w-48">
                 <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
                   <SelectTrigger className="bg-zinc-900 border-zinc-800 h-10 rounded-xl text-zinc-300 text-[10px] font-bold">
                     <div className="flex items-center gap-2">
@@ -239,6 +240,7 @@ export function QuranReader() {
                 </Select>
               </div>
 
+              {/* View Toggle Button */}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -261,45 +263,6 @@ export function QuranReader() {
           )}
         </div>
       </div>
-
-      {/* Reading Secondary Controls (Mobile Trans) */}
-      {isReading && (
-        <div className="flex items-center justify-between px-6 sm:hidden">
-          <div className="flex items-center gap-3">
-             <Button 
-                variant="outline" 
-                size="icon" 
-                className="rounded-xl border-zinc-900 bg-zinc-950 h-10 w-10 shrink-0"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="rounded-xl border-zinc-900 bg-zinc-950 h-10 w-10 shrink-0"
-                onClick={() => setCurrentPage(prev => Math.min(604, prev + 1))} 
-                disabled={currentPage >= 604}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-          </div>
-          <div className="w-32">
-             <Select value={selectedTranslation} onValueChange={setSelectedTranslation}>
-                <SelectTrigger className="bg-zinc-950 border-zinc-900 h-10 rounded-xl text-zinc-400 text-[9px] font-bold">
-                  <Languages className="w-3 h-3 mr-1" />
-                  <SelectValue placeholder="Trans" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                  {translations.map((t) => (
-                    <SelectItem key={t.id} value={t.id} className="text-[10px]">{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-          </div>
-        </div>
-      )}
 
       {/* Main Content Area */}
       <Card className="flex-1 bg-zinc-950 border-zinc-900 overflow-hidden shadow-2xl rounded-[2.5rem] flex flex-col">
@@ -391,13 +354,13 @@ export function QuranReader() {
                   ))}
                 </div>
               ) : (
-                <div className="text-right font-arabic leading-loose text-3xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
+                <div className="text-right font-arabic leading-[2.5] text-3xl md:text-4xl text-zinc-100" style={{ direction: 'rtl' }}>
                   {quranData.arabic.map((a, idx) => (
                     <span key={a.number} className="inline-flex items-center flex-wrap">
                       <span className="hover:text-white transition-colors">
                         {a.text}
                       </span>
-                      <span className="inline-flex mx-4 align-middle select-none shrink-0 justify-center items-center">
+                      <span className="inline-flex mx-4 md:mx-6 align-middle select-none shrink-0 justify-center items-center">
                         <AyatFrame 
                           number={a.numberInSurah} 
                           size="sm" 
@@ -415,9 +378,9 @@ export function QuranReader() {
         )}
       </Card>
       
-      {/* Desktop Pagination Bar */}
+      {/* Footer Pagination Bar */}
       {isReading && (
-        <div className="hidden sm:flex items-center justify-between px-10">
+        <div className="flex items-center justify-between px-10">
           <Button 
             variant="ghost" 
             className="rounded-xl h-12 px-6 gap-2 text-zinc-500 hover:text-white font-bold"
@@ -426,7 +389,7 @@ export function QuranReader() {
           >
             <ChevronLeft className="w-4 h-4" /> Previous Page
           </Button>
-          <div className="text-zinc-700 text-[10px] font-black uppercase tracking-[0.3em]">
+          <div className="hidden md:block text-zinc-700 text-[10px] font-black uppercase tracking-[0.3em]">
             Manuscript Navigation
           </div>
           <Button 

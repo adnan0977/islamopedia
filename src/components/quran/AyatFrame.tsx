@@ -30,9 +30,9 @@ export function AyatFrame({ number, frameId = 'royal-ornate', customPath, custom
   const pathData = staticFrame ? staticFrame.path : (customPath || (AYAT_FRAMES.find(f => f.id === 'royal-ornate')?.path || AYAT_FRAMES[0].path));
   
   const dimensions = {
-    sm: "w-[22px] h-[22px]",
-    md: "w-[28px] h-[28px]",
-    lg: "w-[36px] h-[36px]"
+    sm: "w-[20px] h-[20px]",
+    md: "w-[26px] h-[26px]",
+    lg: "w-[32px] h-[32px]"
   };
   
   const fontSizes = {
