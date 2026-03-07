@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, PlusSquare, BookOpen, User, Sparkles, ShieldCheck } from 'lucide-react';
+import { Home, PlusSquare, BookOpen, User, Sparkles, ShieldCheck, Mic2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -10,10 +10,9 @@ import { Button } from '@/components/ui/button';
 
 const baseNavItems = [
   { label: 'Home', icon: Home, href: '/' },
-  { label: 'Discover', icon: Compass, href: '/discover' },
   { label: 'Upload', icon: PlusSquare, href: '/upload', adminOnly: true },
   { label: 'Quran', icon: BookOpen, href: '/quran' },
-  { label: 'Channel', icon: User, href: '/channel' },
+  { label: 'Speakers', icon: Mic2, href: '/speakers' },
 ];
 
 export function Navbar() {
