@@ -102,10 +102,10 @@ export default function Home() {
           {isTrendingLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
           ) : (
-            <Carousel opts={{ align: "start", loop: true }} className="w-full">
+            <Carousel opts={{ align: "start", loop: false }} className="w-full">
               <CarouselContent className="-ml-2">
                 {trendingVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-2 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                  <CarouselItem key={video.id} className="pl-2 basis-1/2 sm:basis-1/3 lg:basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
@@ -164,10 +164,10 @@ export default function Home() {
           {isLatestLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
           ) : (
-            <Carousel opts={{ align: "start", loop: true }} className="w-full">
+            <Carousel opts={{ align: "start", loop: false }} className="w-full">
               <CarouselContent className="-ml-2">
                 {latestVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-2 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                  <CarouselItem key={video.id} className="pl-2 basis-1/2 sm:basis-1/3 lg:basis-1/4">
                     <VideoCard video={video} />
                   </CarouselItem>
                 ))}
@@ -207,14 +207,14 @@ function VideoCard({ video }: { video: any }) {
             </div>
           </div>
         </div>
-        <CardHeader className="p-4 md:p-5 flex-1 flex flex-col justify-between">
-          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2rem] text-zinc-300 group-hover:text-white transition-colors text-xs md:text-sm tracking-tight mb-4">
+        <CardHeader className="p-3 md:p-5 flex-1 flex flex-col justify-between">
+          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-[10px] md:text-sm tracking-tight mb-2 md:mb-4">
             {video.title}
           </CardTitle>
-          <div className="flex items-center justify-between text-[8px] md:text-[9px] text-zinc-600 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] pt-4 border-t border-zinc-900">
+          <div className="flex items-center justify-between text-[8px] md:text-[9px] text-zinc-600 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] pt-2 md:pt-4 border-t border-zinc-900">
             <span className="flex items-center gap-1">
               <Smartphone className="w-2.5 h-2.5" />
-              {video.appViewCount?.toLocaleString() || 0} app views
+              {video.appViewCount?.toLocaleString() || 0}
             </span>
             <span>
               {mounted ? new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
