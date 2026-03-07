@@ -42,7 +42,7 @@ export function AyatFrame({ number, frameId = 'royal-ornate', customPath, custom
   };
 
   return (
-    <div className={cn("relative inline-flex items-center justify-center shrink-0 align-middle", dimensions[size], className)}>
+    <span className={cn("relative inline-flex items-center justify-center shrink-0 align-middle", dimensions[size], className)}>
       {isImage ? (
         <img 
           src={customImageUrl} 
@@ -61,6 +61,6 @@ export function AyatFrame({ number, frameId = 'royal-ornate', customPath, custom
       <span className={cn("relative z-10 font-bold font-arabic text-zinc-400 transition-colors leading-none pt-0.5", fontSizes[size])}>
         {toArabicNumerals(number)}
       </span>
-    </div>
+    </span>
   );
 }
