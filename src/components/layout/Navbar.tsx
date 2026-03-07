@@ -18,16 +18,7 @@ import {
 const baseNavItems = [
   { id: 'home', label: 'Home', icon: Home, href: '/' },
   { id: 'upload', label: 'Upload', icon: PlusSquare, href: '/upload', adminOnly: true },
-  { 
-    id: 'quran', 
-    label: 'Quran', 
-    icon: BookOpen, 
-    href: '/quran',
-    children: [
-      { label: 'Ayat Wise Indexing', href: '/quran?mode=index&type=surah' },
-      { label: 'Juz Wise Indexing', href: '/quran?mode=index&type=juz' }
-    ]
-  },
+  { id: 'quran', label: 'Quran', icon: BookOpen, href: '/quran' },
   { id: 'speakers', label: 'Speakers', icon: Mic2, href: '/speakers' },
 ];
 
@@ -90,7 +81,9 @@ export function Navbar() {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               
-              if (item.children) {
+              const itemWithChildren = (item as any).children;
+
+              if (itemWithChildren) {
                 return (
                   <DropdownMenu key={item.id}>
                     <DropdownMenuTrigger asChild>
@@ -108,7 +101,7 @@ export function Navbar() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-zinc-950 border-zinc-900 text-zinc-100 min-w-[220px] rounded-xl mt-2 p-2 shadow-2xl">
-                      {item.children.map((child) => (
+                      {itemWithChildren.map((child: any) => (
                         <DropdownMenuItem key={child.href} asChild className="focus:bg-zinc-900 focus:text-white cursor-pointer py-3 px-4 rounded-lg">
                           <Link href={child.href}>{child.label}</Link>
                         </DropdownMenuItem>
