@@ -23,11 +23,6 @@ interface AyatFrameProps {
 }
 
 export function AyatFrame({ number, frameId = 'royal-ornate', customPath, size = "md", className }: AyatFrameProps) {
-  // Logic: 
-  // 1. If frameId is found in static AYAT_FRAMES, use its path.
-  // 2. Else if customPath is provided, use it.
-  // 3. Fallback to Royal Ornate.
-  
   const staticFrame = AYAT_FRAMES.find(f => f.id === frameId);
   const pathData = staticFrame ? staticFrame.path : (customPath || AYAT_FRAMES[0].path);
   
@@ -52,7 +47,7 @@ export function AyatFrame({ number, frameId = 'royal-ornate', customPath, size =
       >
         <path d={pathData} fillRule="evenodd" />
       </svg>
-      <span className={cn("relative z-10 font-black font-sans text-zinc-400 transition-colors", fontSizes[size])}>
+      <span className={cn("relative z-10 font-bold font-arabic text-zinc-400 transition-colors leading-none", fontSizes[size])}>
         {toArabicNumerals(number)}
       </span>
     </div>
