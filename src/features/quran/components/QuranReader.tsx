@@ -22,7 +22,8 @@ import {
   Globe,
   ChevronDown,
   Volume2,
-  Mic2
+  Mic2,
+  Languages as TransliterationIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -58,6 +59,7 @@ export function QuranReader() {
   const initialIndexType = (searchParams.get('type') as 'surah' | 'juz') || 'surah';
   const initialPage = parseInt(searchParams.get('page') || '1');
   const initialTrans = searchParams.get('trans') || 'en.sahih';
+  const initialTranslit = searchParams.get('translit') || '';
   const initialAudio = searchParams.get('audio') || '';
 
   // Local settings state
@@ -65,6 +67,7 @@ export function QuranReader() {
     arabicFontSize: 40,
     translationFontSize: 16,
     preferredTranslationId: initialTrans,
+    preferredTransliterationId: initialTranslit,
     preferredAudioId: initialAudio,
     ayatFrameId: 'royal-ornate'
   });
@@ -74,8 +77,9 @@ export function QuranReader() {
   const [viewMode, setViewMode] = useState<'ayat' | 'page' | 'index'>(initialMode);
   const [indexType, setIndexType] = useState<'surah' | 'juz'>(initialIndexType);
   const [loadingContent, setLoadingContent] = useState(false);
-  const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[] }>({ arabic: [], trans: [] });
+  const [quranData, setQuranData] = useState<{ arabic: any[], trans: any[], translit: any[] }>({ arabic: [], trans: [], translit: [] });
   const [selectedEditionId, setSelectedEditionId] = useState(initialTrans);
+  const [selectedTranslitId, setSelectedTranslitId] = useState(initialTranslit);
   const [selectedAudioId, setSelectedAudioId] = useState(initialAudio);
   
   // Selection UI Filters
@@ -92,6 +96,9 @@ export function QuranReader() {
         if (parsed.preferredTranslationId && !searchParams.get('trans')) {
           setSelectedEditionId(parsed.preferredTranslationId);
         }
+        if (parsed.preferredTransliterationId && !searchParams.get('translit')) {
+          setSelectedTranslitId(parsed.preferredTransliterationId);
+        }
         if (parsed.preferredAudioId && !searchParams.get('audio')) {
           setSelectedAudioId(parsed.preferredAudioId);
         }
@@ -105,6 +112,8 @@ export function QuranReader() {
     const params = new URLSearchParams(searchParams);
     params.set('mode', viewMode);
     params.set('trans', selectedEditionId);
+    if (selectedTranslitId) params.set('translit', selectedTranslitId);
+    else params.delete('translit');
     if (selectedAudioId) params.set('audio', selectedAudioId);
     if (viewMode === 'index') {
       params.set('type', indexType);
@@ -114,7 +123,7 @@ export function QuranReader() {
       params.set('page', currentPage.toString());
     }
     router.replace(`/quran?${params.toString()}`, { scroll: false });
-  }, [viewMode, indexType, currentPage, selectedEditionId, selectedAudioId, router, searchParams]);
+  }, [viewMode, indexType, currentPage, selectedEditionId, selectedTranslitId, selectedAudioId, router, searchParams]);
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
@@ -134,8 +143,12 @@ export function QuranReader() {
     return editions.filter(e => e.language === langFilter);
   }, [editions, langFilter]);
 
-  const textEditions = useMemo(() => {
-    return editionsForSelectedLang.filter(e => e.format === 'text' || e.type !== 'audio');
+  const translationEditions = useMemo(() => {
+    return editionsForSelectedLang.filter(e => e.type === 'translation' && e.format === 'text');
+  }, [editionsForSelectedLang]);
+
+  const transliterationEditions = useMemo(() => {
+    return editionsForSelectedLang.filter(e => e.type === 'transliteration' && e.format === 'text');
   }, [editionsForSelectedLang]);
 
   const audioEditions = useMemo(() => {
@@ -180,6 +193,7 @@ export function QuranReader() {
         const snapshots = await getDocs(q);
         const pageArabic: any[] = [];
         const pageTrans: any[] = [];
+        const pageTranslit: any[] = [];
 
         const docsByEdition: Record<string, any> = {};
         snapshots.forEach(doc => {
@@ -203,8 +217,14 @@ export function QuranReader() {
               const transSurah = docsByEdition[selectedEditionId];
               if (transSurah) {
                 const matchingAyat = transSurah.ayats.find((ta: any) => ta.number === a.number);
-                if (matchingAyat) {
-                  pageTrans.push(matchingAyat);
+                if (matchingAyat) pageTrans.push(matchingAyat);
+              }
+
+              if (selectedTranslitId) {
+                const translitSurah = docsByEdition[selectedTranslitId];
+                if (translitSurah) {
+                  const matchingAyat = translitSurah.ayats.find((ta: any) => ta.number === a.number);
+                  if (matchingAyat) pageTranslit.push(matchingAyat);
                 }
               }
             }
@@ -213,8 +233,9 @@ export function QuranReader() {
         
         pageArabic.sort((a, b) => a.number - b.number);
         const alignedTrans = pageArabic.map(aa => pageTrans.find(tt => tt.number === aa.number));
+        const alignedTranslit = pageArabic.map(aa => pageTranslit.find(tt => tt.number === aa.number));
 
-        setQuranData({ arabic: pageArabic, trans: alignedTrans });
+        setQuranData({ arabic: pageArabic, trans: alignedTrans, translit: alignedTranslit });
       } catch (e) { 
         console.error(e); 
       } finally { 
@@ -222,7 +243,7 @@ export function QuranReader() {
       }
     }
     fetchPage();
-  }, [currentPage, selectedEditionId, viewMode, db]);
+  }, [currentPage, selectedEditionId, selectedTranslitId, viewMode, db]);
 
   const groupedAyats = useMemo(() => {
     const groups: any[] = [];
@@ -231,10 +252,18 @@ export function QuranReader() {
       if (!last || last.surah.number !== ayat.surah.number) {
         groups.push({ 
           surah: ayat.surah, 
-          ayats: [{ ...ayat, trans: quranData.trans[idx]?.translationText }] 
+          ayats: [{ 
+            ...ayat, 
+            trans: quranData.trans[idx]?.translationText,
+            translit: quranData.translit[idx]?.translationText 
+          }] 
         });
       } else {
-        last.ayats.push({ ...ayat, trans: quranData.trans[idx]?.translationText });
+        last.ayats.push({ 
+          ...ayat, 
+          trans: quranData.trans[idx]?.translationText,
+          translit: quranData.translit[idx]?.translationText
+        });
       }
     });
     return groups;
@@ -337,19 +366,34 @@ export function QuranReader() {
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <Type className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">2. Text Edition</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">2. Translation</span>
                       </div>
                       <Select value={selectedEditionId} onValueChange={setSelectedEditionId}>
                         <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
-                          <SelectValue placeholder="Translation/Translit" />
+                          <SelectValue placeholder="Choose Translation" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          {textEditions.map(e => (
+                          {translationEditions.map(e => (
                             <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                           ))}
-                          {textEditions.length === 0 && (
-                            <div className="p-4 text-center text-xs text-zinc-700">None found</div>
-                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <TransliterationIcon className="w-3 h-3 text-zinc-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">3. Transliteration</span>
+                      </div>
+                      <Select value={selectedTranslitId} onValueChange={setSelectedTranslitId}>
+                        <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
+                          <SelectValue placeholder="Choose Translit" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectItem value="">None</SelectItem>
+                          {transliterationEditions.map(e => (
+                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -357,19 +401,17 @@ export function QuranReader() {
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <Volume2 className="w-3 h-3 text-zinc-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">3. Audio Reciter</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">4. Audio Reciter</span>
                       </div>
                       <Select value={selectedAudioId} onValueChange={setSelectedAudioId}>
                         <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 h-11 text-xs rounded-xl text-white">
                           <SelectValue placeholder="Choose Qari" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectItem value="">None</SelectItem>
                           {audioEditions.map(e => (
                             <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                           ))}
-                          {audioEditions.length === 0 && (
-                            <div className="p-4 text-center text-xs text-zinc-700">None found</div>
-                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -380,7 +422,7 @@ export function QuranReader() {
                   variant="outline" 
                   size="sm" 
                   onClick={() => setViewMode(prev => prev === 'ayat' ? 'page' : 'ayat')} 
-                  className="rounded-xl font-bold h-10 px-3 md:px-4 border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white"
+                  className="rounded-xl font-bold h-10 px-3 md:px-4 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white"
                 >
                   {viewMode === 'ayat' ? <BookIcon className="w-4 h-4" /> : <Type className="w-4 h-4" />}
                 </Button>
@@ -490,16 +532,24 @@ export function QuranReader() {
                         </span>
                       </p>
                       
-                      {a.trans && (
-                        <div className="py-1">
+                      <div className="space-y-2">
+                        {a.translit && (
+                          <p 
+                            className="text-left max-w-3xl text-zinc-500 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
+                            style={{ fontSize: `${transFontSize - 2}px` }}
+                          >
+                            {a.translit}
+                          </p>
+                        )}
+                        {a.trans && (
                           <p 
                             className="text-left max-w-3xl text-zinc-400 font-medium leading-relaxed italic border-l border-zinc-900 pl-4" 
                             style={{ fontSize: `${transFontSize}px` }}
                           >
                             {a.trans}
                           </p>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       
                       <div className="h-px bg-zinc-900 w-full mt-8" />
                     </div>
