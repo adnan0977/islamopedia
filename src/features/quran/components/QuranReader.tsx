@@ -14,6 +14,8 @@ import {
   ArrowLeft,
   Database,
   Settings,
+  Play,
+  Square
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -51,11 +53,6 @@ export function QuranReader() {
   const [selectedJuz, setSelectedJuz] = useState<number | null>(juzParam ? parseInt(juzParam) : null);
   const [selectedPage, setSelectedPage] = useState<number | null>(pageParam ? parseInt(pageParam) : null);
 
-  // 2. Define isReading early for initialization order
-  const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
-                    (viewMode === 'juz' && selectedJuz !== null) || 
-                    (viewMode === 'page' && selectedPage !== null);
-
   const [localSettings, setLocalSettings] = useState({
     arabicFontSize: 40,
     translationFontSize: 16,
@@ -70,8 +67,10 @@ export function QuranReader() {
 
   const [loadingContent, setLoadingContent] = useState(false);
   const [content, setContent] = useState<PageContent[]>([]);
+  const [playingAyat, setPlayingAyat] = useState<number | null>(null);
   
   const ayatScrollContainerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load settings from LocalStorage
   useEffect(() => {
@@ -86,6 +85,16 @@ export function QuranReader() {
       }
     }
   }, [user]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   // Sync State FROM URL
   useEffect(() => {
@@ -103,6 +112,10 @@ export function QuranReader() {
   const metaRef = useMemoFirebase(() => doc(db, 'quran_metadata', 'global'), [db]);
   const { data: metadata, isLoading: isMetaLoading } = useDoc(metaRef);
 
+  const isReading = (viewMode === 'surah' && selectedSurah !== null) || 
+                    (viewMode === 'juz' && selectedJuz !== null) || 
+                    (viewMode === 'page' && selectedPage !== null);
+
   const arabicFontSize = localSettings.arabicFontSize;
   const transFontSize = localSettings.translationFontSize;
   const ayatFrameId = localSettings.ayatFrameId || 'ornate-star';
@@ -114,7 +127,31 @@ export function QuranReader() {
     return text;
   };
 
-  // Content Fetching Logic - Strictly isolated views for Surah/Juz/Page
+  const playAudio = (globalNumber: number) => {
+    if (playingAyat === globalNumber) {
+      audioRef.current?.pause();
+      setPlayingAyat(null);
+      return;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    const url = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalNumber}.mp3`;
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    setPlayingAyat(globalNumber);
+    
+    audio.play().catch(e => {
+      console.error("Audio playback failed", e);
+      setPlayingAyat(null);
+    });
+
+    audio.onended = () => setPlayingAyat(null);
+  };
+
+  // Content Fetching Logic
   useEffect(() => {
     if (!isReading) {
       setContent([]);
@@ -207,14 +244,12 @@ export function QuranReader() {
   const toggleReaderViewMode = () => {
     const params = new URLSearchParams(window.location.search);
     if (viewMode !== 'page') {
-      // Switch to Page mode
       const firstPage = content[0]?.ayats[0]?.page || 1;
       params.set('mode', 'page');
       params.set('page', firstPage.toString());
       params.delete('surah');
       params.delete('juz');
     } else {
-      // Switch back to Ayat mode (Surah view)
       const firstSurah = content[0]?.surahNumber || 1;
       params.set('mode', 'surah');
       params.set('surah', firstSurah.toString());
@@ -286,7 +321,6 @@ export function QuranReader() {
                 </Button>
               </div>
             ) : (
-              /* Toggle only shown for Surah/Page views, hidden for Juz as per request */
               isReading && viewMode !== 'juz' && (
                 <Button 
                   variant="ghost" 
@@ -364,7 +398,6 @@ export function QuranReader() {
               <div className="p-0">
                 {content.map((surah) => (
                   <div key={surah.surahNumber} className="space-y-0">
-                    {/* Bismillah for start of Surahs except Surah 9 */}
                     {surah.surahNumber !== 9 && surah.ayats.some(a => a.numberInSurah === 1) && (
                       <div className="w-full flex flex-col items-center justify-center py-12 bg-zinc-900/10 border-b border-zinc-900/30">
                         <span className="text-3xl md:text-5xl font-arabic text-zinc-100">{BISMILLAH_TEXT}</span>
@@ -372,7 +405,6 @@ export function QuranReader() {
                     )}
                     
                     {viewMode === 'page' ? (
-                      /* Page View: Continuous flow of pure Arabic text with inline separators */
                       <div className="p-8 md:p-16 text-right" dir="rtl">
                         <p 
                           className="font-arabic leading-[2.5] text-zinc-100" 
@@ -393,7 +425,6 @@ export function QuranReader() {
                         </p>
                       </div>
                     ) : (
-                      /* Ayat View: Block by block focus with translation/transliteration */
                       surah.ayats.map((ayat, aIdx) => (
                         <div 
                           key={`${ayat.number}-${aIdx}`} 
@@ -402,11 +433,30 @@ export function QuranReader() {
                           )}
                         >
                           <div className="w-full max-w-4xl space-y-12 text-center">
+                            {/* Verse Header */}
+                            <div className="flex items-center justify-between w-full border-b border-zinc-900 pb-4 mb-8">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">
+                                Verse {ayat.numberInSurah}
+                              </span>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="rounded-full h-10 w-10 bg-zinc-900/50 text-zinc-500 hover:text-white"
+                                onClick={() => playAudio(ayat.number)}
+                              >
+                                {playingAyat === ayat.number ? (
+                                  <Square className="w-4 h-4 fill-current" />
+                                ) : (
+                                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                                )}
+                              </Button>
+                            </div>
+
                              <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                               {ayat.text}
                               <span className="inline-block mr-4 align-middle">
                                 <AyatFrame 
-                                  number={viewMode === 'surah' ? `${surah.surahNumber}:${ayat.numberInSurah}` : ayat.numberInSurah} 
+                                  number={ayat.numberInSurah} 
                                   frameId={ayatFrameId} 
                                   size="md" 
                                 />
