@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { AyatFrame } from '@/components/quran/AyatFrame';
 import Link from 'next/link';
@@ -352,7 +352,7 @@ export function QuranReader() {
                         <div key={a.number} className="space-y-4">
                           <p className="text-right font-arabic leading-relaxed text-zinc-100" style={{ fontSize: `${arabicFontSize}px` }} dir="rtl">
                             {a.text}
-                            <span className="inline-block mx-4 align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
+                            <span className="inline-block align-middle"><AyatFrame number={a.numberInSurah} frameId={ayatFrameId} size="md" /></span>
                           </p>
                           <div className="space-y-2">
                             {localSettings.showTransliteration && a.translit && (

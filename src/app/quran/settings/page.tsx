@@ -343,7 +343,7 @@ export default function QuranSettingsPage() {
                 dir="rtl"
               >
                 ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ
-                <span className="inline-block mx-4 align-middle">
+                <span className="inline-block align-middle">
                   <AyatFrame number={2} frameId={localSettings.ayatFrameId} size="md" />
                 </span>
               </p>
