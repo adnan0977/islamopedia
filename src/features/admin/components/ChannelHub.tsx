@@ -7,6 +7,7 @@ import { doc, setDoc, collection, query, orderBy, limit } from 'firebase/firesto
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   Loader2, 
   Youtube, 
@@ -40,16 +41,12 @@ import { fetchYouTubeChannels } from '@/services/youtube-server';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 
-const DEFAULT_IDS = [
-  "UCsaR6SnAv97_9MI2JPLcyRA", 
-  "UC1mNByYnDzhPesq4RF-jGLQ", 
-  "UCCBGUffdWwRV0gUqgElkCfw", 
-  "UCybKAapNVFBeZyn6DJHQaGA", 
-  "UCBMHtZeFf0EJeYr7CXnO5xQ", 
-  "UC8m7_p6_qD8zU_x7S8F8_xA", 
-  "UCp4Vf-IOn66Xv_Xf7oN7tLg", 
-  "UCv9u_K37S6v3m3N_5fV3DPA"
-].join('\n');
+const DEFAULT_IDS = `Islamic History Plus,UCsaR6SnAv97_9MI2JPLcyRA,English,Authentic & Research Stories
+Islamic History (Official),UC1mNByYnDzhPesq4RF-jGLQ,English,Pivotal Events & Journeys
+The Kohistani,UCCBGUffdWwRV0gUqgElkCfw,Urdu/English,History & Documentary
+Islamic Bayan 2026,UCybKAapNVFBeZyn6DJHQaGA,Urdu,Contemporary Sermons & History
+Duroos.org,UCp4Vf-IOn66Xv_Xf7oN7tLg,Arabic/English,Classical Scholarly Lectures
+Masjid Ribat,UCv9u_K37S6v3m3N_5fV3DPA,English,Detailed Seerah & History`;
 
 export function ChannelHub() {
   const db = useFirestore();
@@ -117,12 +114,12 @@ export function ChannelHub() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-[2rem] border border-zinc-900 shadow-2xl">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
             placeholder="Search linked channels..."
-            className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14 text-white focus:ring-zinc-700"
+            className="bg-zinc-950 border-zinc-900 pl-12 rounded-2xl h-14 text-white focus:ring-zinc-700"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
