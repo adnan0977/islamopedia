@@ -21,7 +21,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /quran_translations/{translationId} {
+    match /quran_editions/{editionId} {
       allow read, list: if true;
       allow write: if isAdmin();
     }

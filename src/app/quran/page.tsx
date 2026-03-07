@@ -38,15 +38,14 @@ export default function QuranPage() {
   const [viewMode, setViewMode] = useState('page' as ViewMode);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
-  // Full Quran data states
   const [fullArabic, setFullArabic] = useState<any>(null);
   const [fullTranslation, setFullTranslation] = useState<any>(null);
 
   const userProfileRef = useMemoFirebase(() => (user ? doc(db, 'users', user.uid) : null), [db, user]);
   const { data: userProfile } = useDoc(userProfileRef);
 
-  const translationsRef = useMemoFirebase(() => collection(db, 'quran_translations'), [db]);
-  const { data: activatedTranslations } = useCollection(translationsRef);
+  const editionsRef = useMemoFirebase(() => collection(db, 'quran_editions'), [db]);
+  const { data: activatedEditions } = useCollection(editionsRef);
   const [selectedEdition, setSelectedEdition] = useState<string>('en.sahih');
 
   useEffect(() => {
@@ -55,17 +54,17 @@ export default function QuranPage() {
     }
     if (userProfile?.preferredTranslationId) {
       setSelectedEdition(userProfile.preferredTranslationId);
-    } else if (activatedTranslations && activatedTranslations.length > 0) {
-      const defaultTrans = activatedTranslations.find(t => t.isDefault) || activatedTranslations[0];
+    } else if (activatedEditions && activatedEditions.length > 0) {
+      const defaultTrans = activatedEditions.find(t => t.isDefault) || activatedEditions[0];
       setSelectedEdition(defaultTrans.id);
     }
-  }, [userProfile, activatedTranslations]);
+  }, [userProfile, activatedEditions]);
 
-  const displayTranslations = useMemo(() => {
-    return activatedTranslations && activatedTranslations.length > 0 
-      ? activatedTranslations 
+  const displayEditions = useMemo(() => {
+    return activatedEditions && activatedEditions.length > 0 
+      ? activatedEditions 
       : [{ id: 'en.sahih', name: 'Sahih International', language: 'English' }];
-  }, [activatedTranslations]);
+  }, [activatedEditions]);
 
   useEffect(() => {
     async function init() {
@@ -81,13 +80,11 @@ export default function QuranPage() {
     init();
   }, []);
 
-  // Fetch full Quran content when selectedEdition changes
   useEffect(() => {
     async function fetchFullContent() {
       if (!selectedEdition) return;
       setLoadingContent(true);
       try {
-        // Fetch Arabic base and selected Translation in parallel
         const [arabicRes, transRes] = await Promise.all([
           getFullQuran('quran-uthmani'),
           getFullQuran(selectedEdition)
@@ -103,14 +100,12 @@ export default function QuranPage() {
     fetchFullContent();
   }, [selectedEdition]);
 
-  // Derive page data from full Quran content
   const selectedPageData = useMemo(() => {
     if (!fullArabic || !fullTranslation) return null;
 
     const pageAyahsArabic: any[] = [];
     const pageAyahsTrans: any[] = [];
 
-    // Filter ayahs for the current page from all surahs
     fullArabic.surahs.forEach((surah: any) => {
       surah.ayahs.forEach((ayah: any) => {
         if (ayah.page === currentPage) {
@@ -206,7 +201,7 @@ export default function QuranPage() {
             </Badge>
           </div>
           <p className="text-zinc-500 text-xs md:text-sm truncate mt-1">
-            Edition: {displayTranslations.find(t => t.id === selectedEdition)?.name || selectedEdition}
+            Edition: {displayEditions.find(t => t.id === selectedEdition)?.name || selectedEdition}
           </p>
         </div>
 
@@ -258,7 +253,7 @@ export default function QuranPage() {
               <DropdownMenuLabel>Translation Edition</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-zinc-800" />
               <DropdownMenuRadioGroup value={selectedEdition} onValueChange={setSelectedEdition}>
-                {displayTranslations.map((t) => (
+                {displayEditions.map((t) => (
                   <DropdownMenuRadioItem key={t.id} value={t.id} className="focus:bg-zinc-900">
                     <div className="flex flex-col py-0.5">
                       <span className="text-xs font-bold">{t.name}</span>

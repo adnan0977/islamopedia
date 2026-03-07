@@ -111,8 +111,8 @@ export default function AdminPanel() {
   const speakersRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'speakers') : null), [db, isVerifiedAdmin]);
   const { data: speakers } = useCollection(speakersRef);
 
-  const translationsRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'quran_translations') : null), [db, isVerifiedAdmin]);
-  const { data: translations } = useCollection(translationsRef);
+  const editionsRef = useMemoFirebase(() => (isVerifiedAdmin ? collection(db, 'quran_editions') : null), [db, isVerifiedAdmin]);
+  const { data: editions } = useCollection(editionsRef);
 
   const copyUid = () => {
     if (user?.uid) {
@@ -292,11 +292,11 @@ export default function AdminPanel() {
           </header>
 
           <main className="p-8 pb-32">
-            {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} speakers={speakers || []} translations={translations || []} />}
+            {activeTab === 'dashboard' && <DashboardOverview channels={channels || []} videos={videos || []} speakers={speakers || []} editions={editions || []} />}
             {activeTab === 'channels' && <ChannelManagement channels={channels || []} />}
             {activeTab === 'videos' && <VideoManagement videos={videos || []} />}
             {activeTab === 'scholars' && <SpeakerManagement speakers={speakers || []} />}
-            {activeTab === 'quran-tools' && <QuranToolsView translations={translations || []} />}
+            {activeTab === 'quran-tools' && <QuranToolsView editions={editions || []} />}
           </main>
         </SidebarInset>
       </div>
@@ -304,12 +304,12 @@ export default function AdminPanel() {
   );
 }
 
-function DashboardOverview({ channels, videos, speakers, translations }: { channels: any[], videos: any[], speakers: any[], translations: any[] }) {
+function DashboardOverview({ channels, videos, speakers, editions }: { channels: any[], videos: any[], speakers: any[], editions: any[] }) {
   const stats = [
     { label: 'Total Videos', value: videos.length, icon: VideoIcon, color: 'text-blue-500' },
     { label: 'Active Channels', value: channels.length, icon: Youtube, color: 'text-red-500' },
     { label: 'Featured Scholars', value: speakers.length, icon: Mic2, color: 'text-amber-500' },
-    { label: 'Active Translations', value: translations.length, icon: Languages, color: 'text-emerald-500' },
+    { label: 'Active Editions', value: editions.length, icon: Languages, color: 'text-emerald-500' },
   ];
 
   const chartData = [
@@ -742,7 +742,7 @@ function SpeakerManagement({ speakers }: { speakers: any[] }) {
   );
 }
 
-function QuranToolsView({ translations }: { translations: any[] }) {
+function QuranToolsView({ editions }: { editions: any[] }) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <Tabs defaultValue="directory" className="w-full">
@@ -753,13 +753,13 @@ function QuranToolsView({ translations }: { translations: any[] }) {
         </TabsList>
 
         <TabsContent value="directory">
-          <TranslationManagement translations={translations} />
+          <TranslationManagement editions={editions} />
         </TabsContent>
         <TabsContent value="sync">
-          <QuranDatabaseSync translations={translations} />
+          <QuranDatabaseSync editions={editions} />
         </TabsContent>
         <TabsContent value="viewer">
-          <QuranDatabaseViewer translations={translations} />
+          <QuranDatabaseViewer editions={editions} />
         </TabsContent>
       </Tabs>
     </div>
@@ -813,7 +813,7 @@ const languageNameMap: Record<string, string> = {
   ug: 'Uyghur',
 };
 
-function TranslationManagement({ translations }: { translations: any[] }) {
+function TranslationManagement({ editions }: { editions: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -850,7 +850,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     return Array.from(map.entries()).map(([code, name]) => ({ code, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [available]);
 
-  const handleDeleteTranslation = async (id: string) => {
+  const handleDeleteEdition = async (id: string) => {
     const q = query(collection(db, 'quran'), where('editionId', '==', id));
     const snapshots = await getDocs(q);
     const batch = writeBatch(db);
@@ -859,24 +859,24 @@ function TranslationManagement({ translations }: { translations: any[] }) {
     });
     await batch.commit();
 
-    deleteDocumentNonBlocking(doc(db, 'quran_translations', id));
-    toast({ title: "Translation & Content Deleted" });
+    deleteDocumentNonBlocking(doc(db, 'quran_editions', id));
+    toast({ title: "Edition & Content Deleted" });
   };
 
-  const toggleTranslation = (edition: any) => {
-    const existing = translations.find(t => t.id === edition.identifier);
+  const toggleEdition = (edition: any) => {
+    const existing = editions.find(t => t.id === edition.identifier);
     if (existing) {
-      handleDeleteTranslation(edition.identifier);
+      handleDeleteEdition(edition.identifier);
     } else {
-      setDocumentNonBlocking(doc(db, 'quran_translations', edition.identifier), {
+      setDocumentNonBlocking(doc(db, 'quran_editions', edition.identifier), {
         id: edition.identifier,
         name: edition.name,
-        language: edition.language,
+        language: languageNameMap[edition.language] || edition.language.toUpperCase(),
         languageCode: edition.language,
         isActive: true,
-        isDefault: translations.length === 0
+        isDefault: editions.length === 0
       }, { merge: true });
-      toast({ title: "Translation Activated" });
+      toast({ title: "Edition Activated" });
     }
   };
 
@@ -935,7 +935,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
                   ) : (
                     <div className="grid gap-2">
                       {filtered.map((item) => {
-                        const isActivated = translations.some(t => t.id === item.identifier);
+                        const isActivated = editions.some(t => t.id === item.identifier);
                         return (
                           <div key={item.identifier} className="flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors">
                             <div className="flex flex-col">
@@ -948,7 +948,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
                               size="sm" 
                               variant={isActivated ? "destructive" : "secondary"}
                               className="rounded-xl font-bold min-w-[100px]"
-                              onClick={() => toggleTranslation(item)}
+                              onClick={() => toggleEdition(item)}
                             >
                               {isActivated ? <Trash2 className="w-4 h-4" /> : 'Activate'}
                             </Button>
@@ -975,15 +975,15 @@ function TranslationManagement({ translations }: { translations: any[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {translations.map((t) => (
+            {editions.map((t) => (
               <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-20">
                 <TableCell className="font-bold text-white pl-8">{t.name}</TableCell>
                 <TableCell className="text-zinc-500 font-medium">
-                  {languageNameMap[t.language] || t.language.toUpperCase()}
+                  {t.language}
                 </TableCell>
                 <TableCell className="text-zinc-500 font-mono text-xs">{t.id}</TableCell>
                 <TableCell className="text-right pr-8">
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteTranslation(t.id)} className="text-destructive hover:bg-destructive/10 rounded-xl">
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteEdition(t.id)} className="text-destructive hover:bg-destructive/10 rounded-xl">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </TableCell>
@@ -996,7 +996,7 @@ function TranslationManagement({ translations }: { translations: any[] }) {
   );
 }
 
-function QuranDatabaseSync({ translations }: { translations: any[] }) {
+function QuranDatabaseSync({ editions }: { editions: any[] }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [selectedEdition, setSelectedEdition] = useState('');
@@ -1011,7 +1011,6 @@ function QuranDatabaseSync({ translations }: { translations: any[] }) {
     setProgress(0);
     
     try {
-      // 1. Fetch Full Content (parallel Arabic base + Translation)
       const [arabicRes, transRes] = await Promise.all([
         getFullQuran('quran-uthmani'),
         getFullQuran(selectedEdition)
@@ -1022,7 +1021,6 @@ function QuranDatabaseSync({ translations }: { translations: any[] }) {
       const arabicSurahs = arabicRes.data.surahs;
       const transSurahs = transRes.data.surahs;
 
-      // 2. Map all ayats by page across all surahs
       const pageMap = new Map<number, any[]>();
       
       arabicSurahs.forEach((surah: any, sIdx: number) => {
@@ -1049,9 +1047,8 @@ function QuranDatabaseSync({ translations }: { translations: any[] }) {
         });
       });
 
-      // 3. Save to Firestore in batches (604 pages)
       const pages = Array.from(pageMap.entries());
-      const batchSize = 10; // Batch save pages to avoid overloading
+      const batchSize = 10;
       
       for (let i = 0; i < pages.length; i += batchSize) {
         const chunk = pages.slice(i, i + batchSize);
@@ -1089,14 +1086,14 @@ function QuranDatabaseSync({ translations }: { translations: any[] }) {
       <Card className="bg-zinc-950 border-zinc-900 p-8 rounded-3xl shadow-2xl">
         <div className="flex flex-col md:flex-row gap-6 items-end">
           <div className="flex-1 space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Translation</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target Edition</Label>
             <Select value={selectedEdition} onValueChange={setSelectedEdition} disabled={syncing}>
               <SelectTrigger className="bg-zinc-900 border-zinc-800 rounded-xl h-12 text-white">
                 <SelectValue placeholder="Select edition to sync..." />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                {translations.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name} ({languageNameMap[t.language] || t.language.toUpperCase()})</SelectItem>
+                {editions.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.language})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1115,7 +1112,6 @@ function QuranDatabaseSync({ translations }: { translations: any[] }) {
           </Button>
         </div>
 
-        {/* Blocking Sync Loader Modal */}
         <Dialog open={syncing}>
           <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl sm:max-w-md p-10 outline-none">
             <div className="flex flex-col items-center text-center space-y-8">
@@ -1172,7 +1168,7 @@ function QuranDatabaseSync({ translations }: { translations: any[] }) {
   );
 }
 
-function QuranDatabaseViewer({ translations }: { translations: any[] }) {
+function QuranDatabaseViewer({ editions }: { editions: any[] }) {
   const db = useFirestore();
   const [selectedEdition, setSelectedEdition] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1184,7 +1180,6 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
     setIsLoading(true);
     try {
       const pageId = `${selectedEdition}_page_${currentPage}`;
-      const docRef = doc(db, 'quran', pageId);
       const snap = await getDocs(query(collection(db, 'quran'), where('id', '==', pageId), limit(1)));
       if (!snap.empty) {
         setPageData(snap.docs[0].data());
@@ -1209,7 +1204,7 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
           <h3 className="font-bold text-lg text-white">Full Quran Viewer</h3>
           <p className="text-xs text-zinc-500 font-medium">Inspect synchronized data directly from your database table.</p>
         </div>
-        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row gap-4 w-full md:auto">
           <div className="w-full md:w-64">
             <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Edition</Label>
             <Select value={selectedEdition} onValueChange={setSelectedEdition}>
@@ -1217,7 +1212,7 @@ function QuranDatabaseViewer({ translations }: { translations: any[] }) {
                 <SelectValue placeholder="Select edition..." />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                {translations.map((t) => (
+                {editions.map((t) => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
               </SelectContent>

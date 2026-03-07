@@ -90,15 +90,15 @@
       },
       "required": ["id", "title", "thumbnailUrl", "externalUrl", "channelId"]
     },
-    "QuranTranslation": {
-      "title": "QuranTranslation",
+    "QuranEdition": {
+      "title": "QuranEdition",
       "type": "object",
-      "description": "Represents an activated Quran translation edition.",
+      "description": "Represents an activated Quran edition (translation or original).",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "language": { "type": "string" },
-        "languageCode": { "type": "string" },
+        "language": { "type": "string", "description": "The full name of the language (e.g. English)." },
+        "languageCode": { "type": "string", "description": "The ISO code of the language (e.g. en)." },
         "isDefault": { "type": "boolean" },
         "isActive": { "type": "boolean" }
       },
@@ -155,8 +155,8 @@
         "definition": { "entityName": "YouTubeVideo" }
       },
       {
-        "path": "/quran_translations/{translationId}",
-        "definition": { "entityName": "QuranTranslation" }
+        "path": "/quran_editions/{editionId}",
+        "definition": { "entityName": "QuranEdition" }
       },
       {
         "path": "/quran/{pageId}",
