@@ -27,7 +27,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   Video as VideoIcon, 
   Search, 
-  Filter, 
   ExternalLink, 
   Trash2, 
   Smartphone,
@@ -132,10 +131,9 @@ export function VideoCatalog() {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button 
-                variant="outline"
-                className="rounded-full h-14 px-8 font-bold border-zinc-700 hover:bg-zinc-900 hover:text-white transition-all active:scale-95 flex items-center gap-3"
+                className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 flex items-center gap-3 shadow-lg"
               >
-                <Plus className="w-5 h-5 text-emerald-500" />
+                <Plus className="w-5 h-5 text-emerald-600" />
                 <span className="text-sm">Add New Video</span>
               </Button>
             </DialogTrigger>
@@ -150,7 +148,7 @@ export function VideoCatalog() {
                     <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">YouTube Video ID</Label>
                     <Input 
                       placeholder="e.g. dQw4w9WgXcQ" 
-                      className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                      className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
                       value={newVideo.id}
                       onChange={(e) => setNewVideo({ ...newVideo, id: e.target.value })}
                     />
@@ -159,7 +157,7 @@ export function VideoCatalog() {
                     <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Channel ID</Label>
                     <Input 
                       placeholder="UC..." 
-                      className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                      className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
                       value={newVideo.channelId}
                       onChange={(e) => setNewVideo({ ...newVideo, channelId: e.target.value })}
                     />
@@ -169,7 +167,7 @@ export function VideoCatalog() {
                   <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Video Title</Label>
                   <Input 
                     placeholder="Enter descriptive title" 
-                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
                     value={newVideo.title}
                     onChange={(e) => setNewVideo({ ...newVideo, title: e.target.value })}
                   />
@@ -178,7 +176,7 @@ export function VideoCatalog() {
                   <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Thumbnail URL</Label>
                   <Input 
                     placeholder="https://i.ytimg.com/vi/..." 
-                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
                     value={newVideo.thumbnailUrl}
                     onChange={(e) => setNewVideo({ ...newVideo, thumbnailUrl: e.target.value })}
                   />
@@ -187,14 +185,14 @@ export function VideoCatalog() {
                   <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Description</Label>
                   <Textarea 
                     placeholder="Detailed content summary..." 
-                    className="bg-zinc-900 border-zinc-800 rounded-xl min-h-[100px]"
+                    className="bg-zinc-900 border-zinc-800 rounded-xl min-h-[100px] text-white"
                     value={newVideo.description}
                     onChange={(e) => setNewVideo({ ...newVideo, description: e.target.value })}
                   />
                 </div>
                 <div className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800">
                   <div className="space-y-0.5">
-                    <Label className="font-bold">Trending Status</Label>
+                    <Label className="font-bold text-zinc-300">Trending Status</Label>
                     <p className="text-[10px] text-zinc-500 font-medium">Feature this video in the trending sections.</p>
                   </div>
                   <Switch 
@@ -204,8 +202,7 @@ export function VideoCatalog() {
                 </div>
               </div>
               <Button 
-                variant="default"
-                className="w-full h-14 font-bold rounded-2xl text-base shadow-xl" 
+                className="w-full h-14 font-bold rounded-2xl text-base bg-white text-black hover:bg-zinc-200 shadow-xl border border-white" 
                 onClick={handleAddVideo}
               >
                 Index Video Metadata

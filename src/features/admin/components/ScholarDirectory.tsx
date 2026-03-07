@@ -101,10 +101,9 @@ export function ScholarDirectory() {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button 
-                variant="outline"
-                className="rounded-full h-14 px-8 font-bold border-zinc-700 hover:bg-zinc-900 hover:text-white transition-all active:scale-95 flex items-center gap-3"
+                className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 flex items-center gap-3 shadow-lg"
               >
-                <Plus className="w-5 h-5 text-emerald-500" />
+                <Plus className="w-5 h-5 text-emerald-600" />
                 <span className="text-sm">Add New Scholar</span>
               </Button>
             </DialogTrigger>
@@ -118,7 +117,7 @@ export function ScholarDirectory() {
                   <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Scholar Name</Label>
                   <Input 
                     placeholder="e.g. Dr. Israr Ahmed" 
-                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
                     value={newScholar.name}
                     onChange={(e) => setNewScholar({ ...newScholar, name: e.target.value })}
                   />
@@ -127,7 +126,7 @@ export function ScholarDirectory() {
                   <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Identifier (ID)</Label>
                   <Input 
                     placeholder="e.g. dr-israr-ahmed" 
-                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
                     value={newScholar.id}
                     onChange={(e) => setNewScholar({ ...newScholar, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
                   />
@@ -136,15 +135,14 @@ export function ScholarDirectory() {
                   <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Profile Image URL</Label>
                   <Input 
                     placeholder="https://..." 
-                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl"
+                    className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
                     value={newScholar.profileImageUrl}
                     onChange={(e) => setNewScholar({ ...newScholar, profileImageUrl: e.target.value })}
                   />
                 </div>
               </div>
               <Button 
-                variant="default"
-                className="w-full h-14 font-bold rounded-2xl shadow-xl" 
+                className="w-full h-14 font-bold rounded-2xl bg-white text-black hover:bg-zinc-200 shadow-xl border border-white" 
                 onClick={handleAddScholar}
               >
                 Save Scholar Profile

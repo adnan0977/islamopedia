@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, setDoc, collection, query, orderBy, limit, writeBatch } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -78,9 +78,13 @@ export function ChannelHub() {
   const extractSelectors = (text: string) => {
     const idMatches = text.match(/UC[a-zA-Z0-9_-]{22}/g) || [];
     const handleMatches = text.match(/@[\w.-]+/g) || [];
+    const urlMatches = text.match(/youtube\.com\/(@[\w.-]+)/g) || [];
+    
+    const handlesFromUrls = urlMatches.map(m => m.split('/').pop()).filter(Boolean) as string[];
+
     return {
       ids: Array.from(new Set(idMatches)),
-      handles: Array.from(new Set(handleMatches))
+      handles: Array.from(new Set([...handleMatches, ...handlesFromUrls]))
     };
   };
 
@@ -114,17 +118,23 @@ export function ChannelHub() {
       }
 
       if (allResolvedChannels.length === 0) {
-        throw new Error("No channels found. Please verify the IDs/Handles are correct.");
+        throw new Error("No channels found. Please verify the IDs/Handles are correct and active.");
       }
 
-      for (const channel of allResolvedChannels) {
-        const channelRef = doc(db, 'channels', channel.id);
-        await setDoc(channelRef, {
-          ...channel,
-          updatedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-        }, { merge: true });
-        totalSynced++;
+      const batchSize = 10;
+      for (let i = 0; i < allResolvedChannels.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const chunk = allResolvedChannels.slice(i, i + batchSize);
+        chunk.forEach(channel => {
+          const channelRef = doc(db, 'channels', channel.id);
+          batch.set(channelRef, {
+            ...channel,
+            updatedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          }, { merge: true });
+          totalSynced++;
+        });
+        await batch.commit();
       }
 
       toast({ title: 'Sync Complete', description: `Successfully indexed ${totalSynced} channels.` });
@@ -157,10 +167,9 @@ export function ChannelHub() {
         }}>
           <DialogTrigger asChild>
             <Button 
-              variant="outline"
-              className="rounded-full h-14 px-8 font-bold border-zinc-700 hover:bg-zinc-900 hover:text-white transition-all active:scale-95 flex items-center gap-3"
+              className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 flex items-center gap-3 shadow-lg"
             >
-              <Plus className="w-5 h-5 text-emerald-500" />
+              <Plus className="w-5 h-5 text-emerald-600" />
               <span>Add New Channels</span>
             </Button>
           </DialogTrigger>
@@ -203,8 +212,7 @@ export function ChannelHub() {
                     />
                   </div>
                   <Button 
-                    variant="default"
-                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl"
+                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 shadow-xl border border-white"
                     disabled={isSyncing}
                     onClick={() => handleSync(bulkIds)}
                   >
@@ -224,8 +232,7 @@ export function ChannelHub() {
                     />
                   </div>
                   <Button 
-                    variant="default"
-                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 shadow-xl"
+                    className="w-full h-14 font-bold rounded-2xl text-base flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 shadow-xl border border-white"
                     disabled={isSyncing || !singleId.trim()}
                     onClick={() => handleSync(singleId)}
                   >
