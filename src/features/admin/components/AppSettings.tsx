@@ -11,7 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { Settings, Image as ImageIcon, Layout, Save, Loader2 } from 'lucide-react';
+import { Settings, Image as ImageIcon, Layout, Save, Loader2, Hash } from 'lucide-react';
+import { AYAT_FRAMES, AyatFrame } from '@/components/quran/AyatFrame';
+import { cn } from '@/lib/utils';
 
 export function AppSettings() {
   const db = useFirestore();
@@ -21,6 +23,7 @@ export function AppSettings() {
 
   const [localSettings, setLocalSettings] = useState({
     logoUrl: '',
+    ayatFrameId: 'star',
     navigationVisibility: {
       home: true,
       upload: true,
@@ -33,6 +36,7 @@ export function AppSettings() {
     if (settings) {
       setLocalSettings({
         logoUrl: settings.logoUrl || '',
+        ayatFrameId: settings.ayatFrameId || 'star',
         navigationVisibility: {
           home: settings.navigationVisibility?.home ?? true,
           upload: settings.navigationVisibility?.upload ?? true,
@@ -70,7 +74,7 @@ export function AppSettings() {
           </div>
           <CardDescription className="text-zinc-500 text-sm">Manage your platform's branding and layout settings.</CardDescription>
         </CardHeader>
-        <CardContent className="p-8 space-y-10">
+        <CardContent className="p-8 space-y-12">
           {/* Branding Section */}
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
@@ -94,8 +98,37 @@ export function AppSettings() {
                     </div>
                   )}
                 </div>
-                <p className="text-[10px] text-zinc-600">Enter a direct link to your logo image (PNG/SVG preferred).</p>
               </div>
+            </div>
+          </div>
+
+          {/* Ayat Number Frames Section */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Hash className="w-4 h-4 text-zinc-600" />
+              <h3 className="text-xs font-black uppercase tracking-widest text-zinc-600">Verse Numbering Style</h3>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {AYAT_FRAMES.map((frame) => (
+                <button
+                  key={frame.id}
+                  onClick={() => setLocalSettings({ ...localSettings, ayatFrameId: frame.id })}
+                  className={cn(
+                    "flex flex-col items-center gap-4 p-6 rounded-2xl border transition-all group",
+                    localSettings.ayatFrameId === frame.id 
+                      ? "bg-zinc-900 border-zinc-500 shadow-lg" 
+                      : "bg-zinc-950 border-zinc-900 hover:border-zinc-700"
+                  )}
+                >
+                  <AyatFrame number={7} frameId={frame.id} size="lg" />
+                  <span className={cn(
+                    "text-[10px] font-black uppercase tracking-tight text-center",
+                    localSettings.ayatFrameId === frame.id ? "text-white" : "text-zinc-600 group-hover:text-zinc-400"
+                  )}>
+                    {frame.name}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
 

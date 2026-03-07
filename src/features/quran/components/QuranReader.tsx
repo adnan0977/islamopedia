@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -5,10 +6,11 @@ import { Card } from '@/components/ui/card';
 import { Loader2, BookOpen, LayoutList, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { cn, toArabicNumerals } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, getDocs, doc } from 'firebase/firestore';
+import { AyatFrame } from '@/components/quran/AyatFrame';
 
 export function QuranReader() {
   const db = useFirestore();
@@ -20,6 +22,11 @@ export function QuranReader() {
 
   const editionsRef = useMemoFirebase(() => collection(db, 'quran_editions'), [db]);
   const { data: editions } = useCollection(editionsRef);
+
+  // Fetch global settings for Ayat Frame style
+  const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
+  const { data: settings } = useDoc(settingsRef);
+  const ayatFrameId = settings?.ayatFrameId || 'star';
 
   useEffect(() => {
     async function fetchPage() {
@@ -95,7 +102,7 @@ export function QuranReader() {
                       {group.ayats.map((a: any) => (
                         <div key={a.number} className="flex gap-8 group">
                           <div className="w-12 pt-2 shrink-0">
-                            <AyatNumberFrame number={a.numberInSurah} />
+                            <AyatFrame number={a.numberInSurah} frameId={ayatFrameId} />
                           </div>
                           <div className="flex-1 space-y-8">
                             <p className="text-right text-4xl md:text-6xl font-arabic leading-[2] text-zinc-100" dir="rtl">
@@ -118,7 +125,7 @@ export function QuranReader() {
                     <span key={a.number} className="hover:text-white transition-colors">
                       {a.text} 
                       <span className="inline-flex mx-2">
-                        <AyatNumberFrame number={a.numberInSurah} size="lg" />
+                        <AyatFrame number={a.numberInSurah} size="lg" frameId={ayatFrameId} />
                       </span>
                     </span>
                   ))}
@@ -128,35 +135,6 @@ export function QuranReader() {
           </ScrollArea>
         )}
       </Card>
-    </div>
-  );
-}
-
-function AyatNumberFrame({ number, size = "md" }: { number: number | string, size?: "sm" | "md" | "lg" }) {
-  const dimensions = {
-    sm: "w-8 h-8",
-    md: "w-10 h-10",
-    lg: "w-14 h-14"
-  };
-  
-  const fontSizes = {
-    sm: "text-[8px]",
-    md: "text-[10px]",
-    lg: "text-xs"
-  };
-
-  return (
-    <div className={cn("relative inline-flex items-center justify-center shrink-0 align-middle", dimensions[size])}>
-      <svg 
-        viewBox="0 0 100 100" 
-        className="absolute inset-0 w-full h-full text-zinc-800 fill-zinc-900/30 stroke-zinc-700"
-        strokeWidth="3"
-      >
-        <path d="M50 5 L62 38 L95 50 L62 62 L50 95 L38 62 L5 50 L38 38 Z" />
-      </svg>
-      <span className={cn("relative z-10 font-black font-sans text-zinc-400", fontSizes[size])}>
-        {toArabicNumerals(number)}
-      </span>
     </div>
   );
 }

@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, writeBatch, query, where, getDocs, collection } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { toArabicNumerals, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { AyatFrame } from '@/components/quran/AyatFrame';
 
 interface QuranHubProps {
   editions: any[];
@@ -459,7 +461,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
                     size="icon" 
                     disabled={syncing || !t.isActive}
                     onClick={() => performSync(t.id)} 
-                    className="text-zinc-400 hover:bg-zinc-900 rounded-xl h-10 w-10"
+                    className={cn("rounded-xl h-10 w-10 text-zinc-400 hover:bg-zinc-900")}
                     title="Start Sync"
                   >
                     <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
@@ -536,6 +538,11 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
   const [selectedEdition, setSelectedEdition] = useState('quran-uthmani');
   const [content, setContent] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Fetch frame setting
+  const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
+  const { data: settings } = useDoc(settingsRef);
+  const ayatFrameId = settings?.ayatFrameId || 'star';
 
   useEffect(() => {
     async function fetchContent() {
@@ -650,7 +657,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
                   {surah.ayats.map((ayat: any) => (
                     <div key={ayat.number} className="flex gap-6 group">
                       <div className="w-12 pt-2 shrink-0">
-                         <AyatNumberFrame number={ayat.numberInSurah} />
+                         <AyatFrame number={ayat.numberInSurah} frameId={ayatFrameId} />
                       </div>
                       <div className="flex-1 space-y-4">
                         <p className="text-right text-3xl font-arabic leading-relaxed text-zinc-200" dir="rtl">
@@ -675,35 +682,6 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
           </div>
         </ScrollArea>
       </Card>
-    </div>
-  );
-}
-
-function AyatNumberFrame({ number, size = "md" }: { number: number | string, size?: "sm" | "md" | "lg" }) {
-  const dimensions = {
-    sm: "w-8 h-8",
-    md: "w-10 h-10",
-    lg: "w-14 h-14"
-  };
-  
-  const fontSizes = {
-    sm: "text-[8px]",
-    md: "text-[10px]",
-    lg: "text-xs"
-  };
-
-  return (
-    <div className={cn("relative inline-flex items-center justify-center shrink-0 align-middle", dimensions[size])}>
-      <svg 
-        viewBox="0 0 100 100" 
-        className="absolute inset-0 w-full h-full text-zinc-800 fill-zinc-900/30 stroke-zinc-700"
-        strokeWidth="3"
-      >
-        <path d="M50 5 L62 38 L95 50 L62 62 L50 95 L38 62 L5 50 L38 38 Z" />
-      </svg>
-      <span className={cn("relative z-10 font-black font-sans text-zinc-400", fontSizes[size])}>
-        {toArabicNumerals(number)}
-      </span>
     </div>
   );
 }
