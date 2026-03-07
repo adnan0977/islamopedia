@@ -74,6 +74,7 @@
         "subscribersCount": { "type": "number" },
         "videoCount": { "type": "number" },
         "viewCount": { "type": "number" },
+        "isActive": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -97,6 +98,7 @@
         "appViewCount": { "type": "number" },
         "likeCount": { "type": "number" },
         "isTrending": { "type": "boolean" },
+        "isActive": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -180,7 +182,7 @@
         "savedCustomFrames": {
           "type": "array",
           "items": {
-            "type": "object",
+            "object",
             "properties": {
               "id": { "type": "string" },
               "name": { "type": "string" },

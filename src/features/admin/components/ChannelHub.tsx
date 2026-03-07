@@ -1,12 +1,14 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, collection, query, orderBy, limit, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, collection, query, orderBy, limit, writeBatch, getDocs, where } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { 
   Loader2, 
   Youtube, 
@@ -17,7 +19,11 @@ import {
   CheckCircle2,
   ExternalLink,
   Users,
-  AlertCircle
+  AlertCircle,
+  Pencil,
+  Trash2,
+  Power,
+  PowerOff
 } from 'lucide-react';
 import {
   Dialog,
@@ -26,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { 
   Table, 
@@ -41,6 +48,8 @@ import { fetchYouTubeChannels, fetchYouTubeChannelByHandle } from '@/services/yo
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { cn } from '@/lib/utils';
 
 const DEFAULT_IDS = `Islamic History Plus,UCsaR6SnAv97_9MI2JPLcyRA,English,Authentic & Research Stories
 Islamic History (Official),UC1mNByYnDzhPesq4RF-jGLQ,English,Pivotal Events & Journeys
@@ -59,8 +68,12 @@ export function ChannelHub() {
   const [bulkIds, setBulkBulkIds] = useState(DEFAULT_IDS);
   const [singleId, setSingleId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  // Edit State
+  const [editingChannel, setEditingChannel] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const channelsQuery = useMemoFirebase(() => query(
     collection(db, 'channels'),
@@ -128,6 +141,7 @@ export function ChannelHub() {
           const channelRef = doc(db, 'channels', channel.id);
           batch.set(channelRef, {
             ...channel,
+            isActive: true,
             updatedAt: new Date().toISOString(),
             createdAt: new Date().toISOString(),
           }, { merge: true });
@@ -137,7 +151,7 @@ export function ChannelHub() {
       }
 
       toast({ title: 'Sync Complete', description: `Successfully indexed ${totalSynced} channels.` });
-      setIsDialogOpen(false);
+      setIsImportDialogOpen(false);
       setSingleId('');
     } catch (error: any) {
       setSyncError(error.message);
@@ -145,6 +159,47 @@ export function ChannelHub() {
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  const toggleChannelActivation = async (channelId: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    const channelRef = doc(db, 'channels', channelId);
+    
+    // Update parent channel
+    updateDocumentNonBlocking(channelRef, { isActive: newStatus, updatedAt: new Date().toISOString() });
+
+    // Propagate to all videos from this channel
+    try {
+      const videosQ = query(collection(db, 'videos'), where('channelId', '==', channelId));
+      const videoSnaps = await getDocs(videosQ);
+      
+      if (!videoSnaps.empty) {
+        const batch = writeBatch(db);
+        videoSnaps.forEach(vDoc => {
+          batch.update(vDoc.ref, { isActive: newStatus, updatedAt: new Date().toISOString() });
+        });
+        await batch.commit();
+      }
+
+      toast({ 
+        title: newStatus ? "Channel Activated" : "Channel Deactivated", 
+        description: `Channel and its ${videoSnaps.size} associated videos have been updated.` 
+      });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Propagation Error', description: "Failed to update associated videos." });
+    }
+  };
+
+  const handleEditSave = () => {
+    if (!editingChannel) return;
+    const channelRef = doc(db, 'channels', editingChannel.id);
+    updateDocumentNonBlocking(channelRef, {
+      title: editingChannel.title,
+      description: editingChannel.description,
+      updatedAt: new Date().toISOString()
+    });
+    setIsEditDialogOpen(false);
+    toast({ title: "Channel Updated", description: "Metadata has been saved locally." });
   };
 
   return (
@@ -160,8 +215,8 @@ export function ChannelHub() {
           />
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
+        <Dialog open={isImportDialogOpen} onOpenChange={(open) => {
+          setIsImportDialogOpen(open);
           if (!open) setSyncError(null);
         }}>
           <DialogTrigger asChild>
@@ -272,7 +327,7 @@ export function ChannelHub() {
               </TableRow>
             ) : filteredChannels?.length ? (
               filteredChannels.map((channel) => (
-                <TableRow key={channel.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
+                <TableRow key={channel.id} className={cn("hover:bg-zinc-900/40 transition-all border-zinc-900 h-24", !channel.isActive && "opacity-50 grayscale")}>
                   <TableCell className="pl-10">
                     <div className="flex items-center gap-5">
                       <div className="relative w-12 h-12 rounded-2xl overflow-hidden border border-zinc-800 bg-black shrink-0 shadow-lg">
@@ -281,24 +336,69 @@ export function ChannelHub() {
                       <div className="flex flex-col min-w-0">
                         <span className="font-bold text-zinc-100 truncate text-base flex items-center gap-2">
                           {channel.title}
-                          <CheckCircle2 className="w-3.5 h-3.5 text-zinc-600 fill-zinc-600" />
+                          {channel.isActive && <CheckCircle2 className="w-3.5 h-3.5 text-zinc-600 fill-zinc-600" />}
                         </span>
                         <code className="text-[10px] text-zinc-600 font-mono truncate tracking-tight">{channel.id}</code>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm">
-                      <Users className="w-4 h-4 text-zinc-700" />
-                      {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount} Subscribers
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm">
+                        <Users className="w-4 h-4 text-zinc-700" />
+                        {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount} Subscribers
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {channel.isActive ? (
+                          <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase rounded-sm">Active</Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-zinc-800 text-zinc-600 text-[8px] font-black uppercase rounded-sm">Deactivated</Badge>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-right pr-10">
-                    <a href={channel.externalUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800">
-                        <ExternalLink className="w-5 h-5" />
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={cn("rounded-2xl h-12 w-12 text-zinc-600 hover:bg-zinc-900 border border-transparent hover:border-zinc-800", channel.isActive ? "text-emerald-500" : "text-zinc-700")}
+                        onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)}
+                        title={channel.isActive ? "Deactivate Channel" : "Activate Channel"}
+                      >
+                        {channel.isActive ? <Power className="w-5 h-5" /> : <PowerOff className="w-5 h-5" />}
                       </Button>
-                    </a>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
+                        onClick={() => {
+                          setEditingChannel(channel);
+                          setIsEditDialogOpen(true);
+                        }}
+                        title="Edit Channel Info"
+                      >
+                        <Pencil className="w-5 h-5" />
+                      </Button>
+                      <a href={channel.externalUrl} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800" title="View on YouTube">
+                          <ExternalLink className="w-5 h-5" />
+                        </Button>
+                      </a>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-2xl h-12 w-12 text-zinc-600 hover:text-destructive hover:bg-destructive/10 border border-transparent"
+                        onClick={() => {
+                          if (confirm("Delete channel registry? This will NOT delete associated videos.")) {
+                            deleteDocumentNonBlocking(doc(db, 'channels', channel.id));
+                          }
+                        }}
+                        title="Remove Registry"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -315,6 +415,43 @@ export function ChannelHub() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Edit Channel Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-10 outline-none max-w-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Edit Channel Metadata</DialogTitle>
+            <DialogDescription className="text-zinc-500">Update the information for this spiritual content creator.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-6">
+            <div className="space-y-2">
+              <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Display Title</Label>
+              <Input 
+                value={editingChannel?.title || ''}
+                onChange={(e) => setEditingChannel({ ...editingChannel, title: e.target.value })}
+                className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">Description</Label>
+              <Textarea 
+                value={editingChannel?.description || ''}
+                onChange={(e) => setEditingChannel({ ...editingChannel, description: e.target.value })}
+                className="bg-zinc-900 border-zinc-800 rounded-xl min-h-[150px] text-white"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-3">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold h-12 px-6">Cancel</Button>
+            <Button 
+              className="rounded-xl h-12 px-8 font-bold bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 shadow-xl"
+              onClick={handleEditSave}
+            >
+              Save Registry Info
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
