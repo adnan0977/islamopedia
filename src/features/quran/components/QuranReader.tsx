@@ -259,10 +259,9 @@ export function QuranReader() {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const ayatIndex = parseInt(entry.target.getAttribute('data-ayat-index') || '0');
-          const pageNum = parseInt(entry.target.getAttribute('data-page-number') || visiblePage.toString());
           
           setCurrentAyatIndex(ayatIndex);
-          setVisiblePage(pageNum);
+          // Removed automatic setVisiblePage(pageNum) to stop dynamic page number change on scroll
 
           if (ayatIndex >= flattenedAyats.length - 3) {
             loadMorePages();
