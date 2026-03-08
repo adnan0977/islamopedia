@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, writeBatch, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 import { 
   Card, 
   CardHeader, 
@@ -174,6 +174,7 @@ export function HadithManager() {
         }
       });
 
+      // Chunked batching for thousands of potential editions
       for (let i = 0; i < booksToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = booksToSave.slice(i, i + 100);
@@ -208,11 +209,30 @@ export function HadithManager() {
     try {
       const res = await fetch(syncUrl);
       const data = await res.json();
-      const items = data.hadiths.slice(0, 1000); 
       
-      for (let i = 0; i < items.length; i += 100) {
+      const allIncomingItems = data.hadiths;
+      
+      // 1. Fetch existing hadith numbers for this edition to skip duplicates
+      const existingQuery = query(
+        collection(db, 'hadith_data'),
+        where('editionId', '==', edition.id)
+      );
+      const existingSnap = await getDocs(existingQuery);
+      const existingNumbers = new Set(existingSnap.docs.map(d => d.data().hadithnumber));
+
+      // 2. Filter only items that are NOT in the database
+      const missingItems = allIncomingItems.filter((h: any) => !existingNumbers.has(h.hadithnumber));
+
+      if (missingItems.length === 0) {
+        toast({ title: "Up to Date", description: "All hadiths from this source are already in the database." });
+        setIsContentSyncing(null);
+        return;
+      }
+
+      // 3. Batch process missing items
+      for (let i = 0; i < missingItems.length; i += 100) {
         const batch = writeBatch(db);
-        const chunk = items.slice(i, i + 100);
+        const chunk = missingItems.slice(i, i + 100);
         chunk.forEach((h: any) => {
           const ref = doc(db, 'hadith_data', `${edition.id}_h_${h.hadithnumber}`);
           batch.set(ref, { 
@@ -227,9 +247,9 @@ export function HadithManager() {
 
       updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { 
         lastSyncedAt: new Date().toISOString(),
-        hadithCount: data.hadiths.length 
+        hadithCount: allIncomingItems.length 
       });
-      toast({ title: "Content Synced", description: `Persisted ${items.length} items.` });
+      toast({ title: "Content Synced", description: `Added ${missingItems.length} new items to the library.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Error", description: e.message });
     } finally {
