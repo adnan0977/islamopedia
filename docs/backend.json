@@ -9,59 +9,29 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "description": { "type": "string" },
-        "editionCount": { "type": "number" }
+        "editionCount": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name"]
     },
     "HadithEdition": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "HadithEdition",
       "type": "object",
       "description": "Represents a specific edition or collection of Hadith.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier (e.g., 'bukhari-english')."
-        },
-        "bookId": {
-          "type": "string"
-        },
-        "collectionName": {
-          "type": "string",
-          "description": "The name of the Hadith collection (e.g., Sahih Bukhari)."
-        },
-        "title": {
-          "type": "string",
-          "description": "The specific edition title."
-        },
-        "language": {
-          "type": "string"
-        },
-        "textDirection": {
-          "type": "string"
-        },
-        "sourceLink": {
-          "type": "string"
-        },
-        "sourceLinkMin": {
-          "type": "string"
-        },
-        "isActive": {
-          "type": "boolean"
-        },
-        "lastSyncedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "hadithCount": {
-          "type": "number"
-        }
+        "id": { "type": "string" },
+        "bookId": { "type": "string" },
+        "collectionName": { "type": "string" },
+        "title": { "type": "string" },
+        "language": { "type": "string" },
+        "textDirection": { "type": "string" },
+        "sourceLink": { "type": "string" },
+        "sourceLinkMin": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "lastSyncedAt": { "type": "string", "format": "date-time" },
+        "hadithCount": { "type": "number" }
       },
-      "required": [
-        "id",
-        "title",
-        "language"
-      ]
+      "required": ["id", "title", "language"]
     },
     "Video": {
       "title": "Video",

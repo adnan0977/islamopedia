@@ -271,9 +271,9 @@ export function HadithManager() {
               variant="outline" 
               size="icon" 
               onClick={() => setViewMode('registry')}
-              className="rounded-xl border-white text-white hover:bg-white hover:text-black transition-all"
+              className="rounded-xl border-white text-white hover:bg-white hover:text-black transition-all h-14 w-14"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
           <div className="relative flex-1 md:w-96">
@@ -299,7 +299,7 @@ export function HadithManager() {
           </Button>
         ) : (
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="h-14 px-6 rounded-2xl border-zinc-800 text-zinc-400 font-bold bg-zinc-900/50 flex gap-2">
+            <Badge variant="outline" className="h-14 px-6 rounded-2xl border-zinc-800 text-zinc-400 font-bold bg-zinc-900/50 flex gap-2 items-center">
               <Database className="w-4 h-4" />
               {selectedEdition?.collectionName}
             </Badge>
