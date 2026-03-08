@@ -1,244 +1,92 @@
 {
   "entities": {
-    "UserProfile": {
+    "HadithEdition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
+      "title": "HadithEdition",
       "type": "object",
-      "description": "Represents a user's profile information and personalized settings within the VlogNest application.",
+      "description": "Represents a specific edition or collection of Hadith, providing metadata about the collection sourced from an external API. This entity stores information necessary to display and manage Hadith editions within the app's admin panel.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
+          "description": "Unique identifier for the HadithEdition entity, typically corresponding to the 'name' field from the Hadith API (e.g., 'bukhari')."
         },
-        "youtubeChannelId": {
+        "collectionName": {
           "type": "string",
-          "description": "Reference to the user's primary linked YouTubeChannel, if connected."
+          "description": "The common name of the Hadith collection (e.g., 'sahih bukhari') as provided by the external API."
         },
-        "favoriteVideoIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "namazLocation": {
+        "title": {
           "type": "string",
-          "description": "The user's location used for calculating Namaz timings."
+          "description": "The full, human-readable title of the Hadith edition (e.g., 'Sahih Bukhari')."
         },
-        "hijriAdjustment": {
-          "type": "number"
-        },
-        "lastReadPage": {
-          "type": "number",
-          "description": "The last page the user was reading in the Quran."
-        },
-        "preferredTranslationId": {
+        "language": {
           "type": "string",
-          "description": "The identifier of the user's preferred Quran translation edition."
+          "description": "The ISO 639-1 language code of the Hadith edition (e.g., 'en' for English, 'ar' for Arabic)."
         },
-        "arabicFontSize": {
-          "type": "number",
-          "description": "Preferred font size for Arabic text in pixels."
-        },
-        "translationFontSize": {
-          "type": "number",
-          "description": "Preferred font size for translation text in pixels."
-        },
-        "ayatFrameId": {
+        "textDirection": {
           "type": "string",
-          "description": "Preferred ayat frame style identifier."
+          "description": "The text direction for the language of the Hadith edition (e.g., 'ltr' for left-to-right, 'rtl' for right-to-left)."
         },
-        "createdAt": {
+        "publisher": {
           "type": "string",
-          "format": "date-time"
+          "description": "The publisher attributed to this specific Hadith edition in the external API."
         },
-        "updatedAt": {
+        "category": {
           "type": "string",
-          "format": "date-time"
+          "description": "The category or type of the Hadith collection (e.g., 'sunnah') as classified by the external API."
         }
       },
       "required": [
         "id",
-        "namazLocation"
+        "collectionName",
+        "title",
+        "language",
+        "textDirection",
+        "publisher",
+        "category"
       ]
-    },
-    "YouTubeChannel": {
-      "title": "YouTubeChannel",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "thumbnailUrl": { "type": "string", "format": "uri" },
-        "externalUrl": { "type": "string", "format": "uri" },
-        "subscribersCount": { "type": "number" },
-        "videoCount": { "type": "number" },
-        "viewCount": { "type": "number" },
-        "isActive": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "title", "thumbnailUrl", "externalUrl"]
-    },
-    "YouTubeVideo": {
-      "title": "YouTubeVideo",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "thumbnailUrl": { "type": "string", "format": "uri" },
-        "externalUrl": { "type": "string", "format": "uri" },
-        "duration": { "type": "string" },
-        "publishedAt": { "type": "string", "format": "date-time" },
-        "channelId": { "type": "string" },
-        "uploadedByUserId": { "type": "string" },
-        "speakerIds": { "type": "array", "items": { "type": "string" } },
-        "youtubeViewCount": { "type": "number" },
-        "appViewCount": { "type": "number" },
-        "likeCount": { "type": "number" },
-        "isTrending": { "type": "boolean" },
-        "isActive": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "title", "thumbnailUrl", "externalUrl", "channelId"]
-    },
-    "QuranEdition": {
-      "title": "QuranEdition",
-      "type": "object",
-      "description": "Represents an activated Quran edition (translation or original).",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "englishName": { "type": "string" },
-        "language": { "type": "string" },
-        "languageCode": { "type": "string" },
-        "type": { "type": "string" },
-        "format": { "type": "string" },
-        "isDefault": { "type": "boolean" },
-        "isActive": { "type": "boolean" },
-        "dataSync": { "type": "string", "enum": ["yes", "no"] }
-      },
-      "required": ["id", "name", "language", "languageCode"]
-    },
-    "QuranSurah": {
-      "title": "QuranSurah",
-      "type": "object",
-      "description": "Represents a single surah of the Quran for a specific edition, cached in Firestore.",
-      "properties": {
-        "id": { "type": "string", "description": "Format: {editionId}_surah_{surahNumber}" },
-        "editionId": { "type": "string" },
-        "surahNumber": { "type": "number" },
-        "name": { "type": "string" },
-        "englishName": { "type": "string" },
-        "pages": {
-          "type": "array",
-          "items": { "type": "number" },
-          "description": "List of page numbers this surah covers."
-        },
-        "ayats": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "number": { "type": "number" },
-              "text": { "type": "string" },
-              "translationText": { "type": "string" },
-              "numberInSurah": { "type": "number" },
-              "page": { "type": "number" },
-              "juz": { "type": "number" }
-            }
-          }
-        },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "editionId", "surahNumber", "name", "englishName", "ayats", "pages"]
-    },
-    "QuranMetadata": {
-      "title": "QuranMetadata",
-      "type": "object",
-      "description": "Global structural metadata about the Quran (Surahs, Juzs, Sajdas, etc.).",
-      "properties": {
-        "surahs": { "type": "object" },
-        "juzs": { "type": "object" },
-        "sajdas": { "type": "object" },
-        "rukus": { "type": "object" },
-        "pages": { "type": "object" },
-        "manazils": { "type": "object" },
-        "hizbs": { "type": "object" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "AppSettings": {
-      "title": "AppSettings",
-      "type": "object",
-      "description": "Global configuration for the application, including UI branding and navigation.",
-      "properties": {
-        "logoUrl": { "type": "string", "format": "uri" },
-        "ayatFrameId": { "type": "string" },
-        "customAyatFramePath": { "type": "string" },
-        "frameImageUrl": { "type": "string", "description": "Base64 data URI of an uploaded frame image." },
-        "savedCustomFrames": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": { "type": "string" },
-              "name": { "type": "string" },
-              "path": { "type": "string" },
-              "imageUrl": { "type": "string" }
-            }
-          }
-        },
-        "navigationVisibility": {
-          "type": "object",
-          "properties": {
-            "home": { "type": "boolean" },
-            "hadith": { "type": "boolean" },
-            "quran": { "type": "boolean" },
-            "speakers": { "type": "boolean" }
-          }
-        }
-      }
     }
   },
   "auth": {
-    "providers": ["password", "anonymous"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
-        "definition": { "entityName": "UserProfile" }
+        "path": "/hadith_editions/{hadithEditionId}",
+        "definition": {
+          "entityName": "HadithEdition",
+          "schema": {
+            "$ref": "#/backend/entities/HadithEdition"
+          },
+          "description": "Stores metadata for various Hadith collections, sourced from an external API. Documents are publicly readable for display in the app (e.g., to list available editions) and writeable only by administrators for initial population and management. The document ID corresponds to the 'id' field of the HadithEdition entity.",
+          "params": [
+            {
+              "name": "hadithEditionId",
+              "description": "The unique identifier for a Hadith edition (e.g., 'bukhari'), serving as the document ID."
+            }
+          ]
+        }
       },
       {
-        "path": "/channels/{channelId}",
-        "definition": { "entityName": "YouTubeChannel" }
-      },
-      {
-        "path": "/videos/{videoId}",
-        "definition": { "entityName": "YouTubeVideo" }
-      },
-      {
-        "path": "/quran_editions/{editionId}",
-        "definition": { "entityName": "QuranEdition" }
-      },
-      {
-        "path": "/quran/{surahId}",
-        "definition": { "entityName": "QuranSurah" }
-      },
-      {
-        "path": "/quran_metadata/{id}",
-        "definition": { "entityName": "QuranMetadata" }
-      },
-      {
-        "path": "/roles_admin/{adminId}",
-        "definition": { "entityName": "UserProfile" }
-      },
-      {
-        "path": "/settings/app_config",
-        "definition": { "entityName": "AppSettings" }
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "A collection used for Database Access Control (DBAC). The existence of a document at `/roles_admin/{userId}` signifies that the corresponding user has administrative privileges. This enables granular write access to administrative data, such as the `hadith_editions` collection, adhering to authorization independence principles.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier (UID) of the user who possesses administrative privileges."
+            }
+          ]
+        }
       }
-    ]
+    ],
+    "reasoning": "The recommended Firestore structure for managing Hadith editions adheres to core design principles, especially Authorization Independence and Structural Segregation, to ensure a secure, scalable, and debuggable system.\n\n**Authorization Independence (CRITICAL):** The `/hadith_editions/{hadithEditionId}` collection stores Hadith edition metadata, which is treated as global, public data for read operations and admin-only for write operations. Authorization for write access is completely independent of the HadithEdition document's data. Instead, it relies on a separate, dedicated collection: `/roles_admin/{userId}`. This pattern for Database Access Control (DBAC) means that security rules will check for the *existence* of a document in `/roles_admin/$(request.auth.uid)` to grant admin privileges. This completely eliminates the need for `get()` calls on parent documents or within the `hadith_editions` collection itself for authorization, thereby supporting atomic operations and greatly simplifying rule debugging.\n\n**QAPs (Rules are not Filters):** The structure explicitly supports Queryable Authorization Patterns (QAPs) through **Structural Segregation**. The `/hadith_editions` collection is designed with a homogeneous security posture: all documents within it are intended to be publicly readable and admin-manageable. This allows for simple and efficient security rules such as `allow list, get: if true;` (or `if request.auth != null;` if authenticated access is desired for reads). Because all data within this collection shares the same access requirements, the client can request a full list of Hadith editions without needing to filter on the client-side based on permissions. The Firestore rules can grant access to the entire collection for `list` operations, satisfying QAPs by ensuring that the database does not return unauthorized data, and no server-side filtering is required to enforce security on a `list` operation.\n\n**Access Modeling & Data Clarity:** The `HadithEdition` entity is a top-level collection because it's not user-owned or collaborative. The `id` field of the `HadithEdition` schema is used as the document ID, ensuring predictable and semantic paths. The admin role is clearly defined by document existence in `/roles_admin/{userId}`, providing a robust and standard approach to DBAC."
   }
 }

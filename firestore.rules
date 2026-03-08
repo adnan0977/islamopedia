@@ -1,70 +1,83 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+
+    /**
+     * Hadith Admin Panel & Public Catalog Security Rules
+     * 
+     * Core Philosophy: 
+     * This ruleset implements a Database Access Control (DBAC) model where specific administrative 
+     * privileges are decoupled from the data being managed. Public content is globally readable, 
+     * while write operations are strictly reserved for users identified as administrators.
+     * 
+     * Data Structure:
+     * - /hadith_editions/{hadithEditionId}: Publicly accessible metadata for Hadith collections.
+     * - /roles_admin/{userId}: A restricted collection where the presence of a document 
+     *   grants administrative rights to the user with the corresponding UID.
+     * 
+     * Key Security Decisions:
+     * - Structural Segregation: Administrative roles are stored in a separate collection 
+     *   (/roles_admin) to prevent data pollution and simplify authorization logic.
+     * - Authorization Independence: Writing to Hadith editions does not depend on data 
+     *   within the edition document itself, but on the user's status in the roles collection.
+     * - Relational Integrity: On creation, the rules enforce that the internal 'id' field 
+     *   matches the document ID in the path to ensure data consistency.
+     * - Immutability: Critical identifier fields are made immutable after creation.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
+
+    /** @description Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks if the user has a document in the roles_admin collection. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // Public Content: Anyone can read/list, only Admin can write
-    match /videos/{videoId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
+    /** @description Combines admin check with document existence for destructive operations. */
+    function isExistingAdmin() {
+      return isAdmin() && resource != null;
     }
 
-    match /channels/{channelId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
+    // --- Collection Rules ---
+
+    /**
+     * @description Provides read-only access to users for checking their own admin status.
+     * @path /roles_admin/{userId}
+     * @allow (get) If the user is the owner of the document (UID matches).
+     * @deny (list) Prevent discovery of all administrative users.
+     * @principle Ownership-based access for identity verification.
+     */
+    match /roles_admin/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create, update, delete: if false; // Roles are managed externally/manually.
     }
 
-    match /quran_editions/{editionId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
-    }
-
-    match /quran/{pageId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
-    }
-
-    match /quran_metadata/{id} {
-      allow read, list: if true;
-      allow write: if isAdmin();
-    }
-
-    match /speakers/{speakerId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
-    }
-
-    match /quran_surahs/{surahId} {
-      allow read, list: if true;
-      allow write: if isAdmin();
+    /**
+     * @description Manages metadata for Hadith collections. Publicly readable, admin writeable.
+     * @path /hadith_editions/{hadithEditionId}
+     * @allow (list/get) Any user (public access).
+     * @allow (create) An authenticated admin user where data 'id' matches the path.
+     * @deny (create) Non-admin users or mismatched 'id' field.
+     * @principle Public Read with Role-Based Writes (DBAC).
+     */
+    match /hadith_editions/{hadithEditionId} {
+      allow get, list: if true;
       
-      match /ayats/{ayahId} {
-        allow read, list: if true;
-      }
-    }
-
-    // App Settings: Publicly readable, only Admin can write
-    match /settings/app_config {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // User-specific data: Ownership-based rules for profile management
-    match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Roles management
-    match /roles_admin/{adminId} {
-      allow read: if isSignedIn();
-      allow write: if false; 
+      allow create: if isAdmin() && request.resource.data.id == hadithEditionId;
+      
+      allow update: if isExistingAdmin() && request.resource.data.id == resource.data.id;
+      
+      allow delete: if isExistingAdmin();
     }
   }
 }
