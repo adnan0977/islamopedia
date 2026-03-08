@@ -79,19 +79,9 @@ export function HadithManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isHadithItemDialogOpen, setIsHadithItemDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteItemConfirmId, setDeleteItemConfirmId] = useState<string | null>(null);
-
-  const [editFormData, setEditFormData] = useState({
-    id: '',
-    collectionName: '',
-    title: '',
-    language: '',
-    textDirection: 'ltr',
-    isActive: true
-  });
 
   const [hadithItemFormData, setHadithItemFormData] = useState({
     id: '',
@@ -202,7 +192,7 @@ export function HadithManager() {
         await batch.commit();
       }
 
-      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions across ${booksToSave.length} books.` });
+      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -271,7 +261,7 @@ export function HadithManager() {
               variant="outline" 
               size="icon" 
               onClick={() => setViewMode('registry')}
-              className="rounded-xl border-white text-white hover:bg-white hover:text-black transition-all h-14 w-14"
+              className="rounded-xl border-white text-white hover:bg-white hover:text-black transition-all h-12 w-12"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -280,7 +270,7 @@ export function HadithManager() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
             <Input 
               placeholder={viewMode === 'registry' ? "Search registry..." : "Search within edition..."} 
-              className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14"
+              className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-12"
               value={viewMode === 'registry' ? searchTerm : contentSearch}
               onChange={(e) => viewMode === 'registry' ? setSearchTerm(e.target.value) : setContentSearch(e.target.value)}
             />
@@ -292,14 +282,14 @@ export function HadithManager() {
             variant="outline"
             onClick={handleSyncRegistry}
             disabled={isRegistrySyncing}
-            className="rounded-full h-14 px-8 font-bold border-white text-white hover:bg-white hover:text-black transition-all active:scale-95 flex items-center gap-2 shadow-lg"
+            className="rounded-xl h-12 px-8 font-bold border-white text-white hover:bg-white hover:text-black transition-all active:scale-95 flex items-center gap-2 shadow-lg"
           >
             {isRegistrySyncing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CloudDownload className="w-5 h-5" />}
             <span>Sync External Registry</span>
           </Button>
         ) : (
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="h-14 px-6 rounded-2xl border-zinc-800 text-zinc-400 font-bold bg-zinc-900/50 flex gap-2 items-center">
+            <Badge variant="outline" className="h-12 px-6 rounded-xl border-zinc-800 text-zinc-400 font-bold bg-zinc-900/50 flex gap-2 items-center">
               <Database className="w-4 h-4" />
               {selectedEdition?.collectionName}
             </Badge>
@@ -307,7 +297,7 @@ export function HadithManager() {
         )}
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
         <div className="w-full overflow-hidden">
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
@@ -362,7 +352,6 @@ export function HadithManager() {
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" onClick={() => { setSelectedEdition(item); setViewMode('content'); }} title="Inspect Data" className="h-8 w-8 text-zinc-600 hover:text-white"><Eye className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" onClick={() => handleSyncContent(item)} disabled={isContentSyncing === item.id || !item.isActive} className="h-8 w-8 text-zinc-600 hover:text-emerald-500"><RefreshCw className={cn("w-3.5 h-3.5", isContentSyncing === item.id && "animate-spin")} /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => { setEditFormData(item); setIsEditDialogOpen(true); }} className="h-8 w-8 text-zinc-600 hover:text-white"><Pencil className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" onClick={() => updateDocumentNonBlocking(doc(db, 'hadith_editions', item.id), { isActive: !item.isActive })} className="h-8 w-8 text-zinc-600">
                             {item.isActive !== false ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}
                           </Button>
@@ -374,10 +363,10 @@ export function HadithManager() {
                     <>
                       <TableCell className="pl-8 text-[10px] font-bold text-zinc-500">{item.hadithnumber}</TableCell>
                       <TableCell className="max-w-0">
-                        <p className="text-[11px] font-arabic text-zinc-200 line-clamping-2 leading-relaxed" dir="rtl">{item.text}</p>
+                        <p className="text-[11px] font-arabic text-zinc-200 line-clamp-2 leading-relaxed" dir="rtl">{item.text}</p>
                       </TableCell>
                       <TableCell className="max-w-0">
-                        <p className="text-[10px] text-zinc-500 line-clamping-2 italic">{item.text_en || 'No translation'}</p>
+                        <p className="text-[10px] text-zinc-500 line-clamp-2 italic">{item.text_en || 'No translation'}</p>
                       </TableCell>
                       <TableCell className="text-right pr-8">
                         <div className="flex justify-end gap-1">

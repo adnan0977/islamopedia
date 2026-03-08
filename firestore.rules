@@ -8,72 +8,31 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // --- Collection Rules ---
-
-    // Admin Markers - Restricted read
-    match /roles_admin/{userId} {
-      allow get: if isOwner(userId);
-      allow list, create, update, delete: if false;
-    }
-
-    // Public Collections - Read for everyone (get and list), Write for Admin only
+    // --- Public Content (Read for everyone, Write for Admin only) ---
+    // This allows the library to be browsed without login, while securing management.
     
-    match /hadith_books/{bookId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
+    match /hadith_books/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /hadith_editions/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /hadith_data/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /videos/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /channels/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /speakers/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /quran/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /quran_editions/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /quran_metadata/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /settings/{id} { allow read: if true; allow write: if isAdmin(); }
 
-    match /hadith_editions/{hadithEditionId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /hadith_data/{contentId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /videos/{videoId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /channels/{channelId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /speakers/{speakerId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /quran/{surahId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /quran_editions/{editionId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /quran_metadata/{metaId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /settings/{settingId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+    // --- Admin Access Control ---
+    
+    match /roles_admin/{userId} {
+      // Users can only verify their own admin status
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      // Writing to roles_admin is forbidden via client SDK for safety
+      allow list, create, update, delete: if false;
     }
   }
 }

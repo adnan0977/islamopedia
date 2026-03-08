@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -108,14 +109,14 @@ export function ScholarDirectory() {
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input placeholder="Search scholars..." className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Input placeholder="Search scholars..." className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-12" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button 
               variant="outline"
-              className="rounded-full h-14 px-8 font-bold border-white text-white hover:bg-white hover:text-black shadow-lg flex items-center gap-2 transition-all active:scale-95"
+              className="rounded-xl h-12 px-8 font-bold border-white text-white hover:bg-white hover:text-black shadow-lg flex items-center gap-2 transition-all active:scale-95"
             >
               <Plus className="w-5 h-5" />
               <span>Add Scholar</span>
@@ -141,7 +142,7 @@ export function ScholarDirectory() {
               </div>
               <Button 
                 variant="outline"
-                className="w-full h-14 font-bold rounded-2xl border-white text-white hover:bg-white hover:text-black shadow-xl transition-all flex items-center justify-center gap-2 mt-4" 
+                className="w-full h-12 font-bold rounded-xl border-white text-white hover:bg-white hover:text-black shadow-xl transition-all flex items-center justify-center gap-2 mt-4" 
                 onClick={handleAddScholar}
               >
                 <UserPlus className="w-5 h-5" />

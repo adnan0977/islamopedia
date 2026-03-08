@@ -142,14 +142,14 @@ export function VideoCatalog() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
             placeholder="Search library..." 
-            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14"
+            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-12"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <Button 
           variant="outline"
-          className="rounded-full h-14 px-8 font-bold border-white text-white hover:bg-white hover:text-black transition-all shadow-lg flex items-center gap-2"
+          className="rounded-xl h-12 px-8 font-bold border-white text-white hover:bg-white hover:text-black transition-all shadow-lg flex items-center gap-2"
           onClick={() => {
             setVideoFormData({ id: '', title: '', description: '', thumbnailUrl: '', channelId: '', publishedAt: new Date().toISOString(), isTrending: false, isActive: true });
             setIsVideoDialogOpen(true);
@@ -160,7 +160,7 @@ export function VideoCatalog() {
         </Button>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
         <Table className="w-full table-fixed">
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900">
