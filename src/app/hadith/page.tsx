@@ -15,11 +15,12 @@ import {
   FilterX,
   Languages,
   ArrowRight,
-  Library
+  Library,
+  BookOpen
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 export default function HadithPage() {
   const db = useFirestore();
@@ -41,7 +42,7 @@ export default function HadithPage() {
     return query(
       collection(db, 'hadith_editions'),
       where('bookId', '==', selectedBookId),
-      where('isActive', '==', true),
+      where('isActive', '!=', false),
       orderBy('collectionName', 'asc')
     );
   }, [db, selectedBookId]);
@@ -76,14 +77,6 @@ export default function HadithPage() {
     );
   }, [books, searchTerm]);
 
-  const filteredHadiths = useMemo(() => {
-    if (!hadiths) return [];
-    return hadiths.filter(h => 
-      h.text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      h.text_en?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [hadiths, searchTerm]);
-
   if (isLoadingBooks) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -92,6 +85,8 @@ export default function HadithPage() {
       </div>
     );
   }
+
+  const showEmptyState = !selectedEditionId && !selectedBookId && filteredBooks.length === 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10 pb-32">
@@ -135,32 +130,49 @@ export default function HadithPage() {
       </div>
 
       {/* Search */}
-      <div className="flex flex-col md:flex-row gap-4 bg-zinc-950/50 p-6 rounded-3xl border border-zinc-900 shadow-xl">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
-            placeholder={selectedEditionId ? "Search within collection..." : "Search for Sahih Bukhari, Muslim..."}
-            className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14 text-white"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {!showEmptyState && (
+        <div className="flex flex-col md:flex-row gap-4 bg-zinc-950/50 p-6 rounded-3xl border border-zinc-900 shadow-xl">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+            <Input 
+              placeholder={selectedEditionId ? "Search within collection..." : "Search for Sahih Bukhari, Muslim..."}
+              className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14 text-white"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {searchTerm && (
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => setSearchTerm('')} 
+              className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-zinc-500"
+            >
+              <FilterX className="w-5 h-5" />
+            </Button>
+          )}
         </div>
-        {searchTerm && (
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => setSearchTerm('')} 
-            className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-zinc-500"
-          >
-            <FilterX className="w-5 h-5" />
-          </Button>
-        )}
-      </div>
+      )}
 
       {/* Discovery View (Books -> Editions) */}
       {!selectedEditionId ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {!selectedBookId ? (
+          {showEmptyState ? (
+            <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[2.5rem] border-2 border-dashed border-zinc-900 space-y-6">
+               <BookOpen className="w-16 h-16 text-zinc-800 mx-auto" />
+               <div className="space-y-2">
+                 <h2 className="text-xl font-bold text-zinc-400">Your Library is Empty</h2>
+                 <p className="text-zinc-600 max-w-xs mx-auto text-sm leading-relaxed">
+                   Please log in to the Admin Panel and synchronize the external Hadith registry to populate this page.
+                 </p>
+               </div>
+               <Link href="/login">
+                 <Button variant="outline" className="rounded-xl border-zinc-800 text-zinc-500 hover:text-white font-bold h-11 px-8">
+                   Go to Login
+                 </Button>
+               </Link>
+            </div>
+          ) : !selectedBookId ? (
             // Show Books
             filteredBooks.map((book) => (
               <Card 
@@ -246,7 +258,7 @@ export default function HadithPage() {
               <Loader2 className="w-10 h-10 animate-spin text-zinc-800 mx-auto mb-4" />
               <p className="text-zinc-600 font-medium">Preparing scrolls...</p>
             </div>
-          ) : filteredHadiths.map((hadith, idx) => (
+          ) : hadiths && hadiths.length > 0 ? hadiths.map((hadith, idx) => (
             <Card key={hadith.id || idx} className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
               <div className="p-8 border-b border-zinc-900 bg-zinc-900/20 flex items-center justify-between">
                 <div className="space-y-1">
@@ -268,7 +280,11 @@ export default function HadithPage() {
                 )}
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <div className="py-32 text-center bg-zinc-950/30 rounded-[2.5rem] border-2 border-dashed border-zinc-900">
+               <p className="text-zinc-600 font-medium">No content found for this edition.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

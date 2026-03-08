@@ -167,7 +167,7 @@ export function HadithManager() {
 
       Object.entries(editionsData).forEach(([bookId, bookData]: [string, any]) => {
         if (Array.isArray(bookData.collection)) {
-          // Save book metadata
+          // Save book metadata for the registry
           uniqueBooks.set(bookId, {
             id: bookId,
             name: bookData.name,
@@ -194,7 +194,7 @@ export function HadithManager() {
         }
       });
 
-      // Commit books to hadith_books
+      // Commit books to hadith_books explicitly
       uniqueBooks.forEach((bookData, bookId) => {
         const bookRef = doc(db, 'hadith_books', bookId);
         batch.set(bookRef, {
