@@ -1,146 +1,231 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Quote, 
   Search, 
   Loader2, 
-  ChevronRight, 
-  ChevronLeft, 
-  RefreshCw,
+  ArrowLeft, 
   BookMarked,
-  FilterX
+  FilterX,
+  BookOpen,
+  ChevronRight,
+  Languages
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-
-// Simplified Hadith mock data for MVP
-const MOCK_HADITHS = [
-  {
-    id: 1,
-    book: "Sahih Bukhari",
-    chapter: "Revelation",
-    text: "Actions are but by intentions and every man shall have only that which he intended.",
-    arabic: "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى",
-    reference: "Book 1, Hadith 1"
-  },
-  {
-    id: 2,
-    book: "Sahih Muslim",
-    chapter: "Faith",
-    text: "None of you truly believes until he loves for his brother what he loves for himself.",
-    arabic: "لاَ يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ",
-    reference: "Book 1, Hadith 72"
-  },
-  {
-    id: 3,
-    book: "40 Hadith Nawawi",
-    chapter: "General",
-    text: "The best of you are those who learn the Quran and teach it.",
-    arabic: "خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ",
-    reference: "Hadith 3"
-  }
-];
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function HadithPage() {
+  const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBook, setSelected_Book] = useState('all');
-  const [loading, setLoading] = useState(false);
-  const [hadiths, setHadiths] = useState(MOCK_HADITHS);
+  const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // In a real app, we'd fetch from an API like sunnah.com or similar
-    const filtered = MOCK_HADITHS.filter(h => {
-      const matchesSearch = h.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           h.arabic.includes(searchTerm);
-      const matchesBook = selectedBook === 'all' || h.book === selectedBook;
-      return matchesSearch && matchesBook;
-    });
-    setHadiths(filtered);
-  }, [searchTerm, selectedBook]);
+  // 1. Fetch available editions
+  const editionsQuery = useMemoFirebase(() => query(
+    collection(db, 'hadith_editions'),
+    where('isActive', '==', true),
+    orderBy('collectionName', 'asc')
+  ), [db]);
+  const { data: editions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
+
+  // 2. Fetch content for selected edition
+  const contentQuery = useMemoFirebase(() => {
+    if (!selectedEditionId) return null;
+    return query(
+      collection(db, 'hadith_data'),
+      where('editionId', '==', selectedEditionId),
+      orderBy('hadithnumber', 'asc'),
+      limit(100) // Limit initial view for performance
+    );
+  }, [db, selectedEditionId]);
+  const { data: hadiths, isLoading: isLoadingContent } = useCollection(contentQuery);
+
+  const selectedEdition = useMemo(() => 
+    editions?.find(e => e.id === selectedEditionId), 
+    [editions, selectedEditionId]
+  );
+
+  const filteredEditions = useMemo(() => {
+    if (!editions) return [];
+    return editions.filter(e => 
+      e.collectionName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.language?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [editions, searchTerm]);
+
+  const filteredHadiths = useMemo(() => {
+    if (!hadiths) return [];
+    return hadiths.filter(h => 
+      h.text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      h.text_en?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [hadiths, searchTerm]);
+
+  // Handle Loading
+  if (isLoadingEditions) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
+        <p className="text-zinc-500 font-medium">Opening Library...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10 pb-32">
+      {/* Header & Navigation */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800">
-              <Quote className="w-5 h-5 text-zinc-500 fill-zinc-500" />
-            </div>
-            <h1 className="text-3xl font-headline font-bold text-zinc-100">Hadith Library</h1>
+            {selectedEditionId ? (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => { setSelectedEditionId(null); setSearchTerm(''); }}
+                className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            ) : (
+              <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800">
+                <Quote className="w-5 h-5 text-zinc-500 fill-zinc-500" />
+              </div>
+            )}
+            <h1 className="text-3xl font-headline font-bold text-zinc-100">
+              {selectedEdition ? selectedEdition.collectionName : 'Hadith Library'}
+            </h1>
           </div>
-          <p className="text-zinc-500 text-sm">Sacred traditions and sayings of the Prophet Muhammad (PBUH).</p>
+          <p className="text-zinc-500 text-sm">
+            {selectedEdition 
+              ? `${selectedEdition.title} (${selectedEdition.language})` 
+              : 'Sacred traditions and sayings of the Prophet Muhammad (PBUH).'}
+          </p>
         </div>
       </div>
 
+      {/* Search Bar */}
       <div className="flex flex-col md:flex-row gap-4 bg-zinc-950/50 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder="Search hadith text, keywords, or Arabic..." 
+            placeholder={selectedEditionId ? "Search within this collection..." : "Search collections, languages, or authors..."}
             className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14 text-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Select value={selectedBook} onValueChange={setSelected_Book}>
-          <SelectTrigger className="bg-zinc-900 border-zinc-800 h-14 rounded-2xl text-white w-full md:w-64">
-            <div className="flex items-center gap-2">
-              <BookMarked className="w-4 h-4 text-zinc-600" />
-              <SelectValue placeholder="All Books" />
-            </div>
-          </SelectTrigger>
-          <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-            <SelectItem value="all">All Sources</SelectItem>
-            <SelectItem value="Sahih Bukhari">Sahih Bukhari</SelectItem>
-            <SelectItem value="Sahih Muslim">Sahih Muslim</SelectItem>
-            <SelectItem value="40 Hadith Nawawi">40 Hadith Nawawi</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="icon" onClick={() => {setSearchTerm(''); setSelected_Book('all');}} className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950">
-          <FilterX className="w-5 h-5" />
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        {hadiths.map((hadith) => (
-          <Card key={hadith.id} className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl hover:border-zinc-700 transition-all group">
-            <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20 flex flex-row items-center justify-between">
-              <div className="space-y-1">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-500">{hadith.book}</CardTitle>
-                <CardDescription className="text-xs text-zinc-600 font-bold">{hadith.chapter}</CardDescription>
-              </div>
-              <span className="text-[10px] font-mono text-zinc-700 uppercase bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">{hadith.reference}</span>
-            </CardHeader>
-            <CardContent className="p-8 space-y-8">
-              <p className="text-right text-3xl font-arabic leading-relaxed text-zinc-100" dir="rtl">
-                {hadith.arabic}
-              </p>
-              <div className="border-l-4 border-zinc-800 pl-6 py-2">
-                <p className="text-lg text-zinc-400 font-medium leading-relaxed italic">
-                  "{hadith.text}"
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {hadiths.length === 0 && (
-          <div className="py-32 text-center bg-zinc-950/30 rounded-[3rem] border-2 border-dashed border-zinc-900">
-            <Quote className="w-16 h-16 text-zinc-900 mx-auto mb-6 opacity-20" />
-            <p className="text-zinc-600 font-medium text-lg">No hadiths found matching your search.</p>
-            <Button variant="link" onClick={() => {setSearchTerm(''); setSelected_Book('all');}} className="text-zinc-400 mt-2">Clear all filters</Button>
-          </div>
+        {searchTerm && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => setSearchTerm('')} 
+            className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-zinc-500"
+          >
+            <FilterX className="w-5 h-5" />
+          </Button>
         )}
       </div>
+
+      {/* Main Grid View */}
+      {!selectedEditionId ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredEditions.map((edition) => (
+            <Card 
+              key={edition.id} 
+              onClick={() => setSelectedEditionId(edition.id)}
+              className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group cursor-pointer shadow-xl flex flex-col"
+            >
+              <div className="p-8 space-y-6 flex-1">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 group-hover:border-zinc-600 transition-colors">
+                    <BookMarked className="w-6 h-6 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                  </div>
+                  <Badge variant="outline" className="border-zinc-800 text-[10px] uppercase font-black tracking-widest text-zinc-500 group-hover:text-zinc-300">
+                    {edition.language}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-zinc-100 group-hover:text-white transition-colors leading-tight">
+                    {edition.collectionName}
+                  </h3>
+                  <p className="text-xs text-zinc-600 font-medium line-clamp-2 uppercase tracking-tight">
+                    {edition.title}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="px-8 py-6 bg-zinc-900/30 border-t border-zinc-900 flex items-center justify-between group-hover:bg-zinc-900/50 transition-colors">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 flex items-center gap-2">
+                  <Languages className="w-3 h-3" />
+                  {edition.textDirection}
+                </span>
+                <ChevronRight className="w-4 h-4 text-zinc-800 group-hover:translate-x-1 group-hover:text-zinc-400 transition-all" />
+              </div>
+            </Card>
+          ))}
+
+          {filteredEditions.length === 0 && (
+            <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[3rem] border-2 border-dashed border-zinc-900">
+              <BookOpen className="w-16 h-16 text-zinc-900 mx-auto mb-6" />
+              <p className="text-zinc-600 font-medium text-lg">No collections found matching your search.</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Reader View */
+        <div className="grid grid-cols-1 gap-8">
+          {isLoadingContent ? (
+            <div className="py-32 text-center">
+              <Loader2 className="w-10 h-10 animate-spin text-zinc-800 mx-auto mb-4" />
+              <p className="text-zinc-600 font-medium">Unrolling scrolls...</p>
+            </div>
+          ) : filteredHadiths.map((hadith, idx) => (
+            <Card key={hadith.id || idx} className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+              <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20 flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Hadith Number</span>
+                  <p className="text-sm font-bold text-zinc-400">{hadith.hadithnumber || idx + 1}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                   <Badge variant="outline" className="border-zinc-800 text-[10px] text-zinc-600 uppercase font-black">{selectedEdition?.language}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 md:p-12 space-y-10">
+                <p 
+                  className="text-right text-3xl md:text-4xl font-arabic leading-[2.2] text-zinc-100" 
+                  dir="rtl"
+                >
+                  {hadith.text}
+                </p>
+                
+                {hadith.text_en && (
+                  <div className="border-l-4 border-zinc-800 pl-8 py-4">
+                    <p className="text-lg md:text-xl text-zinc-400 font-medium leading-relaxed italic">
+                      "{hadith.text_en}"
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+
+          {hadiths?.length === 0 && !isLoadingContent && (
+            <div className="py-32 text-center bg-zinc-950/30 rounded-[3rem] border-2 border-dashed border-zinc-900">
+              <AlertCircle className="w-16 h-16 text-zinc-900 mx-auto mb-6" />
+              <p className="text-zinc-600 font-medium text-lg">This collection has not been synchronized yet.</p>
+              <p className="text-zinc-700 text-sm mt-2">Check back later or contact an administrator.</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
