@@ -86,7 +86,7 @@ export default function HadithPage() {
     );
   }
 
-  const showEmptyState = !selectedEditionId && !selectedBookId && filteredBooks.length === 0;
+  const showEmptyState = !isLoadingBooks && !selectedEditionId && !selectedBookId && filteredBooks.length === 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10 pb-32">

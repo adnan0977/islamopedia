@@ -69,19 +69,16 @@ export function HadithManager() {
   const db = useFirestore();
   const { toast } = useToast();
   
-  // State Management
   const [viewMode, setViewMode] = useState<HadithViewMode>('registry');
   const [selectedEdition, setSelectedEdition] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [contentSearch, setContentSearch] = useState('');
   
-  // Operation States
   const [isRegistrySyncing, setIsRegistrySyncing] = useState(false);
   const [isContentSyncing, setIsContentSyncing] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // Dialog States
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isHadithItemDialogOpen, setIsHadithItemDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -103,7 +100,6 @@ export function HadithManager() {
     text_en: ''
   });
 
-  // 1. Registry Query
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_editions'),
     orderBy('collectionName', 'asc'),
@@ -111,7 +107,6 @@ export function HadithManager() {
   ), [db]);
   const { data: savedEditions, isLoading: isRegistryLoading } = useCollection(editionsQuery);
 
-  // 2. Content Query (Deep Inspector)
   const contentQuery = useMemoFirebase(() => {
     if (viewMode !== 'content' || !selectedEdition) return null;
     return query(
@@ -123,7 +118,6 @@ export function HadithManager() {
   }, [db, viewMode, selectedEdition]);
   const { data: hadithItems, isLoading: isContentLoading } = useCollection(contentQuery);
 
-  // Filtering & Pagination Logic
   const filteredEditions = useMemo(() => {
     if (!savedEditions) return [];
     return savedEditions.filter(e => 
@@ -154,30 +148,25 @@ export function HadithManager() {
     setCurrentPage(1);
   }, [searchTerm, contentSearch, viewMode]);
 
-  // Registry Operations
   const handleSyncRegistry = async () => {
     setIsRegistrySyncing(true);
     try {
       const editionsData = await getAllHadithEditions();
-      const batch = writeBatch(db);
-      let count = 0;
-      
-      // Keep track of unique books to update hadith_books
-      const uniqueBooks = new Map();
+      const booksToSave: any[] = [];
+      const editionsToSave: any[] = [];
 
       Object.entries(editionsData).forEach(([bookId, bookData]: [string, any]) => {
         if (Array.isArray(bookData.collection)) {
-          // Save book metadata for the registry
-          uniqueBooks.set(bookId, {
+          booksToSave.push({
             id: bookId,
             name: bookData.name,
-            editionCount: bookData.collection.length
+            editionCount: bookData.collection.length,
+            updatedAt: new Date().toISOString()
           });
 
           bookData.collection.forEach((item: any) => {
             const docId = `${bookId}-${item.language}`.toLowerCase().replace(/\s+/g, '-');
-            const editionRef = doc(db, 'hadith_editions', docId);
-            batch.set(editionRef, {
+            editionsToSave.push({
               id: docId,
               bookId: bookId,
               collectionName: bookData.name,
@@ -188,23 +177,32 @@ export function HadithManager() {
               sourceLinkMin: item.linkmin,
               isActive: true,
               updatedAt: new Date().toISOString()
-            }, { merge: true });
-            count++;
+            });
           });
         }
       });
 
-      // Commit books to hadith_books explicitly
-      uniqueBooks.forEach((bookData, bookId) => {
-        const bookRef = doc(db, 'hadith_books', bookId);
-        batch.set(bookRef, {
-          ...bookData,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      });
+      // Chunked Write for Books (Usually small, but for safety)
+      for (let i = 0; i < booksToSave.length; i += 100) {
+        const batch = writeBatch(db);
+        const chunk = booksToSave.slice(i, i + 100);
+        chunk.forEach(book => {
+          batch.set(doc(db, 'hadith_books', book.id), book, { merge: true });
+        });
+        await batch.commit();
+      }
 
-      await batch.commit();
-      toast({ title: "Registry Synced", description: `Indexed ${count} editions across ${uniqueBooks.size} books.` });
+      // Chunked Write for Editions (Can be 1000+)
+      for (let i = 0; i < editionsToSave.length; i += 100) {
+        const batch = writeBatch(db);
+        const chunk = editionsToSave.slice(i, i + 100);
+        chunk.forEach(edition => {
+          batch.set(doc(db, 'hadith_editions', edition.id), edition, { merge: true });
+        });
+        await batch.commit();
+      }
+
+      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions across ${booksToSave.length} books.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -220,13 +218,18 @@ export function HadithManager() {
     try {
       const res = await fetch(syncUrl);
       const data = await res.json();
-      const batch = writeBatch(db);
-      const items = data.hadiths.slice(0, 500); 
-      items.forEach((h: any) => {
-        const ref = doc(db, 'hadith_data', `${edition.id}_h_${h.hadithnumber}`);
-        batch.set(ref, { ...h, editionId: edition.id, updatedAt: new Date().toISOString() }, { merge: true });
-      });
-      await batch.commit();
+      const items = data.hadiths.slice(0, 1000); // Increased limit but using chunked sync
+      
+      for (let i = 0; i < items.length; i += 100) {
+        const batch = writeBatch(db);
+        const chunk = items.slice(i, i + 100);
+        chunk.forEach((h: any) => {
+          const ref = doc(db, 'hadith_data', `${edition.id}_h_${h.hadithnumber}`);
+          batch.set(ref, { ...h, editionId: edition.id, updatedAt: new Date().toISOString() }, { merge: true });
+        });
+        await batch.commit();
+      }
+
       updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { 
         lastSyncedAt: new Date().toISOString(),
         hadithCount: data.hadiths.length 
@@ -239,7 +242,6 @@ export function HadithManager() {
     }
   };
 
-  // Item Operations
   const handleOpenEditHadith = (hadith: any) => {
     setHadithItemFormData({
       id: hadith.id,
@@ -262,7 +264,6 @@ export function HadithManager() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden">
-      {/* Dynamic Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="flex items-center gap-4 w-full md:w-auto">
           {viewMode === 'content' && (
@@ -306,7 +307,6 @@ export function HadithManager() {
         )}
       </div>
 
-      {/* Main Table Container */}
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl">
         <div className="w-full overflow-hidden">
           <Table className="w-full table-fixed">
@@ -418,7 +418,6 @@ export function HadithManager() {
         )}
       </Card>
 
-      {/* Item Editor Dialog */}
       <Dialog open={isHadithItemDialogOpen} onOpenChange={setIsHadithItemDialogOpen}>
         <DialogContent className="sm:max-w-lg bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none overflow-hidden shadow-2xl">
           <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
@@ -447,7 +446,6 @@ export function HadithManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Deletion Confirmations */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(o) => !o && setDeleteConfirmId(null)}>
         <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10 max-w-md">
           <AlertDialogHeader><AlertDialogTitle className="text-xl font-bold">Remove Registry?</AlertDialogTitle><AlertDialogDescription className="text-zinc-500">This removes the edition from the platform registry.</AlertDialogDescription></AlertDialogHeader>
