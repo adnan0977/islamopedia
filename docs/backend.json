@@ -9,7 +9,10 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the HadithEdition (e.g., 'bukhari')."
+          "description": "Unique identifier for the HadithEdition (e.g., 'bukhari-english')."
+        },
+        "bookId": {
+          "type": "string"
         },
         "collectionName": {
           "type": "string",
@@ -21,19 +24,24 @@
         },
         "language": {
           "type": "string",
-          "description": "The ISO 639-1 language code."
+          "description": "The ISO 639-1 language code or name."
         },
         "textDirection": {
           "type": "string",
           "description": "The text direction (ltr/rtl)."
         },
-        "publisher": {
-          "type": "string",
-          "description": "The publisher attributed to this edition."
+        "sourceLink": {
+          "type": "string"
         },
-        "category": {
+        "sourceLinkMin": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "lastSyncedAt": {
           "type": "string",
-          "description": "The category (e.g., 'sunnah')."
+          "format": "date-time"
         }
       },
       "required": [
@@ -78,6 +86,10 @@
     "/hadith_editions/{hadithEditionId}": {
       "schema": "HadithEdition",
       "description": "Metadata for Hadith collections."
+    },
+    "/hadith_data/{contentId}": {
+      "schema": "object",
+      "description": "Actual Hadith text and data stored per edition."
     },
     "/videos/{videoId}": {
       "schema": "Video",

@@ -28,6 +28,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /hadith_data/{contentId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
     match /videos/{videoId} {
       allow get, list: if true;
       allow write: if isAdmin();
