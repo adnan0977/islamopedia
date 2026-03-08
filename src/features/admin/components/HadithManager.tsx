@@ -1,6 +1,5 @@
-'use client';
 
-"use client";
+'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -25,13 +24,12 @@ import { Input } from '@/components/ui/input';
 import { 
   Quote, 
   Search, 
-  RefreshCw, 
   Loader2, 
   CloudDownload,
   FilterX,
   ChevronLeft,
   ChevronRight,
-  Database
+  ExternalLink
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getAllHadithEditions } from '@/lib/api';
@@ -47,8 +45,8 @@ export function HadithManager() {
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_editions'),
-    orderBy('title', 'asc'),
-    limit(500)
+    orderBy('collectionName', 'asc'),
+    limit(1000)
   ), [db]);
   const { data: savedEditions, isLoading } = useCollection(editionsQuery);
 
@@ -57,6 +55,7 @@ export function HadithManager() {
     return savedEditions.filter(e => 
       e.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       e.collectionName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.language?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       e.id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [savedEditions, searchTerm]);
@@ -78,23 +77,36 @@ export function HadithManager() {
       const editionsData = await getAllHadithEditions();
       const batch = writeBatch(db);
       
-      // The API returns a map of editions
-      Object.entries(editionsData).forEach(([key, value]: [string, any]) => {
-        const editionRef = doc(db, 'hadith_editions', key);
-        batch.set(editionRef, {
-          id: key,
-          collectionName: value.name,
-          title: value.title,
-          language: value.language,
-          textDirection: value.direction,
-          publisher: value.publisher || 'Unknown',
-          category: value.category || 'N/A',
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
+      let count = 0;
+      // The API returns an object where keys are book IDs (e.g. "bukhari")
+      // and values have "name" and "collection" (array of language editions)
+      Object.entries(editionsData).forEach(([bookId, bookData]: [string, any]) => {
+        const commonName = bookData.name;
+        
+        if (Array.isArray(bookData.collection)) {
+          bookData.collection.forEach((item: any) => {
+            // Generate a unique ID for this specific language edition
+            const docId = `${bookId}-${item.language}`.toLowerCase().replace(/\s+/g, '-');
+            const editionRef = doc(db, 'hadith_editions', docId);
+            
+            batch.set(editionRef, {
+              id: docId,
+              bookId: bookId,
+              collectionName: commonName,
+              title: item.name,
+              language: item.language,
+              textDirection: item.direction,
+              sourceLink: item.link,
+              sourceLinkMin: item.linkmin,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+            count++;
+          });
+        }
       });
 
       await batch.commit();
-      toast({ title: "Registry Synced", description: "Successfully updated Hadith editions from source." });
+      toast({ title: "Registry Synced", description: `Successfully indexed ${count} language editions.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -108,7 +120,7 @@ export function HadithManager() {
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder="Search editions..." 
+            placeholder="Search books or languages..." 
             className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -130,23 +142,22 @@ export function HadithManager() {
         <div className="w-full overflow-hidden">
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
-              <TableRow className="border-zinc-900">
-                <TableHead className="text-[9px] font-black uppercase tracking-widest py-6 text-zinc-600 pl-8 w-[30%]">Edition Title</TableHead>
+              <TableRow className="border-zinc-900 hover:bg-transparent">
+                <TableHead className="text-[9px] font-black uppercase tracking-widest py-6 text-zinc-600 pl-8 w-[30%]">Hadith Book</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center w-[20%]">Language</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center w-[20%]">Direction</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center w-[15%]">Category</TableHead>
-                <TableHead className="text-right text-[9px] font-black uppercase tracking-widest text-zinc-600 pr-8 w-[15%]">ID</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center w-[15%]">Dir</TableHead>
+                <TableHead className="text-right text-[9px] font-black uppercase tracking-widest text-zinc-600 pr-8 w-[35%]">Edition ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow>
               ) : paginatedEditions.map((edition) => (
                 <TableRow key={edition.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
                   <TableCell className="pl-8 max-w-0">
                     <div className="flex flex-col min-w-0">
-                      <span className="font-bold text-zinc-100 truncate text-[11px] leading-tight block" title={edition.title}>{edition.title}</span>
-                      <span className="text-[8px] text-zinc-600 truncate uppercase mt-0.5 block">{edition.collectionName}</span>
+                      <span className="font-bold text-zinc-100 truncate text-[11px] leading-tight block" title={edition.collectionName}>{edition.collectionName}</span>
+                      <span className="text-[8px] text-zinc-600 truncate uppercase mt-0.5 block">{edition.title}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
@@ -155,17 +166,21 @@ export function HadithManager() {
                   <TableCell className="text-center">
                     <span className="text-[9px] font-black text-zinc-600 uppercase bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">{edition.textDirection}</span>
                   </TableCell>
-                  <TableCell className="text-center">
-                    <span className="text-[10px] font-bold text-zinc-500 capitalize">{edition.category}</span>
-                  </TableCell>
                   <TableCell className="text-right pr-8">
-                    <code className="text-[9px] font-mono text-zinc-700 bg-zinc-900/50 px-2 py-1 rounded">{edition.id}</code>
+                    <div className="flex flex-col items-end gap-1">
+                      <code className="text-[9px] font-mono text-zinc-700 bg-zinc-900/50 px-2 py-1 rounded">{edition.id}</code>
+                      {edition.sourceLink && (
+                        <a href={edition.sourceLink} target="_blank" rel="noopener noreferrer" className="text-[8px] text-zinc-500 hover:text-white flex items-center gap-1 font-bold uppercase tracking-widest">
+                          JSON Source <ExternalLink className="w-2 h-2" />
+                        </a>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
               {!isLoading && paginatedEditions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-64 text-center">
+                  <TableCell colSpan={4} className="h-64 text-center">
                     <div className="flex flex-col items-center justify-center space-y-4">
                        <Quote className="w-12 h-12 text-zinc-900" />
                        <p className="text-zinc-600 font-medium">No editions indexed. Use the sync button to populate.</p>
@@ -189,7 +204,7 @@ export function HadithManager() {
                 size="sm" 
                 disabled={currentPage === 1} 
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
-                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white"
+                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white hover:bg-white hover:text-black transition-all"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" /> Previous
               </Button>
@@ -198,7 +213,7 @@ export function HadithManager() {
                 size="sm" 
                 disabled={currentPage === totalPages} 
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
-                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white"
+                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white hover:bg-white hover:text-black transition-all"
               >
                 Next <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
