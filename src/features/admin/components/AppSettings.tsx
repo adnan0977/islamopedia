@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,7 +50,7 @@ export function AppSettings() {
     savedCustomFrames: [] as any[],
     navigationVisibility: {
       home: true,
-      upload: true,
+      hadith: true,
       quran: true,
       speakers: true
     }
@@ -69,7 +68,7 @@ export function AppSettings() {
         savedCustomFrames: settings.savedCustomFrames || [],
         navigationVisibility: {
           home: settings.navigationVisibility?.home ?? true,
-          upload: settings.navigationVisibility?.upload ?? true,
+          hadith: settings.navigationVisibility?.hadith ?? true,
           quran: settings.navigationVisibility?.quran ?? true,
           speakers: settings.navigationVisibility?.speakers ?? true
         }
@@ -475,7 +474,7 @@ export function AppSettings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 { id: 'home', label: 'Home Page' },
-                { id: 'upload', label: 'Upload Studio' },
+                { id: 'hadith', label: 'Hadith Reader' },
                 { id: 'quran', label: 'Quran Reader' },
                 { id: 'speakers', label: 'Speaker Directory' }
               ].map((item) => (

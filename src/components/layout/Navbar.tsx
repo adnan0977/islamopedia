@@ -1,9 +1,8 @@
-
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, PlusSquare, BookOpen, User, Play, ShieldCheck, Mic2, ChevronDown } from 'lucide-react';
+import { Home, BookOpen, User, Play, ShieldCheck, Mic2, ChevronDown, Quote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -17,7 +16,7 @@ import {
 
 const baseNavItems = [
   { id: 'home', label: 'Home', icon: Home, href: '/' },
-  { id: 'upload', label: 'Upload', icon: PlusSquare, href: '/upload', adminOnly: true },
+  { id: 'hadith', label: 'Hadith', icon: Quote, href: '/hadith' },
   { id: 'quran', label: 'Quran', icon: BookOpen, href: '/quran' },
   { id: 'speakers', label: 'Speakers', icon: Mic2, href: '/speakers' },
 ];
@@ -41,9 +40,6 @@ export function Navbar() {
   const { data: settings } = useDoc(settingsRef);
 
   const filteredNavItems = baseNavItems.filter(item => {
-    // Basic filter for admin-only pages
-    if (item.adminOnly && !isAdmin) return false;
-
     // Filter based on dynamic visibility settings from Firestore
     if (settings?.navigationVisibility) {
       const isVisible = settings.navigationVisibility[item.id as keyof typeof settings.navigationVisibility];
@@ -81,36 +77,6 @@ export function Navbar() {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               
-              const itemWithChildren = (item as any).children;
-
-              if (itemWithChildren) {
-                return (
-                  <DropdownMenu key={item.id}>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className={cn(
-                          "flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold transition-all relative group/item outline-none",
-                          isActive 
-                            ? "bg-white/5 text-zinc-100 border border-white/10" 
-                            : "text-zinc-600 hover:bg-zinc-900/50 hover:text-zinc-400"
-                        )}
-                      >
-                        <Icon className={cn("w-4 h-4", isActive && "stroke-[2px]")} />
-                        <span>{item.label}</span>
-                        <ChevronDown className="w-3 h-3 ml-1 opacity-50" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-zinc-950 border-zinc-900 text-zinc-100 min-w-[220px] rounded-xl mt-2 p-2 shadow-2xl">
-                      {itemWithChildren.map((child: any) => (
-                        <DropdownMenuItem key={child.href} asChild className="focus:bg-zinc-900 focus:text-white cursor-pointer py-3 px-4 rounded-lg">
-                          <Link href={child.href}>{child.label}</Link>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                );
-              }
-
               return (
                 <Link
                   key={item.href}

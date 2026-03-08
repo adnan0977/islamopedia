@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -195,7 +194,7 @@
           "type": "object",
           "properties": {
             "home": { "type": "boolean" },
-            "upload": { "type": "boolean" },
+            "hadith": { "type": "boolean" },
             "quran": { "type": "boolean" },
             "speakers": { "type": "boolean" }
           }

@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Loader2, ChevronRight, Users, TrendingUp, MapPin, Smartphone, Heart } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Play, Loader2, ChevronRight, Users, TrendingUp, MapPin, Smartphone, Heart, Quote } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
@@ -84,6 +83,35 @@ export default function Home() {
       </section>
 
       <div className="space-y-24">
+        {/* Hadith of the Day */}
+        <section className="space-y-8">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-2xl font-headline font-bold flex items-center gap-3 text-zinc-100">
+              <Quote className="w-6 h-6 text-zinc-500 fill-zinc-500" />
+              Hadith of the Day
+            </h2>
+            <Link href="/hadith" className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-zinc-100 flex items-center gap-2 transition-all">
+              View All <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative p-1">
+            <div className="bg-zinc-900/20 p-10 md:p-16 text-center space-y-10 rounded-[2.2rem]">
+               <p className="text-2xl md:text-4xl font-arabic leading-loose text-zinc-100" dir="rtl">
+                 "خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ"
+               </p>
+               <div className="max-w-3xl mx-auto space-y-4">
+                 <p className="text-lg md:text-xl text-zinc-400 font-medium italic leading-relaxed">
+                   "The best of you are those who learn the Quran and teach it."
+                 </p>
+                 <div className="flex flex-col items-center gap-1">
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Sahih Bukhari</span>
+                   <div className="w-12 h-0.5 bg-zinc-800 rounded-full" />
+                 </div>
+               </div>
+            </div>
+          </Card>
+        </section>
+
         {/* Trending Now Slider */}
         <section className="space-y-8 relative">
           <div className="flex items-center justify-between px-2">
