@@ -33,6 +33,21 @@
       },
       "required": ["id", "title", "language"]
     },
+    "HadithContent": {
+      "title": "HadithContent",
+      "type": "object",
+      "description": "Individual Hadith text record.",
+      "properties": {
+        "id": { "type": "string" },
+        "bookId": { "type": "string" },
+        "editionId": { "type": "string" },
+        "hadithnumber": { "type": "number" },
+        "text": { "type": "string" },
+        "text_en": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookId", "editionId", "text"]
+    },
     "Video": {
       "title": "Video",
       "type": "object",
@@ -65,7 +80,7 @@
       "description": "Registry of available Hadith books and language editions."
     },
     "/hadith_data/{contentId}": {
-      "schema": "object",
+      "schema": "HadithContent",
       "description": "The actual text and translations of specific Hadiths."
     },
     "/videos/{videoId}": {

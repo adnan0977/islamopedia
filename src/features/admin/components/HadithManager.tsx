@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc, writeBatch, where } from 'firebase/firestore';
 import { 
   Card, 
@@ -85,6 +85,8 @@ export function HadithManager() {
 
   const [hadithItemFormData, setHadithItemFormData] = useState({
     id: '',
+    bookId: '',
+    editionId: '',
     hadithnumber: '',
     text: '',
     text_en: ''
@@ -147,7 +149,6 @@ export function HadithManager() {
 
       Object.entries(editionsData).forEach(([bookId, bookData]: [string, any]) => {
         if (Array.isArray(bookData.collection)) {
-          // 1. Prepare Parent Book Record
           booksToSave.push({
             id: bookId,
             name: bookData.name,
@@ -155,12 +156,11 @@ export function HadithManager() {
             updatedAt: new Date().toISOString()
           });
 
-          // 2. Prepare Individual Language Editions (Joined by bookId)
           bookData.collection.forEach((item: any) => {
             const docId = `${bookId}-${item.language}`.toLowerCase().replace(/\s+/g, '-');
             editionsToSave.push({
               id: docId,
-              bookId: bookId, // JOIN KEY
+              bookId: bookId, 
               collectionName: bookData.name,
               title: item.name,
               language: item.language,
@@ -174,9 +174,6 @@ export function HadithManager() {
         }
       });
 
-      // --- Chunked Firestore Writes (Max 500 per batch) ---
-      
-      // Batch 1: Books Registry
       for (let i = 0; i < booksToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = booksToSave.slice(i, i + 100);
@@ -186,7 +183,6 @@ export function HadithManager() {
         await batch.commit();
       }
 
-      // Batch 2: Editions Registry
       for (let i = 0; i < editionsToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = editionsToSave.slice(i, i + 100);
@@ -196,7 +192,7 @@ export function HadithManager() {
         await batch.commit();
       }
 
-      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions across ${booksToSave.length} books.` });
+      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -212,14 +208,19 @@ export function HadithManager() {
     try {
       const res = await fetch(syncUrl);
       const data = await res.json();
-      const items = data.hadiths.slice(0, 1000); // Limit sync for demo performance
+      const items = data.hadiths.slice(0, 1000); 
       
       for (let i = 0; i < items.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = items.slice(i, i + 100);
         chunk.forEach((h: any) => {
           const ref = doc(db, 'hadith_data', `${edition.id}_h_${h.hadithnumber}`);
-          batch.set(ref, { ...h, editionId: edition.id, updatedAt: new Date().toISOString() }, { merge: true });
+          batch.set(ref, { 
+            ...h, 
+            editionId: edition.id, 
+            bookId: edition.bookId,
+            updatedAt: new Date().toISOString() 
+          }, { merge: true });
         });
         await batch.commit();
       }
@@ -239,6 +240,8 @@ export function HadithManager() {
   const handleOpenEditHadith = (hadith: any) => {
     setHadithItemFormData({
       id: hadith.id,
+      bookId: hadith.bookId || selectedEdition?.bookId || '',
+      editionId: hadith.editionId || selectedEdition?.id || '',
       hadithnumber: hadith.hadithnumber || '',
       text: hadith.text || '',
       text_en: hadith.text_en || ''
@@ -418,6 +421,16 @@ export function HadithManager() {
             <DialogDescription className="text-zinc-500 text-xs mt-1">Refine the sacred text and its translation.</DialogDescription>
           </DialogHeader>
           <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Book ID</Label>
+                <Input className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-zinc-500" value={hadithItemFormData.bookId} readOnly />
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Edition ID</Label>
+                <Input className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-zinc-500" value={hadithItemFormData.editionId} readOnly />
+              </div>
+            </div>
             <div className="grid gap-2">
               <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Hadith Number</Label>
               <Input className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={hadithItemFormData.hadithnumber} readOnly />
