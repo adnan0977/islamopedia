@@ -174,7 +174,6 @@ export function HadithManager() {
         }
       });
 
-      // Chunked batching for thousands of potential editions
       for (let i = 0; i < booksToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = booksToSave.slice(i, i + 100);
@@ -211,8 +210,19 @@ export function HadithManager() {
       const data = await res.json();
       
       const allIncomingItems = data.hadiths;
+      const metadata = data.metadata;
       
-      // 1. Fetch existing hadith numbers for this edition to skip duplicates
+      // Store Metadata (Chapters/Sections)
+      if (metadata) {
+        const metaRef = doc(db, 'hadith_metadata', edition.id);
+        setDocumentNonBlocking(metaRef, {
+          ...metadata,
+          editionId: edition.id,
+          bookId: edition.bookId,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+
       const existingQuery = query(
         collection(db, 'hadith_data'),
         where('editionId', '==', edition.id)
@@ -220,16 +230,14 @@ export function HadithManager() {
       const existingSnap = await getDocs(existingQuery);
       const existingNumbers = new Set(existingSnap.docs.map(d => d.data().hadithnumber));
 
-      // 2. Filter only items that are NOT in the database
       const missingItems = allIncomingItems.filter((h: any) => !existingNumbers.has(h.hadithnumber));
 
       if (missingItems.length === 0) {
-        toast({ title: "Up to Date", description: "All hadiths from this source are already in the database." });
+        toast({ title: "Up to Date", description: "All content and metadata verified." });
         setIsContentSyncing(null);
         return;
       }
 
-      // 3. Batch process missing items
       for (let i = 0; i < missingItems.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = missingItems.slice(i, i + 100);
@@ -249,7 +257,7 @@ export function HadithManager() {
         lastSyncedAt: new Date().toISOString(),
         hadithCount: allIncomingItems.length 
       });
-      toast({ title: "Content Synced", description: `Added ${missingItems.length} new items to the library.` });
+      toast({ title: "Sync Complete", description: `Added ${missingItems.length} items and structural metadata.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Error", description: e.message });
     } finally {

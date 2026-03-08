@@ -29,7 +29,8 @@
         "sourceLinkMin": { "type": "string" },
         "isActive": { "type": "boolean" },
         "lastSyncedAt": { "type": "string", "format": "date-time" },
-        "hadithCount": { "type": "number" }
+        "hadithCount": { "type": "number" },
+        "dataSync": { "type": "string", "enum": ["yes", "no"] }
       },
       "required": ["id", "title", "language"]
     },
@@ -47,6 +48,18 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["bookId", "editionId", "text"]
+    },
+    "HadithMetadata": {
+      "title": "HadithMetadata",
+      "type": "object",
+      "description": "Structural metadata for a Hadith edition (chapters, sections).",
+      "properties": {
+        "editionId": { "type": "string" },
+        "bookId": { "type": "string" },
+        "sections": { "type": "object" },
+        "section_details": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     },
     "Video": {
       "title": "Video",
@@ -82,6 +95,10 @@
     "/hadith_data/{contentId}": {
       "schema": "HadithContent",
       "description": "The actual text and translations of specific Hadiths."
+    },
+    "/hadith_metadata/{editionId}": {
+      "schema": "HadithMetadata",
+      "description": "Chapter and section mapping for editions."
     },
     "/videos/{videoId}": {
       "schema": "Video",
