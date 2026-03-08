@@ -147,6 +147,7 @@ export function HadithManager() {
 
       Object.entries(editionsData).forEach(([bookId, bookData]: [string, any]) => {
         if (Array.isArray(bookData.collection)) {
+          // 1. Prepare Parent Book Record
           booksToSave.push({
             id: bookId,
             name: bookData.name,
@@ -154,11 +155,12 @@ export function HadithManager() {
             updatedAt: new Date().toISOString()
           });
 
+          // 2. Prepare Individual Language Editions (Joined by bookId)
           bookData.collection.forEach((item: any) => {
             const docId = `${bookId}-${item.language}`.toLowerCase().replace(/\s+/g, '-');
             editionsToSave.push({
               id: docId,
-              bookId: bookId,
+              bookId: bookId, // JOIN KEY
               collectionName: bookData.name,
               title: item.name,
               language: item.language,
@@ -172,7 +174,9 @@ export function HadithManager() {
         }
       });
 
-      // Chunked Write for Books
+      // --- Chunked Firestore Writes (Max 500 per batch) ---
+      
+      // Batch 1: Books Registry
       for (let i = 0; i < booksToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = booksToSave.slice(i, i + 100);
@@ -182,7 +186,7 @@ export function HadithManager() {
         await batch.commit();
       }
 
-      // Chunked Write for Editions
+      // Batch 2: Editions Registry
       for (let i = 0; i < editionsToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = editionsToSave.slice(i, i + 100);
@@ -192,7 +196,7 @@ export function HadithManager() {
         await batch.commit();
       }
 
-      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions.` });
+      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions across ${booksToSave.length} books.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -208,7 +212,7 @@ export function HadithManager() {
     try {
       const res = await fetch(syncUrl);
       const data = await res.json();
-      const items = data.hadiths.slice(0, 1000); 
+      const items = data.hadiths.slice(0, 1000); // Limit sync for demo performance
       
       for (let i = 0; i < items.length; i += 100) {
         const batch = writeBatch(db);
