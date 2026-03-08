@@ -374,10 +374,10 @@ export function HadithManager() {
                     <>
                       <TableCell className="pl-8 text-[10px] font-bold text-zinc-500">{item.hadithnumber}</TableCell>
                       <TableCell className="max-w-0">
-                        <p className="text-[11px] font-arabic text-zinc-200 line-clamp-2 leading-relaxed" dir="rtl">{item.text}</p>
+                        <p className="text-[11px] font-arabic text-zinc-200 line-clamping-2 leading-relaxed" dir="rtl">{item.text}</p>
                       </TableCell>
                       <TableCell className="max-w-0">
-                        <p className="text-[10px] text-zinc-500 line-clamp-2 italic">{item.text_en || 'No translation'}</p>
+                        <p className="text-[10px] text-zinc-500 line-clamping-2 italic">{item.text_en || 'No translation'}</p>
                       </TableCell>
                       <TableCell className="text-right pr-8">
                         <div className="flex justify-end gap-1">
