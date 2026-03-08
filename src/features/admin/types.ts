@@ -1,5 +1,5 @@
 
-export type AdminTab = 'dashboard' | 'channels' | 'videos' | 'scholars' | 'quran-tools' | 'settings';
+export type AdminTab = 'dashboard' | 'channels' | 'videos' | 'scholars' | 'hadith' | 'quran-tools' | 'settings';
 
 export interface SyncState {
   isSyncing: boolean;

@@ -1,49 +1,71 @@
+
 {
   "entities": {
     "HadithEdition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "HadithEdition",
       "type": "object",
-      "description": "Represents a specific edition or collection of Hadith, providing metadata about the collection sourced from an external API. This entity stores information necessary to display and manage Hadith editions within the app's admin panel.",
+      "description": "Represents a specific edition or collection of Hadith, providing metadata about the collection sourced from an external API.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the HadithEdition entity, typically corresponding to the 'name' field from the Hadith API (e.g., 'bukhari')."
+          "description": "Unique identifier for the HadithEdition (e.g., 'bukhari')."
         },
         "collectionName": {
           "type": "string",
-          "description": "The common name of the Hadith collection (e.g., 'sahih bukhari') as provided by the external API."
+          "description": "The common name of the Hadith collection."
         },
         "title": {
           "type": "string",
-          "description": "The full, human-readable title of the Hadith edition (e.g., 'Sahih Bukhari')."
+          "description": "The full, human-readable title of the Hadith edition."
         },
         "language": {
           "type": "string",
-          "description": "The ISO 639-1 language code of the Hadith edition (e.g., 'en' for English, 'ar' for Arabic)."
+          "description": "The ISO 639-1 language code."
         },
         "textDirection": {
           "type": "string",
-          "description": "The text direction for the language of the Hadith edition (e.g., 'ltr' for left-to-right, 'rtl' for right-to-left)."
+          "description": "The text direction (ltr/rtl)."
         },
         "publisher": {
           "type": "string",
-          "description": "The publisher attributed to this specific Hadith edition in the external API."
+          "description": "The publisher attributed to this edition."
         },
         "category": {
           "type": "string",
-          "description": "The category or type of the Hadith collection (e.g., 'sunnah') as classified by the external API."
+          "description": "The category (e.g., 'sunnah')."
         }
       },
       "required": [
         "id",
-        "collectionName",
         "title",
-        "language",
-        "textDirection",
-        "publisher",
-        "category"
+        "language"
       ]
+    },
+    "Video": {
+      "title": "Video",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "channelId": { "type": "string" },
+        "publishedAt": { "type": "string" },
+        "isTrending": { "type": "boolean" },
+        "isActive": { "type": "boolean" },
+        "appViewCount": { "type": "number" }
+      }
+    },
+    "Channel": {
+      "title": "Channel",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      }
     }
   },
   "auth": {
@@ -53,40 +75,41 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/hadith_editions/{hadithEditionId}",
-        "definition": {
-          "entityName": "HadithEdition",
-          "schema": {
-            "$ref": "#/backend/entities/HadithEdition"
-          },
-          "description": "Stores metadata for various Hadith collections, sourced from an external API. Documents are publicly readable for display in the app (e.g., to list available editions) and writeable only by administrators for initial population and management. The document ID corresponds to the 'id' field of the HadithEdition entity.",
-          "params": [
-            {
-              "name": "hadithEditionId",
-              "description": "The unique identifier for a Hadith edition (e.g., 'bukhari'), serving as the document ID."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_admin/{userId}",
-        "definition": {
-          "entityName": "AdminRole",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "A collection used for Database Access Control (DBAC). The existence of a document at `/roles_admin/{userId}` signifies that the corresponding user has administrative privileges. This enables granular write access to administrative data, such as the `hadith_editions` collection, adhering to authorization independence principles.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier (UID) of the user who possesses administrative privileges."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The recommended Firestore structure for managing Hadith editions adheres to core design principles, especially Authorization Independence and Structural Segregation, to ensure a secure, scalable, and debuggable system.\n\n**Authorization Independence (CRITICAL):** The `/hadith_editions/{hadithEditionId}` collection stores Hadith edition metadata, which is treated as global, public data for read operations and admin-only for write operations. Authorization for write access is completely independent of the HadithEdition document's data. Instead, it relies on a separate, dedicated collection: `/roles_admin/{userId}`. This pattern for Database Access Control (DBAC) means that security rules will check for the *existence* of a document in `/roles_admin/$(request.auth.uid)` to grant admin privileges. This completely eliminates the need for `get()` calls on parent documents or within the `hadith_editions` collection itself for authorization, thereby supporting atomic operations and greatly simplifying rule debugging.\n\n**QAPs (Rules are not Filters):** The structure explicitly supports Queryable Authorization Patterns (QAPs) through **Structural Segregation**. The `/hadith_editions` collection is designed with a homogeneous security posture: all documents within it are intended to be publicly readable and admin-manageable. This allows for simple and efficient security rules such as `allow list, get: if true;` (or `if request.auth != null;` if authenticated access is desired for reads). Because all data within this collection shares the same access requirements, the client can request a full list of Hadith editions without needing to filter on the client-side based on permissions. The Firestore rules can grant access to the entire collection for `list` operations, satisfying QAPs by ensuring that the database does not return unauthorized data, and no server-side filtering is required to enforce security on a `list` operation.\n\n**Access Modeling & Data Clarity:** The `HadithEdition` entity is a top-level collection because it's not user-owned or collaborative. The `id` field of the `HadithEdition` schema is used as the document ID, ensuring predictable and semantic paths. The admin role is clearly defined by document existence in `/roles_admin/{userId}`, providing a robust and standard approach to DBAC."
+    "/hadith_editions/{hadithEditionId}": {
+      "schema": "HadithEdition",
+      "description": "Metadata for Hadith collections."
+    },
+    "/videos/{videoId}": {
+      "schema": "Video",
+      "description": "Cataloged spiritual videos."
+    },
+    "/channels/{channelId}": {
+      "schema": "Channel",
+      "description": "Linked YouTube channels."
+    },
+    "/roles_admin/{userId}": {
+      "schema": "object",
+      "description": "Admin privileges marker."
+    },
+    "/settings/{settingId}": {
+      "schema": "object",
+      "description": "Global application configuration."
+    },
+    "/speakers/{speakerId}": {
+      "schema": "object",
+      "description": "Featured scholars and speakers."
+    },
+    "/quran/{surahId}": {
+      "schema": "object",
+      "description": "Quranic text and translations."
+    },
+    "/quran_editions/{editionId}": {
+      "schema": "object",
+      "description": "Metadata for Quran editions."
+    },
+    "/quran_metadata/{metaId}": {
+      "schema": "object",
+      "description": "Structural Quran data."
+    }
   }
 }

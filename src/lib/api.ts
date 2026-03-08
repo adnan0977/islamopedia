@@ -47,3 +47,12 @@ export async function getAvailableTranslations() {
   if (!res.ok) throw new Error('Failed to fetch translations');
   return res.json();
 }
+
+/**
+ * Fetches all available Hadith editions from the Fawaz Ahmed Hadith API.
+ */
+export async function getAllHadithEditions() {
+  const res = await fetch('https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions.json');
+  if (!res.ok) throw new Error('Failed to fetch Hadith editions');
+  return res.json();
+}
