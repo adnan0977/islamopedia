@@ -37,8 +37,7 @@ import {
   Save,
   Eye,
   ArrowLeft,
-  Database,
-  ExternalLink
+  Database
 } from 'lucide-react';
 import {
   Dialog,
@@ -201,7 +200,7 @@ export function HadithManager() {
       const res = await fetch(syncUrl);
       const data = await res.json();
       const batch = writeBatch(db);
-      const items = data.hadiths.slice(0, 500); // Index safety limit
+      const items = data.hadiths.slice(0, 500); 
       items.forEach((h: any) => {
         const ref = doc(db, 'hadith_data', `${edition.id}_h_${h.hadithnumber}`);
         batch.set(ref, { ...h, editionId: edition.id, updatedAt: new Date().toISOString() }, { merge: true });
@@ -250,7 +249,7 @@ export function HadithManager() {
               variant="outline" 
               size="icon" 
               onClick={() => setViewMode('registry')}
-              className="rounded-xl border-zinc-800 text-zinc-500 hover:text-white"
+              className="rounded-xl border-white text-white hover:bg-white hover:text-black transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -369,21 +368,17 @@ export function HadithManager() {
                   )}
                 </TableRow>
               ))}
-              {paginatedData.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="h-64 text-center text-zinc-600 text-xs font-medium">No results matching your criteria.</TableCell></TableRow>
-              )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Universal Pagination */}
         {totalPages > 1 && (
           <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between">
             <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages}</span>
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                className="rounded-xl border-white text-white font-bold h-10 px-6" 
+                className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" 
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(p => p - 1)}
               >
@@ -391,7 +386,7 @@ export function HadithManager() {
               </Button>
               <Button 
                 variant="outline" 
-                className="rounded-xl border-white text-white font-bold h-10 px-6" 
+                className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" 
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(p => p + 1)}
               >
