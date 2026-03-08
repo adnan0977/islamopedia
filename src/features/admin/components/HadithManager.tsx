@@ -161,8 +161,19 @@ export function HadithManager() {
       const editionsData = await getAllHadithEditions();
       const batch = writeBatch(db);
       let count = 0;
+      
+      // Keep track of unique books to update hadith_books
+      const uniqueBooks = new Map();
+
       Object.entries(editionsData).forEach(([bookId, bookData]: [string, any]) => {
         if (Array.isArray(bookData.collection)) {
+          // Save book metadata
+          uniqueBooks.set(bookId, {
+            id: bookId,
+            name: bookData.name,
+            editionCount: bookData.collection.length
+          });
+
           bookData.collection.forEach((item: any) => {
             const docId = `${bookId}-${item.language}`.toLowerCase().replace(/\s+/g, '-');
             const editionRef = doc(db, 'hadith_editions', docId);
@@ -182,8 +193,18 @@ export function HadithManager() {
           });
         }
       });
+
+      // Commit books to hadith_books
+      uniqueBooks.forEach((bookData, bookId) => {
+        const bookRef = doc(db, 'hadith_books', bookId);
+        batch.set(bookRef, {
+          ...bookData,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      });
+
       await batch.commit();
-      toast({ title: "Registry Synced", description: `Indexed ${count} editions.` });
+      toast({ title: "Registry Synced", description: `Indexed ${count} editions across ${uniqueBooks.size} books.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {

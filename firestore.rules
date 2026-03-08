@@ -23,6 +23,11 @@ service cloud.firestore {
       allow list, create, update, delete: if false;
     }
 
+    match /hadith_books/{bookId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /hadith_editions/{hadithEditionId} {
       allow read: if true;
       allow write: if isAdmin();
