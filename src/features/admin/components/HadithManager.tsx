@@ -182,7 +182,7 @@ export function HadithManager() {
         }
       });
 
-      // Chunked Write for Books (Usually small, but for safety)
+      // Chunked Write for Books
       for (let i = 0; i < booksToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = booksToSave.slice(i, i + 100);
@@ -192,7 +192,7 @@ export function HadithManager() {
         await batch.commit();
       }
 
-      // Chunked Write for Editions (Can be 1000+)
+      // Chunked Write for Editions
       for (let i = 0; i < editionsToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = editionsToSave.slice(i, i + 100);
@@ -218,7 +218,7 @@ export function HadithManager() {
     try {
       const res = await fetch(syncUrl);
       const data = await res.json();
-      const items = data.hadiths.slice(0, 1000); // Increased limit but using chunked sync
+      const items = data.hadiths.slice(0, 1000); 
       
       for (let i = 0; i < items.length; i += 100) {
         const batch = writeBatch(db);

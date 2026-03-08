@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -188,7 +189,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
               <span>Link Creator</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none shadow-2xl overflow-hidden">
+          <DialogContent className="sm:max-w-xl bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none shadow-2xl overflow-hidden">
             <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
               <DialogTitle className="text-xl font-bold">Import Creators</DialogTitle>
               <DialogDescription className="text-zinc-500 text-xs mt-1">Paste YouTube IDs or Handles below.</DialogDescription>

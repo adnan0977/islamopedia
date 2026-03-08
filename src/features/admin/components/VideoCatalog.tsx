@@ -221,14 +221,27 @@ export function VideoCatalog() {
           <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between">
             <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages}</span>
             <div className="flex gap-2">
-              <Button variant="outline" className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}><ChevronLeft className="w-4 h-4 mr-2" /> Prev</Button>
-              <Button variant="outline" className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next <ChevronRight className="w-4 h-4 ml-2" /></Button>
+              <Button 
+                variant="outline" 
+                className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(p => p - 1)}
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" /> Prev
+              </Button>
+              <Button 
+                variant="outline" 
+                className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" 
+                disabled={currentPage === totalPages} 
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Next <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </div>
         )}
       </Card>
 
-      {/* Optimized Video Editor Dialog */}
       <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
         <DialogContent className="sm:max-w-lg bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
           <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
