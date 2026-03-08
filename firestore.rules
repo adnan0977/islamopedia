@@ -24,47 +24,47 @@ service cloud.firestore {
     }
 
     match /hadith_editions/{hadithEditionId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_data/{contentId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /videos/{videoId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /channels/{channelId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /speakers/{speakerId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /quran/{surahId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /quran_editions/{editionId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /quran_metadata/{metaId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /settings/{settingId} {
-      allow get: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
   }

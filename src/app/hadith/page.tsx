@@ -15,7 +15,8 @@ import {
   FilterX,
   BookOpen,
   ChevronRight,
-  Languages
+  Languages,
+  ArrowRight
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,7 @@ export default function HadithPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null);
 
-  // 1. Fetch available editions
+  // 1. Fetch available editions (Grid View)
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_editions'),
     where('isActive', '==', true),
@@ -34,14 +35,14 @@ export default function HadithPage() {
   ), [db]);
   const { data: editions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
 
-  // 2. Fetch content for selected edition
+  // 2. Fetch content for reader
   const contentQuery = useMemoFirebase(() => {
     if (!selectedEditionId) return null;
     return query(
       collection(db, 'hadith_data'),
       where('editionId', '==', selectedEditionId),
       orderBy('hadithnumber', 'asc'),
-      limit(100) // Limit initial view for performance
+      limit(100)
     );
   }, [db, selectedEditionId]);
   const { data: hadiths, isLoading: isLoadingContent } = useCollection(contentQuery);
@@ -55,8 +56,7 @@ export default function HadithPage() {
     if (!editions) return [];
     return editions.filter(e => 
       e.collectionName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.language?.toLowerCase().includes(searchTerm.toLowerCase())
+      e.title?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [editions, searchTerm]);
 
@@ -68,19 +68,18 @@ export default function HadithPage() {
     );
   }, [hadiths, searchTerm]);
 
-  // Handle Loading
   if (isLoadingEditions) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
-        <p className="text-zinc-500 font-medium">Opening Library...</p>
+        <p className="text-zinc-500 font-medium">Opening Hadith Library...</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10 pb-32">
-      {/* Header & Navigation */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -99,23 +98,23 @@ export default function HadithPage() {
               </div>
             )}
             <h1 className="text-3xl font-headline font-bold text-zinc-100">
-              {selectedEdition ? selectedEdition.collectionName : 'Hadith Library'}
+              {selectedEdition ? selectedEdition.collectionName : 'Sacred Library'}
             </h1>
           </div>
           <p className="text-zinc-500 text-sm">
             {selectedEdition 
               ? `${selectedEdition.title} (${selectedEdition.language})` 
-              : 'Sacred traditions and sayings of the Prophet Muhammad (PBUH).'}
+              : 'Traditions and sayings of the Prophet Muhammad (PBUH).'}
           </p>
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Search */}
       <div className="flex flex-col md:flex-row gap-4 bg-zinc-950/50 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder={selectedEditionId ? "Search within this collection..." : "Search collections, languages, or authors..."}
+            placeholder={selectedEditionId ? "Search within collection..." : "Search for Sahih Bukhari, Muslim..."}
             className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-14 text-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -133,21 +132,21 @@ export default function HadithPage() {
         )}
       </div>
 
-      {/* Main Grid View */}
+      {/* View Switcher */}
       {!selectedEditionId ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredEditions.map((edition) => (
             <Card 
               key={edition.id} 
               onClick={() => setSelectedEditionId(edition.id)}
-              className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group cursor-pointer shadow-xl flex flex-col"
+              className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group cursor-pointer shadow-xl flex flex-col h-full"
             >
               <div className="p-8 space-y-6 flex-1">
                 <div className="flex justify-between items-start">
                   <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 group-hover:border-zinc-600 transition-colors">
                     <BookMarked className="w-6 h-6 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
                   </div>
-                  <Badge variant="outline" className="border-zinc-800 text-[10px] uppercase font-black tracking-widest text-zinc-500 group-hover:text-zinc-300">
+                  <Badge variant="outline" className="border-zinc-800 text-[10px] uppercase font-black tracking-widest text-zinc-500">
                     {edition.language}
                   </Badge>
                 </div>
@@ -167,17 +166,13 @@ export default function HadithPage() {
                   <Languages className="w-3 h-3" />
                   {edition.textDirection}
                 </span>
-                <ChevronRight className="w-4 h-4 text-zinc-800 group-hover:translate-x-1 group-hover:text-zinc-400 transition-all" />
+                <div className="flex items-center gap-2 text-zinc-800 group-hover:text-zinc-400 transition-all">
+                  <span className="text-[9px] font-bold uppercase">Read</span>
+                  <ArrowRight className="w-4 h-4" />
+                </div>
               </div>
             </Card>
           ))}
-
-          {filteredEditions.length === 0 && (
-            <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[3rem] border-2 border-dashed border-zinc-900">
-              <BookOpen className="w-16 h-16 text-zinc-900 mx-auto mb-6" />
-              <p className="text-zinc-600 font-medium text-lg">No collections found matching your search.</p>
-            </div>
-          )}
         </div>
       ) : (
         /* Reader View */
@@ -185,27 +180,21 @@ export default function HadithPage() {
           {isLoadingContent ? (
             <div className="py-32 text-center">
               <Loader2 className="w-10 h-10 animate-spin text-zinc-800 mx-auto mb-4" />
-              <p className="text-zinc-600 font-medium">Unrolling scrolls...</p>
+              <p className="text-zinc-600 font-medium">Preparing scrolls...</p>
             </div>
           ) : filteredHadiths.map((hadith, idx) => (
             <Card key={hadith.id || idx} className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-              <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20 flex flex-row items-center justify-between">
+              <div className="p-8 border-b border-zinc-900 bg-zinc-900/20 flex items-center justify-between">
                 <div className="space-y-1">
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Hadith Number</span>
                   <p className="text-sm font-bold text-zinc-400">{hadith.hadithnumber || idx + 1}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                   <Badge variant="outline" className="border-zinc-800 text-[10px] text-zinc-600 uppercase font-black">{selectedEdition?.language}</Badge>
-                </div>
-              </CardHeader>
+                <Badge variant="outline" className="border-zinc-800 text-[10px] text-zinc-600 uppercase font-black">{selectedEdition?.language}</Badge>
+              </div>
               <CardContent className="p-8 md:p-12 space-y-10">
-                <p 
-                  className="text-right text-3xl md:text-4xl font-arabic leading-[2.2] text-zinc-100" 
-                  dir="rtl"
-                >
+                <p className="text-right text-3xl md:text-4xl font-arabic leading-[2.2] text-zinc-100" dir="rtl">
                   {hadith.text}
                 </p>
-                
                 {hadith.text_en && (
                   <div className="border-l-4 border-zinc-800 pl-8 py-4">
                     <p className="text-lg md:text-xl text-zinc-400 font-medium leading-relaxed italic">
@@ -216,14 +205,6 @@ export default function HadithPage() {
               </CardContent>
             </Card>
           ))}
-
-          {hadiths?.length === 0 && !isLoadingContent && (
-            <div className="py-32 text-center bg-zinc-950/30 rounded-[3rem] border-2 border-dashed border-zinc-900">
-              <AlertCircle className="w-16 h-16 text-zinc-900 mx-auto mb-6" />
-              <p className="text-zinc-600 font-medium text-lg">This collection has not been synchronized yet.</p>
-              <p className="text-zinc-700 text-sm mt-2">Check back later or contact an administrator.</p>
-            </div>
-          )}
         </div>
       )}
     </div>

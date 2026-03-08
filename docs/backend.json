@@ -5,30 +5,28 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "HadithEdition",
       "type": "object",
-      "description": "Represents a specific edition or collection of Hadith, providing metadata about the collection sourced from an external API.",
+      "description": "Represents a specific edition or collection of Hadith.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the HadithEdition (e.g., 'bukhari-english')."
+          "description": "Unique identifier (e.g., 'bukhari-english')."
         },
         "bookId": {
           "type": "string"
         },
         "collectionName": {
           "type": "string",
-          "description": "The common name of the Hadith collection."
+          "description": "The name of the Hadith collection (e.g., Sahih Bukhari)."
         },
         "title": {
           "type": "string",
-          "description": "The full, human-readable title of the Hadith edition."
+          "description": "The specific edition title."
         },
         "language": {
-          "type": "string",
-          "description": "The ISO 639-1 language code or name."
+          "type": "string"
         },
         "textDirection": {
-          "type": "string",
-          "description": "The text direction (ltr/rtl)."
+          "type": "string"
         },
         "sourceLink": {
           "type": "string"
@@ -42,6 +40,9 @@
         "lastSyncedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "hadithCount": {
+          "type": "number"
         }
       },
       "required": [
@@ -64,16 +65,6 @@
         "isActive": { "type": "boolean" },
         "appViewCount": { "type": "number" }
       }
-    },
-    "Channel": {
-      "title": "Channel",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "thumbnailUrl": { "type": "string" },
-        "isActive": { "type": "boolean" }
-      }
     }
   },
   "auth": {
@@ -85,39 +76,39 @@
   "firestore": {
     "/hadith_editions/{hadithEditionId}": {
       "schema": "HadithEdition",
-      "description": "Metadata for Hadith collections."
+      "description": "Registry of available Hadith books and language editions."
     },
     "/hadith_data/{contentId}": {
       "schema": "object",
-      "description": "Actual Hadith text and data stored per edition."
+      "description": "The actual text and translations of specific Hadiths."
     },
     "/videos/{videoId}": {
       "schema": "Video",
       "description": "Cataloged spiritual videos."
     },
     "/channels/{channelId}": {
-      "schema": "Channel",
+      "schema": "object",
       "description": "Linked YouTube channels."
     },
     "/roles_admin/{userId}": {
       "schema": "object",
-      "description": "Admin privileges marker."
+      "description": "Admin marker."
     },
     "/settings/{settingId}": {
       "schema": "object",
-      "description": "Global application configuration."
+      "description": "Global config."
     },
     "/speakers/{speakerId}": {
       "schema": "object",
-      "description": "Featured scholars and speakers."
+      "description": "Scholars and speakers."
     },
     "/quran/{surahId}": {
       "schema": "object",
-      "description": "Quranic text and translations."
+      "description": "Quranic text."
     },
     "/quran_editions/{editionId}": {
       "schema": "object",
-      "description": "Metadata for Quran editions."
+      "description": "Quran metadata."
     },
     "/quran_metadata/{metaId}": {
       "schema": "object",

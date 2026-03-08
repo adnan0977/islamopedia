@@ -29,13 +29,13 @@ import {
   FilterX,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Pencil,
   Trash2,
   Power,
   PowerOff,
   RefreshCw,
-  Save
+  Save,
+  Languages
 } from 'lucide-react';
 import {
   Dialog,
@@ -57,7 +57,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getAllHadithEditions } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { updateDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from '@/components/ui/badge';
 
 export function HadithManager() {
@@ -69,7 +69,6 @@ export function HadithManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -123,8 +122,6 @@ export function HadithManager() {
           bookData.collection.forEach((item: any) => {
             const docId = `${bookId}-${item.language}`.toLowerCase().replace(/\s+/g, '-');
             const editionRef = doc(db, 'hadith_editions', docId);
-            
-            // Avoid overwriting activation status if already exists
             const existing = savedEditions?.find(e => e.id === docId);
 
             batch.set(editionRef, {
@@ -163,21 +160,19 @@ export function HadithManager() {
     setIsContentSyncing(edition.id);
     try {
       const res = await fetch(syncUrl);
-      if (!res.ok) throw new Error("Failed to fetch Hadith data from source.");
+      if (!res.ok) throw new Error("Failed to fetch Hadith data.");
       const data = await res.json();
       
       if (!data.hadiths || !Array.isArray(data.hadiths)) {
-        throw new Error("Invalid Hadith data format received from source.");
+        throw new Error("Invalid format.");
       }
 
-      const batch = writeBatch(db);
+      const batchSize = 100;
       const hadiths = data.hadiths;
-      
-      // We only sync a subset if very large to prevent browser lockup in this MVP demo
-      // In production, this would be a full chunked sync like QuranHub
-      const limitSync = hadiths.slice(0, 500); 
+      const limitToSync = hadiths.slice(0, 500); // Demo limit
 
-      limitSync.forEach((h: any) => {
+      const batch = writeBatch(db);
+      limitToSync.forEach((h: any) => {
         const contentId = `${edition.id}_h_${h.hadithnumber}`;
         const contentRef = doc(db, 'hadith_data', contentId);
         batch.set(contentRef, {
@@ -194,10 +189,7 @@ export function HadithManager() {
         hadithCount: hadiths.length
       });
 
-      toast({ 
-        title: "Content Synced", 
-        description: `Successfully stored ${limitSync.length} hadiths for ${edition.collectionName}.` 
-      });
+      toast({ title: "Content Synced", description: `Saved ${limitToSync.length} items.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -208,7 +200,7 @@ export function HadithManager() {
   const handleToggleStatus = (edition: any) => {
     const newStatus = !edition.isActive;
     updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { isActive: newStatus });
-    toast({ title: newStatus ? "Edition Enabled" : "Edition Disabled" });
+    toast({ title: newStatus ? "Enabled" : "Disabled" });
   };
 
   const handleOpenEdit = (edition: any) => {
@@ -224,16 +216,12 @@ export function HadithManager() {
   };
 
   const handleSaveEdit = () => {
-    if (!editFormData.title) {
-      toast({ variant: "destructive", title: "Title is required" });
-      return;
-    }
     updateDocumentNonBlocking(doc(db, 'hadith_editions', editFormData.id), {
       ...editFormData,
       updatedAt: new Date().toISOString()
     });
     setIsEditDialogOpen(false);
-    toast({ title: "Changes Saved" });
+    toast({ title: "Updated Successfully" });
   };
 
   const confirmDelete = () => {
@@ -250,7 +238,7 @@ export function HadithManager() {
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder="Search books or languages..." 
+            placeholder="Search collections..." 
             className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -272,11 +260,11 @@ export function HadithManager() {
         <div className="w-full overflow-hidden">
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
-              <TableRow className="border-zinc-900 hover:bg-transparent">
+              <TableRow className="border-zinc-900">
                 <TableHead className="text-[9px] font-black uppercase tracking-widest py-6 text-zinc-600 pl-8 w-[25%]">Collection</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center w-[15%]">Language</TableHead>
                 <TableHead className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center w-[15%]">Status</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center w-[15%]">Synced</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center w-[15%]">Data</TableHead>
                 <TableHead className="text-right text-[9px] font-black uppercase tracking-widest text-zinc-600 pr-8 w-[30%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -284,7 +272,7 @@ export function HadithManager() {
               {isLoading ? (
                 <TableRow><TableCell colSpan={5} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow>
               ) : paginatedEditions.map((edition) => (
-                <TableRow key={edition.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
+                <TableRow key={edition.id} className="hover:bg-zinc-900/40 border-zinc-900 h-24">
                   <TableCell className="pl-8 max-w-0">
                     <div className="flex flex-col min-w-0">
                       <span className="font-bold text-zinc-100 truncate text-[11px] leading-tight block" title={edition.collectionName}>{edition.collectionName}</span>
@@ -305,9 +293,9 @@ export function HadithManager() {
                   </TableCell>
                   <TableCell className="text-center">
                     {edition.lastSyncedAt ? (
-                      <Badge className="bg-blue-500/10 text-blue-500 border-none rounded-lg text-[7px] font-black uppercase px-1.5 py-0">Yes</Badge>
+                      <Badge className="bg-blue-500/10 text-blue-500 border-none rounded-lg text-[7px] font-black uppercase px-1.5 py-0">Synced</Badge>
                     ) : (
-                      <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[7px] font-black uppercase px-1.5 py-0">No</Badge>
+                      <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[7px] font-black uppercase px-1.5 py-0">Pending</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right pr-8">
@@ -318,29 +306,18 @@ export function HadithManager() {
                         onClick={() => handleSyncContent(edition)} 
                         disabled={isContentSyncing === edition.id || !edition.isActive}
                         className="h-8 w-8 text-zinc-600 hover:text-white"
-                        title="Sync Data"
                       >
                         <RefreshCw className={cn("w-3.5 h-3.5", isContentSyncing === edition.id && "animate-spin")} />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(edition)} className="h-8 w-8 text-zinc-600 hover:text-white" title="Edit"><Pencil className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(edition)} className="h-8 w-8 text-zinc-600" title={edition.isActive ? "Deactivate" : "Activate"}>
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(edition)} className="h-8 w-8 text-zinc-600 hover:text-white"><Pencil className="w-3.5 h-3.5" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(edition)} className="h-8 w-8 text-zinc-600">
                         {edition.isActive !== false ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(edition.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive" title="Delete"><Trash2 className="w-3.5 h-3.5" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(edition.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
-              {!isLoading && paginatedEditions.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                       <Quote className="w-12 h-12 text-zinc-900" />
-                       <p className="text-zinc-600 font-medium">No editions found. Index the registry to begin.</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </div>
@@ -348,23 +325,37 @@ export function HadithManager() {
         {totalPages > 1 && (
           <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-zinc-400">Showing {paginatedEditions.length} of {filteredEditions.length}</span>
               <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white hover:bg-white hover:text-black transition-all"><ChevronLeft className="w-4 h-4 mr-2" /> Previous</Button>
-              <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white hover:bg-white hover:text-black transition-all">Next <ChevronRight className="w-4 h-4 ml-2" /></Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                className="rounded-xl border-white text-white hover:bg-white hover:text-black font-bold h-10 px-6 transition-all"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" /> Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === totalPages} 
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                className="rounded-xl border-white text-white hover:bg-white hover:text-black font-bold h-10 px-6 transition-all"
+              >
+                Next <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </div>
         )}
       </Card>
 
-      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px] bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none overflow-hidden shadow-2xl">
           <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
-            <DialogTitle className="text-xl font-bold">Edit Edition</DialogTitle>
-            <DialogDescription className="text-zinc-500 text-xs mt-1">Update Hadith registry metadata.</DialogDescription>
+            <DialogTitle className="text-xl font-bold">Edit Registry</DialogTitle>
+            <DialogDescription className="text-zinc-500 text-xs mt-1">Update Hadith edition metadata.</DialogDescription>
           </DialogHeader>
           <div className="p-8 space-y-6">
             <div className="grid gap-2">
@@ -374,10 +365,6 @@ export function HadithManager() {
             <div className="grid gap-2">
               <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Display Title</Label>
               <Input className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={editFormData.title} onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Language</Label>
-              <Input className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={editFormData.language} onChange={(e) => setEditFormData({ ...editFormData, language: e.target.value })} />
             </div>
             <Button 
               variant="outline"
@@ -391,16 +378,15 @@ export function HadithManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
         <AlertDialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-10 max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Remove Edition?</AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-500">This will delete the registry entry. Cached content data will remain but be unlinked.</AlertDialogDescription>
+            <AlertDialogTitle className="text-xl font-bold">Remove Registry?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">This will remove the book from your platform catalog.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">
             <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl font-bold">Remove</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 rounded-xl font-bold">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
