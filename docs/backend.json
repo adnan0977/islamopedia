@@ -37,7 +37,7 @@
     "HadithContent": {
       "title": "HadithContent",
       "type": "object",
-      "description": "Individual Hadith text record.",
+      "description": "Individual Hadith text record with relationship markers.",
       "properties": {
         "id": { "type": "string" },
         "bookId": { "type": "string" },

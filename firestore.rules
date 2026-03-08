@@ -14,10 +14,12 @@ service cloud.firestore {
 
     // --- Public Content (Read for everyone, Write for Admin only) ---
     
+    // Explicitly allowing list and get for spiritual collections to resolve permission errors
     match /hadith_books/{id} { allow read: if true; allow write: if isAdmin(); }
     match /hadith_editions/{id} { allow read: if true; allow write: if isAdmin(); }
     match /hadith_data/{id} { allow read: if true; allow write: if isAdmin(); }
     match /hadith_metadata/{id} { allow read: if true; allow write: if isAdmin(); }
+    
     match /videos/{id} { allow read: if true; allow write: if isAdmin(); }
     match /channels/{id} { allow read: if true; allow write: if isAdmin(); }
     match /speakers/{id} { allow read: if true; allow write: if isAdmin(); }

@@ -174,6 +174,7 @@ export function HadithManager() {
         }
       });
 
+      // Chunked Batching (100 per batch)
       for (let i = 0; i < booksToSave.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = booksToSave.slice(i, i + 100);
@@ -192,7 +193,7 @@ export function HadithManager() {
         await batch.commit();
       }
 
-      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions.` });
+      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions across ${booksToSave.length} books.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -212,7 +213,7 @@ export function HadithManager() {
       const allIncomingItems = data.hadiths;
       const metadata = data.metadata;
       
-      // Store Metadata (Chapters/Sections)
+      // 1. Store Metadata (Chapters/Sections) for indexing
       if (metadata) {
         const metaRef = doc(db, 'hadith_metadata', edition.id);
         setDocumentNonBlocking(metaRef, {
@@ -223,6 +224,7 @@ export function HadithManager() {
         }, { merge: true });
       }
 
+      // 2. Fetch existing to skip duplicates
       const existingQuery = query(
         collection(db, 'hadith_data'),
         where('editionId', '==', edition.id)
@@ -238,6 +240,7 @@ export function HadithManager() {
         return;
       }
 
+      // 3. Batch write missing items with relationship IDs
       for (let i = 0; i < missingItems.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = missingItems.slice(i, i + 100);
@@ -246,7 +249,7 @@ export function HadithManager() {
           batch.set(ref, { 
             ...h, 
             editionId: edition.id, 
-            bookId: edition.bookId,
+            bookId: edition.bookId, // Enriched join key
             updatedAt: new Date().toISOString() 
           }, { merge: true });
         });
@@ -288,7 +291,7 @@ export function HadithManager() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden">
+    <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden text-white">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="flex items-center gap-4 w-full md:w-auto">
           {viewMode === 'content' && (
