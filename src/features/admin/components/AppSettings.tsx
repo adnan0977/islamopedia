@@ -429,10 +429,12 @@ export function AppSettings() {
                       </TabsContent>
 
                       <Button 
+                        variant="outline"
                         onClick={addCustomFrame}
                         disabled={!newFrame.name || (newFrame.type === 'svg' && !newFrame.path) || (newFrame.type === 'image' && !newFrame.imageUrl)}
-                        className="w-full bg-zinc-100 text-black hover:bg-white rounded-xl font-bold h-12"
+                        className="w-full border-white text-white hover:bg-white hover:text-black rounded-xl font-bold h-12 transition-all flex items-center justify-center gap-2"
                       >
+                        <Save className="w-4 h-4" />
                         Save to Library
                       </Button>
                     </div>
@@ -498,7 +500,8 @@ export function AppSettings() {
 
         <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex justify-end">
           <Button 
-            className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold h-12 px-10 transition-transform active:scale-95 flex items-center gap-2"
+            variant="outline"
+            className="border-white text-white hover:bg-white hover:text-black rounded-xl font-bold h-12 px-10 transition-all active:scale-95 flex items-center gap-2"
             onClick={handleSave}
           >
             <Save className="w-4 h-4" />

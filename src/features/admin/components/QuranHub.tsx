@@ -148,8 +148,9 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
               <p className="text-[10px] uppercase font-black tracking-widest text-amber-500/50">Required for platform operations</p>
             </div>
             <Button 
+              variant="outline"
               onClick={handleStandardSync}
-              className="bg-amber-500 text-white hover:bg-amber-400 font-bold rounded-xl h-11 px-6 shrink-0"
+              className="border-white text-white hover:bg-white hover:text-black font-bold rounded-xl h-11 px-6 shrink-0 transition-all"
             >
               <Download className="mr-2 h-4 w-4" /> Sync Standard Arabic
             </Button>
@@ -320,11 +321,21 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
           <p className="text-sm text-zinc-500 font-medium">Manage and filter {editions.length} indexed Quranic editions.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={fetchAndSeedMetadata} disabled={metaLoading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-white hover:bg-zinc-900">
+          <Button 
+            variant="outline" 
+            onClick={fetchAndSeedMetadata} 
+            disabled={metaLoading} 
+            className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black transition-all"
+          >
             {metaLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
             Sync Structural Metadata
           </Button>
-          <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-11 px-6 font-bold border-zinc-800 text-white hover:bg-zinc-900">
+          <Button 
+            variant="outline" 
+            onClick={fetchAndSeedRegistry} 
+            disabled={loading} 
+            className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black transition-all"
+          >
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CloudDownload className="w-4 h-4 mr-2" />}
             Seed Edition Registry
           </Button>
@@ -508,7 +519,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
            <div className="flex gap-2">
              <Button 
                variant="outline" 
-               className="rounded-xl border-zinc-800 text-white font-bold h-10" 
+               className="rounded-xl border-zinc-800 text-white font-bold h-10 transition-all" 
                disabled={currentPage === 1}
                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
              >
@@ -516,7 +527,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
              </Button>
              <Button 
                variant="outline" 
-               className="rounded-xl border-zinc-800 text-white font-bold h-10" 
+               className="rounded-xl border-zinc-800 text-white font-bold h-10 transition-all" 
                disabled={currentPage === totalPages || totalPages === 0}
                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
              >
@@ -609,7 +620,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="rounded-xl bg-zinc-900 text-white"
+              className="rounded-xl bg-zinc-900 text-white hover:bg-zinc-800"
               onClick={() => filterMode === 'surah' ? setSurahNum(prev => Math.max(1, prev - 1)) : setPageNum(prev => Math.max(1, prev - 1))}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -620,7 +631,7 @@ function FullQuranViewer({ editions }: { editions: any[] }) {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="rounded-xl bg-zinc-900 text-white"
+              className="rounded-xl bg-zinc-900 text-white hover:bg-zinc-800"
               onClick={() => filterMode === 'surah' ? setSurahNum(prev => Math.min(114, prev + 1)) : setPageNum(prev => Math.min(604, prev + 1))}
             >
               <ChevronRight className="w-4 h-4" />

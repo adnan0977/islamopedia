@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -19,7 +18,8 @@ import {
   Mic2,
   Database,
   Settings,
-  Quote
+  Quote,
+  ExternalLink
 } from 'lucide-react';
 import { 
   Sidebar, 
@@ -170,13 +170,20 @@ export default function AdminPanel() {
               <LogOut className="w-4 h-4 mr-2" /> Sign Out
             </Button>
           </SidebarFooter>
- Sidebar
         </Sidebar>
 
         <SidebarInset className="flex-1 overflow-auto bg-black p-0">
           <header className="h-20 border-b border-zinc-900 flex items-center justify-between px-8 bg-zinc-950/50 sticky top-0 z-10 backdrop-blur-md">
              <h2 className="font-headline font-bold text-2xl text-white capitalize">{activeTab.replace('-', ' ')}</h2>
-             <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>Live Site</Button>
+             <Button 
+               variant="outline" 
+               size="sm" 
+               onClick={() => window.location.href = '/'}
+               className="border-white text-white hover:bg-white hover:text-black font-bold rounded-xl h-10 px-6 transition-all flex items-center gap-2"
+             >
+               <ExternalLink className="w-4 h-4" />
+               Live Site
+             </Button>
           </header>
 
           <main className="p-8 pb-32">

@@ -17,7 +17,8 @@ import {
   Power, 
   PowerOff, 
   Trash2,
-  RefreshCw as SyncIcon
+  RefreshCw as SyncIcon,
+  Link2
 } from 'lucide-react';
 import {
   Dialog,
@@ -179,7 +180,10 @@ export function ChannelHub({ videos }: { videos: any[] }) {
 
         <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 shadow-lg flex items-center gap-2">
+            <Button 
+              variant="outline"
+              className="rounded-full h-14 px-8 font-bold border-white text-white hover:bg-white hover:text-black shadow-lg flex items-center gap-2 transition-all active:scale-95"
+            >
               <Plus className="w-5 h-5" />
               <span>Link Creator</span>
             </Button>
@@ -191,8 +195,18 @@ export function ChannelHub({ videos }: { videos: any[] }) {
             </DialogHeader>
             <div className="p-8 space-y-6">
               <Textarea placeholder="UC... or @handle" className="bg-zinc-900 border-zinc-800 h-48 rounded-2xl p-6" value={bulkIds} onChange={(e) => setBulkBulkIds(e.target.value)} />
-              <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl shadow-xl hover:bg-zinc-200" onClick={() => handleSync(bulkIds)} disabled={isSyncing}>
-                {isSyncing ? <Loader2 className="animate-spin h-5 w-5 mx-auto" /> : 'Start Import'}
+              <Button 
+                variant="outline"
+                className="w-full h-14 font-bold rounded-2xl border-white text-white hover:bg-white hover:text-black shadow-xl transition-all flex items-center justify-center gap-2" 
+                onClick={() => handleSync(bulkIds)} 
+                disabled={isSyncing}
+              >
+                {isSyncing ? <Loader2 className="animate-spin h-5 w-5 mx-auto" /> : (
+                  <>
+                    <Link2 className="w-5 h-5" />
+                    <span>Start Import</span>
+                  </>
+                )}
               </Button>
             </div>
           </DialogContent>

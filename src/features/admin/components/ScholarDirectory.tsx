@@ -22,7 +22,8 @@ import {
   Loader2,
   Settings,
   UserCheck,
-  Video
+  Video,
+  UserPlus
 } from 'lucide-react';
 import {
   Dialog,
@@ -112,7 +113,10 @@ export function ScholarDirectory() {
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 shadow-lg flex items-center gap-2">
+            <Button 
+              variant="outline"
+              className="rounded-full h-14 px-8 font-bold border-white text-white hover:bg-white hover:text-black shadow-lg flex items-center gap-2 transition-all active:scale-95"
+            >
               <Plus className="w-5 h-5" />
               <span>Add Scholar</span>
             </Button>
@@ -135,7 +139,14 @@ export function ScholarDirectory() {
                 <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Profile Image URL</Label>
                 <Input placeholder="https://..." className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={newScholar.profileImageUrl} onChange={(e) => setNewScholar({ ...newScholar, profileImageUrl: e.target.value })} />
               </div>
-              <Button className="w-full h-14 bg-white text-black font-bold rounded-2xl shadow-xl hover:bg-zinc-200 mt-4" onClick={handleAddScholar}>Save Profile</Button>
+              <Button 
+                variant="outline"
+                className="w-full h-14 font-bold rounded-2xl border-white text-white hover:bg-white hover:text-black shadow-xl transition-all flex items-center justify-center gap-2 mt-4" 
+                onClick={handleAddScholar}
+              >
+                <UserPlus className="w-5 h-5" />
+                <span>Save Profile</span>
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

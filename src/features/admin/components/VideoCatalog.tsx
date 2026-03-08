@@ -45,7 +45,8 @@ import {
   ChevronRight,
   Pencil,
   Power,
-  PowerOff
+  PowerOff,
+  Save
 } from 'lucide-react';
 import {
   Dialog,
@@ -242,8 +243,9 @@ export function VideoCatalog() {
         </div>
 
         <Button 
+          variant="outline"
           onClick={handleOpenAdd}
-          className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 flex items-center gap-2 shadow-lg"
+          className="rounded-full h-14 px-8 font-bold border-white text-white hover:bg-white hover:text-black transition-all active:scale-95 flex items-center gap-2 shadow-lg"
         >
           <Plus className="w-5 h-5" />
           <span>Catalog Video</span>
@@ -293,7 +295,12 @@ export function VideoCatalog() {
           </div>
 
           <div className="p-8 border-t border-zinc-900 bg-zinc-950">
-            <Button className="w-full h-14 font-bold rounded-2xl bg-white text-black hover:bg-zinc-200 shadow-xl transition-all" onClick={handleSaveVideo}>
+            <Button 
+              variant="outline"
+              className="w-full h-14 font-bold rounded-2xl border-white text-white hover:bg-white hover:text-black shadow-xl transition-all flex items-center justify-center gap-2" 
+              onClick={handleSaveVideo}
+            >
+              <Save className="w-4 h-4" />
               {isEditing ? 'Save Changes' : 'Index Video'}
             </Button>
           </div>
@@ -385,8 +392,8 @@ export function VideoCatalog() {
               <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold">Previous</Button>
-              <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold">Next</Button>
+              <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white">Previous</Button>
+              <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white">Next</Button>
             </div>
           </div>
         )}

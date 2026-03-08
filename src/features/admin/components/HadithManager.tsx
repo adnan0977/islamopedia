@@ -1,3 +1,4 @@
+'use client';
 
 "use client";
 
@@ -115,9 +116,10 @@ export function HadithManager() {
         </div>
 
         <Button 
+          variant="outline"
           onClick={handleSyncRegistry}
           disabled={isSyncing}
-          className="rounded-full h-14 px-8 font-bold bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 flex items-center gap-2 shadow-lg"
+          className="rounded-full h-14 px-8 font-bold border-white text-white hover:bg-white hover:text-black transition-all active:scale-95 flex items-center gap-2 shadow-lg"
         >
           {isSyncing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CloudDownload className="w-5 h-5" />}
           <span>Sync External Registry</span>
@@ -187,7 +189,7 @@ export function HadithManager() {
                 size="sm" 
                 disabled={currentPage === 1} 
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
-                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold"
+                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" /> Previous
               </Button>
@@ -196,7 +198,7 @@ export function HadithManager() {
                 size="sm" 
                 disabled={currentPage === totalPages} 
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
-                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold"
+                className="rounded-xl border-zinc-800 bg-zinc-950 h-10 font-bold text-white"
               >
                 Next <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
