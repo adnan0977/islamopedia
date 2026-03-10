@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -55,17 +56,21 @@ export default function HadithPage() {
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
-  // 3. Fetch Editions for selected Book - FIXED: Use equality check to avoid orderBy conflicts
+  // 3. Fetch Editions for selected Book - Simplified query to avoid permission/index errors
   const editionsQuery = useMemoFirebase(() => {
     if (!selectedBookId) return null;
     return query(
       collection(db, 'hadith_editions'),
       where('bookId', '==', selectedBookId),
-      where('isActive', '==', true),
       orderBy('collectionName', 'asc')
     );
   }, [db, selectedBookId]);
-  const { data: editions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
+  const { data: rawEditions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
+
+  // Client-side filtering for activation to bypass composite index requirements
+  const editions = useMemo(() => {
+    return rawEditions?.filter(e => e.isActive !== false) || [];
+  }, [rawEditions]);
 
   // 4. Fetch Metadata using URL variable
   const metadataRef = useMemoFirebase(() => 
@@ -208,7 +213,7 @@ export default function HadithPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {showEmptyState ? (
               <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[2.5rem] border-2 border-dashed border-zinc-900 space-y-6">
                  <BookOpen className="w-16 h-16 text-zinc-800 mx-auto" />
@@ -221,24 +226,24 @@ export default function HadithPage() {
               <Card 
                 key={book.id} 
                 onClick={() => updateUrl({ book: book.id })}
-                className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group cursor-pointer shadow-xl flex flex-col h-full"
+                className="bg-zinc-950 border-zinc-900 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group cursor-pointer shadow-xl flex flex-col h-full"
               >
-                <div className="p-8 space-y-6 flex-1">
-                  <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 group-hover:border-zinc-600 transition-colors">
-                    <Library className="w-6 h-6 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                <div className="p-5 sm:p-8 space-y-4 sm:space-y-6 flex-1">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-900 rounded-xl sm:rounded-2xl flex items-center justify-center border border-zinc-800 group-hover:border-zinc-600 transition-colors">
+                    <Library className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-zinc-100 group-hover:text-white transition-colors leading-tight">
+                  <div className="space-y-1 sm:space-y-2">
+                    <h3 className="text-base sm:text-xl font-bold text-zinc-100 group-hover:text-white transition-colors leading-tight line-clamp-2">
                       {book.name}
                     </h3>
-                    <p className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">
-                      {book.editionCount || 0} Editions Available
+                    <p className="text-[8px] sm:text-[10px] text-zinc-600 font-black uppercase tracking-widest">
+                      {book.hadithCount ? `${book.hadithCount.toLocaleString()} Hadiths` : `${book.editionCount || 0} Editions`}
                     </p>
                   </div>
                 </div>
-                <div className="px-8 py-6 bg-zinc-900/30 border-t border-zinc-900 flex items-center justify-between">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-600">Select Collection</span>
-                  <ArrowRight className="w-4 h-4 text-zinc-800 group-hover:text-zinc-400 transition-all" />
+                <div className="px-5 py-4 sm:px-8 sm:py-6 bg-zinc-900/30 border-t border-zinc-900 flex items-center justify-between">
+                  <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-zinc-600">Select</span>
+                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-zinc-800 group-hover:text-zinc-400 transition-all" />
                 </div>
               </Card>
             ))}

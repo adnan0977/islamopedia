@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, limit, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 import { 
   Card, 
@@ -259,10 +260,16 @@ export function HadithManager() {
         await batch.commit();
       }
 
+      // Update the parent book's total hadith count for the UI
+      const bookRef = doc(db, 'hadith_books', edition.bookId);
+      updateDocumentNonBlocking(bookRef, { 
+        hadithCount: allIncomingItems.length 
+      });
+
       updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { 
         lastSyncedAt: new Date().toISOString(),
         hadithCount: allIncomingItems.length,
-        isActive: true // Ensure it stays active after a successful sync
+        isActive: true
       });
       toast({ title: "Sync Complete", description: `Added ${missingItems.length} items and metadata.` });
     } catch (e: any) {

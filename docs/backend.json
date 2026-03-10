@@ -10,6 +10,7 @@
         "name": { "type": "string" },
         "description": { "type": "string" },
         "editionCount": { "type": "number" },
+        "hadithCount": { "type": "number" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name"]
