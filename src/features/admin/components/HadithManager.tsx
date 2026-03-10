@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -178,7 +177,7 @@ export function HadithManager() {
               textDirection: item.direction,
               sourceLink: item.link,
               sourceLinkMin: item.linkmin,
-              isActive: true,
+              isActive: true, // Default to true for synced records
               updatedAt: new Date().toISOString()
             });
           });
@@ -262,7 +261,8 @@ export function HadithManager() {
 
       updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { 
         lastSyncedAt: new Date().toISOString(),
-        hadithCount: allIncomingItems.length 
+        hadithCount: allIncomingItems.length,
+        isActive: true // Ensure it stays active after a successful sync
       });
       toast({ title: "Sync Complete", description: `Added ${missingItems.length} items and metadata.` });
     } catch (e: any) {

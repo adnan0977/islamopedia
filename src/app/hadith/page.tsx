@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from 'react';
@@ -56,13 +55,13 @@ export default function HadithPage() {
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
-  // 3. Fetch Editions for selected Book
+  // 3. Fetch Editions for selected Book - FIXED: Use equality check to avoid orderBy conflicts
   const editionsQuery = useMemoFirebase(() => {
     if (!selectedBookId) return null;
     return query(
       collection(db, 'hadith_editions'),
       where('bookId', '==', selectedBookId),
-      where('isActive', '!=', false),
+      where('isActive', '==', true),
       orderBy('collectionName', 'asc')
     );
   }, [db, selectedBookId]);
@@ -250,6 +249,14 @@ export default function HadithPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {isLoadingEditions ? (
               <div className="col-span-full py-20 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-zinc-800" /></div>
+            ) : editions?.length === 0 ? (
+              <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[2.5rem] border-2 border-dashed border-zinc-900 space-y-6">
+                 <Languages className="w-16 h-16 text-zinc-800 mx-auto" />
+                 <div className="space-y-2">
+                   <h2 className="text-xl font-bold text-zinc-400">No Active Editions</h2>
+                   <p className="text-zinc-600 max-w-xs mx-auto text-sm">Please enable and sync editions for this book in the Admin Panel.</p>
+                 </div>
+              </div>
             ) : editions?.map((edition) => (
               <Card 
                 key={edition.id} 
