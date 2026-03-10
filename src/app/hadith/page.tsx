@@ -12,7 +12,6 @@ import {
   Loader2, 
   ArrowLeft, 
   BookMarked,
-  FilterX,
   Languages,
   ArrowRight,
   Library,
@@ -23,7 +22,6 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 export default function HadithPage() {
@@ -62,13 +60,31 @@ export default function HadithPage() {
   );
   const { data: metadata, isLoading: isLoadingMetadata } = useDoc(metadataRef);
 
-  // 4. Fetch content for reader
+  // 4. Fetch Arabic Metadata for dual-language labels
+  const arabicEditionsQuery = useMemoFirebase(() => {
+    if (!selectedBookId || !selectedEditionId) return null;
+    return query(
+      collection(db, 'hadith_editions'),
+      where('bookId', '==', selectedBookId),
+      where('language', '==', 'Arabic'),
+      limit(1)
+    );
+  }, [db, selectedBookId, selectedEditionId]);
+  const { data: arabicEditions } = useCollection(arabicEditionsQuery);
+  const arabicEditionId = arabicEditions?.[0]?.id;
+
+  const arabicMetadataRef = useMemoFirebase(() => 
+    (arabicEditionId && arabicEditionId !== selectedEditionId) ? doc(db, 'hadith_metadata', arabicEditionId) : null,
+    [db, arabicEditionId, selectedEditionId]
+  );
+  const { data: arabicMetadata } = useDoc(arabicMetadataRef);
+
+  // 5. Fetch content for reader
   const contentQuery = useMemoFirebase(() => {
     if (!selectedEditionId) return null;
     
     const baseQuery = collection(db, 'hadith_data');
     
-    // If a specific section is selected, filter by the range defined in metadata
     if (selectedSectionId && metadata?.section_details?.[selectedSectionId]) {
       const details = metadata.section_details[selectedSectionId];
       return query(
@@ -80,7 +96,6 @@ export default function HadithPage() {
       );
     }
 
-    // Default: Show first 50 if no section is chosen
     return query(
       baseQuery,
       where('editionId', '==', selectedEditionId),
@@ -131,7 +146,6 @@ export default function HadithPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10 pb-32">
-      {/* Header Context Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -167,9 +181,7 @@ export default function HadithPage() {
         </div>
       </div>
 
-      {/* Main Navigation Logic */}
       {!selectedBookId ? (
-        /* LEVEL 1: BOOK SELECTION */
         <div className="space-y-10">
           <div className="flex flex-col md:flex-row gap-4 bg-zinc-950/50 p-6 rounded-3xl border border-zinc-900 shadow-xl">
             <div className="relative flex-1">
@@ -189,9 +201,7 @@ export default function HadithPage() {
                  <BookOpen className="w-16 h-16 text-zinc-800 mx-auto" />
                  <div className="space-y-2">
                    <h2 className="text-xl font-bold text-zinc-400">Library Empty</h2>
-                   <p className="text-zinc-600 max-w-xs mx-auto text-sm">
-                     Sync the external registry in the Admin Panel to populate books.
-                   </p>
+                   <p className="text-zinc-600 max-w-xs mx-auto text-sm">Sync the external registry in the Admin Panel.</p>
                  </div>
               </div>
             ) : filteredBooks.map((book) => (
@@ -222,7 +232,6 @@ export default function HadithPage() {
           </div>
         </div>
       ) : !selectedEditionId ? (
-        /* LEVEL 2: EDITION SELECTION */
         <div className="space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {isLoadingEditions ? (
@@ -256,7 +265,6 @@ export default function HadithPage() {
           </div>
         </div>
       ) : !selectedSectionId && metadata?.sections ? (
-        /* LEVEL 3: CHAPTER INDEX (FROM METADATA) */
         <div className="space-y-8 animate-in fade-in duration-500">
           <div className="bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 shadow-2xl">
             <div className="flex items-center gap-3 mb-8 pb-6 border-b border-zinc-900">
@@ -271,20 +279,28 @@ export default function HadithPage() {
                   onClick={() => setSelectedSectionId(id)}
                   className="flex items-center justify-between p-5 bg-zinc-900/30 rounded-2xl border border-zinc-900 hover:border-zinc-700 transition-all text-left group"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-600 group-hover:text-zinc-400 transition-colors">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0">
                       {id}
                     </div>
-                    <span className="text-sm font-bold text-zinc-300 group-hover:text-white transition-colors line-clamp-1">{title}</span>
+                    <div className="flex flex-col gap-1 overflow-hidden">
+                      {arabicMetadata?.sections?.[id] && (
+                        <span className="text-xs font-arabic text-zinc-500 group-hover:text-zinc-400 transition-colors truncate" dir="rtl">
+                          {arabicMetadata.sections[id]}
+                        </span>
+                      )}
+                      <span className="text-sm font-bold text-zinc-300 group-hover:text-white transition-colors truncate">
+                        {title}
+                      </span>
+                    </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-800 group-hover:text-zinc-500" />
+                  <ChevronRight className="w-4 h-4 text-zinc-800 group-hover:text-zinc-500 shrink-0 ml-2" />
                 </button>
               ))}
             </div>
           </div>
         </div>
       ) : (
-        /* LEVEL 4: READER VIEW */
         <div className="grid grid-cols-1 gap-8 animate-in fade-in duration-500">
           {isLoadingContent || isLoadingMetadata ? (
             <div className="py-32 text-center">

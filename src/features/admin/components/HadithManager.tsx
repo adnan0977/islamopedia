@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, limit, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 import { 
   Card, 
@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  Quote, 
   Search, 
   Loader2, 
   CloudDownload,
@@ -186,11 +185,9 @@ export function HadithManager() {
         }
       });
 
-      // Chunked Batching (100 per batch)
       for (let i = 0; i < booksToSave.length; i += 100) {
         const batch = writeBatch(db);
-        const chunk = booksToSave.slice(i, i + 100);
-        chunk.forEach(book => {
+        booksToSave.slice(i, i + 100).forEach(book => {
           batch.set(doc(db, 'hadith_books', book.id), book, { merge: true });
         });
         await batch.commit();
@@ -198,8 +195,7 @@ export function HadithManager() {
 
       for (let i = 0; i < editionsToSave.length; i += 100) {
         const batch = writeBatch(db);
-        const chunk = editionsToSave.slice(i, i + 100);
-        chunk.forEach(edition => {
+        editionsToSave.slice(i, i + 100).forEach(edition => {
           batch.set(doc(db, 'hadith_editions', edition.id), edition, { merge: true });
         });
         await batch.commit();
@@ -225,7 +221,6 @@ export function HadithManager() {
       const allIncomingItems = data.hadiths;
       const metadata = data.metadata;
       
-      // 1. Store Metadata (Chapters/Sections) for indexing
       if (metadata) {
         const metaRef = doc(db, 'hadith_metadata', edition.id);
         setDocumentNonBlocking(metaRef, {
@@ -236,7 +231,6 @@ export function HadithManager() {
         }, { merge: true });
       }
 
-      // 2. Fetch existing to skip duplicates
       const existingQuery = query(
         collection(db, 'hadith_data'),
         where('editionId', '==', edition.id)
@@ -252,11 +246,9 @@ export function HadithManager() {
         return;
       }
 
-      // 3. Batch write missing items
       for (let i = 0; i < missingItems.length; i += 100) {
         const batch = writeBatch(db);
-        const chunk = missingItems.slice(i, i + 100);
-        chunk.forEach((h: any) => {
+        missingItems.slice(i, i + 100).forEach((h: any) => {
           const ref = doc(db, 'hadith_data', `${edition.id}_h_${h.hadithnumber}`);
           batch.set(ref, { 
             ...h, 
