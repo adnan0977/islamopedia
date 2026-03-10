@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, limit, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 import { 
   Card, 
@@ -37,7 +37,9 @@ import {
   Save,
   Eye,
   ArrowLeft,
-  Database
+  Database,
+  ListTree,
+  FileJson
 } from 'lucide-react';
 import {
   Dialog,
@@ -62,6 +64,7 @@ import { cn } from '@/lib/utils';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type HadithViewMode = 'registry' | 'content';
 
@@ -92,6 +95,7 @@ export function HadithManager() {
     text_en: ''
   });
 
+  // Editions Registry
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_editions'),
     orderBy('collectionName', 'asc'),
@@ -99,6 +103,7 @@ export function HadithManager() {
   ), [db]);
   const { data: savedEditions, isLoading: isRegistryLoading } = useCollection(editionsQuery);
 
+  // Hadith Content for selected edition
   const contentQuery = useMemoFirebase(() => {
     if (viewMode !== 'content' || !selectedEdition) return null;
     return query(
@@ -109,6 +114,13 @@ export function HadithManager() {
     );
   }, [db, viewMode, selectedEdition]);
   const { data: hadithItems, isLoading: isContentLoading } = useCollection(contentQuery);
+
+  // Metadata for selected edition
+  const metadataRef = useMemoFirebase(() => 
+    selectedEdition ? doc(db, 'hadith_metadata', selectedEdition.id) : null,
+    [db, selectedEdition]
+  );
+  const { data: metadata, isLoading: isMetaLoading } = useDoc(metadataRef);
 
   const filteredEditions = useMemo(() => {
     if (!savedEditions) return [];
@@ -193,7 +205,7 @@ export function HadithManager() {
         await batch.commit();
       }
 
-      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions across ${booksToSave.length} books.` });
+      toast({ title: "Registry Synced", description: `Indexed ${editionsToSave.length} editions.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -235,12 +247,12 @@ export function HadithManager() {
       const missingItems = allIncomingItems.filter((h: any) => !existingNumbers.has(h.hadithnumber));
 
       if (missingItems.length === 0) {
-        toast({ title: "Up to Date", description: "All content and metadata verified." });
+        toast({ title: "Up to Date", description: "Metadata and content verified." });
         setIsContentSyncing(null);
         return;
       }
 
-      // 3. Batch write missing items with relationship IDs
+      // 3. Batch write missing items
       for (let i = 0; i < missingItems.length; i += 100) {
         const batch = writeBatch(db);
         const chunk = missingItems.slice(i, i + 100);
@@ -249,7 +261,7 @@ export function HadithManager() {
           batch.set(ref, { 
             ...h, 
             editionId: edition.id, 
-            bookId: edition.bookId, // Enriched join key
+            bookId: edition.bookId,
             updatedAt: new Date().toISOString() 
           }, { merge: true });
         });
@@ -260,7 +272,7 @@ export function HadithManager() {
         lastSyncedAt: new Date().toISOString(),
         hadithCount: allIncomingItems.length 
       });
-      toast({ title: "Sync Complete", description: `Added ${missingItems.length} items and structural metadata.` });
+      toast({ title: "Sync Complete", description: `Added ${missingItems.length} items and metadata.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Error", description: e.message });
     } finally {
@@ -335,70 +347,84 @@ export function HadithManager() {
         )}
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
-        <div className="w-full overflow-hidden">
+      {viewMode === 'registry' ? (
+        <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
           <Table className="w-full table-fixed">
             <TableHeader className="bg-zinc-900/50">
               <TableRow className="border-zinc-900">
-                {viewMode === 'registry' ? (
-                  <>
-                    <TableHead className="text-[9px] font-black uppercase py-6 text-zinc-600 pl-8 w-[30%]">Collection</TableHead>
-                    <TableHead className="text-[9px] font-black uppercase text-zinc-600 text-center w-[15%]">Language</TableHead>
-                    <TableHead className="text-[9px] font-black uppercase text-zinc-600 text-center w-[15%]">Status</TableHead>
-                    <TableHead className="text-[9px] font-black uppercase text-zinc-600 text-center w-[15%]">Data</TableHead>
-                    <TableHead className="text-right text-[9px] font-black uppercase text-zinc-600 pr-8 w-[25%]">Actions</TableHead>
-                  </>
-                ) : (
-                  <>
+                <TableHead className="text-[9px] font-black uppercase py-6 text-zinc-600 pl-8 w-[30%]">Collection</TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-zinc-600 text-center w-[15%]">Language</TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-zinc-600 text-center w-[15%]">Status</TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-zinc-600 text-center w-[15%]">Data</TableHead>
+                <TableHead className="text-right text-[9px] font-black uppercase text-zinc-600 pr-8 w-[25%]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isRegistryLoading ? (
+                <TableRow><TableCell colSpan={5} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow>
+              ) : paginatedData.map((item: any) => (
+                <TableRow key={item.id} className="hover:bg-zinc-900/40 border-zinc-900 h-24 transition-colors">
+                  <TableCell className="pl-8 max-w-0">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-zinc-100 truncate text-[11px] block">{item.collectionName}</span>
+                      <span className="text-[8px] text-zinc-600 truncate uppercase mt-0.5 block">{item.title}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="text-[10px] font-bold text-zinc-400 capitalize">{item.language}</span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge className={cn("border-none text-[7px] font-black px-1.5 py-0", item.isActive !== false ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500")}>
+                      {item.isActive !== false ? 'ACTIVE' : 'OFF'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {item.lastSyncedAt ? (
+                      <Badge className="bg-blue-500/10 text-blue-500 border-none text-[7px] font-black px-1.5 py-0">SYNCED</Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-zinc-800 text-zinc-700 text-[7px] font-black px-1.5 py-0">PENDING</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right pr-8">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => { setSelectedEdition(item); setViewMode('content'); }} title="Inspect Data" className="h-8 w-8 text-zinc-600 hover:text-white"><Eye className="w-3.5 h-3.5" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleSyncContent(item)} disabled={isContentSyncing === item.id || !item.isActive} className="h-8 w-8 text-zinc-600 hover:text-emerald-500"><RefreshCw className={cn("w-3.5 h-3.5", isContentSyncing === item.id && "animate-spin")} /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => updateDocumentNonBlocking(doc(db, 'hadith_editions', item.id), { isActive: !item.isActive })} className="h-8 w-8 text-zinc-600">
+                        {item.isActive !== false ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(item.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+          <Tabs defaultValue="content" className="w-full">
+            <div className="bg-zinc-900/50 border-b border-zinc-900 px-8 py-4">
+              <TabsList className="bg-black/40 p-1 rounded-xl h-10 border border-zinc-800">
+                <TabsTrigger value="content" className="px-6 rounded-lg text-xs font-bold flex items-center gap-2"><FileJson className="w-3.5 h-3.5" /> Hadith Content</TabsTrigger>
+                <TabsTrigger value="metadata" className="px-6 rounded-lg text-xs font-bold flex items-center gap-2"><ListTree className="w-3.5 h-3.5" /> Metadata & Chapters</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="content" className="m-0">
+              <Table className="w-full table-fixed">
+                <TableHeader className="bg-zinc-900/50">
+                  <TableRow className="border-zinc-900">
                     <TableHead className="text-[9px] font-black uppercase py-6 text-zinc-600 pl-8 w-[10%]">No.</TableHead>
                     <TableHead className="text-[9px] font-black uppercase text-zinc-600 w-[40%]">Arabic Text</TableHead>
                     <TableHead className="text-[9px] font-black uppercase text-zinc-600 w-[30%]">Translation</TableHead>
                     <TableHead className="text-right text-[9px] font-black uppercase text-zinc-600 pr-8 w-[20%]">Actions</TableHead>
-                  </>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(viewMode === 'registry' ? isRegistryLoading : isContentLoading) ? (
-                <TableRow><TableCell colSpan={5} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow>
-              ) : paginatedData.map((item: any) => (
-                <TableRow key={item.id} className="hover:bg-zinc-900/40 border-zinc-900 h-24 transition-colors">
-                  {viewMode === 'registry' ? (
-                    <>
-                      <TableCell className="pl-8 max-w-0">
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-zinc-100 truncate text-[11px] block">{item.collectionName}</span>
-                          <span className="text-[8px] text-zinc-600 truncate uppercase mt-0.5 block">{item.title}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-[10px] font-bold text-zinc-400 capitalize">{item.language}</span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge className={cn("border-none text-[7px] font-black px-1.5 py-0", item.isActive !== false ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500")}>
-                          {item.isActive !== false ? 'ACTIVE' : 'OFF'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {item.lastSyncedAt ? (
-                          <Badge className="bg-blue-500/10 text-blue-500 border-none text-[7px] font-black px-1.5 py-0">SYNCED</Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-zinc-800 text-zinc-700 text-[7px] font-black px-1.5 py-0">PENDING</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right pr-8">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => { setSelectedEdition(item); setViewMode('content'); }} title="Inspect Data" className="h-8 w-8 text-zinc-600 hover:text-white"><Eye className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleSyncContent(item)} disabled={isContentSyncing === item.id || !item.isActive} className="h-8 w-8 text-zinc-600 hover:text-emerald-500"><RefreshCw className={cn("w-3.5 h-3.5", isContentSyncing === item.id && "animate-spin")} /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => updateDocumentNonBlocking(doc(db, 'hadith_editions', item.id), { isActive: !item.isActive })} className="h-8 w-8 text-zinc-600">
-                            {item.isActive !== false ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(item.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
-                        </div>
-                      </TableCell>
-                    </>
-                  ) : (
-                    <>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isContentLoading ? (
+                    <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow>
+                  ) : paginatedData.map((item: any) => (
+                    <TableRow key={item.id} className="hover:bg-zinc-900/40 border-zinc-900 h-24 transition-colors">
                       <TableCell className="pl-8 text-[10px] font-bold text-zinc-500">{item.hadithnumber}</TableCell>
                       <TableCell className="max-w-0">
                         <p className="text-[11px] font-arabic text-zinc-200 line-clamp-2 leading-relaxed" dir="rtl">{item.text}</p>
@@ -412,38 +438,86 @@ export function HadithManager() {
                           <Button variant="ghost" size="icon" onClick={() => setDeleteItemConfirmId(item.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>
                       </TableCell>
-                    </>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
 
-        {totalPages > 1 && (
-          <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between">
-            <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages}</span>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" 
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => p - 1)}
-              >
-                <ChevronLeft className="w-4 h-4 mr-2" /> Previous
-              </Button>
-              <Button 
-                variant="outline" 
-                className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" 
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => p + 1)}
-              >
-                Next <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
+            <TabsContent value="metadata" className="m-0">
+              <div className="p-8 space-y-8">
+                {isMetaLoading ? (
+                  <div className="py-20 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></div>
+                ) : metadata ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-2 pb-2 border-b border-zinc-900">
+                        <ListTree className="w-4 h-4 text-zinc-500" />
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">Chapters / Sections</h3>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 max-h-[500px] overflow-y-auto pr-4 scrollbar-hide">
+                        {metadata.sections && Object.entries(metadata.sections).map(([id, title]: [string, any]) => (
+                          <div key={id} className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-xl border border-zinc-900">
+                            <span className="text-[10px] font-black text-zinc-600 w-8">{id}</span>
+                            <span className="text-xs font-bold text-zinc-300 truncate flex-1">{title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-2 pb-2 border-b border-zinc-900">
+                        <Database className="w-4 h-4 text-zinc-500" />
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">Structure Data</h3>
+                      </div>
+                      <div className="bg-black/40 p-6 rounded-2xl border border-zinc-900">
+                        <pre className="text-[10px] font-mono text-emerald-500/80 overflow-x-auto whitespace-pre-wrap">
+                          {JSON.stringify(metadata.section_details, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-32 text-center space-y-4">
+                    <FilterX className="w-12 h-12 text-zinc-900 mx-auto" />
+                    <p className="text-zinc-600 font-medium">No metadata available for this edition.</p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleSyncContent(selectedEdition)}
+                      className="rounded-xl border-white text-white font-bold"
+                    >
+                      Attempt Metadata Extraction
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </Card>
+      )}
+
+      {totalPages > 1 && (
+        <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between rounded-b-[2rem]">
+          <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages}</span>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" /> Previous
+            </Button>
+            <Button 
+              variant="outline" 
+              className="rounded-xl border-white text-white font-bold h-10 px-6 hover:bg-white hover:text-black transition-all" 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+            >
+              Next <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
-        )}
-      </Card>
+        </div>
+      )}
 
       <Dialog open={isHadithItemDialogOpen} onOpenChange={setIsHadithItemDialogOpen}>
         <DialogContent className="sm:max-w-lg bg-zinc-950 border-zinc-900 text-white rounded-[2rem] p-0 outline-none overflow-hidden shadow-2xl">
@@ -476,7 +550,11 @@ export function HadithManager() {
             </div>
           </div>
           <div className="p-8 bg-zinc-900/20 border-t border-zinc-900 flex justify-end">
-            <Button variant="outline" className="rounded-xl border-white text-white hover:bg-white hover:text-black font-bold h-12 px-10 transition-all flex items-center gap-2" onClick={handleSaveHadithItem}>
+            <Button 
+              variant="outline" 
+              className="rounded-xl border-white text-white hover:bg-white hover:text-black font-bold h-12 px-10 transition-all flex items-center gap-2" 
+              onClick={handleSaveHadithItem}
+            >
               <Save className="w-4 h-4" /> Save Item
             </Button>
           </div>
