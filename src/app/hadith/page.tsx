@@ -19,7 +19,8 @@ import {
   BookOpen,
   ListTree,
   Book as BookIcon,
-  ChevronRight
+  ChevronRight,
+  Hash
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -56,7 +57,7 @@ export default function HadithPage() {
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
-  // 3. Fetch Editions for selected Book - Simplified query to avoid permission/index errors
+  // 3. Fetch Editions for selected Book
   const editionsQuery = useMemoFirebase(() => {
     if (!selectedBookId) return null;
     return query(
@@ -67,12 +68,11 @@ export default function HadithPage() {
   }, [db, selectedBookId]);
   const { data: rawEditions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
 
-  // Client-side filtering for activation to bypass composite index requirements
   const editions = useMemo(() => {
     return rawEditions?.filter(e => e.isActive !== false) || [];
   }, [rawEditions]);
 
-  // 4. Fetch Metadata using URL variable
+  // 4. Fetch Metadata for current edition
   const metadataRef = useMemoFirebase(() => 
     selectedEditionId ? doc(db, 'hadith_metadata', selectedEditionId) : null, 
     [db, selectedEditionId]
@@ -80,21 +80,14 @@ export default function HadithPage() {
   const { data: metadata, isLoading: isLoadingMetadata } = useDoc(metadataRef);
 
   // 5. Fetch Arabic Metadata for dual-language indexing
-  const arabicEditionsQuery = useMemoFirebase(() => {
-    if (!selectedBookId || !selectedEditionId) return null;
-    return query(
-      collection(db, 'hadith_editions'),
-      where('bookId', '==', selectedBookId),
-      where('language', '==', 'Arabic'),
-      limit(1)
-    );
-  }, [db, selectedBookId, selectedEditionId]);
-  const { data: arabicEditions } = useCollection(arabicEditionsQuery);
-  const arabicEditionId = arabicEditions?.[0]?.id;
-
+  // We find the Arabic edition ID for the SAME book
+  const arabicEdition = useMemo(() => 
+    editions?.find(e => e.language === 'Arabic'), 
+    [editions]
+  );
   const arabicMetadataRef = useMemoFirebase(() => 
-    (arabicEditionId && arabicEditionId !== selectedEditionId) ? doc(db, 'hadith_metadata', arabicEditionId) : null,
-    [db, arabicEditionId, selectedEditionId]
+    (arabicEdition && arabicEdition.id !== selectedEditionId) ? doc(db, 'hadith_metadata', arabicEdition.id) : null,
+    [db, arabicEdition, selectedEditionId]
   );
   const { data: arabicMetadata } = useDoc(arabicMetadataRef);
 
@@ -188,7 +181,7 @@ export default function HadithPage() {
           <div className="flex items-center gap-2">
             <p className="text-zinc-500 text-sm">
               {selectedSectionId && metadata?.sections?.[selectedSectionId] 
-                ? `Chapter: ${metadata.sections[selectedSectionId]}`
+                ? `Chapter ${selectedSectionId}: ${metadata.sections[selectedSectionId]}`
                 : selectedEdition 
                   ? `${selectedEdition.title} (${selectedEdition.language})` 
                   : selectedBook 
@@ -293,36 +286,59 @@ export default function HadithPage() {
       ) : !selectedSectionId && metadata?.sections ? (
         <div className="space-y-8 animate-in fade-in duration-500">
           <div className="bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 shadow-2xl">
-            <div className="flex items-center gap-3 mb-8 pb-6 border-b border-zinc-900">
-              <ListTree className="w-5 h-5 text-zinc-500" />
-              <h2 className="text-xl font-bold text-zinc-100">Chapter Index</h2>
+            <div className="flex items-center justify-between mb-8 pb-6 border-b border-zinc-900">
+              <div className="flex items-center gap-3">
+                <ListTree className="w-5 h-5 text-zinc-500" />
+                <h2 className="text-xl font-bold text-zinc-100">Chapter Index</h2>
+              </div>
+              <Badge variant="outline" className="border-zinc-800 text-[9px] font-black uppercase text-zinc-600">
+                {Object.keys(metadata.sections).length} Sections
+              </Badge>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(metadata.sections).map(([id, title]: [string, any]) => (
-                <button
-                  key={id}
-                  onClick={() => updateUrl({ section: id })}
-                  className="flex items-center justify-between p-5 bg-zinc-900/30 rounded-2xl border border-zinc-900 hover:border-zinc-700 transition-all text-left group"
-                >
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0">
-                      {id}
+              {Object.entries(metadata.sections).map(([id, title]: [string, any]) => {
+                const details = metadata.section_details?.[id];
+                const itemCount = details ? (details.hadithnumber_last - details.hadithnumber_first + 1) : null;
+                const arabicTitle = arabicMetadata?.sections?.[id];
+
+                return (
+                  <button
+                    key={id}
+                    onClick={() => updateUrl({ section: id })}
+                    className="flex flex-col p-6 bg-zinc-900/30 rounded-2xl border border-zinc-900 hover:border-zinc-700 transition-all text-left group gap-4"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0">
+                        {id}
+                      </div>
+                      {itemCount !== null && (
+                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-zinc-600 tracking-tight">
+                          <Hash className="w-2.5 h-2.5" />
+                          <span>{details.hadithnumber_first} - {details.hadithnumber_last}</span>
+                          <span className="text-zinc-800 mx-1">|</span>
+                          <span className="text-zinc-500">{itemCount} Items</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex flex-col gap-1 overflow-hidden">
-                      {arabicMetadata?.sections?.[id] && (
-                        <span className="text-xs font-arabic text-zinc-500 group-hover:text-zinc-400 transition-colors truncate" dir="rtl">
-                          {arabicMetadata.sections[id]}
+
+                    <div className="space-y-3">
+                      {arabicTitle && (
+                        <span className="text-lg font-arabic text-zinc-400 group-hover:text-zinc-200 transition-colors block text-right leading-relaxed" dir="rtl">
+                          {arabicTitle}
                         </span>
                       )}
-                      <span className="text-sm font-bold text-zinc-300 group-hover:text-white transition-colors truncate">
+                      <span className="text-sm font-bold text-zinc-300 group-hover:text-white transition-colors line-clamp-2 leading-relaxed">
                         {title}
                       </span>
                     </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-800 group-hover:text-zinc-500 shrink-0 ml-2" />
-                </button>
-              ))}
+                    
+                    <div className="mt-auto pt-4 border-t border-zinc-900/50 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                       <span className="text-[9px] font-black uppercase text-zinc-500 flex items-center gap-1">Read Section <ChevronRight className="w-3 h-3" /></span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
