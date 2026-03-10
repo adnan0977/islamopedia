@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, limit, doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,18 +23,32 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 export default function HadithPage() {
   const db = useFirestore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Navigation States
-  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
-  const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null);
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  // 1. URL-Driven Navigation State
+  const selectedBookId = searchParams.get('book');
+  const selectedEditionId = searchParams.get('edition');
+  const selectedSectionId = searchParams.get('section');
 
-  // 1. Fetch Books
+  const updateUrl = (params: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    });
+    router.push(`/hadith?${newParams.toString()}`);
+  };
+
+  // 2. Fetch Books (Main Directory)
   const booksQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_books'),
     orderBy('name', 'asc'),
@@ -41,7 +56,7 @@ export default function HadithPage() {
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
-  // 2. Fetch Editions for selected Book
+  // 3. Fetch Editions for selected Book
   const editionsQuery = useMemoFirebase(() => {
     if (!selectedBookId) return null;
     return query(
@@ -53,14 +68,14 @@ export default function HadithPage() {
   }, [db, selectedBookId]);
   const { data: editions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
 
-  // 3. Fetch Metadata for Indexing
+  // 4. Fetch Metadata using URL variable
   const metadataRef = useMemoFirebase(() => 
     selectedEditionId ? doc(db, 'hadith_metadata', selectedEditionId) : null, 
     [db, selectedEditionId]
   );
   const { data: metadata, isLoading: isLoadingMetadata } = useDoc(metadataRef);
 
-  // 4. Fetch Arabic Metadata for dual-language labels
+  // 5. Fetch Arabic Metadata for dual-language indexing
   const arabicEditionsQuery = useMemoFirebase(() => {
     if (!selectedBookId || !selectedEditionId) return null;
     return query(
@@ -79,7 +94,7 @@ export default function HadithPage() {
   );
   const { data: arabicMetadata } = useDoc(arabicMetadataRef);
 
-  // 5. Fetch content for reader
+  // 6. Fetch actual Hadith content
   const contentQuery = useMemoFirebase(() => {
     if (!selectedEditionId) return null;
     
@@ -124,13 +139,12 @@ export default function HadithPage() {
 
   const handleBack = () => {
     if (selectedSectionId) {
-      setSelectedSectionId(null);
+      updateUrl({ section: null });
     } else if (selectedEditionId) {
-      setSelectedEditionId(null);
+      updateUrl({ edition: null });
     } else if (selectedBookId) {
-      setSelectedBookId(null);
+      updateUrl({ book: null });
     }
-    setSearchTerm('');
   };
 
   if (isLoadingBooks) {
@@ -201,13 +215,13 @@ export default function HadithPage() {
                  <BookOpen className="w-16 h-16 text-zinc-800 mx-auto" />
                  <div className="space-y-2">
                    <h2 className="text-xl font-bold text-zinc-400">Library Empty</h2>
-                   <p className="text-zinc-600 max-w-xs mx-auto text-sm">Sync the external registry in the Admin Panel.</p>
+                   <p className="text-zinc-600 max-w-xs mx-auto text-sm">Synchronize the external registry in the Admin Panel.</p>
                  </div>
               </div>
             ) : filteredBooks.map((book) => (
               <Card 
                 key={book.id} 
-                onClick={() => setSelectedBookId(book.id)}
+                onClick={() => updateUrl({ book: book.id })}
                 className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group cursor-pointer shadow-xl flex flex-col h-full"
               >
                 <div className="p-8 space-y-6 flex-1">
@@ -239,7 +253,7 @@ export default function HadithPage() {
             ) : editions?.map((edition) => (
               <Card 
                 key={edition.id} 
-                onClick={() => setSelectedEditionId(edition.id)}
+                onClick={() => updateUrl({ edition: edition.id })}
                 className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group cursor-pointer shadow-xl"
               >
                 <div className="p-8 space-y-6">
@@ -276,7 +290,7 @@ export default function HadithPage() {
               {Object.entries(metadata.sections).map(([id, title]: [string, any]) => (
                 <button
                   key={id}
-                  onClick={() => setSelectedSectionId(id)}
+                  onClick={() => updateUrl({ section: id })}
                   className="flex items-center justify-between p-5 bg-zinc-900/30 rounded-2xl border border-zinc-900 hover:border-zinc-700 transition-all text-left group"
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">
