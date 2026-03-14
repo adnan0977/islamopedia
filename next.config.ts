@@ -4,12 +4,6 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* Capacitor requires a static export for native apps */
   output: 'export',
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     /* Static exports do not support Next.js Image Optimization API on the device */
     unoptimized: true,
@@ -46,6 +40,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  distDir: 'out',
 };
 
 export default nextConfig;
