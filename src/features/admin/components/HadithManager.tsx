@@ -34,7 +34,8 @@ import {
   Plus,
   ListOrdered,
   LayoutGrid,
-  ShieldCheck
+  ShieldCheck,
+  Pencil
 } from 'lucide-react';
 import { 
   Table, 
@@ -70,6 +71,7 @@ export function HadithManager() {
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSeedingSlugs, setIsSeedingSlugs] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // URL State Management
   const activeBookId = searchParams.get('bookId');
@@ -133,6 +135,14 @@ export function HadithManager() {
       toast({ variant: "destructive", title: "Seeding Failed", description: error.message });
     } finally {
       setIsSeedingSlugs(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirmId) {
+      deleteDocumentNonBlocking(doc(db, 'hadith_books', deleteConfirmId));
+      setDeleteConfirmId(null);
+      toast({ title: "Collection Removed" });
     }
   };
 
@@ -221,7 +231,7 @@ export function HadithManager() {
                 <div className="pt-6 border-t border-zinc-900 flex items-center justify-between">
                   <div className="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800">
                     <Hash className="w-3 h-3 text-zinc-600" />
-                    <span className="text-[10px] font-black uppercase text-zinc-400">{parseInt(book.hadiths_count).toLocaleString()} Hadiths</span>
+                    <span className="text-[10px] font-black uppercase text-zinc-400">{parseInt(book.hadiths_count || '0').toLocaleString()} Hadiths</span>
                   </div>
                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black px-2 uppercase">Active</Badge>
                 </div>
@@ -364,6 +374,12 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right pr-8 space-x-2">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => {
+                    const newUrl = prompt("Enter new source JSON URL:", edition.sourceLinkMin);
+                    if (newUrl !== null) updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { sourceLinkMin: newUrl });
+                  }}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => toggleStatus(edition.id, edition.isActive)}>
                     {edition.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
                   </Button>

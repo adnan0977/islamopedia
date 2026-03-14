@@ -44,9 +44,7 @@ import { getAllAlQuranEditions, getFullQuran, getQuranMetadata } from '@/lib/api
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from '@/lib/utils';
-import { AyatFrame } from '@/components/quran/AyatFrame';
 
 interface QuranHubProps {
   editions: any[];
@@ -180,6 +178,24 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function FullQuranViewer({ editions }: { editions: any[] }) {
+  return (
+    <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl">
+      <div className="p-20 text-center space-y-6">
+        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto border border-zinc-800">
+          <BookOpen className="w-10 h-10 text-zinc-700" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-bold text-white">Quran Content Viewer</h3>
+          <p className="text-zinc-500 text-sm max-w-sm mx-auto">
+            This module allows you to inspect the synchronized ayats for each surah. Select an edition from the Directory tab to get started.
+          </p>
+        </div>
+      </div>
+    </Card>
   );
 }
 
