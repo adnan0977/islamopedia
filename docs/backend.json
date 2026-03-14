@@ -52,10 +52,22 @@
         "bookId": { "type": "string" },
         "language": { "type": "string" },
         "editionName": { "type": "string" },
+        "sourceLinkMin": { "type": "string" },
         "isActive": { "type": "boolean" },
         "lastSyncedAt": { "type": "string" }
       },
       "required": ["bookId", "language"]
+    },
+    "HadithMetadata": {
+      "title": "Hadith Metadata",
+      "description": "Structural metadata for a Hadith edition (chapters, sections).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "editionId": { "type": "string" },
+        "bookId": { "type": "string" },
+        "metadata": { "type": "object" }
+      }
     },
     "HadithIndex": {
       "title": "Hadith Index",
@@ -135,6 +147,10 @@
     "/hadith_editions/{editionId}": {
       "schema": "HadithEdition",
       "description": "Language-specific editions of Hadith books."
+    },
+    "/hadith_metadata/{metaId}": {
+      "schema": "HadithMetadata",
+      "description": "Edition-specific metadata (chapters/sections)."
     },
     "/hadith_index/{indexId}": {
       "schema": "HadithIndex",

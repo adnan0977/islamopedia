@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, doc, writeBatch, where, limit } from 'firebase/firestore';
+import { collection, query, doc, writeBatch, where, limit } from 'firebase/firestore';
 import { 
   Card, 
   CardHeader, 
@@ -14,6 +14,8 @@ import {
   CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Loader2, 
   Trash2, 
@@ -29,9 +31,10 @@ import {
   Languages,
   Power,
   PowerOff,
-  Table as TableIcon,
   Plus,
-  ListOrdered
+  ListOrdered,
+  LayoutGrid,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   Table, 
@@ -73,8 +76,7 @@ export function HadithManager() {
   const activeEditionId = searchParams.get('editionId');
 
   const booksQuery = useMemoFirebase(() => query(
-    collection(db, 'hadith_books'),
-    orderBy('bookName', 'asc')
+    collection(db, 'hadith_books')
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
@@ -243,8 +245,7 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
 
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_editions'),
-    where('bookId', '==', bookId),
-    orderBy('language', 'asc')
+    where('bookId', '==', bookId)
   ), [db, bookId]);
   const { data: editions, isLoading } = useCollection(editionsQuery);
 
@@ -255,6 +256,7 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
 
   const createEdition = () => {
     const lang = prompt("Enter language (e.g., English, Urdu, Arabic):");
+    const sourceLink = prompt("Enter source JSON URL (sourceLinkMin):");
     if (!lang) return;
     const name = `${book?.bookName} (${lang})`;
     const id = `${bookId}-${lang.toLowerCase()}`;
@@ -264,6 +266,7 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
       bookId,
       language: lang,
       editionName: name,
+      sourceLinkMin: sourceLink || '',
       isActive: true,
       lastSyncedAt: new Date().toISOString()
     }, { merge: true });
@@ -308,8 +311,8 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-headline font-bold text-white">{book?.bookName} Collections</h2>
-            <p className="text-sm text-zinc-500">Manage language editions and chapter mappings.</p>
+            <h2 className="text-2xl font-headline font-bold text-white">{book?.bookName} Editions</h2>
+            <p className="text-sm text-zinc-500">Manage translation editions and metadata sources.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -337,14 +340,15 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900">
-              <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500">Language Edition</TableHead>
+              <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500">Edition Name</TableHead>
+              <TableHead className="text-[9px] font-black uppercase text-zinc-500">Language</TableHead>
               <TableHead className="text-center text-[9px] font-black uppercase text-zinc-500">Status</TableHead>
               <TableHead className="text-right pr-8 text-[9px] font-black uppercase text-zinc-500">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={3} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
             ) : editions?.map((edition) => (
               <TableRow key={edition.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
                 <TableCell className="pl-8" onClick={() => onSelectEdition(edition.id)}>
@@ -353,6 +357,7 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
                     <span className="font-bold text-zinc-100 group-hover:text-white">{edition.editionName}</span>
                   </div>
                 </TableCell>
+                <TableCell className="text-xs text-zinc-400">{edition.language}</TableCell>
                 <TableCell className="text-center">
                   <Badge className={cn("border-none text-[8px] font-black uppercase", edition.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
                     {edition.isActive ? 'Active' : 'Inactive'}
@@ -368,9 +373,6 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
                 </TableCell>
               </TableRow>
             ))}
-            {(!editions || editions.length === 0) && !isLoading && (
-              <TableRow><TableCell colSpan={3} className="h-32 text-center text-zinc-600 italic">No editions registered yet.</TableCell></TableRow>
-            )}
           </TableBody>
         </Table>
       </Card>
@@ -392,29 +394,36 @@ function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () =
   ), [db, editionId]);
   const { data: hadiths, isLoading } = useCollection(dataQuery);
 
-  const [isSyncingContent, setIsSyncingContent] = useState(false);
+  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
 
-  const handleSyncContent = () => {
-    setIsSyncingContent(true);
-    // Simulating content population for demo/MVP
-    setTimeout(() => {
-      const batch = writeBatch(db);
-      for(let i=1; i<=10; i++) {
-        const id = `${editionId}-h-${i}`;
-        batch.set(doc(db, 'hadith_data', id), {
-          id,
-          editionId,
-          bookId: edition?.bookId,
-          hadithNumber: i.toString(),
-          arabicText: "قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ...",
-          translatedText: "The Messenger of Allah (PBUH) said...",
-          chapterName: "Introduction"
-        }, { merge: true });
-      }
-      batch.commit();
-      setIsSyncingContent(false);
-      toast({ title: "Sync Complete", description: "First 10 records generated for testing." });
-    }, 1500);
+  const handleSyncMetadata = async () => {
+    if (!edition?.sourceLinkMin) {
+      toast({ variant: "destructive", title: "No Source URL", description: "Please provide sourceLinkMin for this edition first." });
+      return;
+    }
+
+    setIsSyncingMeta(true);
+    try {
+      const response = await fetch(edition.sourceLinkMin);
+      const data = await response.json();
+      
+      if (!data.metadata) throw new Error("Metadata field not found in response.");
+
+      const metaId = editionId;
+      await setDocumentNonBlocking(doc(db, 'hadith_metadata', metaId), {
+        id: metaId,
+        editionId,
+        bookId: edition.bookId,
+        metadata: data.metadata,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      toast({ title: "Metadata Synced", description: "Edition structure (chapters/sections) has been indexed." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Sync Failed", description: error.message });
+    } finally {
+      setIsSyncingMeta(false);
+    }
   };
 
   return (
@@ -425,18 +434,18 @@ function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () =
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-headline font-bold text-white">{edition?.editionName} Data</h2>
-            <p className="text-sm text-zinc-500">Previewing individual Hadith records.</p>
+            <h2 className="text-2xl font-headline font-bold text-white">{edition?.editionName} Content</h2>
+            <p className="text-sm text-zinc-500">Previewing individual Hadith records and structural metadata.</p>
           </div>
         </div>
         <Button 
           variant="outline"
           className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
-          onClick={handleSyncContent}
-          disabled={isSyncingContent}
+          onClick={handleSyncMetadata}
+          disabled={isSyncingMeta}
         >
-          {isSyncingContent ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          <span>Sync Content</span>
+          {isSyncingMeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+          <span>Sync Metadata Index</span>
         </Button>
       </div>
 
@@ -467,9 +476,6 @@ function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () =
                 </TableCell>
               </TableRow>
             ))}
-            {(!hadiths || hadiths.length === 0) && !isLoading && (
-              <TableRow><TableCell colSpan={4} className="h-32 text-center text-zinc-600 italic">No content available for this edition.</TableCell></TableRow>
-            )}
           </TableBody>
         </Table>
       </Card>
