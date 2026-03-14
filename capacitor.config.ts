@@ -2,8 +2,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.vlognest.app',
-  appName: 'VlogNest',
+  appId: 'com.islamopedia.app',
+  appName: 'Islamopedia',
   webDir: 'out',
   bundledWebRuntime: false,
   server: {
