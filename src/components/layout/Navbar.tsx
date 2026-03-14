@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, User, Play, ShieldCheck, Mic2 } from 'lucide-react';
+import { Home, BookOpen, User, Play, ShieldCheck, Mic2, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 const baseNavItems = [
   { id: 'home', label: 'Home', icon: Home, href: '/' },
   { id: 'quran', label: 'Quran', icon: BookOpen, href: '/quran' },
+  { id: 'hadith', label: 'Hadith', icon: ScrollText, href: '/hadith' },
   { id: 'speakers', label: 'Speakers', icon: Mic2, href: '/speakers' },
 ];
 
