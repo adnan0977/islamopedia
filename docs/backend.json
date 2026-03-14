@@ -1,67 +1,6 @@
 
 {
   "entities": {
-    "HadithBook": {
-      "title": "HadithBook",
-      "type": "object",
-      "description": "Represents a major Hadith collection (e.g., Sahih Bukhari).",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "editionCount": { "type": "number" },
-        "hadithCount": { "type": "number" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "name"]
-    },
-    "HadithEdition": {
-      "title": "HadithEdition",
-      "type": "object",
-      "description": "Represents a specific edition or collection of Hadith.",
-      "properties": {
-        "id": { "type": "string" },
-        "bookId": { "type": "string" },
-        "collectionName": { "type": "string" },
-        "title": { "type": "string" },
-        "language": { "type": "string" },
-        "textDirection": { "type": "string" },
-        "sourceLink": { "type": "string" },
-        "sourceLinkMin": { "type": "string" },
-        "isActive": { "type": "boolean" },
-        "lastSyncedAt": { "type": "string", "format": "date-time" },
-        "hadithCount": { "type": "number" },
-        "dataSync": { "type": "string", "enum": ["yes", "no"] }
-      },
-      "required": ["id", "title", "language"]
-    },
-    "HadithContent": {
-      "title": "HadithContent",
-      "type": "object",
-      "description": "Individual Hadith text record with relationship markers.",
-      "properties": {
-        "id": { "type": "string" },
-        "bookId": { "type": "string" },
-        "editionId": { "type": "string" },
-        "hadithnumber": { "type": "number" },
-        "text": { "type": "string" },
-        "text_en": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["bookId", "editionId", "text"]
-    },
-    "HadithMetadata": {
-      "title": "HadithMetadata",
-      "type": "object",
-      "description": "Structural metadata for a Hadith edition (chapters, sections).",
-      "properties": {
-        "editionId": { "type": "string" },
-        "bookId": { "type": "string" },
-        "sections": { "type": "object" },
-        "section_details": { "type": "object" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
     "Video": {
       "title": "Video",
       "type": "object",
@@ -85,22 +24,6 @@
     ]
   },
   "firestore": {
-    "/hadith_books/{bookId}": {
-      "schema": "HadithBook",
-      "description": "Catalog of major Hadith books."
-    },
-    "/hadith_editions/{hadithEditionId}": {
-      "schema": "HadithEdition",
-      "description": "Registry of available Hadith books and language editions."
-    },
-    "/hadith_data/{contentId}": {
-      "schema": "HadithContent",
-      "description": "The actual text and translations of specific Hadiths."
-    },
-    "/hadith_metadata/{editionId}": {
-      "schema": "HadithMetadata",
-      "description": "Chapter and section mapping for editions."
-    },
     "/videos/{videoId}": {
       "schema": "Video",
       "description": "Cataloged spiritual videos."

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -12,26 +13,6 @@ service cloud.firestore {
     }
 
     // --- Public Content (Read for everyone, Write for Admin only) ---
-    
-    match /hadith_books/{id} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /hadith_editions/{id} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /hadith_data/{id} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /hadith_metadata/{id} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
     
     match /videos/{id} {
       allow get, list: if true;

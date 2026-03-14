@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -18,7 +19,6 @@ import {
   Mic2,
   Database,
   Settings,
-  Quote,
   ExternalLink
 } from 'lucide-react';
 import { 
@@ -55,7 +55,6 @@ import { AppSettings } from '@/features/admin/components/AppSettings';
 import { ChannelHub } from '@/features/admin/components/ChannelHub';
 import { VideoCatalog } from '@/features/admin/components/VideoCatalog';
 import { ScholarDirectory } from '@/features/admin/components/ScholarDirectory';
-import { HadithManager } from '@/features/admin/components/HadithManager';
 import { AdminTab, SyncState } from '@/features/admin/types';
 
 export default function AdminPanel() {
@@ -146,7 +145,6 @@ export default function AdminPanel() {
                     { id: 'channels', label: 'Channel Hub', icon: Youtube },
                     { id: 'videos', label: 'Video Catalog', icon: VideoIcon },
                     { id: 'scholars', label: 'Scholars', icon: Mic2 },
-                    { id: 'hadith', label: 'Hadith Hub', icon: Quote },
                     { id: 'quran-tools', label: 'Quran Tools', icon: Book },
                     { id: 'settings', label: 'App Settings', icon: Settings },
                   ].map((item) => (
@@ -203,9 +201,6 @@ export default function AdminPanel() {
             )}
             {activeTab === 'scholars' && (
               <ScholarDirectory />
-            )}
-            {activeTab === 'hadith' && (
-              <HadithManager />
             )}
             {activeTab === 'quran-tools' && (
               <QuranHub 

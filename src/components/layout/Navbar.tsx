@@ -1,22 +1,16 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, User, Play, ShieldCheck, Mic2, ChevronDown, Quote } from 'lucide-react';
+import { Home, BookOpen, User, Play, ShieldCheck, Mic2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const baseNavItems = [
   { id: 'home', label: 'Home', icon: Home, href: '/' },
-  { id: 'hadith', label: 'Hadith', icon: Quote, href: '/hadith' },
   { id: 'quran', label: 'Quran', icon: BookOpen, href: '/quran' },
   { id: 'speakers', label: 'Speakers', icon: Mic2, href: '/speakers' },
 ];

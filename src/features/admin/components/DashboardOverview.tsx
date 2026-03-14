@@ -35,7 +35,7 @@ export function DashboardOverview({ channels, videos, speakers, editions }: Dash
     { label: 'Total Videos', value: videos.length, icon: VideoIcon, color: 'text-blue-500' },
     { label: 'Active Channels', value: channels.length, icon: Youtube, color: 'text-red-500' },
     { label: 'Featured Scholars', value: speakers.length, icon: Mic2, color: 'text-amber-500' },
-    { label: 'Active Editions', value: editions.length, icon: Languages, color: 'text-emerald-500' },
+    { label: 'Active Quran Editions', value: editions.length, icon: Languages, color: 'text-emerald-500' },
   ];
 
   const chartData = [
