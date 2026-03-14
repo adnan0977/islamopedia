@@ -31,6 +31,17 @@
         "isActive": { "type": "boolean" },
         "lastSyncedAt": { "type": "string" }
       }
+    },
+    "HadithSlug": {
+      "title": "Hadith Slug",
+      "description": "A mapping of Book Name to its official URL/API slug.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookName": { "type": "string" },
+        "slug": { "type": "string" }
+      },
+      "required": ["bookName", "slug"]
     }
   },
   "auth": {
@@ -75,6 +86,10 @@
     "/hadith_books/{bookId}": {
       "schema": "HadithBook",
       "description": "Registry of primary Hadith collections from API."
+    },
+    "/hadith_slug/{slugId}": {
+      "schema": "HadithSlug",
+      "description": "Official slug mapping for Hadith collections."
     }
   }
 }
