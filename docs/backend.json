@@ -15,6 +15,20 @@
         "isActive": { "type": "boolean" },
         "appViewCount": { "type": "number" }
       }
+    },
+    "HadithBook": {
+      "title": "Hadith Book",
+      "description": "A primary collection of Hadith (e.g., Sahih Bukhari).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "collectionName": { "type": "string" },
+        "englishName": { "type": "string" },
+        "arabicName": { "type": "string" },
+        "hadithCount": { "type": "number" },
+        "description": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      }
     }
   },
   "auth": {
@@ -55,6 +69,10 @@
     "/quran_metadata/{metaId}": {
       "schema": "object",
       "description": "Structural Quran data."
+    },
+    "/hadith_books/{bookId}": {
+      "schema": "HadithBook",
+      "description": "Registry of primary Hadith collections."
     }
   }
 }
