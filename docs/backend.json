@@ -18,16 +18,18 @@
     },
     "HadithBook": {
       "title": "Hadith Book",
-      "description": "A primary collection of Hadith (e.g., Sahih Bukhari).",
+      "description": "A primary collection of Hadith from HadithAPI.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "collectionName": { "type": "string" },
-        "englishName": { "type": "string" },
-        "arabicName": { "type": "string" },
-        "hadithCount": { "type": "number" },
-        "description": { "type": "string" },
-        "isActive": { "type": "boolean" }
+        "bookName": { "type": "string" },
+        "bookSlug": { "type": "string" },
+        "writerName": { "type": "string" },
+        "writerDeath": { "type": "string" },
+        "hadiths_count": { "type": "string" },
+        "chapters_count": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "lastSyncedAt": { "type": "string" }
       }
     }
   },
@@ -72,7 +74,7 @@
     },
     "/hadith_books/{bookId}": {
       "schema": "HadithBook",
-      "description": "Registry of primary Hadith collections."
+      "description": "Registry of primary Hadith collections from API."
     }
   }
 }
