@@ -59,6 +59,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /hadith_index/{id} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
     match /hadith_data/{id} {
       allow get, list: if true;
       allow write: if isAdmin();

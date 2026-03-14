@@ -30,7 +30,8 @@ import {
   Power,
   PowerOff,
   Table as TableIcon,
-  Plus
+  Plus,
+  ListOrdered
 } from 'lucide-react';
 import { 
   Table, 
@@ -42,7 +43,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { fetchHadithBooks, HadithApiBook } from '@/services/hadith-api';
+import { fetchHadithBooks, fetchHadithChapters, HadithApiBook, HadithApiChapter } from '@/services/hadith-api';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -235,6 +236,8 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
   const db = useFirestore();
   const { toast } = useToast();
   
+  const [isSyncingIndex, setIsSyncingIndex] = useState(false);
+
   const bookRef = useMemoFirebase(() => doc(db, 'hadith_books', bookId), [db, bookId]);
   const { data: book } = useDoc(bookRef);
 
@@ -267,26 +270,67 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
     toast({ title: "Edition Created" });
   };
 
+  const handleSyncIndex = async () => {
+    if (!book?.bookSlug) return;
+    setIsSyncingIndex(true);
+    try {
+      const apiChapters = await fetchHadithChapters(book.bookSlug);
+      const batch = writeBatch(db);
+      
+      apiChapters.forEach((ch: HadithApiChapter) => {
+        const indexId = `${book.bookSlug}_ch_${ch.chapterNumber}`;
+        const indexRef = doc(db, 'hadith_index', indexId);
+        batch.set(indexRef, {
+          id: indexId,
+          bookSlug: book.bookSlug,
+          chapterNumber: ch.chapterNumber,
+          chapterArabic: ch.chapterArabic,
+          chapterEnglish: ch.chapterEnglish,
+          chapterUrdu: ch.chapterUrdu,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      });
+
+      await batch.commit();
+      toast({ title: "Index Synced", description: `Updated ${apiChapters.length} chapter definitions.` });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Index Sync Failed", description: error.message });
+    } finally {
+      setIsSyncingIndex(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white">
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-headline font-bold text-white">{book?.bookName} Editions</h2>
-            <p className="text-sm text-zinc-500">Manage language variants for this collection.</p>
+            <h2 className="text-2xl font-headline font-bold text-white">{book?.bookName} Collections</h2>
+            <p className="text-sm text-zinc-500">Manage language editions and chapter mappings.</p>
           </div>
         </div>
-        <Button 
-          variant="outline"
-          className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
-          onClick={createEdition}
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Edition</span>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button 
+            variant="outline"
+            className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
+            onClick={handleSyncIndex}
+            disabled={isSyncingIndex}
+          >
+            {isSyncingIndex ? <Loader2 className="w-4 h-4 animate-spin" /> : <ListOrdered className="w-4 h-4" />}
+            <span>Sync Chapter Index</span>
+          </Button>
+          <Button 
+            variant="outline"
+            className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
+            onClick={createEdition}
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Edition</span>
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">

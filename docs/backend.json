@@ -57,6 +57,19 @@
       },
       "required": ["bookId", "language"]
     },
+    "HadithIndex": {
+      "title": "Hadith Index",
+      "description": "Chapter definitions for a Hadith book.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookSlug": { "type": "string" },
+        "chapterNumber": { "type": "string" },
+        "chapterArabic": { "type": "string" },
+        "chapterEnglish": { "type": "string" },
+        "chapterUrdu": { "type": "string" }
+      }
+    },
     "HadithContent": {
       "title": "Hadith Content",
       "description": "Individual Hadith records.",
@@ -122,6 +135,10 @@
     "/hadith_editions/{editionId}": {
       "schema": "HadithEdition",
       "description": "Language-specific editions of Hadith books."
+    },
+    "/hadith_index/{indexId}": {
+      "schema": "HadithIndex",
+      "description": "Chapter index for Hadith books."
     },
     "/hadith_data/{contentId}": {
       "schema": "HadithContent",
