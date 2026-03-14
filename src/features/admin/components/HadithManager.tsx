@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, writeBatch } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, orderBy, doc, writeBatch, where, limit } from 'firebase/firestore';
 import { 
   Card, 
   CardHeader, 
@@ -23,12 +24,27 @@ import {
   ScrollText,
   User,
   Database,
-  CheckCircle2
+  ChevronRight,
+  ArrowLeft,
+  Languages,
+  Power,
+  PowerOff,
+  Table as TableIcon,
+  Plus
 } from 'lucide-react';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { fetchHadithBooks, HadithApiBook } from '@/services/hadith-api';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 const SLUG_MAPPING = [
   { name: "Sahih Bukhari", slug: "sahih-bukhari" },
@@ -45,15 +61,30 @@ const SLUG_MAPPING = [
 export function HadithManager() {
   const db = useFirestore();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSeedingSlugs, setIsSeedingSlugs] = useState(false);
+
+  // URL State Management
+  const activeBookId = searchParams.get('bookId');
+  const activeEditionId = searchParams.get('editionId');
 
   const booksQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_books'),
     orderBy('bookName', 'asc')
   ), [db]);
+  const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
-  const { data: books, isLoading } = useCollection(booksQuery);
+  const navigateTo = (params: Record<string, string | null>) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === null) nextParams.delete(key);
+      else nextParams.set(key, value);
+    });
+    router.push(`/admin?${nextParams.toString()}`);
+  };
 
   const handleSyncFromApi = async () => {
     setIsSyncing(true);
@@ -102,6 +133,14 @@ export function HadithManager() {
     }
   };
 
+  if (activeEditionId) {
+    return <HadithDataView editionId={activeEditionId} onBack={() => navigateTo({ editionId: null })} />;
+  }
+
+  if (activeBookId) {
+    return <HadithEditionsView bookId={activeBookId} onBack={() => navigateTo({ bookId: null })} onSelectEdition={(id) => navigateTo({ editionId: id })} />;
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-3xl border border-zinc-900 shadow-xl">
@@ -110,7 +149,7 @@ export function HadithManager() {
             <Library className="w-6 h-6 text-zinc-500" />
             <h2 className="text-2xl font-headline font-bold text-white">Hadith Hub</h2>
           </div>
-          <p className="text-sm text-zinc-500 font-medium">Manage primary collections and slug mappings.</p>
+          <p className="text-sm text-zinc-500 font-medium">Manage primary collections and drill down into editions.</p>
         </div>
 
         <div className="flex flex-wrap gap-3 justify-center">
@@ -136,7 +175,7 @@ export function HadithManager() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoadingBooks ? (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
           <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
           <p className="text-zinc-600 font-medium">Loading library...</p>
@@ -144,7 +183,11 @@ export function HadithManager() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {books?.map((book) => (
-            <Card key={book.id} className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden group hover:border-zinc-700 transition-all flex flex-col shadow-2xl">
+            <Card 
+              key={book.id} 
+              onClick={() => navigateTo({ bookId: book.id })}
+              className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl cursor-pointer"
+            >
               <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
@@ -152,7 +195,7 @@ export function HadithManager() {
                     <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">{book.id}</p>
                   </div>
                   <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 shrink-0">
-                    <BookOpen className="w-5 h-5 text-zinc-500" />
+                    <ChevronRight className="w-5 h-5 text-zinc-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
                   </div>
                 </div>
               </CardHeader>
@@ -180,32 +223,212 @@ export function HadithManager() {
                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black px-2 uppercase">Active</Badge>
                 </div>
               </CardContent>
-
-              <CardFooter className="p-6 bg-zinc-900/10 border-t border-zinc-900 flex justify-end gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-xl h-10 w-10 text-destructive hover:bg-destructive/10"
-                  onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_books', book.id))}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </CardFooter>
             </Card>
           ))}
-          {(!books || books.length === 0) && (
-            <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[2.5rem] border-2 border-dashed border-zinc-900 space-y-6">
-              <div className="w-20 h-20 bg-zinc-900/50 rounded-full flex items-center justify-center mx-auto">
-                <Library className="w-10 h-10 text-zinc-800" />
-              </div>
-              <div className="space-y-2">
-                <p className="text-zinc-500 font-medium">Registry empty.</p>
-                <p className="text-xs text-zinc-700 uppercase font-black tracking-widest">Sync to begin</p>
-              </div>
-            </div>
-          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: string, onBack: () => void, onSelectEdition: (id: string) => void }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  
+  const bookRef = useMemoFirebase(() => doc(db, 'hadith_books', bookId), [db, bookId]);
+  const { data: book } = useDoc(bookRef);
+
+  const editionsQuery = useMemoFirebase(() => query(
+    collection(db, 'hadith_editions'),
+    where('bookId', '==', bookId),
+    orderBy('language', 'asc')
+  ), [db, bookId]);
+  const { data: editions, isLoading } = useCollection(editionsQuery);
+
+  const toggleStatus = (id: string, current: boolean) => {
+    updateDocumentNonBlocking(doc(db, 'hadith_editions', id), { isActive: !current });
+    toast({ title: !current ? "Edition Activated" : "Edition Deactivated" });
+  };
+
+  const createEdition = () => {
+    const lang = prompt("Enter language (e.g., English, Urdu, Arabic):");
+    if (!lang) return;
+    const name = `${book?.bookName} (${lang})`;
+    const id = `${bookId}-${lang.toLowerCase()}`;
+    
+    setDocumentNonBlocking(doc(db, 'hadith_editions', id), {
+      id,
+      bookId,
+      language: lang,
+      editionName: name,
+      isActive: true,
+      lastSyncedAt: new Date().toISOString()
+    }, { merge: true });
+    toast({ title: "Edition Created" });
+  };
+
+  return (
+    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-headline font-bold text-white">{book?.bookName} Editions</h2>
+            <p className="text-sm text-zinc-500">Manage language variants for this collection.</p>
+          </div>
+        </div>
+        <Button 
+          variant="outline"
+          className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
+          onClick={createEdition}
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Edition</span>
+        </Button>
+      </div>
+
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+        <Table>
+          <TableHeader className="bg-zinc-900/50">
+            <TableRow className="border-zinc-900">
+              <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500">Language Edition</TableHead>
+              <TableHead className="text-center text-[9px] font-black uppercase text-zinc-500">Status</TableHead>
+              <TableHead className="text-right pr-8 text-[9px] font-black uppercase text-zinc-500">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={3} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
+            ) : editions?.map((edition) => (
+              <TableRow key={edition.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
+                <TableCell className="pl-8" onClick={() => onSelectEdition(edition.id)}>
+                  <div className="flex items-center gap-3 cursor-pointer group">
+                    <Languages className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />
+                    <span className="font-bold text-zinc-100 group-hover:text-white">{edition.editionName}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge className={cn("border-none text-[8px] font-black uppercase", edition.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
+                    {edition.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right pr-8 space-x-2">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => toggleStatus(edition.id, edition.isActive)}>
+                    {edition.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_editions', edition.id))}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {(!editions || editions.length === 0) && !isLoading && (
+              <TableRow><TableCell colSpan={3} className="h-32 text-center text-zinc-600 italic">No editions registered yet.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}
+
+function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () => void }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  
+  const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
+  const { data: edition } = useDoc(editionRef);
+
+  const dataQuery = useMemoFirebase(() => query(
+    collection(db, 'hadith_data'),
+    where('editionId', '==', editionId),
+    limit(100)
+  ), [db, editionId]);
+  const { data: hadiths, isLoading } = useCollection(dataQuery);
+
+  const [isSyncingContent, setIsSyncingContent] = useState(false);
+
+  const handleSyncContent = () => {
+    setIsSyncingContent(true);
+    // Simulating content population for demo/MVP
+    setTimeout(() => {
+      const batch = writeBatch(db);
+      for(let i=1; i<=10; i++) {
+        const id = `${editionId}-h-${i}`;
+        batch.set(doc(db, 'hadith_data', id), {
+          id,
+          editionId,
+          bookId: edition?.bookId,
+          hadithNumber: i.toString(),
+          arabicText: "قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ...",
+          translatedText: "The Messenger of Allah (PBUH) said...",
+          chapterName: "Introduction"
+        }, { merge: true });
+      }
+      batch.commit();
+      setIsSyncingContent(false);
+      toast({ title: "Sync Complete", description: "First 10 records generated for testing." });
+    }, 1500);
+  };
+
+  return (
+    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-headline font-bold text-white">{edition?.editionName} Data</h2>
+            <p className="text-sm text-zinc-500">Previewing individual Hadith records.</p>
+          </div>
+        </div>
+        <Button 
+          variant="outline"
+          className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
+          onClick={handleSyncContent}
+          disabled={isSyncingContent}
+        >
+          {isSyncingContent ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          <span>Sync Content</span>
+        </Button>
+      </div>
+
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+        <Table>
+          <TableHeader className="bg-zinc-900/50">
+            <TableRow className="border-zinc-900">
+              <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500 w-24">No.</TableHead>
+              <TableHead className="text-[9px] font-black uppercase text-zinc-500">Chapter</TableHead>
+              <TableHead className="text-[9px] font-black uppercase text-zinc-500">Content Preview</TableHead>
+              <TableHead className="text-right pr-8 text-[9px] font-black uppercase text-zinc-500">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
+            ) : hadiths?.map((h) => (
+              <TableRow key={h.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
+                <TableCell className="pl-8 font-mono text-xs text-zinc-500">{h.hadithNumber}</TableCell>
+                <TableCell className="text-xs font-bold text-zinc-400">{h.chapterName}</TableCell>
+                <TableCell>
+                  <p className="text-xs text-zinc-300 line-clamp-1 max-w-md">{h.translatedText}</p>
+                </TableCell>
+                <TableCell className="text-right pr-8">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_data', h.id))}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {(!hadiths || hadiths.length === 0) && !isLoading && (
+              <TableRow><TableCell colSpan={4} className="h-32 text-center text-zinc-600 italic">No content available for this edition.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

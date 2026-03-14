@@ -42,6 +42,34 @@
         "slug": { "type": "string" }
       },
       "required": ["bookName", "slug"]
+    },
+    "HadithEdition": {
+      "title": "Hadith Edition",
+      "description": "A specific language version of a Hadith book.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookId": { "type": "string" },
+        "language": { "type": "string" },
+        "editionName": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "lastSyncedAt": { "type": "string" }
+      },
+      "required": ["bookId", "language"]
+    },
+    "HadithContent": {
+      "title": "Hadith Content",
+      "description": "Individual Hadith records.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "editionId": { "type": "string" },
+        "bookId": { "type": "string" },
+        "hadithNumber": { "type": "string" },
+        "arabicText": { "type": "string" },
+        "translatedText": { "type": "string" },
+        "chapterName": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -85,11 +113,19 @@
     },
     "/hadith_books/{bookId}": {
       "schema": "HadithBook",
-      "description": "Registry of primary Hadith collections from API."
+      "description": "Registry of primary Hadith collections."
     },
     "/hadith_slug/{slugId}": {
       "schema": "HadithSlug",
       "description": "Official slug mapping for Hadith collections."
+    },
+    "/hadith_editions/{editionId}": {
+      "schema": "HadithEdition",
+      "description": "Language-specific editions of Hadith books."
+    },
+    "/hadith_data/{contentId}": {
+      "schema": "HadithContent",
+      "description": "Individual Hadith records."
     }
   }
 }
