@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,7 @@ import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 // Feature Components
 import { DashboardOverview } from '@/features/admin/components/DashboardOverview';
@@ -64,7 +65,11 @@ export default function AdminPanel() {
   const auth = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // Use URL param for active tab
+  const activeTab = (searchParams.get('tab') as AdminTab) || 'dashboard';
   const [copied, setCopied] = useState(false);
 
   // Sync State for Quran Hub
@@ -87,6 +92,15 @@ export default function AdminPanel() {
 
   const editionsQuery = useMemoFirebase(() => (isVerifiedAdmin ? query(collection(db, 'quran_editions'), limit(1000)) : null), [db, isVerifiedAdmin]);
   const { data: editions } = useCollection(editionsQuery);
+
+  const setActiveTab = (tab: AdminTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    // When switching top-level tabs, clear sub-level IDs
+    params.delete('bookId');
+    params.delete('editionId');
+    router.push(`/admin?${params.toString()}`);
+  };
 
   const copyUid = () => {
     if (user?.uid) {

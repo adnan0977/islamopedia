@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, doc, writeBatch, where, limit } from 'firebase/firestore';
+import { collection, query, doc, writeBatch, where, limit, orderBy } from 'firebase/firestore';
 import { 
   Card, 
   CardHeader, 
@@ -35,7 +35,8 @@ import {
   ListOrdered,
   LayoutGrid,
   ShieldCheck,
-  Pencil
+  Pencil,
+  FileText
 } from 'lucide-react';
 import { 
   Table, 
@@ -45,6 +46,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { fetchHadithBooks, fetchHadithChapters, HadithApiBook, HadithApiChapter } from '@/services/hadith-api';
@@ -78,7 +80,8 @@ export function HadithManager() {
   const activeEditionId = searchParams.get('editionId');
 
   const booksQuery = useMemoFirebase(() => query(
-    collection(db, 'hadith_books')
+    collection(db, 'hadith_books'),
+    orderBy('bookName', 'asc')
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
@@ -138,20 +141,18 @@ export function HadithManager() {
     }
   };
 
-  const confirmDelete = () => {
-    if (deleteConfirmId) {
-      deleteDocumentNonBlocking(doc(db, 'hadith_books', deleteConfirmId));
-      setDeleteConfirmId(null);
-      toast({ title: "Collection Removed" });
-    }
-  };
-
   if (activeEditionId) {
     return <HadithDataView editionId={activeEditionId} onBack={() => navigateTo({ editionId: null })} />;
   }
 
   if (activeBookId) {
-    return <HadithEditionsView bookId={activeBookId} onBack={() => navigateTo({ bookId: null })} onSelectEdition={(id) => navigateTo({ editionId: id })} />;
+    return (
+      <HadithBookDetailView 
+        bookId={activeBookId} 
+        onBack={() => navigateTo({ bookId: null })} 
+        onSelectEdition={(id) => navigateTo({ editionId: id })} 
+      />
+    );
   }
 
   return (
@@ -244,7 +245,7 @@ export function HadithManager() {
   );
 }
 
-function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: string, onBack: () => void, onSelectEdition: (id: string) => void }) {
+function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { bookId: string, onBack: () => void, onSelectEdition: (id: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
   
@@ -257,7 +258,22 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
     collection(db, 'hadith_editions'),
     where('bookId', '==', bookId)
   ), [db, bookId]);
-  const { data: editions, isLoading } = useCollection(editionsQuery);
+  const { data: editions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
+
+  const indexQuery = useMemoFirebase(() => query(
+    collection(db, 'hadith_index'),
+    where('bookSlug', '==', bookId)
+  ), [db, bookId]);
+  const { data: indexData, isLoading: isLoadingIndex } = useCollection(indexQuery);
+
+  const sortedIndex = useMemo(() => {
+    if (!indexData) return [];
+    return [...indexData].sort((a, b) => {
+      const numA = parseInt(a.chapterNumber || '0');
+      const numB = parseInt(b.chapterNumber || '0');
+      return numA - numB;
+    });
+  }, [indexData]);
 
   const toggleStatus = (id: string, current: boolean) => {
     updateDocumentNonBlocking(doc(db, 'hadith_editions', id), { isActive: !current });
@@ -321,8 +337,8 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-headline font-bold text-white">{book?.bookName} Editions</h2>
-            <p className="text-sm text-zinc-500">Manage translation editions and metadata sources.</p>
+            <h2 className="text-2xl font-headline font-bold text-white">{book?.bookName} Details</h2>
+            <p className="text-sm text-zinc-500">Manage editions and structural metadata.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -346,52 +362,99 @@ function HadithEditionsView({ bookId, onBack, onSelectEdition }: { bookId: strin
         </div>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
-        <Table>
-          <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-zinc-900">
-              <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500">Edition Name</TableHead>
-              <TableHead className="text-[9px] font-black uppercase text-zinc-500">Language</TableHead>
-              <TableHead className="text-center text-[9px] font-black uppercase text-zinc-500">Status</TableHead>
-              <TableHead className="text-right pr-8 text-[9px] font-black uppercase text-zinc-500">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
-            ) : editions?.map((edition) => (
-              <TableRow key={edition.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
-                <TableCell className="pl-8" onClick={() => onSelectEdition(edition.id)}>
-                  <div className="flex items-center gap-3 cursor-pointer group">
-                    <Languages className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />
-                    <span className="font-bold text-zinc-100 group-hover:text-white">{edition.editionName}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-xs text-zinc-400">{edition.language}</TableCell>
-                <TableCell className="text-center">
-                  <Badge className={cn("border-none text-[8px] font-black uppercase", edition.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
-                    {edition.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right pr-8 space-x-2">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => {
-                    const newUrl = prompt("Enter new source JSON URL:", edition.sourceLinkMin);
-                    if (newUrl !== null) updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { sourceLinkMin: newUrl });
-                  }}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => toggleStatus(edition.id, edition.isActive)}>
-                    {edition.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_editions', edition.id))}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <Tabs defaultValue="editions" className="w-full">
+        <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
+          <TabsTrigger value="editions" className="px-8 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold">Language Editions</TabsTrigger>
+          <TabsTrigger value="index" className="px-8 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold">Chapter Index</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="editions">
+          <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+            <Table>
+              <TableHeader className="bg-zinc-900/50">
+                <TableRow className="border-zinc-900">
+                  <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500">Edition Name</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-zinc-500">Language</TableHead>
+                  <TableHead className="text-center text-[9px] font-black uppercase text-zinc-500">Status</TableHead>
+                  <TableHead className="text-right pr-8 text-[9px] font-black uppercase text-zinc-500">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingEditions ? (
+                  <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
+                ) : editions?.map((edition) => (
+                  <TableRow key={edition.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
+                    <TableCell className="pl-8" onClick={() => onSelectEdition(edition.id)}>
+                      <div className="flex items-center gap-3 cursor-pointer group">
+                        <Languages className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />
+                        <span className="font-bold text-zinc-100 group-hover:text-white">{edition.editionName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-zinc-400">{edition.language}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge className={cn("border-none text-[8px] font-black uppercase", edition.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
+                        {edition.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-8 space-x-2">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => {
+                        const newUrl = prompt("Enter new source JSON URL:", edition.sourceLinkMin);
+                        if (newUrl !== null) updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { sourceLinkMin: newUrl });
+                      }}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => toggleStatus(edition.id, edition.isActive)}>
+                        {edition.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_editions', edition.id))}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="index">
+          <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+            <Table>
+              <TableHeader className="bg-zinc-900/50">
+                <TableRow className="border-zinc-900">
+                  <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500 w-24">No.</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-zinc-500">Arabic Title</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-zinc-500">English Title</TableHead>
+                  <TableHead className="text-[9px] font-black uppercase text-zinc-500">Urdu Title</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingIndex ? (
+                  <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
+                ) : sortedIndex?.map((ch) => (
+                  <TableRow key={ch.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
+                    <TableCell className="pl-8 font-mono text-xs text-zinc-500">{ch.chapterNumber}</TableCell>
+                    <TableCell className="font-arabic text-lg text-zinc-300" dir="rtl">{ch.chapterArabic}</TableCell>
+                    <TableCell className="text-xs font-bold text-zinc-100">{ch.chapterEnglish}</TableCell>
+                    <TableCell className="font-arabic text-zinc-400">{ch.chapterUrdu}</TableCell>
+                  </TableRow>
+                ))}
+                {sortedIndex.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-64 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <ScrollText className="w-12 h-12 text-zinc-900" />
+                        <p className="text-zinc-600 font-medium">Chapter index has not been synchronized for this book.</p>
+                        <Button variant="link" onClick={handleSyncIndex} className="text-white">Start Sync Now</Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
