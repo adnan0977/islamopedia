@@ -1,26 +1,12 @@
 
-import { HadithBookDetailViewPageWrapper } from './client-page';
-
 /**
- * Required for static export with dynamic routes.
- * We pre-generate paths for primary Hadith collections.
+ * Redirects dynamic legacy routing to query-parameterized hub.
+ * Satisfies static export requirements for output: export.
  */
 export function generateStaticParams() {
-  const books = [
-    'shell',
-    'sahih-bukhari', 
-    'sahih-muslim', 
-    'al-tirmidhi', 
-    'abu-dawood', 
-    'ibn-e-majah', 
-    'sunan-nasai', 
-    'mishkat', 
-    'musnad-ahmad'
-  ];
-  return books.map(bookId => ({ bookId }));
+  return [{ bookId: 'shell' }];
 }
 
-export default async function AdminHadithBookDetailPage({ params }: { params: Promise<{ bookId: string }> }) {
-  const { bookId } = await params;
-  return <HadithBookDetailViewPageWrapper bookId={bookId} />;
+export default function RedundantHadithBookPage() {
+  return null;
 }

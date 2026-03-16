@@ -33,7 +33,9 @@ import {
   Plus,
   ListOrdered,
   Pencil,
-  FileText
+  FileText,
+  Search,
+  Settings
 } from 'lucide-react';
 import { 
   Table, 
@@ -126,7 +128,7 @@ export function HadithManager() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-3xl border border-zinc-900 shadow-xl">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-3xl border border-zinc-900 shadow-xl border-t border-white/5">
         <div className="space-y-2 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-3">
             <Library className="w-6 h-6 text-zinc-500" />
@@ -168,8 +170,8 @@ export function HadithManager() {
           {books?.map((book) => (
             <Card 
               key={book.id} 
-              onClick={() => router.push(`/admin/hadith/${book.id}`)}
-              className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl cursor-pointer"
+              onClick={() => router.push(`/admin/hadith?bookId=${book.id}`)}
+              className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl cursor-pointer border-t border-white/5"
             >
               <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
                 <div className="flex items-start justify-between gap-4">
@@ -300,29 +302,29 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 shadow-xl border-t border-white/5">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white">
-            <ArrowLeft className="w-4 h-4" />
+          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div>
-            <h2 className="text-2xl font-headline font-bold text-white">{book?.bookName} Details</h2>
-            <p className="text-sm text-zinc-500">Manage editions and structural metadata.</p>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-headline font-bold text-white leading-tight">{book?.bookName}</h2>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Primary Collection Metadata</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button 
             variant="outline"
-            className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
+            className="rounded-xl h-12 px-6 font-bold border-zinc-800 text-zinc-400 hover:border-white hover:text-white flex items-center gap-2 transition-all"
             onClick={handleSyncIndex}
             disabled={isSyncingIndex}
           >
             {isSyncingIndex ? <Loader2 className="w-4 h-4 animate-spin" /> : <ListOrdered className="w-4 h-4" />}
-            <span>Sync Chapter Index</span>
+            <span>Sync Index</span>
           </Button>
           <Button 
             variant="outline"
-            className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
+            className="rounded-xl h-12 px-8 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2 transition-all shadow-xl"
             onClick={createEdition}
           >
             <Plus className="w-4 h-4" />
@@ -332,83 +334,70 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       </div>
 
       <Tabs defaultValue="editions" className="w-full">
-        <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
-          <TabsTrigger value="editions" className="px-8 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold">Language Editions</TabsTrigger>
-          <TabsTrigger value="index" className="px-8 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold">Chapter Index</TabsTrigger>
+        <TabsList className="bg-zinc-900/50 p-1.5 rounded-2xl h-14 border border-zinc-900/50 mb-10">
+          <TabsTrigger value="editions" className="px-10 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold text-zinc-500">Edition Registry</TabsTrigger>
+          <TabsTrigger value="index" className="px-10 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold text-zinc-500">Chapter Structure</TabsTrigger>
         </TabsList>
 
         <TabsContent value="editions">
-          <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
-            <Table>
-              <TableHeader className="bg-zinc-900/50">
-                <TableRow className="border-zinc-900">
-                  <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500">Edition Name</TableHead>
-                  <TableHead className="text-[9px] font-black uppercase text-zinc-500">Language</TableHead>
-                  <TableHead className="text-center text-[9px] font-black uppercase text-zinc-500">Status</TableHead>
-                  <TableHead className="text-right pr-8 text-[9px] font-black uppercase text-zinc-500">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingEditions ? (
-                  <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
-                ) : editions?.map((edition) => (
-                  <TableRow key={edition.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
-                    <TableCell className="pl-8" onClick={() => onSelectEdition(edition.id)}>
-                      <div className="flex items-center gap-3 cursor-pointer group">
-                        <Languages className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />
-                        <span className="font-bold text-zinc-100 group-hover:text-white">{edition.editionName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-zinc-400">{edition.language}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge className={cn("border-none text-[8px] font-black uppercase", edition.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
-                        {edition.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" className="h-9 px-3 text-zinc-500 hover:text-white" onClick={() => {
-                          const newUrl = prompt("Enter new source JSON URL:", edition.sourceLinkMin);
-                          if (newUrl !== null) updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { sourceLinkMin: newUrl });
-                        }}>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          <span>Modify</span>
-                        </Button>
-                        <Button variant="ghost" size="sm" className={cn("h-9 px-3", edition.isActive ? "text-amber-500" : "text-emerald-500")} onClick={() => toggleStatus(edition.id, edition.isActive)}>
-                          {edition.isActive ? <PowerOff className="w-4 h-4 mr-2" /> : <Power className="w-4 h-4 mr-2" />}
-                          <span>{edition.isActive ? 'Off' : 'On'}</span>
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-9 px-3 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_editions', edition.id))}>
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          <span>Remove</span>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {isLoadingEditions ? (
+              <div className="col-span-full py-20 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
+            ) : editions?.map((edition) => (
+              <Card 
+                key={edition.id} 
+                className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden flex flex-col group transition-all shadow-xl relative border-t border-white/5 cursor-pointer hover:border-zinc-500"
+                onClick={() => onSelectEdition(edition.id)}
+              >
+                <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 shadow-inner group-hover:border-zinc-600 transition-colors">
+                      <Languages className="w-6 h-6 text-zinc-500" />
+                    </div>
+                    <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", edition.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
+                      {edition.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                  <CardTitle className="text-xl font-bold text-zinc-100 group-hover:text-white line-clamp-1 transition-colors">{edition.editionName}</CardTitle>
+                  <CardDescription className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter mt-1">{edition.language} Edition</CardDescription>
+                </CardHeader>
+                <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="sm" className="flex-1 rounded-xl font-bold h-12 text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all border border-transparent hover:border-zinc-800" onClick={() => {
+                    const newUrl = prompt("Enter new source JSON URL:", edition.sourceLinkMin);
+                    if (newUrl !== null) updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { sourceLinkMin: newUrl });
+                  }}>
+                    <Pencil className="w-4 h-4 mr-2" /> Modify
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => toggleStatus(edition.id, edition.isActive)} className={cn("rounded-xl h-12 w-12 border border-zinc-900 bg-zinc-900/30", edition.isActive ? "text-amber-500" : "text-emerald-500")}>
+                    {edition.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_editions', edition.id))} className="text-destructive hover:bg-destructive/10 rounded-xl h-12 w-12 border border-zinc-900 bg-zinc-900/30">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
         <TabsContent value="index">
-          <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+          <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl border-t border-white/5">
             <Table>
               <TableHeader className="bg-zinc-900/50">
                 <TableRow className="border-zinc-900">
-                  <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500 w-24">No.</TableHead>
-                  <TableHead className="text-[9px] font-black uppercase text-zinc-500">Arabic Title</TableHead>
-                  <TableHead className="text-[9px] font-black uppercase text-zinc-500">English Title</TableHead>
-                  <TableHead className="text-[9px] font-black uppercase text-zinc-500">Urdu Title</TableHead>
+                  <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-24">No.</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Arabic Script</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">English Language</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Urdu Language</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingIndex ? (
                   <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
                 ) : sortedIndex?.map((ch) => (
-                  <TableRow key={ch.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
-                    <TableCell className="pl-8 font-mono text-xs text-zinc-500">{ch.chapterNumber}</TableCell>
-                    <TableCell className="font-arabic text-lg text-zinc-300" dir="rtl">{ch.chapterArabic}</TableCell>
+                  <TableRow key={ch.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40 transition-colors">
+                    <TableCell className="pl-10 font-mono text-xs text-zinc-500">{ch.chapterNumber}</TableCell>
+                    <TableCell className="font-arabic text-xl text-zinc-300" dir="rtl">{ch.chapterArabic}</TableCell>
                     <TableCell className="text-xs font-bold text-zinc-100">{ch.chapterEnglish}</TableCell>
                     <TableCell className="font-arabic text-zinc-400">{ch.chapterUrdu}</TableCell>
                   </TableRow>
@@ -418,8 +407,8 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
                     <TableCell colSpan={4} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center space-y-4">
                         <ScrollText className="w-12 h-12 text-zinc-900" />
-                        <p className="text-zinc-600 font-medium">Chapter index has not been synchronized for this book.</p>
-                        <Button variant="link" onClick={handleSyncIndex} className="text-white">Start Sync Now</Button>
+                        <p className="text-zinc-600 font-medium">Structure has not been synchronized for this collection.</p>
+                        <Button variant="link" onClick={handleSyncIndex} className="text-white">Start Synchronizing</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -436,6 +425,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 export function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () => void }) {
   const db = useFirestore();
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
   
   const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
   const { data: edition } = useDoc(editionRef);
@@ -479,57 +469,101 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
     }
   };
 
+  const filteredHadiths = useMemo(() => {
+    if (!hadiths) return [];
+    return hadiths.filter(h => 
+      h.hadithNumber?.toString().includes(searchTerm) || 
+      h.translatedText?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      h.chapterName?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [hadiths, searchTerm]);
+
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white">
-            <ArrowLeft className="w-4 h-4" />
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 border-t border-white/5 shadow-2xl">
+        <div className="flex items-center gap-6">
+          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all">
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div>
-            <h2 className="text-2xl font-headline font-bold text-white">{edition?.editionName} Content</h2>
-            <p className="text-sm text-zinc-500">Previewing individual Hadith records and structural metadata.</p>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{edition?.editionName} Content</h2>
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
+              <TableIcon className="w-3 h-3" />
+              <span>Granular Prophetic Registry</span>
+            </div>
           </div>
         </div>
-        <Button 
-          variant="outline"
-          className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black flex items-center gap-2"
-          onClick={handleSyncMetadata}
-          disabled={isSyncingMeta}
-        >
-          {isSyncingMeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-          <span>Sync Metadata Index</span>
-        </Button>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="relative flex-1 md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+            <Input 
+              placeholder="Search content..." 
+              className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+            />
+          </div>
+          <Button 
+            variant="outline"
+            className="rounded-xl h-14 px-6 font-bold border-zinc-800 text-zinc-400 hover:border-white hover:text-white flex items-center gap-2 transition-all"
+            onClick={handleSyncMetadata}
+            disabled={isSyncingMeta}
+          >
+            {isSyncingMeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+            <span>Sync Meta</span>
+          </Button>
+        </div>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl border-t border-white/5">
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900">
-              <TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500 w-24">No.</TableHead>
-              <TableHead className="text-[9px] font-black uppercase text-zinc-500">Chapter</TableHead>
-              <TableHead className="text-[9px] font-black uppercase text-zinc-500">Content Preview</TableHead>
-              <TableHead className="text-right pr-8 text-[9px] font-black uppercase text-zinc-500">Actions</TableHead>
+              <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-32">Number</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Source Chapter</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Language Mapping Preview</TableHead>
+              <TableHead className="text-right pr-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-zinc-800" /></TableCell></TableRow>
-            ) : hadiths?.map((h) => (
-              <TableRow key={h.id} className="border-zinc-900 h-20 hover:bg-zinc-900/40">
-                <TableCell className="pl-8 font-mono text-xs text-zinc-500">{h.hadithNumber}</TableCell>
-                <TableCell className="text-xs font-bold text-zinc-400">{h.chapterName}</TableCell>
-                <TableCell>
-                  <p className="text-xs text-zinc-300 line-clamp-1 max-w-md">{h.translatedText}</p>
+              <TableRow><TableCell colSpan={4} className="h-96 text-center"><div className="flex flex-col items-center gap-4"><Loader2 className="animate-spin h-10 w-10 text-zinc-800" /><p className="text-xs font-black uppercase text-zinc-700 tracking-widest">Indexing Viewport...</p></div></TableCell></TableRow>
+            ) : filteredHadiths?.map((h) => (
+              <TableRow key={h.id} className="border-zinc-900 h-32 hover:bg-zinc-900/40 transition-colors">
+                <TableCell className="pl-10 font-mono text-xs text-zinc-600">
+                  <Badge variant="outline" className="border-zinc-800 text-zinc-500 bg-black/50">#{h.hadithNumber}</Badge>
                 </TableCell>
-                <TableCell className="text-right pr-8">
-                  <Button variant="ghost" size="sm" className="h-9 px-3 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_data', h.id))}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    <span>Remove</span>
-                  </Button>
+                <TableCell>
+                  <div className="flex flex-col max-w-[200px]">
+                    <span className="text-sm font-bold text-zinc-100 truncate">{h.chapterName}</span>
+                    <span className="text-[9px] text-zinc-600 uppercase font-black tracking-tighter mt-0.5">Section Identified</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed italic max-w-xl">{h.translatedText}</p>
+                </TableCell>
+                <TableCell className="text-right pr-10">
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" className="h-10 px-5 text-zinc-500 hover:text-white transition-all border border-transparent hover:border-zinc-800 rounded-xl" onClick={() => toast({ title: "Edit Tool Incoming" })}>
+                      <Pencil className="w-4 h-4 mr-2" /> <span className="font-bold">Edit</span>
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-xl" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_data', h.id))}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
+            {filteredHadiths.length === 0 && !isLoading && (
+              <TableRow>
+                <TableCell colSpan={4} className="h-64 text-center">
+                  <div className="flex flex-col items-center justify-center space-y-4">
+                    <FileText className="w-12 h-12 text-zinc-900" />
+                    <p className="text-zinc-600 font-medium">No records found matching your query.</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Card>
