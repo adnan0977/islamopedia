@@ -16,6 +16,17 @@
         "appViewCount": { "type": "number" }
       }
     },
+    "Language": {
+      "title": "Language",
+      "description": "ISO 639-1 Language mapping for the platform.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "isoCode": { "type": "string" }
+      },
+      "required": ["name", "isoCode"]
+    },
     "HadithBook": {
       "title": "Hadith Book",
       "description": "A primary collection of Hadith from HadithAPI.",
@@ -107,6 +118,10 @@
     "/videos/{videoId}": {
       "schema": "Video",
       "description": "Cataloged spiritual videos."
+    },
+    "/languages/{langId}": {
+      "schema": "Language",
+      "description": "Platform language ISO mappings."
     },
     "/channels/{channelId}": {
       "schema": "object",

@@ -18,7 +18,9 @@ export default function AdminQuranPage() {
       editions={editions || []} 
       syncing={sync.isSyncing} 
       setSyncing={(val) => setSync(prev => ({ ...prev, isSyncing: val }))}
+      progress={sync.progress}
       setProgress={(val) => setSync(prev => ({ ...prev, progress: val }))}
+      status={sync.status}
       setSyncStatus={(val) => setSync(prev => ({ ...prev, status: val }))}
     />
   );

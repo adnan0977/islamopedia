@@ -50,12 +50,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 
 interface QuranHubProps {
   editions: any[];
   syncing: boolean;
   setSyncing: (val: boolean) => void;
+  progress: number;
   setProgress: (val: number) => void;
+  status: string;
   setSyncStatus: (val: any) => void;
 }
 
@@ -64,7 +68,7 @@ const languageNameMap: Record<string, string> = {
   zh: 'Chinese', ru: 'Russian', fa: 'Persian', bn: 'Bengali', hi: 'Hindi', ml: 'Malayalam', ta: 'Tamil', te: 'Telugu',
 };
 
-export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncStatus }: QuranHubProps) {
+export function QuranHub({ editions, syncing, setSyncing, progress, setProgress, status, setSyncStatus }: QuranHubProps) {
   const db = useFirestore();
   const { toast } = useToast();
 
@@ -122,7 +126,8 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
         });
         
         await batch.commit();
-        setProgress(Math.round(((i + chunk.length) / surahs.length) * 100));
+        const currentProgress = Math.round(((i + chunk.length) / surahs.length) * 100);
+        setProgress(currentProgress);
       }
 
       const editionRef = doc(db, 'quran_editions', editionId);
@@ -140,6 +145,36 @@ export function QuranHub({ editions, syncing, setSyncing, setProgress, setSyncSt
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Global Sync Progress Dialog */}
+      <Dialog open={syncing}>
+        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl p-10 outline-none shadow-2xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-6">
+             <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 animate-pulse">
+               <Database className="w-8 h-8 text-white" />
+             </div>
+             <div className="space-y-2">
+               <DialogTitle className="text-xl font-bold">Synchronizing Edition</DialogTitle>
+               <DialogDescription className="text-zinc-500 text-sm">Indexing spiritual content into local storage. Please do not close this window.</DialogDescription>
+             </div>
+          </DialogHeader>
+          <div className="w-full space-y-6 py-6">
+               <div className="space-y-2">
+                 <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-zinc-500">
+                   <span>Progress</span>
+                   <span>{progress}%</span>
+                 </div>
+                 <Progress value={progress} className="h-2 bg-zinc-900" />
+               </div>
+               <div className="flex items-center justify-center gap-2">
+                 <Loader2 className="w-3 h-3 animate-spin text-zinc-600" />
+                 <p className="text-center text-[10px] text-zinc-500 uppercase font-black tracking-widest">
+                   Status: {status}...
+                 </p>
+               </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {!isStandardSynced && !syncing && (
         <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-200 rounded-3xl p-6 shadow-2xl">
           <AlertCircle className="h-5 w-5 text-amber-500" />
