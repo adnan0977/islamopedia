@@ -27,6 +27,20 @@ export interface HadithApiChapter {
   bookSlug: string;
 }
 
+export interface HadithApiRecord {
+  id: number;
+  hadithNumber: string;
+  englishTerjuma: string;
+  urduTerjuma: string;
+  arabicIndex: string;
+  hadithArabic: string;
+  hadithUrdu: string;
+  hadithEnglish: string;
+  chapterId: string;
+  bookSlug: string;
+  chapterName: string;
+}
+
 export async function fetchHadithBooks(): Promise<HadithApiBook[]> {
   try {
     const response = await fetch(`${BASE_URL}/books?apiKey=${API_KEY}`);
@@ -56,5 +70,24 @@ export async function fetchHadithChapters(bookSlug: string): Promise<HadithApiCh
   } catch (error: any) {
     console.error('HadithAPI Chapters Error:', error);
     throw new Error(error.message || 'Network error fetching chapters');
+  }
+}
+
+export async function fetchHadiths(bookSlug: string, page: number = 1): Promise<{ data: HadithApiRecord[], lastPage: number }> {
+  try {
+    const response = await fetch(`${BASE_URL}/hadiths?apiKey=${API_KEY}&book=${bookSlug}&paginate=100&page=${page}`);
+    const data = await response.json();
+    
+    if (data.status !== 200) {
+      throw new Error(data.message || 'Failed to fetch Hadiths');
+    }
+    
+    return {
+      data: data.hadiths?.data || [],
+      lastPage: data.hadiths?.last_page || 1
+    };
+  } catch (error: any) {
+    console.error('HadithAPI Data Error:', error);
+    throw new Error(error.message || 'Network error fetching Hadith records');
   }
 }

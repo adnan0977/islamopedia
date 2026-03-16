@@ -50,7 +50,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { fetchHadithBooks, fetchHadithChapters, HadithApiBook, HadithApiChapter } from '@/services/hadith-api';
+import { fetchHadithBooks, fetchHadithChapters, fetchHadiths, HadithApiBook, HadithApiChapter, HadithApiRecord } from '@/services/hadith-api';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -256,7 +256,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 
   const createEdition = () => {
     const lang = prompt("Enter language (e.g., English, Urdu, Arabic):");
-    const sourceLink = prompt("Enter source JSON URL (sourceLinkMin):");
     if (!lang) return;
     const name = `${book?.bookName} (${lang})`;
     const id = `${bookId}-${lang.toLowerCase()}`;
@@ -266,7 +265,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       bookId,
       language: lang,
       editionName: name,
-      sourceLinkMin: sourceLink || '',
       isActive: true,
       lastSyncedAt: new Date().toISOString()
     }, { merge: true });
@@ -447,47 +445,64 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
   const { data: hadiths, isLoading } = useCollection(dataQuery);
 
   const handleSyncHadithData = async () => {
-    if (!edition?.sourceLinkMin) {
-      toast({ variant: "destructive", title: "Missing Source Link", description: "Please provide a source URL for this edition." });
+    if (!edition?.bookId) {
+      toast({ variant: "destructive", title: "Missing Metadata", description: "This edition record is corrupted. Missing book association." });
       return;
     }
 
     setSyncState({ isSyncing: true, progress: 0, status: 'fetching' });
     try {
-      const response = await fetch(edition.sourceLinkMin);
-      const payload = await response.json();
-      
-      const records = payload.hadiths || payload.data || [];
-      if (!Array.isArray(records)) throw new Error("Invalid data format in source JSON.");
+      const language = edition.language?.toLowerCase();
+      let currentPage = 1;
+      let totalFetched = 0;
+      let lastPage = 1;
 
-      setSyncState(prev => ({ ...prev, status: 'indexing' }));
-      const batchSize = 25;
-      for (let i = 0; i < records.length; i += batchSize) {
-        const chunk = records.slice(i, i + batchSize);
-        const batch = writeBatch(db);
-        
-        chunk.forEach((h: any) => {
-          const hId = `${editionId}_h_${h.hadithNumber || h.number || Math.random().toString(36).substr(2, 9)}`;
-          const hRef = doc(db, 'hadith_data', hId);
-          batch.set(hRef, {
-            id: hId,
-            editionId,
-            bookId: edition.bookId,
-            hadithNumber: h.hadithNumber?.toString() || h.number?.toString(),
-            arabicText: h.arabic || h.text_ar || '',
-            translatedText: h.text || h.text_en || h.text_ur || '',
-            chapterName: h.chapter || h.chapterName || 'Unknown Chapter',
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-        });
+      do {
+        setSyncState(prev => ({ ...prev, status: `fetching page ${currentPage}` }));
+        const payload = await fetchHadiths(edition.bookId, currentPage);
+        const records = payload.data;
+        lastPage = payload.lastPage;
 
-        await batch.commit();
-        const progress = Math.round(((i + chunk.length) / records.length) * 100);
-        setSyncState(prev => ({ ...prev, progress, status: 'saving' }));
-      }
+        if (records.length === 0) break;
 
-      setSyncState(prev => ({ ...prev, status: 'success' }));
-      toast({ title: "Synchronization Complete", description: `Indexed ${records.length} records.` });
+        const batchSize = 25;
+        for (let i = 0; i < records.length; i += batchSize) {
+          const chunk = records.slice(i, i + batchSize);
+          const batch = writeBatch(db);
+          
+          chunk.forEach((h: HadithApiRecord) => {
+            const hId = `${editionId}_h_${h.hadithNumber}`;
+            const hRef = doc(db, 'hadith_data', hId);
+            
+            // Map the specific language from the API
+            let translation = '';
+            if (language === 'english') translation = h.englishTerjuma || h.hadithEnglish || '';
+            else if (language === 'urdu') translation = h.urduTerjuma || h.hadithUrdu || '';
+            else translation = h.englishTerjuma || h.hadithEnglish || '';
+
+            batch.set(hRef, {
+              id: hId,
+              editionId,
+              bookId: edition.bookId,
+              hadithNumber: h.hadithNumber,
+              arabicText: h.hadithArabic || '',
+              translatedText: translation,
+              chapterName: h.chapterName || 'Unknown Section',
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          });
+
+          await batch.commit();
+          totalFetched += chunk.length;
+          const progress = Math.round((currentPage / lastPage) * 100);
+          setSyncState(prev => ({ ...prev, progress, status: 'indexing' }));
+        }
+
+        currentPage++;
+      } while (currentPage <= lastPage);
+
+      setSyncState(prev => ({ ...prev, status: 'success', progress: 100 }));
+      toast({ title: "Synchronization Complete", description: `Ingested ${totalFetched} Prophetic records.` });
     } catch (e: any) {
       setSyncState(prev => ({ ...prev, status: 'error' }));
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
@@ -523,7 +538,7 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
 
              <div className="space-y-3">
                <h3 className="text-2xl font-headline font-bold tracking-tight">Syncing Hadith Feed</h3>
-               <p className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Inducting Prophetic records into the local feed for zero-latency retrieval.</p>
+               <p className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Connecting to HadithAPI.com to induct authentic Prophetic records into your local feed.</p>
              </div>
 
              <div className="w-full space-y-6">
