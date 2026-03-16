@@ -1,25 +1,25 @@
-"use client";
-
-import { useParams, useRouter } from 'next/navigation';
 import { QuranEditionDataView } from '@/features/admin/components/QuranHub';
+import { useRouter } from 'next/navigation';
 
 /**
  * Required for static export with dynamic routes.
- * Provides a shell parameter for build-time generation.
  */
 export function generateStaticParams() {
   return [{ editionId: 'shell' }];
 }
 
-export default function AdminQuranEditionDataPage() {
-  const params = useParams();
-  const router = useRouter();
-  const editionId = params.editionId as string;
+/**
+ * Client-side navigation wrapper.
+ */
+function NavigationWrapper({ editionId }: { editionId: string }) {
+  // We use a small inline component to handle the 'use router' requirement
+  // as the parent Page is now a server component.
+  return <QuranEditionDataViewPageWrapper editionId={editionId} />;
+}
 
-  return (
-    <QuranEditionDataView 
-      editionId={editionId} 
-      onBack={() => router.push('/admin/quran')} 
-    />
-  );
+import { QuranEditionDataViewPageWrapper } from './client-page';
+
+export default async function AdminQuranEditionDataPage({ params }: { params: Promise<{ editionId: string }> }) {
+  const { editionId } = await params;
+  return <QuranEditionDataViewPageWrapper editionId={editionId} />;
 }
