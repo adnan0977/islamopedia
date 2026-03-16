@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, writeBatch, where, limit, orderBy } from 'firebase/firestore';
 import { 
   Card, 
@@ -54,7 +54,7 @@ import { fetchHadithBooks, fetchHadithChapters, fetchHadiths, HadithApiBook, Had
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const SLUG_MAPPING = [
   { name: "Sahih Bukhari", slug: "sahih-bukhari" },
@@ -237,10 +237,10 @@ export function HadithManager() {
                <div className="absolute -inset-8 border border-zinc-900 rounded-full animate-[spin_15s_linear_infinite] opacity-30" />
              </div>
 
-             <div className="space-y-3">
-               <h3 className="text-2xl font-headline font-bold tracking-tight">Syncing {bookSyncState.bookName}</h3>
-               <p className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Processing Triple-Language Ingestion (Arabic, English, Urdu).</p>
-             </div>
+             <DialogHeader className="space-y-3">
+               <DialogTitle className="text-2xl font-headline font-bold tracking-tight">Syncing {bookSyncState.bookName}</DialogTitle>
+               <DialogDescription className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Processing Triple-Language Ingestion (Arabic, English, Urdu).</DialogDescription>
+             </DialogHeader>
 
              <div className="w-full space-y-6">
                <div className="space-y-3">
@@ -685,10 +685,10 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
                <div className="absolute -inset-8 border border-zinc-900 rounded-full animate-[spin_15s_linear_infinite] opacity-30" />
              </div>
 
-             <div className="space-y-3">
-               <h3 className="text-2xl font-headline font-bold tracking-tight">Syncing Hadith Feed</h3>
-               <p className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Connecting to HadithAPI.com to induct authentic Prophetic records into your local feed.</p>
-             </div>
+             <DialogHeader className="space-y-3">
+               <DialogTitle className="text-2xl font-headline font-bold tracking-tight">Syncing Hadith Feed</DialogTitle>
+               <DialogDescription className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Connecting to HadithAPI.com to induct authentic Prophetic records into your local feed.</DialogDescription>
+             </DialogHeader>
 
              <div className="w-full space-y-6">
                <div className="space-y-3">

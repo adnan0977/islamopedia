@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, writeBatch, query, where, collection, limit } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -150,10 +150,10 @@ export function QuranHub({ editions }: QuranHubProps) {
                <div className="absolute -inset-8 border border-zinc-900 rounded-full animate-[spin_15s_linear_infinite] opacity-30" />
              </div>
 
-             <div className="space-y-3">
-               <h3 className="text-2xl font-headline font-bold tracking-tight">Syncing Spiritual Repository</h3>
-               <p className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Inducting verses into the local feed. This ensures zero-latency access for creators.</p>
-             </div>
+             <DialogHeader className="space-y-3">
+               <DialogTitle className="text-2xl font-headline font-bold tracking-tight">Syncing Spiritual Repository</DialogTitle>
+               <DialogDescription className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Inducting verses into the local feed. This ensures zero-latency access for creators.</DialogDescription>
+             </DialogHeader>
 
              <div className="w-full space-y-6">
                <div className="space-y-3">
