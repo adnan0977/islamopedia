@@ -6,7 +6,7 @@
  */
 
 const API_KEY = '$2y$10$zBKMN41uis6ihOJnGbQGqOMvAugri3bY191hZlhdFtsfPjiCYO';
-const BASE_URL = 'https://hadithapi.com/api';
+const BASE_URL = 'https://hadithapi.com/public/api';
 
 export interface HadithApiBook {
   id: number;
@@ -39,6 +39,7 @@ export interface HadithApiRecord {
   chapterId: string;
   bookSlug: string;
   chapterName: string;
+  status?: string;
 }
 
 export async function fetchHadithBooks(): Promise<HadithApiBook[]> {
@@ -75,6 +76,7 @@ export async function fetchHadithChapters(bookSlug: string): Promise<HadithApiCh
 
 export async function fetchHadiths(bookSlug: string, page: number = 1): Promise<{ data: HadithApiRecord[], lastPage: number }> {
   try {
+    // Using the public API endpoint as requested
     const response = await fetch(`${BASE_URL}/hadiths?apiKey=${API_KEY}&book=${bookSlug}&paginate=100&page=${page}`);
     const data = await response.json();
     
