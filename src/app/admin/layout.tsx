@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -16,7 +15,6 @@ import {
   Copy,
   CheckCircle2,
   Mic2,
-  Database,
   Settings,
   ExternalLink,
   ScrollText
@@ -35,15 +33,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent
 } from '@/components/ui/sidebar';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription
-} from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -60,9 +50,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   
   const [copied, setCopied] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [syncStatus, setSyncStatus] = useState('idle');
 
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData, isLoading: isAdminLoading } = useDoc(adminRef);
@@ -181,21 +168,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {children}
           </main>
         </SidebarInset>
-
-        {/* Global Sync Dialog */}
-        <Dialog open={isSyncing}>
-          <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl p-10 outline-none">
-            <DialogHeader className="flex flex-col items-center text-center space-y-6">
-               <Database className="w-12 h-12 text-white animate-pulse" />
-               <DialogTitle className="text-xl font-bold">Synchronizing Database</DialogTitle>
-               <DialogDescription className="text-zinc-500 text-sm">Persisting spiritual content. Please do not close this window.</DialogDescription>
-            </DialogHeader>
-            <div className="w-full space-y-4 py-6">
-                 <Progress value={syncProgress} className="h-2 bg-zinc-900" />
-                 <p className="text-center text-[10px] text-zinc-500 uppercase font-black tracking-widest">{syncStatus}...</p>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </SidebarProvider>
   );
