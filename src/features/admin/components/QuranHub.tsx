@@ -4,9 +4,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, writeBatch, query, where, getDocs, collection } from 'firebase/firestore';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Trash2, 
   Loader2, 
@@ -26,7 +25,9 @@ import {
   Mic,
   FilterX,
   Layers,
-  FileText
+  FileText,
+  Globe,
+  CheckCircle
 } from 'lucide-react';
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -331,7 +332,8 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
   }, [dirSearch, filterFormat, filterLanguage, filterStatus, filterType]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
+      {/* Registry Controls */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-950 p-8 rounded-3xl border border-zinc-900 shadow-xl">
         <div className="space-y-2">
           <h3 className="font-bold text-xl text-white">Platform Registry</h3>
@@ -359,6 +361,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
         </div>
       </div>
 
+      {/* Filters Hub */}
       <div className="space-y-4">
         <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
@@ -426,133 +429,122 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
         </div>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-3xl shadow-2xl">
-        <Table>
-          <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-zinc-900">
-              <TableHead className="text-[10px] font-black uppercase tracking-widest py-6 text-zinc-500 pl-8">Edition Detail</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Language</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Type</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Format</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Status</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-zinc-500 pr-8">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedEditions.map((t) => (
-              <TableRow key={t.id} className="hover:bg-zinc-900/40 transition-all border-zinc-900 h-24">
-                <TableCell className="pl-8">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-zinc-100">
-                      {t.name} {t.englishName && <span className="text-zinc-500 font-normal ml-1">({t.englishName})</span>}
-                    </span>
-                    <span className="text-[9px] font-mono text-zinc-700 uppercase">{t.id}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-zinc-500 font-medium text-xs">
-                  {t.language}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 text-zinc-500 text-xs font-medium">
-                    <Layers className="w-3.5 h-3.5 text-zinc-600" />
-                    <span className="capitalize">{t.type || 'N/A'}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 text-zinc-500 text-xs font-medium">
-                    {t.format === 'text' ? <TypeIcon className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-                    <span className="capitalize">{t.format}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2">
-                      {t.isActive ? (
-                        <Badge className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg text-[8px] font-black uppercase">Active</Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-zinc-800 text-zinc-700 rounded-lg text-[8px] font-black uppercase">Inactive</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {t.dataSync === 'yes' ? (
-                        <Badge className="bg-blue-500/10 text-blue-500 border-none rounded-lg text-[8px] font-black uppercase">Synced</Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-amber-500/10 text-amber-500/50 rounded-lg text-[8px] font-black uppercase">Pending Sync</Badge>
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right pr-8 space-x-1.5">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    disabled={syncing || !t.isActive}
-                    onClick={() => performSync(t.id)} 
-                    className={cn("rounded-xl h-10 w-10 text-zinc-400 hover:bg-zinc-900")}
-                    title="Start Sync"
-                  >
-                    <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => toggleActivation(t.id, !!t.isActive)} 
-                    className={cn("rounded-xl h-10 w-10", t.isActive ? "text-amber-500 hover:bg-amber-500/10" : "text-emerald-500 hover:bg-emerald-500/10")}
-                    title={t.isActive ? "Deactivate" : "Activate"}
-                  >
-                    {t.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_editions', t.id))} 
-                    className="text-destructive hover:bg-destructive/10 rounded-xl h-10 w-10"
-                    title="Remove"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {paginatedEditions.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="h-60 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-4">
-                     <BookOpen className="w-12 h-12 text-zinc-900" />
-                     <p className="text-zinc-600 font-medium">No editions found matching filters.</p>
-                     <Button variant="link" onClick={resetFilters} className="text-white">Clear all filters</Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        
-        <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between">
-           <div className="flex flex-col">
-             <span className="text-xs font-bold text-zinc-400">Showing {paginatedEditions.length} of {filteredEditions.length}</span>
-             <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
-           </div>
-           <div className="flex gap-2">
-             <Button 
-               variant="outline" 
-               className="rounded-xl border-zinc-800 text-white font-bold h-10 transition-all" 
-               disabled={currentPage === 1}
-               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-             >
-               <ChevronLeft className="w-4 h-4 mr-2" /> Previous
-             </Button>
-             <Button 
-               variant="outline" 
-               className="rounded-xl border-zinc-800 text-white font-bold h-10 transition-all" 
-               disabled={currentPage === totalPages || totalPages === 0}
-               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-             >
-               Next <ChevronRight className="w-4 h-4 ml-2" />
-             </Button>
-           </div>
+      {/* Grid of Editions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {paginatedEditions.map((t) => (
+          <Card key={t.id} className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden flex flex-col group hover:border-zinc-700 transition-all shadow-xl">
+            <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
+              <div className="flex justify-between items-start mb-4">
+                <div className="bg-zinc-900 p-3 rounded-2xl border border-zinc-800 shadow-inner">
+                  {t.format === 'text' ? <TypeIcon className="w-5 h-5 text-zinc-500" /> : <Mic className="w-5 h-5 text-zinc-500" />}
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-2 py-0.5", t.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
+                    {t.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                  <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-2 py-0.5", t.dataSync === 'yes' ? "bg-blue-500/10 text-blue-500" : "bg-amber-500/10 text-amber-500/50")}>
+                    {t.dataSync === 'yes' ? 'Synced' : 'Pending Sync'}
+                  </Badge>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <CardTitle className="text-lg font-bold text-zinc-100 group-hover:text-white transition-colors line-clamp-1">{t.name}</CardTitle>
+                <CardDescription className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter">{t.id}</CardDescription>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-6 flex-1 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 p-3 bg-zinc-900/30 rounded-xl border border-zinc-900">
+                  <span className="text-[8px] font-black uppercase text-zinc-600 tracking-widest">Language</span>
+                  <span className="text-xs font-bold text-zinc-300">{t.language}</span>
+                </div>
+                <div className="flex flex-col gap-1 p-3 bg-zinc-900/30 rounded-xl border border-zinc-900">
+                  <span className="text-[8px] font-black uppercase text-zinc-600 tracking-widest">Type</span>
+                  <span className="text-xs font-bold text-zinc-300 capitalize">{t.type}</span>
+                </div>
+              </div>
+              {t.englishName && (
+                <div className="flex items-center gap-2 text-zinc-500 text-xs italic bg-zinc-900/30 p-3 rounded-xl">
+                  <Globe className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{t.englishName}</span>
+                </div>
+              )}
+            </CardContent>
+
+            <CardFooter className="p-6 bg-zinc-900/10 border-t border-zinc-900 flex justify-between gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                disabled={syncing || !t.isActive}
+                onClick={() => performSync(t.id)} 
+                className="flex-1 rounded-xl font-bold h-11 text-zinc-500 hover:text-white hover:bg-zinc-900"
+              >
+                <RefreshCw className={cn("w-4 h-4 mr-2", syncing && "animate-spin")} />
+                Sync
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => toggleActivation(t.id, !!t.isActive)} 
+                className={cn("rounded-xl h-11 w-11", t.isActive ? "text-amber-500 hover:bg-amber-500/10" : "text-emerald-500 hover:bg-emerald-500/10")}
+              >
+                {t.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_editions', t.id))} 
+                className="text-destructive hover:bg-destructive/10 rounded-xl h-11 w-11"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+
+        {paginatedEditions.length === 0 && (
+          <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[3rem] border-2 border-dashed border-zinc-900 flex flex-col items-center justify-center space-y-6">
+             <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800">
+               <BookOpen className="w-10 h-10 text-zinc-800" />
+             </div>
+             <div className="space-y-2">
+               <p className="text-zinc-600 font-bold">No editions found matching your criteria.</p>
+               <Button variant="link" onClick={resetFilters} className="text-zinc-500 hover:text-white">Clear all filters</Button>
+             </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Pagination Bar */}
+      {totalPages > 1 && (
+        <div className="flex flex-col items-center gap-6 pt-12 border-t border-zinc-900">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              className="rounded-xl border-zinc-800 bg-zinc-950 h-12 px-8 font-bold text-white transition-all hover:bg-white hover:text-black" 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" /> Previous
+            </Button>
+            <div className="px-8 h-12 bg-zinc-950 border border-zinc-900 rounded-xl flex items-center justify-center min-w-[120px] shadow-inner">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                Page {currentPage} of {totalPages}
+              </span>
+            </div>
+            <Button 
+              variant="outline" 
+              className="rounded-xl border-zinc-800 bg-zinc-950 h-12 px-8 font-bold text-white transition-all hover:bg-white hover:text-black" 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            >
+              Next <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+          <p className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.2em]">Showing {paginatedEditions.length} of {filteredEditions.length} Editions</p>
         </div>
-      </Card>
+      )}
     </div>
   );
 }
