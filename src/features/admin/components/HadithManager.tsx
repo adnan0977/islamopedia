@@ -35,7 +35,9 @@ import {
   Pencil,
   FileText,
   Search,
-  Settings
+  Settings,
+  Table as TableIcon,
+  CloudDownload
 } from 'lucide-react';
 import { 
   Table, 
@@ -52,6 +54,7 @@ import { fetchHadithBooks, fetchHadithChapters, HadithApiBook, HadithApiChapter 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const SLUG_MAPPING = [
   { name: "Sahih Bukhari", slug: "sahih-bukhari" },
@@ -427,6 +430,12 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   
+  const [syncState, setSyncState] = useState({
+    isSyncing: false,
+    progress: 0,
+    status: 'idle'
+  });
+
   const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
   const { data: edition } = useDoc(editionRef);
 
@@ -437,35 +446,53 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
   ), [db, editionId]);
   const { data: hadiths, isLoading } = useCollection(dataQuery);
 
-  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
-
-  const handleSyncMetadata = async () => {
+  const handleSyncHadithData = async () => {
     if (!edition?.sourceLinkMin) {
-      toast({ variant: "destructive", title: "No Source URL", description: "Please provide sourceLinkMin for this edition first." });
+      toast({ variant: "destructive", title: "Missing Source Link", description: "Please provide a source URL for this edition." });
       return;
     }
 
-    setIsSyncingMeta(true);
+    setSyncState({ isSyncing: true, progress: 0, status: 'fetching' });
     try {
       const response = await fetch(edition.sourceLinkMin);
-      const data = await response.json();
+      const payload = await response.json();
       
-      if (!data.metadata) throw new Error("Metadata field not found in response.");
+      const records = payload.hadiths || payload.data || [];
+      if (!Array.isArray(records)) throw new Error("Invalid data format in source JSON.");
 
-      const metaId = editionId;
-      await setDocumentNonBlocking(doc(db, 'hadith_metadata', metaId), {
-        id: metaId,
-        editionId,
-        bookId: edition.bookId,
-        metadata: data.metadata,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
+      setSyncState(prev => ({ ...prev, status: 'indexing' }));
+      const batchSize = 25;
+      for (let i = 0; i < records.length; i += batchSize) {
+        const chunk = records.slice(i, i + batchSize);
+        const batch = writeBatch(db);
+        
+        chunk.forEach((h: any) => {
+          const hId = `${editionId}_h_${h.hadithNumber || h.number || Math.random().toString(36).substr(2, 9)}`;
+          const hRef = doc(db, 'hadith_data', hId);
+          batch.set(hRef, {
+            id: hId,
+            editionId,
+            bookId: edition.bookId,
+            hadithNumber: h.hadithNumber?.toString() || h.number?.toString(),
+            arabicText: h.arabic || h.text_ar || '',
+            translatedText: h.text || h.text_en || h.text_ur || '',
+            chapterName: h.chapter || h.chapterName || 'Unknown Chapter',
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        });
 
-      toast({ title: "Metadata Synced", description: "Edition structure (chapters/sections) has been indexed." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Sync Failed", description: error.message });
+        await batch.commit();
+        const progress = Math.round(((i + chunk.length) / records.length) * 100);
+        setSyncState(prev => ({ ...prev, progress, status: 'saving' }));
+      }
+
+      setSyncState(prev => ({ ...prev, status: 'success' }));
+      toast({ title: "Synchronization Complete", description: `Indexed ${records.length} records.` });
+    } catch (e: any) {
+      setSyncState(prev => ({ ...prev, status: 'error' }));
+      toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
-      setIsSyncingMeta(false);
+      setSyncState(prev => ({ ...prev, isSyncing: false }));
     }
   };
 
@@ -480,6 +507,53 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+      <Dialog open={syncState.isSyncing}>
+        <DialogContent className="bg-zinc-950/90 border-zinc-900 text-white rounded-[2.5rem] p-12 outline-none shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl max-w-lg border-t border-white/5">
+          <div className="flex flex-col items-center text-center space-y-8">
+             <div className="relative group">
+               <div className="absolute inset-0 bg-white/5 rounded-full scale-150 blur-2xl group-hover:bg-white/10 transition-all duration-1000 animate-pulse" />
+               <div className="relative w-24 h-24 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl overflow-hidden">
+                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+                 <Database className="w-10 h-10 text-white relative z-10 animate-bounce" />
+                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 animate-pulse" />
+               </div>
+               <div className="absolute -inset-4 border border-zinc-800 rounded-full animate-[spin_10s_linear_infinite] opacity-50" />
+               <div className="absolute -inset-8 border border-zinc-900 rounded-full animate-[spin_15s_linear_infinite] opacity-30" />
+             </div>
+
+             <div className="space-y-3">
+               <h3 className="text-2xl font-headline font-bold tracking-tight">Syncing Hadith Feed</h3>
+               <p className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Inducting Prophetic records into the local feed for zero-latency retrieval.</p>
+             </div>
+
+             <div className="w-full space-y-6">
+               <div className="space-y-3">
+                 <div className="flex justify-between items-end">
+                   <div className="flex flex-col items-start gap-1">
+                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Batch Progress</span>
+                     <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                       <span className="text-xs font-mono text-zinc-400 capitalize">{syncState.status}...</span>
+                     </div>
+                   </div>
+                   <span className="text-3xl font-headline font-bold text-white tabular-nums">{syncState.progress}%</span>
+                 </div>
+                 <div className="h-2.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/50 p-0.5">
+                   <div 
+                     className="h-full bg-white rounded-full transition-all duration-500 ease-out shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                     style={{ width: `${syncState.progress}%` }}
+                   />
+                 </div>
+               </div>
+               
+               <div className="pt-4 border-t border-zinc-900 flex justify-center">
+                 <p className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.3em]">System Level Sync Active</p>
+               </div>
+             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 border-t border-white/5 shadow-2xl">
         <div className="flex items-center gap-6">
           <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all">
@@ -506,11 +580,11 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
           <Button 
             variant="outline"
             className="rounded-xl h-14 px-6 font-bold border-zinc-800 text-zinc-400 hover:border-white hover:text-white flex items-center gap-2 transition-all"
-            onClick={handleSyncMetadata}
-            disabled={isSyncingMeta}
+            onClick={handleSyncHadithData}
+            disabled={syncState.isSyncing}
           >
-            {isSyncingMeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-            <span>Sync Meta</span>
+            {syncState.isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
+            <span>Sync Content</span>
           </Button>
         </div>
       </div>
@@ -560,6 +634,9 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
                   <div className="flex flex-col items-center justify-center space-y-4">
                     <FileText className="w-12 h-12 text-zinc-900" />
                     <p className="text-zinc-600 font-medium">No records found matching your query.</p>
+                    <Button variant="outline" className="rounded-xl border-zinc-800" onClick={handleSyncHadithData}>
+                      <CloudDownload className="w-4 h-4 mr-2" /> Populated Data Feed
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
