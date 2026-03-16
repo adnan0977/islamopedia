@@ -485,19 +485,21 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
               </Button>
               <Button 
                 variant="ghost" 
-                size="icon" 
+                size="sm" 
                 onClick={() => toggleActivation(t.id, !!t.isActive)} 
-                className={cn("rounded-xl h-11 w-11", t.isActive ? "text-amber-500 hover:bg-amber-500/10" : "text-emerald-500 hover:bg-emerald-500/10")}
+                className={cn("rounded-xl h-11 px-3", t.isActive ? "text-amber-500 hover:bg-amber-500/10" : "text-emerald-500 hover:bg-emerald-500/10")}
               >
-                {t.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                {t.isActive ? <PowerOff className="w-4 h-4 mr-2" /> : <Power className="w-4 h-4 mr-2" />}
+                <span>{t.isActive ? 'Off' : 'On'}</span>
               </Button>
               <Button 
                 variant="ghost" 
-                size="icon" 
+                size="sm" 
                 onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_editions', t.id))} 
-                className="text-destructive hover:bg-destructive/10 rounded-xl h-11 w-11"
+                className="text-destructive hover:bg-destructive/10 rounded-xl h-11 px-3"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4 mr-2" />
+                <span>Delete</span>
               </Button>
             </CardFooter>
           </Card>

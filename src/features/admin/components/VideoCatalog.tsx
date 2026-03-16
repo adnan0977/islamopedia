@@ -204,12 +204,19 @@ export function VideoCatalog() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right pr-8">
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(video)} className="h-8 w-8 text-zinc-600 hover:text-white"><Pencil className="w-3.5 h-3.5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => toggleVideoStatus(video)} className="h-8 w-8 text-zinc-600">
-                      {video.isActive !== false ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(video)} className="h-9 px-3 text-zinc-600 hover:text-white">
+                      <Pencil className="w-3.5 h-3.5 mr-2" />
+                      <span>Edit</span>
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(video.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => toggleVideoStatus(video)} className="h-9 px-3 text-zinc-600">
+                      {video.isActive !== false ? <Power className="w-3.5 h-3.5 mr-2 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5 mr-2" />}
+                      <span>{video.isActive !== false ? 'Live' : 'Off'}</span>
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(video.id)} className="h-9 px-3 text-zinc-600 hover:text-destructive">
+                      <Trash2 className="w-3.5 h-3.5 mr-2" />
+                      <span>Trash</span>
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>

@@ -365,19 +365,24 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
                         {edition.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right pr-8 space-x-2">
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => {
-                        const newUrl = prompt("Enter new source JSON URL:", edition.sourceLinkMin);
-                        if (newUrl !== null) updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { sourceLinkMin: newUrl });
-                      }}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white" onClick={() => toggleStatus(edition.id, edition.isActive)}>
-                        {edition.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_editions', edition.id))}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <TableCell className="text-right pr-8">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" className="h-9 px-3 text-zinc-500 hover:text-white" onClick={() => {
+                          const newUrl = prompt("Enter new source JSON URL:", edition.sourceLinkMin);
+                          if (newUrl !== null) updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { sourceLinkMin: newUrl });
+                        }}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          <span>Modify</span>
+                        </Button>
+                        <Button variant="ghost" size="sm" className={cn("h-9 px-3", edition.isActive ? "text-amber-500" : "text-emerald-500")} onClick={() => toggleStatus(edition.id, edition.isActive)}>
+                          {edition.isActive ? <PowerOff className="w-4 h-4 mr-2" /> : <Power className="w-4 h-4 mr-2" />}
+                          <span>{edition.isActive ? 'Off' : 'On'}</span>
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-9 px-3 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_editions', edition.id))}>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          <span>Remove</span>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -518,8 +523,9 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
                   <p className="text-xs text-zinc-300 line-clamp-1 max-w-md">{h.translatedText}</p>
                 </TableCell>
                 <TableCell className="text-right pr-8">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_data', h.id))}>
-                    <Trash2 className="w-4 h-4" />
+                  <Button variant="ghost" size="sm" className="h-9 px-3 text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'hadith_data', h.id))}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    <span>Remove</span>
                   </Button>
                 </TableCell>
               </TableRow>

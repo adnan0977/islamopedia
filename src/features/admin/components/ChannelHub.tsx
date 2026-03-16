@@ -261,10 +261,19 @@ export function ChannelHub({ videos }: { videos: any[] }) {
                     {channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount}
                   </TableCell>
                   <TableCell className="text-right pr-6">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleSyncVideos(channel)} className="h-8 w-8 text-zinc-600 hover:text-emerald-500"><SyncIcon className={cn("w-3.5 h-3.5", syncingVideosFor === channel.id && "animate-spin")} /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)} className="h-8 w-8 text-zinc-600">{channel.isActive ? <Power className="w-3.5 h-3.5 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5" />}</Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(channel.id)} className="h-8 w-8 text-zinc-600 hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleSyncVideos(channel)} className="h-9 px-3 text-zinc-600 hover:text-emerald-500">
+                        <SyncIcon className={cn("w-3.5 h-3.5 mr-2", syncingVideosFor === channel.id && "animate-spin")} />
+                        <span>Sync</span>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)} className="h-9 px-3 text-zinc-600">
+                        {channel.isActive ? <Power className="w-3.5 h-3.5 mr-2 text-emerald-500" /> : <PowerOff className="w-3.5 h-3.5 mr-2" />}
+                        <span>{channel.isActive ? 'Active' : 'Off'}</span>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(channel.id)} className="h-9 px-3 text-zinc-600 hover:text-destructive">
+                        <Trash2 className="w-3.5 h-3.5 mr-2" />
+                        <span>Unlink</span>
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
