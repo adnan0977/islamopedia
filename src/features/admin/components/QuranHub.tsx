@@ -27,7 +27,8 @@ import {
   Globe,
   Pencil,
   ArrowLeft,
-  Table as TableIcon
+  Table as TableIcon,
+  FileText
 } from 'lucide-react';
 import { Input } from "@/components/ui/input"
 import { 
