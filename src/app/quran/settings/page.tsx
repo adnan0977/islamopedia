@@ -59,17 +59,24 @@ export default function QuranSettingsPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
 
+  // Query editions to filter specific translations/audio for the selected language
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'quran_editions'), 
     where('isActive', '==', true)
   ), [db]);
   const { data: editions } = useCollection(editionsQuery);
 
-  const languages = useMemo(() => {
-    if (!editions) return [];
-    const langs = Array.from(new Set(editions.map(e => e.language))).sort();
-    return langs;
-  }, [editions]);
+  // Fetch languages from the dedicated languages collection as requested
+  const languagesQuery = useMemoFirebase(() => query(
+    collection(db, 'languages')
+  ), [db]);
+  const { data: languagesData, isLoading: isLoadingLangs } = useCollection(languagesQuery);
+
+  const languagesList = useMemo(() => {
+    if (!languagesData) return [];
+    // Map to names and sort alphabetically
+    return languagesData.map(l => l.name).sort();
+  }, [languagesData]);
 
   const translationOptions = useMemo(() => {
     if (!editions) return [];
@@ -138,7 +145,7 @@ export default function QuranSettingsPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || isLoadingLangs) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-zinc-500" />
@@ -190,7 +197,7 @@ export default function QuranSettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                    {languages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                    {languagesList.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
