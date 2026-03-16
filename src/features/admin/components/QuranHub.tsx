@@ -137,65 +137,92 @@ export function QuranHub({ editions }: QuranHubProps) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <Dialog open={syncState.isSyncing}>
-        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl p-10 outline-none shadow-2xl">
-          <DialogHeader className="flex flex-col items-center text-center space-y-6">
-             <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 animate-pulse">
-               <Database className="w-8 h-8 text-white" />
+        <DialogContent className="bg-zinc-950/90 border-zinc-900 text-white rounded-[2.5rem] p-12 outline-none shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl max-w-lg border-t border-white/5">
+          <div className="flex flex-col items-center text-center space-y-8">
+             <div className="relative group">
+               <div className="absolute inset-0 bg-white/5 rounded-full scale-150 blur-2xl group-hover:bg-white/10 transition-all duration-1000 animate-pulse" />
+               <div className="relative w-24 h-24 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl overflow-hidden">
+                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+                 <Database className="w-10 h-10 text-white relative z-10 animate-bounce" />
+                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 animate-pulse" />
+               </div>
+               <div className="absolute -inset-4 border border-zinc-800 rounded-full animate-[spin_10s_linear_infinite] opacity-50" />
+               <div className="absolute -inset-8 border border-zinc-900 rounded-full animate-[spin_15s_linear_infinite] opacity-30" />
              </div>
-             <div className="space-y-2">
-               <DialogTitle className="text-xl font-bold">Synchronizing Edition</DialogTitle>
-               <DialogDescription className="text-zinc-500 text-sm">Indexing spiritual content into local storage. Please do not close this window.</DialogDescription>
+
+             <div className="space-y-3">
+               <h3 className="text-2xl font-headline font-bold tracking-tight">Syncing Spiritual Repository</h3>
+               <p className="text-zinc-500 text-sm max-w-[280px] mx-auto leading-relaxed">Inducting verses into the local feed. This ensures zero-latency access for creators.</p>
              </div>
-          </DialogHeader>
-          <div className="w-full space-y-6 py-6">
-               <div className="space-y-2">
-                 <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-zinc-500">
-                   <span>Progress</span>
-                   <span>{syncState.progress}%</span>
+
+             <div className="w-full space-y-6">
+               <div className="space-y-3">
+                 <div className="flex justify-between items-end">
+                   <div className="flex flex-col items-start gap-1">
+                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Batch Progress</span>
+                     <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                       <span className="text-xs font-mono text-zinc-400 capitalize">{syncState.status}...</span>
+                     </div>
+                   </div>
+                   <span className="text-3xl font-headline font-bold text-white tabular-nums">{syncState.progress}%</span>
                  </div>
-                 <Progress value={syncState.progress} className="h-2 bg-zinc-900" />
+                 <div className="h-2.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/50 p-0.5">
+                   <div 
+                     className="h-full bg-white rounded-full transition-all duration-500 ease-out shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                     style={{ width: `${syncState.progress}%` }}
+                   />
+                 </div>
                </div>
-               <div className="flex items-center justify-center gap-2">
-                 <Loader2 className="w-3 h-3 animate-spin text-zinc-600" />
-                 <p className="text-center text-[10px] text-zinc-500 uppercase font-black tracking-widest">
-                   Status: {syncState.status}...
-                 </p>
+               
+               <div className="pt-4 border-t border-zinc-900 flex justify-center">
+                 <p className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.3em]">System Level Sync Active</p>
                </div>
+             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {!isStandardSynced && !syncState.isSyncing && (
-        <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-200 rounded-3xl p-6 shadow-2xl">
-          <AlertCircle className="h-5 w-5 text-amber-500" />
-          <AlertTitle className="font-bold text-lg mb-2">Standard Quran Missing</AlertTitle>
-          <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <Alert className="bg-amber-500/5 border-amber-500/20 text-amber-200/80 rounded-3xl p-8 shadow-2xl flex items-start gap-6">
+          <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20">
+            <AlertCircle className="h-6 w-6 text-amber-500" />
+          </div>
+          <div className="flex-1 space-y-4">
             <div className="space-y-1">
-              <p className="text-amber-200/70 text-sm">The foundational Arabic Uthmani text has not been synchronized.</p>
+              <AlertTitle className="font-headline font-bold text-xl text-amber-500">Foundation Required</AlertTitle>
+              <p className="text-sm leading-relaxed opacity-70">The central Arabic Uthmani text hasn't been synchronized. This is required for cross-reference consistency.</p>
             </div>
-            <Button variant="outline" onClick={() => performSync('quran-uthmani')} className="border-white text-white hover:bg-white hover:text-black font-bold rounded-xl h-11 px-6">
-              <Download className="mr-2 h-4 w-4" /> Sync Standard Arabic
+            <Button 
+              variant="outline" 
+              onClick={() => performSync('quran-uthmani')} 
+              className="border-amber-500/50 text-amber-500 hover:bg-amber-500 hover:text-black font-bold rounded-xl h-11 px-8 transition-all"
+            >
+              <CloudDownload className="mr-2 h-4 w-4" /> Sync Standard Arabic
             </Button>
-          </AlertDescription>
+          </div>
         </Alert>
       )}
 
       <Tabs defaultValue="directory" className="w-full">
-        <TabsList className="bg-zinc-900/50 p-1 rounded-2xl h-12 border border-zinc-800 mb-8">
-          <TabsTrigger value="directory" className="px-8 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold text-white">Edition Directory</TabsTrigger>
-          <TabsTrigger value="viewer" className="px-8 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold text-white">Full Viewer</TabsTrigger>
+        <TabsList className="bg-zinc-900/50 p-1.5 rounded-2xl h-14 border border-zinc-900/50 mb-10">
+          <TabsTrigger value="directory" className="px-10 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold text-zinc-500">Edition Directory</TabsTrigger>
+          <TabsTrigger value="viewer" className="px-10 rounded-xl h-full data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all font-bold text-zinc-500">Full Viewer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory">
           <EditionDirectory editions={editions} performSync={performSync} syncing={syncState.isSyncing} />
         </TabsContent>
         <TabsContent value="viewer">
-          <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl">
-            <div className="p-20 text-center space-y-6">
-              <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto border border-zinc-800 shadow-inner">
+          <Card className="bg-zinc-950 border-zinc-900 rounded-[3rem] overflow-hidden shadow-2xl border-t border-white/5">
+            <div className="py-32 px-10 text-center space-y-8">
+              <div className="w-24 h-24 bg-zinc-900 rounded-3xl flex items-center justify-center mx-auto border border-zinc-800 shadow-2xl">
                 <BookOpen className="w-10 h-10 text-zinc-700" />
               </div>
-              <h3 className="text-xl font-bold text-white">Select an edition from the directory to view its contents.</h3>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-headline font-bold text-white">Select an edition to begin inspection.</h3>
+                <p className="text-zinc-500 max-w-sm mx-auto">Use the directory to select a synchronized language version for granular data management.</p>
+              </div>
             </div>
           </Card>
         </TabsContent>
@@ -281,56 +308,59 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
 
   return (
     <div className="space-y-10">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-3xl border border-zinc-900 shadow-xl">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2rem] border border-zinc-900 shadow-xl border-t border-white/5">
         <div className="space-y-2">
-          <h3 className="font-bold text-xl text-white">Platform Registry</h3>
+          <h3 className="font-headline font-bold text-2xl text-white">Platform Registry</h3>
           <p className="text-sm text-zinc-500">Manage and filter {editions.length} indexed Quranic editions.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={fetchAndSeedMetadata} disabled={metaLoading} className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black">
+          <Button variant="outline" onClick={fetchAndSeedMetadata} disabled={metaLoading} className="rounded-xl h-12 px-8 font-bold border-zinc-800 text-zinc-400 hover:border-white hover:text-white transition-all">
             {metaLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />} Sync Metadata
           </Button>
-          <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-11 px-6 font-bold border-white text-white hover:bg-white hover:text-black">
+          <Button variant="outline" onClick={fetchAndSeedRegistry} disabled={loading} className="rounded-xl h-12 px-8 font-bold border-white text-white hover:bg-white hover:text-black transition-all shadow-xl">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CloudDownload className="w-4 h-4 mr-2" />} Seed Registry
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Input placeholder="Search registry..." className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white" value={dirSearch} onChange={(e) => setDirSearch(e.target.value)} />
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+          <Input placeholder="Search registry..." className="bg-zinc-950 border-zinc-900 h-14 pl-12 rounded-2xl text-white" value={dirSearch} onChange={(e) => setDirSearch(e.target.value)} />
+        </div>
         <Select value={filterLanguage} onValueChange={setFilterLanguage}><SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white"><SelectValue placeholder="Language" /></SelectTrigger><SelectContent className="bg-zinc-950 border-zinc-800 text-white"><SelectItem value="all">All Languages</SelectItem>{languages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
         <Select value={filterType} onValueChange={setFilterType}><SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white"><SelectValue placeholder="Type" /></SelectTrigger><SelectContent className="bg-zinc-950 border-zinc-800 text-white"><SelectItem value="all">All Types</SelectItem>{types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
-        <Button variant="outline" onClick={() => { setDirSearch(''); setFilterLanguage('all'); setFilterType('all'); }} className="h-14 px-6 rounded-2xl border-zinc-900 bg-zinc-950 text-white hover:text-white"><FilterX className="w-5 h-5 mr-2" /> Reset</Button>
+        <Button variant="ghost" onClick={() => { setDirSearch(''); setFilterLanguage('all'); setFilterType('all'); }} className="h-14 px-6 rounded-2xl text-zinc-500 hover:text-white transition-all"><FilterX className="w-5 h-5 mr-2" /> Reset Filters</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {paginatedEditions.map((t) => {
           const isSynced = t.dataSync === 'yes';
           return (
-            <Card key={t.id} className={cn("bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden flex flex-col group transition-all shadow-xl", isSynced ? "cursor-pointer hover:border-zinc-500" : "opacity-80")} onClick={() => handleCardClick(t.id, isSynced)}>
-              <CardHeader className="p-6 border-b border-zinc-900 bg-zinc-900/20">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="bg-zinc-900 p-3 rounded-2xl border border-zinc-800">
-                    {t.format === 'text' ? <TypeIcon className="w-5 h-5 text-zinc-500" /> : <Mic className="w-5 h-5 text-zinc-500" />}
+            <Card key={t.id} className={cn("bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden flex flex-col group transition-all shadow-xl relative border-t border-white/5", isSynced ? "cursor-pointer hover:border-zinc-500" : "opacity-80")} onClick={() => handleCardClick(t.id, isSynced)}>
+              <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 shadow-inner group-hover:border-zinc-600 transition-colors">
+                    {t.format === 'text' ? <TypeIcon className="w-6 h-6 text-zinc-500" /> : <Mic className="w-6 h-6 text-zinc-500" />}
                   </div>
-                  <div className="flex flex-col items-end gap-1.5">
-                    <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-2 py-0.5", t.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>{t.isActive ? 'Active' : 'Off'}</Badge>
-                    <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-2 py-0.5", isSynced ? "bg-blue-500/10 text-blue-500" : "bg-amber-500/10 text-amber-500/50")}>{isSynced ? 'Synced' : 'Pending'}</Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", t.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>{t.isActive ? 'Active' : 'Off'}</Badge>
+                    <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", isSynced ? "bg-blue-500/10 text-blue-500" : "bg-amber-500/10 text-amber-500/50")}>{isSynced ? 'Synced' : 'Pending'}</Badge>
                   </div>
                 </div>
-                <CardTitle className="text-lg font-bold text-zinc-100 group-hover:text-white line-clamp-1">{t.name}</CardTitle>
-                <CardDescription className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter">{t.id}</CardDescription>
+                <CardTitle className="text-xl font-bold text-zinc-100 group-hover:text-white line-clamp-1 transition-colors">{t.name}</CardTitle>
+                <CardDescription className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter mt-1">{t.id}</CardDescription>
               </CardHeader>
-              <CardContent className="p-6 flex-1">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-zinc-900/30 rounded-xl border border-zinc-900 text-center"><span className="text-[8px] font-black text-zinc-600 uppercase block mb-1">Language</span><span className="text-xs font-bold text-zinc-300">{t.language}</span></div>
-                  <div className="p-3 bg-zinc-900/30 rounded-xl border border-zinc-900 text-center"><span className="text-[8px] font-black text-zinc-600 uppercase block mb-1">Type</span><span className="text-xs font-bold text-zinc-300 capitalize">{t.type}</span></div>
+              <CardContent className="p-8 flex-1">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900 text-center"><span className="text-[8px] font-black text-zinc-600 uppercase block mb-1 tracking-widest">Language</span><span className="text-xs font-bold text-zinc-300">{t.language}</span></div>
+                  <div className="p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900 text-center"><span className="text-[8px] font-black text-zinc-600 uppercase block mb-1 tracking-widest">Type</span><span className="text-xs font-bold text-zinc-300 capitalize">{t.type}</span></div>
                 </div>
               </CardContent>
-              <CardFooter className="p-6 bg-zinc-900/10 border-t border-zinc-900 flex justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" disabled={syncing || !t.isActive} onClick={() => performSync(t.id)} className="flex-1 rounded-xl font-bold h-11 text-zinc-500 hover:text-white hover:bg-zinc-900"><RefreshCw className={cn("w-4 h-4 mr-2", syncing && "animate-spin")} /> Sync</Button>
-                <Button variant="ghost" size="sm" onClick={() => toggleActivation(t.id, !!t.isActive)} className={cn("rounded-xl h-11 px-3", t.isActive ? "text-amber-500" : "text-emerald-500")}>{t.isActive ? <PowerOff className="w-4 h-4 mr-2" /> : <Power className="w-4 h-4 mr-2" />} {t.isActive ? 'Off' : 'On'}</Button>
-                <Button variant="ghost" size="sm" onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_editions', t.id))} className="text-destructive hover:bg-destructive/10 rounded-xl h-11 px-3"><Trash2 className="w-4 h-4 mr-2" /> Delete</Button>
+              <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="sm" disabled={syncing || !t.isActive} onClick={() => performSync(t.id)} className="flex-1 rounded-xl font-bold h-12 text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all border border-transparent hover:border-zinc-800"><RefreshCw className={cn("w-4 h-4 mr-2", syncing && "animate-spin")} /> Sync</Button>
+                <Button variant="ghost" size="icon" onClick={() => toggleActivation(t.id, !!t.isActive)} className={cn("rounded-xl h-12 w-12 border border-zinc-900 bg-zinc-900/30", t.isActive ? "text-amber-500" : "text-emerald-500")}>{t.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}</Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteDocumentNonBlocking(doc(db, 'quran_editions', t.id))} className="text-destructive hover:bg-destructive/10 rounded-xl h-12 w-12 border border-zinc-900 bg-zinc-900/30"><Trash2 className="w-4 h-4" /></Button>
               </CardFooter>
             </Card>
           );
@@ -338,10 +368,10 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
       </div>
       
       {totalPages > 1 && (
-        <div className="flex justify-center gap-4 pt-8">
-          <Button variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl border-zinc-800 text-white">Previous</Button>
-          <div className="h-10 px-6 bg-zinc-950 border border-zinc-900 rounded-xl flex items-center font-bold text-[10px] text-zinc-500 uppercase tracking-widest">Page {currentPage} of {totalPages}</div>
-          <Button variant="outline" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl border-zinc-800 text-white">Next</Button>
+        <div className="flex justify-center items-center gap-6 pt-12">
+          <Button variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl border-zinc-800 text-white h-12 px-8 font-bold hover:bg-white hover:text-black">Previous</Button>
+          <div className="h-12 px-8 bg-zinc-950 border border-zinc-900 rounded-xl flex items-center font-bold text-[10px] text-zinc-500 uppercase tracking-[0.3em] shadow-inner">Page {currentPage} / {totalPages}</div>
+          <Button variant="outline" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl border-zinc-800 text-white h-12 px-8 font-bold hover:bg-white hover:text-black">Next</Button>
         </div>
       )}
     </div>
@@ -374,24 +404,73 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white px-4 h-10 flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Back</Button>
-          <div><h2 className="text-2xl font-headline font-bold text-white">{edition?.name} Content</h2><p className="text-sm text-zinc-500">Inspecting indexed Quranic verses.</p></div>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2rem] border border-zinc-900 border-t border-white/5 shadow-2xl">
+        <div className="flex items-center gap-6">
+          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all"><ArrowLeft className="w-5 h-5" /></Button>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{edition?.name || 'Inspection Mode'}</h2>
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
+              <TableIcon className="w-3 h-3" />
+              <span>Granular Verse Registry</span>
+            </div>
+          </div>
         </div>
-        <div className="relative w-full md:w-80"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" /><Input placeholder="Search verses..." className="pl-12 bg-zinc-950 border-zinc-900 text-white rounded-xl h-12" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+          <Input placeholder="Search within edition..." className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        </div>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2rem] shadow-2xl">
+      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl border-t border-white/5">
         <Table className="w-full">
-          <TableHeader className="bg-zinc-900/50"><TableRow className="border-zinc-900"><TableHead className="py-6 pl-8 text-[9px] font-black uppercase text-zinc-500">Global #</TableHead><TableHead className="text-[9px] font-black uppercase text-zinc-500">Surah</TableHead><TableHead className="text-[9px] font-black uppercase text-zinc-500 text-right pr-8">Arabic Text</TableHead><TableHead className="text-[9px] font-black uppercase text-zinc-500">Translation Preview</TableHead><TableHead className="text-right pr-8 text-[9px] font-black uppercase text-zinc-500">Actions</TableHead></TableRow></TableHeader>
+          <TableHeader className="bg-zinc-900/50">
+            <TableRow className="border-zinc-900">
+              <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-32">Global ID</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Source Chapter</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 text-right pr-10">Arabic Script</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Language Mapping</TableHead>
+              <TableHead className="text-right pr-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={5} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow> : paginatedAyats.map((a) => (
-              <TableRow key={a.globalId} className="border-zinc-900 h-24 hover:bg-zinc-900/40"><TableCell className="pl-8 font-mono text-[10px] text-zinc-500">#{a.number}</TableCell><TableCell><div className="flex flex-col"><span className="text-[11px] font-bold text-zinc-100">{a.surahName}</span><span className="text-[9px] text-zinc-600 uppercase font-black">Verse {a.numberInSurah}</span></div></TableCell><TableCell className="text-right pr-8"><p className="font-arabic text-lg text-zinc-300" dir="rtl">{a.text}</p></TableCell><TableCell><p className="text-xs text-zinc-400 line-clamp-2 italic">{a.translationText || '---'}</p></TableCell><TableCell className="text-right pr-8"><Button variant="ghost" size="sm" className="h-9 px-3 text-zinc-500 hover:text-white" onClick={() => toast({ title: "Granular Edit" })}><Pencil className="w-3.5 h-3.5 mr-2" /> Edit</Button></TableCell></TableRow>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={5} className="h-96 text-center"><div className="flex flex-col items-center gap-4"><Loader2 className="animate-spin h-10 w-10 text-zinc-800" /><p className="text-xs font-black uppercase text-zinc-700 tracking-widest">Indexing Viewport...</p></div></TableCell></TableRow>
+            ) : paginatedAyats.map((a) => (
+              <TableRow key={a.globalId} className="border-zinc-900 h-32 hover:bg-zinc-900/40 transition-colors">
+                <TableCell className="pl-10 font-mono text-xs text-zinc-600">
+                  <Badge variant="outline" className="border-zinc-800 text-zinc-500 bg-black/50">#{a.number}</Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-zinc-100">{a.surahName}</span>
+                    <span className="text-[10px] text-zinc-600 uppercase font-black tracking-tighter mt-0.5">Verse {a.numberInSurah}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right pr-10">
+                  <p className="font-arabic text-2xl text-zinc-300 leading-relaxed" dir="rtl">{a.text}</p>
+                </TableCell>
+                <TableCell>
+                  <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed italic max-w-sm">{a.translationText || '---'}</p>
+                </TableCell>
+                <TableCell className="text-right pr-10">
+                  <Button variant="ghost" size="sm" className="h-10 px-5 text-zinc-500 hover:text-white transition-all border border-transparent hover:border-zinc-800 rounded-xl" onClick={() => toast({ title: "Granular Edit Tool Incoming" })}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    <span className="font-bold">Edit</span>
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
           </TableBody>
         </Table>
-        {totalPages > 1 && <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex justify-between items-center"><span className="text-[10px] text-zinc-600 font-black uppercase">Page {currentPage} of {totalPages}</span><div className="flex gap-2"><Button variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl border-zinc-800 text-white">Prev</Button><Button variant="outline" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl border-zinc-800 text-white">Next</Button></div></div>}
+        {totalPages > 1 && (
+          <div className="bg-zinc-900/30 border-t border-zinc-900 p-10 flex justify-between items-center">
+            <span className="text-[10px] text-zinc-600 font-black uppercase tracking-[0.3em]">Viewport {currentPage} / {totalPages}</span>
+            <div className="flex gap-3">
+              <Button variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl border-zinc-800 text-white h-12 px-8 font-bold">Prev</Button>
+              <Button variant="outline" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl border-zinc-800 text-white h-12 px-8 font-bold">Next</Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
