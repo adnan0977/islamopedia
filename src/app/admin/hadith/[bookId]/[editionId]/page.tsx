@@ -1,3 +1,4 @@
+
 import { HadithDataViewPageWrapper } from './client-page';
 
 /**

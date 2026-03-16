@@ -1,3 +1,4 @@
+
 import { HadithBookDetailViewPageWrapper } from './client-page';
 
 /**
