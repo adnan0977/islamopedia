@@ -55,12 +55,6 @@ import { Progress } from "@/components/ui/progress";
 
 interface QuranHubProps {
   editions: any[];
-  syncing: boolean;
-  setSyncing: (val: boolean) => void;
-  progress: number;
-  setProgress: (val: number) => void;
-  status: string;
-  setSyncStatus: (val: any) => void;
 }
 
 const languageNameMap: Record<string, string> = {
@@ -68,23 +62,23 @@ const languageNameMap: Record<string, string> = {
   zh: 'Chinese', ru: 'Russian', fa: 'Persian', bn: 'Bengali', hi: 'Hindi', ml: 'Malayalam', ta: 'Tamil', te: 'Telugu',
 };
 
-export function QuranHub({ editions, syncing, setSyncing, progress, setProgress, status, setSyncStatus }: QuranHubProps) {
+export function QuranHub({ editions }: QuranHubProps) {
   const db = useFirestore();
   const { toast } = useToast();
+
+  const [syncState, setSyncState] = useState({
+    isSyncing: false,
+    progress: 0,
+    status: 'idle'
+  });
 
   const standardEdition = editions.find(e => e.id === 'quran-uthmani');
   const isStandardSynced = standardEdition?.dataSync === 'yes';
 
-  const handleStandardSync = async () => {
-    await performSync('quran-uthmani');
-  };
-
   const performSync = async (editionId: string) => {
     if (!editionId) return;
     
-    setSyncing(true);
-    setSyncStatus('fetching');
-    setProgress(0);
+    setSyncState({ isSyncing: true, progress: 0, status: 'fetching' });
     
     try {
       const isArabic = editionId === 'quran-uthmani';
@@ -93,7 +87,7 @@ export function QuranHub({ editions, syncing, setSyncing, progress, setProgress,
         throw new Error(`Failed to fetch edition ${editionId} from API.`);
       }
 
-      setSyncStatus('saving');
+      setSyncState(prev => ({ ...prev, status: 'saving' }));
       const surahs = payload.data.surahs;
       const batchSize = 5; 
 
@@ -127,26 +121,30 @@ export function QuranHub({ editions, syncing, setSyncing, progress, setProgress,
         
         await batch.commit();
         const currentProgress = Math.round(((i + chunk.length) / surahs.length) * 100);
-        setProgress(currentProgress);
+        setSyncState(prev => ({ ...prev, progress: currentProgress }));
       }
 
       const editionRef = doc(db, 'quran_editions', editionId);
       updateDocumentNonBlocking(editionRef, { dataSync: 'yes' });
       
-      setSyncStatus('success');
+      setSyncState(prev => ({ ...prev, status: 'success' }));
       toast({ title: "Synchronization Complete", description: `Successfully indexed ${editionId}.` });
     } catch (e: any) {
-      setSyncStatus('error');
+      setSyncState(prev => ({ ...prev, status: 'error' }));
       toast({ variant: "destructive", title: "Sync Failed", description: e.message || "An unexpected error occurred." });
     } finally {
-      setSyncing(false);
+      setSyncState(prev => ({ ...prev, isSyncing: false }));
     }
+  };
+
+  const handleStandardSync = async () => {
+    await performSync('quran-uthmani');
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Global Sync Progress Dialog */}
-      <Dialog open={syncing}>
+      <Dialog open={syncState.isSyncing}>
         <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-3xl p-10 outline-none shadow-2xl">
           <DialogHeader className="flex flex-col items-center text-center space-y-6">
              <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 animate-pulse">
@@ -161,21 +159,21 @@ export function QuranHub({ editions, syncing, setSyncing, progress, setProgress,
                <div className="space-y-2">
                  <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-zinc-500">
                    <span>Progress</span>
-                   <span>{progress}%</span>
+                   <span>{syncState.progress}%</span>
                  </div>
-                 <Progress value={progress} className="h-2 bg-zinc-900" />
+                 <Progress value={syncState.progress} className="h-2 bg-zinc-900" />
                </div>
                <div className="flex items-center justify-center gap-2">
                  <Loader2 className="w-3 h-3 animate-spin text-zinc-600" />
                  <p className="text-center text-[10px] text-zinc-500 uppercase font-black tracking-widest">
-                   Status: {status}...
+                   Status: {syncState.status}...
                  </p>
                </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {!isStandardSynced && !syncing && (
+      {!isStandardSynced && !syncState.isSyncing && (
         <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-200 rounded-3xl p-6 shadow-2xl">
           <AlertCircle className="h-5 w-5 text-amber-500" />
           <AlertTitle className="font-bold text-lg mb-2">Standard Quran Missing</AlertTitle>
@@ -211,7 +209,7 @@ export function QuranHub({ editions, syncing, setSyncing, progress, setProgress,
         </TabsList>
 
         <TabsContent value="directory">
-          <EditionDirectory editions={editions} performSync={performSync} syncing={syncing} />
+          <EditionDirectory editions={editions} performSync={performSync} syncing={syncState.isSyncing} />
         </TabsContent>
         <TabsContent value="viewer">
           <FullQuranViewer editions={editions} />
@@ -375,7 +373,7 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
     if (isSynced) {
       router.push(`/admin/quran/${id}`);
     } else {
-      toast({ title: "Action Required", description: "Please synchronize this edition first to view its data." });
+      toast({ title: "Sync Required", description: "Please synchronize this edition first to view its data." });
     }
   };
 
@@ -467,12 +465,11 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
 
           <Button 
             variant="outline" 
-            size="icon" 
             onClick={resetFilters} 
-            className="h-14 w-14 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-white hover:text-white shadow-sm"
-            title="Reset Filters"
+            className="h-14 px-6 shrink-0 rounded-2xl border-zinc-900 bg-zinc-950 text-white hover:text-white shadow-sm flex items-center gap-2"
           >
             <FilterX className="w-5 h-5" />
+            <span>Reset Filters</span>
           </Button>
         </div>
       </div>
@@ -626,7 +623,7 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
   const dataQuery = useMemoFirebase(() => query(
     collection(db, 'quran'),
     where('editionId', '==', editionId),
-    limit(114) // Quran has 114 surahs
+    limit(114)
   ), [db, editionId]);
   const { data: surahs, isLoading } = useCollection(dataQuery);
 
@@ -659,7 +656,7 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
   const handleEditAyat = (ayat: any) => {
     const newText = prompt(`Edit Translation for Verse ${ayat.numberInSurah} of ${ayat.surahName}:`, ayat.translationText || ayat.text);
     if (newText !== null) {
-      toast({ title: "Note", description: "Granular ayat editing requires complex array manipulation. Functionality placeholder." });
+      toast({ title: "Note", description: "Granular ayat editing functionality is prepared for implementation." });
     }
   };
 
@@ -667,8 +664,9 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white shadow-sm">
+          <Button variant="ghost" size="sm" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-white shadow-sm px-4 h-10 flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" />
+            <span>Back to Hub</span>
           </Button>
           <div>
             <h2 className="text-2xl font-headline font-bold text-white">{edition?.name} Content</h2>
@@ -716,8 +714,8 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
                   <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed italic">{a.translationText || '---'}</p>
                 </TableCell>
                 <TableCell className="text-right pr-8">
-                  <Button variant="ghost" size="sm" className="h-9 px-3 text-zinc-500 hover:text-white" onClick={() => handleEditAyat(a)}>
-                    <Pencil className="w-3.5 h-3.5 mr-2" />
+                  <Button variant="ghost" size="sm" className="h-9 px-3 text-zinc-500 hover:text-white flex items-center gap-2" onClick={() => handleEditAyat(a)}>
+                    <Pencil className="w-3.5 h-3.5" />
                     <span>Edit</span>
                   </Button>
                 </TableCell>
@@ -740,8 +738,14 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
           <div className="bg-zinc-900/30 border-t border-zinc-900 p-6 flex items-center justify-between">
             <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Page {currentPage} of {totalPages}</span>
             <div className="flex gap-2">
-              <Button variant="outline" className="rounded-xl border-zinc-800 bg-zinc-950 h-10 px-6 font-bold text-white transition-all hover:bg-white hover:text-black" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}><ChevronLeft className="w-4 h-4 mr-2" /> Prev</Button>
-              <Button variant="outline" className="rounded-xl border-zinc-800 bg-zinc-950 h-10 px-6 font-bold text-white transition-all hover:bg-white hover:text-black" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next <ChevronRight className="w-4 h-4 ml-2" /></Button>
+              <Button variant="outline" className="rounded-xl border-zinc-800 bg-zinc-950 h-10 px-6 font-bold text-white transition-all hover:bg-white hover:text-black flex items-center gap-2" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                <ChevronLeft className="w-4 h-4" /> 
+                <span>Prev</span>
+              </Button>
+              <Button variant="outline" className="rounded-xl border-zinc-800 bg-zinc-950 h-10 px-6 font-bold text-white transition-all hover:bg-white hover:text-black flex items-center gap-2" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         )}
