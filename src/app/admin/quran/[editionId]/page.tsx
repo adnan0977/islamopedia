@@ -1,21 +1,16 @@
 
-import { QuranEditionDataViewPageWrapper } from './client-page';
-
 /**
- * Required for static export with dynamic routes.
- * We pre-generate paths for the most common editions to satisfy Next.js build requirements.
+ * Satisfies static export requirements for output: export.
+ * Administrative logic has been moved to search parameters at /admin/quran/page.tsx
  */
 export function generateStaticParams() {
   return [
     { editionId: 'shell' },
     { editionId: 'quran-uthmani' },
-    { editionId: 'en.sahih' },
-    { editionId: 'ur.ahmedali' },
-    { editionId: 'ur.jalandhry' }
+    { editionId: 'en.sahih' }
   ];
 }
 
-export default async function AdminQuranEditionDataPage({ params }: { params: Promise<{ editionId: string }> }) {
-  const { editionId } = await params;
-  return <QuranEditionDataViewPageWrapper editionId={editionId} />;
+export default function RedundantDynamicEditionPage() {
+  return null;
 }
