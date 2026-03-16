@@ -143,7 +143,7 @@ export function HadithManager() {
         <div className="flex flex-wrap gap-3 justify-center">
           <Button 
             variant="outline"
-            className="rounded-xl h-12 px-6 font-bold border-white text-white hover:bg-white hover:text-black shadow-lg flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+            className="rounded-xl h-12 px-6 font-bold border-zinc-800 text-zinc-400 hover:border-white hover:text-white flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
             onClick={handleSeedSlugs}
             disabled={isSeedingSlugs}
           >
