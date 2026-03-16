@@ -1,23 +1,18 @@
-import { QuranEditionDataView } from '@/features/admin/components/QuranHub';
-import { useRouter } from 'next/navigation';
+import { QuranEditionDataViewPageWrapper } from './client-page';
 
 /**
  * Required for static export with dynamic routes.
+ * We pre-generate paths for the most common editions to satisfy Next.js build requirements.
  */
 export function generateStaticParams() {
-  return [{ editionId: 'shell' }];
+  return [
+    { editionId: 'shell' },
+    { editionId: 'quran-uthmani' },
+    { editionId: 'en.sahih' },
+    { editionId: 'ur.ahmedali' },
+    { editionId: 'ur.jalandhry' }
+  ];
 }
-
-/**
- * Client-side navigation wrapper.
- */
-function NavigationWrapper({ editionId }: { editionId: string }) {
-  // We use a small inline component to handle the 'use router' requirement
-  // as the parent Page is now a server component.
-  return <QuranEditionDataViewPageWrapper editionId={editionId} />;
-}
-
-import { QuranEditionDataViewPageWrapper } from './client-page';
 
 export default async function AdminQuranEditionDataPage({ params }: { params: Promise<{ editionId: string }> }) {
   const { editionId } = await params;
