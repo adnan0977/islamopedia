@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, writeBatch, where, limit, orderBy } from 'firebase/firestore';
 import { 
@@ -33,8 +32,6 @@ import {
   PowerOff,
   Plus,
   ListOrdered,
-  LayoutGrid,
-  ShieldCheck,
   Pencil,
   FileText
 } from 'lucide-react';
@@ -52,6 +49,7 @@ import { deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlo
 import { fetchHadithBooks, fetchHadithChapters, HadithApiBook, HadithApiChapter } from '@/services/hadith-api';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 const SLUG_MAPPING = [
   { name: "Sahih Bukhari", slug: "sahih-bukhari" },
@@ -68,31 +66,16 @@ const SLUG_MAPPING = [
 export function HadithManager() {
   const db = useFirestore();
   const { toast } = useToast();
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSeedingSlugs, setIsSeedingSlugs] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
-  // URL State Management
-  const activeBookId = searchParams.get('bookId');
-  const activeEditionId = searchParams.get('editionId');
 
   const booksQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_books'),
     orderBy('bookName', 'asc')
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
-
-  const navigateTo = (params: Record<string, string | null>) => {
-    const nextParams = new URLSearchParams(searchParams.toString());
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === null) nextParams.delete(key);
-      else nextParams.set(key, value);
-    });
-    router.push(`/admin?${nextParams.toString()}`);
-  };
 
   const handleSyncFromApi = async () => {
     setIsSyncing(true);
@@ -141,20 +124,6 @@ export function HadithManager() {
     }
   };
 
-  if (activeEditionId) {
-    return <HadithDataView editionId={activeEditionId} onBack={() => navigateTo({ editionId: null })} />;
-  }
-
-  if (activeBookId) {
-    return (
-      <HadithBookDetailView 
-        bookId={activeBookId} 
-        onBack={() => navigateTo({ bookId: null })} 
-        onSelectEdition={(id) => navigateTo({ editionId: id })} 
-      />
-    );
-  }
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-3xl border border-zinc-900 shadow-xl">
@@ -199,7 +168,7 @@ export function HadithManager() {
           {books?.map((book) => (
             <Card 
               key={book.id} 
-              onClick={() => navigateTo({ bookId: book.id })}
+              onClick={() => router.push(`/admin/hadith/${book.id}`)}
               className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl cursor-pointer"
             >
               <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
@@ -245,7 +214,7 @@ export function HadithManager() {
   );
 }
 
-function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { bookId: string, onBack: () => void, onSelectEdition: (id: string) => void }) {
+export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { bookId: string, onBack: () => void, onSelectEdition: (id: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
   
@@ -459,7 +428,7 @@ function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { bookId: str
   );
 }
 
-function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () => void }) {
+export function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () => void }) {
   const db = useFirestore();
   const { toast } = useToast();
   
