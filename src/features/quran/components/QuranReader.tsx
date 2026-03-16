@@ -14,7 +14,8 @@ import {
   Database,
   Settings,
   Play,
-  Square
+  Square,
+  Layout
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -238,10 +239,24 @@ export function QuranReader() {
     router.push(`/quran?${params.toString()}`);
   };
 
+  const selectPage = (num: number) => {
+    const params = new URLSearchParams();
+    params.set('mode', 'page');
+    params.set('page', num.toString());
+    router.push(`/quran?${params.toString()}`);
+  };
+
   const goBackToIndex = () => {
     const params = new URLSearchParams();
     params.set('mode', viewMode === 'page' ? 'surah' : viewMode);
     router.push(`/quran?${params.toString()}`);
+  };
+
+  const navigatePage = (dir: 'next' | 'prev') => {
+    if (viewMode !== 'page' || !selectedPage) return;
+    const next = dir === 'next' ? selectedPage + 1 : selectedPage - 1;
+    if (next < 1 || next > 604) return;
+    selectPage(next);
   };
 
   const toggleReaderViewMode = () => {
@@ -284,10 +299,10 @@ export function QuranReader() {
                   <h1 className="text-sm md:text-xl font-headline font-bold text-white leading-tight">
                     {viewMode === 'surah' && (content[0]?.englishName || 'Loading...')}
                     {viewMode === 'juz' && `Juz ${selectedJuz}`}
-                    {viewMode === 'page' && `Page ${selectedPage}`}
+                    {viewMode === 'page' && `Mushaf (Page ${selectedPage})`}
                   </h1>
                   <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">
-                    {viewMode === 'surah' ? `${content[0]?.ayats.length || 0} Verses` : viewMode === 'page' ? 'Mushaf View' : `Juz Reading`}
+                    {viewMode === 'surah' ? `${content[0]?.ayats.length || 0} Verses` : viewMode === 'page' ? 'Book Reading View' : `Juz Reading`}
                   </p>
                 </div>
               </div>
@@ -319,19 +334,37 @@ export function QuranReader() {
                 >
                   Juz
                 </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleModeToggle('page')} 
+                  className={cn(
+                    "rounded-xl font-bold h-10 px-6 transition-all border border-transparent", 
+                    viewMode === 'page' ? "bg-zinc-800 text-white border-zinc-700 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  Page
+                </Button>
               </div>
             ) : (
-              viewMode !== 'juz' && (
+              <div className="flex items-center gap-2">
+                {viewMode === 'page' && (
+                  <div className="flex items-center gap-1 bg-zinc-900/50 p-1 rounded-xl border border-zinc-900">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-500 hover:text-white" onClick={() => navigatePage('prev')} disabled={selectedPage === 1}><ChevronLeft className="w-4 h-4" /></Button>
+                    <div className="px-2 font-mono text-[10px] text-zinc-600 uppercase font-black">{selectedPage}</div>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-zinc-500 hover:text-white" onClick={() => navigatePage('next')} disabled={selectedPage === 604}><ChevronRight className="w-4 h-4" /></Button>
+                  </div>
+                )}
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={toggleReaderViewMode}
                   className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white"
-                  title={viewMode === 'page' ? "Switch to Ayat View" : "Switch to Page View"}
+                  title={viewMode === 'page' ? "Switch to Ayat View" : "Switch to Book View"}
                 >
                   {viewMode === 'page' ? <List className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
                 </Button>
-              )
+              </div>
             )}
             <Link href="/quran/settings">
               <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white">
@@ -366,7 +399,7 @@ export function QuranReader() {
                   </button>
                 ))}
               </div>
-            ) : (
+            ) : viewMode === 'juz' ? (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {metadata?.juzs?.references?.map((juz: any, idx: number) => (
                   <button 
@@ -379,6 +412,18 @@ export function QuranReader() {
                       <div><h3 className="font-bold text-zinc-200">Juz {idx + 1}</h3></div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-zinc-800" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+                {Array.from({ length: 604 }).map((_, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => selectPage(i + 1)}
+                    className="aspect-square bg-zinc-900/30 rounded-xl border border-zinc-900 flex items-center justify-center text-[10px] font-black text-zinc-600 hover:border-zinc-500 hover:text-white transition-all"
+                  >
+                    {i + 1}
                   </button>
                 ))}
               </div>
@@ -402,24 +447,38 @@ export function QuranReader() {
                     )}
                     
                     {viewMode === 'page' ? (
-                      <div className="p-10 md:p-24 text-right" dir="rtl">
-                        <p 
-                          className="font-arabic leading-[2.8] text-zinc-100 text-justify" 
-                          style={{ fontSize: `${arabicFontSize}px` }}
-                        >
-                          {surah.ayats.map((ayat) => (
-                            <span key={ayat.number} className="inline">
-                              {ayat.text}
-                              <span className="inline-flex mx-5 align-middle">
-                                <AyatFrame 
-                                  number={ayat.numberInSurah} 
-                                  frameId={ayatFrameId} 
-                                  size="lg" 
-                                />
+                      <div className="p-10 md:p-24 text-right flex flex-col items-center" dir="rtl">
+                        <div className="max-w-4xl w-full">
+                          <p 
+                            className="font-arabic leading-[3.2] text-zinc-100 text-justify" 
+                            style={{ fontSize: `${arabicFontSize}px` }}
+                          >
+                            {surah.ayats.map((ayat) => (
+                              <span key={ayat.number} className="inline">
+                                {ayat.text}
+                                <span className="inline-flex mx-4 align-middle">
+                                  <AyatFrame 
+                                    number={ayat.numberInSurah} 
+                                    frameId={ayatFrameId} 
+                                    size="lg" 
+                                  />
+                                </span>
                               </span>
-                            </span>
-                          ))}
-                        </p>
+                            ))}
+                          </p>
+                        </div>
+                        {/* Page Footer Navigation */}
+                        <div className="mt-20 flex items-center justify-between w-full max-w-4xl border-t border-zinc-900 pt-8" dir="ltr">
+                           <Button variant="outline" className="rounded-xl border-zinc-800 h-12 px-8 font-bold" onClick={() => navigatePage('prev')} disabled={selectedPage === 1}>
+                             <ChevronLeft className="w-4 h-4 mr-2" /> Previous Page
+                           </Button>
+                           <div className="text-center">
+                             <p className="text-[10px] font-black uppercase text-zinc-600 tracking-[0.3em]">Page {selectedPage}</p>
+                           </div>
+                           <Button variant="outline" className="rounded-xl border-zinc-800 h-12 px-8 font-bold" onClick={() => navigatePage('next')} disabled={selectedPage === 604}>
+                             Next Page <ChevronRight className="w-4 h-4 ml-2" />
+                           </Button>
+                        </div>
                       </div>
                     ) : (
                       surah.ayats.map((ayat, aIdx) => (

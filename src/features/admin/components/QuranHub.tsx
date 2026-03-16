@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, writeBatch, query, where, getDocs, collection } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, writeBatch, query, where, getDocs, collection, limit } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -42,7 +42,6 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { getAllAlQuranEditions, getFullQuran, getQuranMetadata } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -506,8 +505,8 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
                   onClick={() => performSync(t.id)} 
                   className="flex-1 rounded-xl font-bold h-11 text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all"
                 >
-                  <RefreshCw className={cn("w-4 h-4 mr-2", syncing && "animate-spin")} />
-                  Sync Data
+                  {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                  {syncing ? 'Syncing...' : 'Sync Data'}
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -625,7 +624,6 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
   const handleEditAyat = (ayat: any) => {
     const newText = prompt(`Edit Translation for Verse ${ayat.numberInSurah} of ${ayat.surahName}:`, ayat.translationText || ayat.text);
     if (newText !== null) {
-      // Note: In a real app, you'd update the specific ayat inside the surah document's array
       toast({ title: "Note", description: "Granular ayat editing requires complex array manipulation. Functionality placeholder." });
     }
   };
