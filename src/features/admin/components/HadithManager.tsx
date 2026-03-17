@@ -34,7 +34,8 @@ import {
   FileText,
   DatabaseZap,
   BookMarked,
-  Link2
+  Link2,
+  ListTree
 } from 'lucide-react';
 import { 
   Table, 
@@ -219,7 +220,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
           ...ed,
           id: ed.name,
           bookId: bookId,
-          dataSync: editions?.find(existing => existing.id === ed.name)?.dataSync || 'no'
+          indexSynced: editions?.find(existing => existing.id === ed.name)?.indexSynced || 'no'
         }, { merge: true });
       });
 
@@ -232,72 +233,37 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
     }
   };
 
-  const handleDeepSyncContent = async (edition: FawazEdition) => {
-    setSyncState({ isSyncing: true, progress: 0, status: 'fetching payload', targetEdition: edition.name });
+  const handleSyncIndex = async (edition: FawazEdition) => {
+    setSyncState({ isSyncing: true, progress: 0, status: 'fetching structure', targetEdition: edition.name });
     
     try {
       const data = await fetchHadithEditionContent(edition.linkmin);
-      const { metadata, hadiths } = data;
+      const { metadata } = data;
 
-      // 1. Index Chapters
-      setSyncState(prev => ({ ...prev, status: 'indexing chapters' }));
-      const indexBatch = writeBatch(db);
-      if (metadata.sections) {
-        Object.entries(metadata.sections).forEach(([num, name]) => {
-          const indexId = `${edition.name}_ch_${num}`;
-          indexBatch.set(doc(db, 'hadith_index', indexId), {
-            id: indexId,
-            bookSlug: bookId,
-            editionId: edition.name,
-            chapterNumber: num,
-            chapterName: name as string,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-        });
-      }
-      await indexBatch.commit();
+      setSyncState(prev => ({ ...prev, status: 'mapping sections', progress: 50 }));
+      
+      const indexId = edition.name;
+      const indexRef = doc(db, 'hadith_index', indexId);
+      
+      const payload = {
+        id: indexId,
+        editionId: edition.name,
+        bookSlug: bookId,
+        name: metadata.name || '',
+        sections: metadata.sections || {},
+        sectionDetails: metadata.section_details || {},
+        updatedAt: new Date().toISOString()
+      };
 
-      // 2. Ingest Records
-      setSyncState(prev => ({ ...prev, status: 'mapping records' }));
-      const batchSize = 25; 
-      for (let i = 0; i < hadiths.length; i += batchSize) {
-        const chunk = hadiths.slice(i, i + batchSize);
-        const dataBatch = writeBatch(db);
-        
-        chunk.forEach((h: any) => {
-          const hId = `${edition.name}_h_${h.hadithnumber}`;
-          dataBatch.set(doc(db, 'hadith_data', hId), {
-            id: hId,
-            editionId: edition.name,
-            bookId: bookId,
-            hadithNumber: h.hadithnumber,
-            translatedText: h.text,
-            chapterName: metadata.sections[h.reference.book] || 'General',
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
+      setDocumentNonBlocking(indexRef, payload, { merge: true });
+      updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes' });
 
-          // Reference Indexing
-          const refId = `${bookId}_ref_${h.reference.book}_${h.reference.hadith}`;
-          dataBatch.set(doc(db, 'hadith_reference', `${edition.name}_${refId}`), {
-            id: `${edition.name}_${refId}`,
-            hadithId: hId,
-            bookId: bookId,
-            editionId: edition.name,
-            refBook: h.reference.book,
-            refHadith: h.reference.hadith
-          }, { merge: true });
-        });
-
-        await dataBatch.commit();
-        setSyncState(prev => ({ ...prev, progress: Math.round(((i + chunk.length) / hadiths.length) * 100) }));
-      }
-
-      updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { dataSync: 'yes' });
-      toast({ title: "Content Indexing Complete" });
+      setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
+      toast({ title: "Index Synchronized", description: "Chapter structure is now available for this edition." });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Deep Sync Failed", description: e.message });
+      toast({ variant: "destructive", title: "Index Sync Failed", description: e.message });
     } finally {
-      setSyncState(prev => ({ ...prev, isSyncing: false }));
+      setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500);
     }
   };
 
@@ -309,8 +275,8 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
              <div className="w-20 h-20 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl mx-auto mb-6">
                <DatabaseZap className="w-10 h-10 text-white animate-bounce" />
              </div>
-             <DialogTitle className="text-2xl font-headline font-bold">Deep Data Ingestion</DialogTitle>
-             <DialogDescription className="text-zinc-500 text-sm">Indexing {syncState.targetEdition} into the platform feed.</DialogDescription>
+             <DialogTitle className="text-2xl font-headline font-bold">Index Synchronization</DialogTitle>
+             <DialogDescription className="text-zinc-500 text-sm">Extracting structural nodes for {syncState.targetEdition}.</DialogDescription>
           </DialogHeader>
 
           <div className="w-full space-y-6 mt-8">
@@ -360,7 +326,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredEditions?.map((ed) => {
-          const isSynced = ed.dataSync === 'yes';
+          const isSynced = ed.indexSynced === 'yes';
           return (
             <Card 
               key={ed.id} 
@@ -376,7 +342,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
                     <Languages className={cn("w-6 h-6", ed.direction === 'rtl' ? "text-amber-500" : "text-zinc-500")} />
                   </div>
                   <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", isSynced ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
-                    {isSynced ? 'In System' : 'Indexed'}
+                    {isSynced ? 'Synced' : 'Available'}
                   </Badge>
                 </div>
                 <CardTitle className="text-xl font-bold text-zinc-100 group-hover:text-white transition-colors">{ed.language} Edition</CardTitle>
@@ -389,7 +355,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
                   <p className="text-sm font-bold text-zinc-300 line-clamp-1">{ed.author}</p>
                 </div>
                 <div className="pt-4 border-t border-zinc-900">
-                  <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em]">Source Metadata</span>
+                  <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em]">Structure Source</span>
                   <p className="text-[10px] text-zinc-500 truncate mt-1 italic">{ed.source}</p>
                 </div>
               </CardContent>
@@ -398,10 +364,10 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
                 <Button 
                   variant="outline" 
                   className="flex-1 rounded-xl font-bold h-12 border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all flex items-center justify-center gap-2"
-                  onClick={() => handleDeepSyncContent(ed)}
+                  onClick={() => handleSyncIndex(ed)}
                 >
-                  <DatabaseZap className="w-4 h-4" />
-                  {isSynced ? 'Resync' : 'Ingest Content'}
+                  <ListTree className="w-4 h-4" />
+                  {isSynced ? 'Resync Index' : 'Sync Index'}
                 </Button>
                 {isSynced && (
                   <Button variant="ghost" size="icon" onClick={() => onSelectEdition(ed.id)} className="rounded-xl h-12 w-12 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white transition-all">
@@ -424,24 +390,20 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
   const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   
-  const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
-  const { data: edition } = useDoc(editionRef);
+  const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
+  const { data: indexDoc, isLoading } = useDoc(indexRef);
 
-  const dataQuery = useMemoFirebase(() => query(
-    collection(db, 'hadith_data'),
-    where('editionId', '==', editionId),
-    limit(100)
-  ), [db, editionId]);
-  const { data: hadiths, isLoading } = useCollection(dataQuery);
-
-  const filteredHadiths = useMemo(() => {
-    if (!hadiths) return [];
-    return hadiths.filter(h => 
-      h.hadithNumber?.toString().includes(searchTerm) || 
-      h.translatedText?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      h.chapterName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const sections = useMemo(() => {
+    if (!indexDoc?.sections) return [];
+    return Object.entries(indexDoc.sections).map(([num, name]) => ({
+      number: num,
+      name: name as string,
+      details: indexDoc.sectionDetails?.[num] || 'N/A'
+    })).filter(s => 
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.number.includes(searchTerm)
     );
-  }, [hadiths, searchTerm]);
+  }, [indexDoc, searchTerm]);
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -451,17 +413,17 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{edition?.language} Content View</h2>
+            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{indexDoc?.name || 'Edition'} Index</h2>
             <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
-              <FileText className="w-3 h-3" />
-              <span>Prophetic Registry Inspector</span>
+              <ListTree className="w-3 h-3" />
+              <span>Structural Chapter Viewer</span>
             </div>
           </div>
         </div>
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder="Search within source..." 
+            placeholder="Search chapters..." 
             className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
@@ -473,30 +435,32 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900">
-              <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-32">Number</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Section</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Translation Preview</TableHead>
+              <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-32">Section ID</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Chapter Title</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 pr-10 text-right">Details Mapping</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={3} className="h-96 text-center"><Loader2 className="animate-spin h-10 w-10 text-zinc-800 mx-auto" /></TableCell></TableRow>
-            ) : filteredHadiths?.map((h) => (
-              <TableRow key={h.id} className="border-zinc-900 h-32 hover:bg-zinc-900/40 transition-colors">
+            ) : sections.map((s) => (
+              <TableRow key={s.number} className="border-zinc-900 h-24 hover:bg-zinc-900/40 transition-colors">
                 <TableCell className="pl-10 font-mono text-xs text-zinc-600">
-                  <Badge variant="outline" className="border-zinc-800 text-zinc-500 bg-black/50">#{h.hadithNumber}</Badge>
+                  <Badge variant="outline" className="border-zinc-800 text-zinc-500 bg-black/50">Node {s.number}</Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-col max-w-[200px]">
-                    <span className="text-sm font-bold text-zinc-100 truncate">{h.chapterName}</span>
-                    <span className="text-[9px] text-zinc-600 uppercase font-black mt-0.5">Structural Node</span>
-                  </div>
+                  <span className="text-sm font-bold text-zinc-100">{s.name}</span>
                 </TableCell>
-                <TableCell>
-                  <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed italic pr-10">{h.translatedText}</p>
+                <TableCell className="text-right pr-10">
+                  <span className="text-xs font-mono text-zinc-500 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-zinc-800">
+                    {typeof s.details === 'object' ? JSON.stringify(s.details) : s.details}
+                  </span>
                 </TableCell>
               </TableRow>
             ))}
+            {sections.length === 0 && !isLoading && (
+              <TableRow><TableCell colSpan={3} className="h-64 text-center text-zinc-600 font-bold uppercase tracking-widest text-[10px]">No structural nodes found.</TableCell></TableRow>
+            )}
           </TableBody>
         </Table>
       </Card>
