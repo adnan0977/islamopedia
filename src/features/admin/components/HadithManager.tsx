@@ -35,7 +35,9 @@ import {
   DatabaseZap,
   BookMarked,
   Link2,
-  ListTree
+  ListTree,
+  Database as DatabaseIcon,
+  Zap
 } from 'lucide-react';
 import { 
   Table, 
@@ -384,14 +386,19 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 }
 
 /**
- * Level 3: Granular Data Table Inspector
+ * Level 3: Granular Data Inspector (Chapter Card Grid)
  */
 export function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () => void }) {
   const db = useFirestore();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [syncingSections, setSyncingSections] = useState<Record<string, boolean>>({});
   
   const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
   const { data: indexDoc, isLoading } = useDoc(indexRef);
+
+  const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
+  const { data: edition } = useDoc(editionRef);
 
   const sections = useMemo(() => {
     if (!indexDoc?.sections) return [];
@@ -400,80 +407,139 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
       return {
         number: num,
         name: name as string,
-        start_hadith_number: details.hadithnumber_first ?? '---',
-        last_hadith_number: details.hadithnumber_last ?? '---'
+        start_hadith_number: details.hadithnumber_first ?? 0,
+        last_hadith_number: details.hadithnumber_last ?? 0
       };
     }).filter(s => 
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.number.includes(searchTerm)
-    );
+    ).sort((a, b) => parseInt(a.number) - parseInt(b.number));
   }, [indexDoc, searchTerm]);
 
+  const handleSyncSectionContent = async (section: any) => {
+    if (!edition?.linkmin) {
+      toast({ variant: "destructive", title: "Missing Source", description: "No linkmin URL found for this edition." });
+      return;
+    }
+
+    setSyncingSections(prev => ({ ...prev, [section.number]: true }));
+    
+    try {
+      const payload = await fetchHadithEditionContent(edition.linkmin);
+      const allHadiths = payload.hadiths || [];
+      
+      const inRange = allHadiths.filter((h: any) => {
+        const hNum = parseFloat(h.hadithnumber);
+        return hNum >= section.start_hadith_number && hNum <= section.last_hadith_number;
+      });
+
+      if (inRange.length === 0) {
+        toast({ title: "No Matching Records", description: `Found 0 Hadiths in range ${section.start_hadith_number}-${section.last_hadith_number}.` });
+        return;
+      }
+
+      const batch = writeBatch(db);
+      inRange.forEach((h: any) => {
+        const hadithId = `${editionId}_h_${h.hadithnumber}`;
+        const hRef = doc(db, 'hadith_data', hadithId);
+        batch.set(hRef, {
+          ...h,
+          id: hadithId,
+          editionId,
+          bookSlug: indexDoc?.bookSlug,
+          sectionNumber: section.number,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      });
+
+      await batch.commit();
+      toast({ title: "Section Synchronized", description: `Ingested ${inRange.length} Prophetic records for chapter ${section.number}.` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Section Sync Failed", description: e.message });
+    } finally {
+      setSyncingSections(prev => ({ ...prev, [section.number]: false }));
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+    <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 border-t border-white/5 shadow-2xl">
         <div className="flex items-center gap-6">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all">
+          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all active:scale-90">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{indexDoc?.name || 'Edition'} Index</h2>
+            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{indexDoc?.name || 'Edition'} Inspection</h2>
             <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
-              <ListTree className="w-3 h-3" />
-              <span>Structural Chapter Viewer</span>
+              <DatabaseIcon className="w-3 h-3" />
+              <span>Chapter-Level Data Ingestion</span>
             </div>
           </div>
         </div>
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder="Search chapters..." 
-            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" 
+            placeholder="Search within index..." 
+            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 shadow-inner" 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
           />
         </div>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 overflow-hidden rounded-[2.5rem] shadow-2xl border-t border-white/5">
-        <Table>
-          <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-zinc-900">
-              <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-32">Section ID</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Chapter Title</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center">Start Hadith</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 pr-10 text-right">Last Hadith</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="h-96 text-center"><Loader2 className="animate-spin h-10 w-10 text-zinc-800 mx-auto" /></TableCell></TableRow>
-            ) : sections.map((s) => (
-              <TableRow key={s.number} className="border-zinc-900 h-24 hover:bg-zinc-900/40 transition-colors">
-                <TableCell className="pl-10 font-mono text-xs text-zinc-600">
-                  <Badge variant="outline" className="border-zinc-800 text-zinc-500 bg-black/50">Node {s.number}</Badge>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm font-bold text-zinc-100">{s.name}</span>
-                </TableCell>
-                <TableCell className="text-center">
-                  <span className="text-xs font-mono text-emerald-500 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">
-                    {s.start_hadith_number}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right pr-10">
-                  <span className="text-xs font-mono text-zinc-400 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-zinc-800">
-                    {s.last_hadith_number}
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
-            {sections.length === 0 && !isLoading && (
-              <TableRow><TableCell colSpan={4} className="h-64 text-center text-zinc-600 font-bold uppercase tracking-widest text-[10px]">No structural nodes found.</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-32 space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
+          <p className="text-zinc-600 font-medium">Indexing section nodes...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {sections.map((s) => (
+            <Card key={s.number} className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl border-t border-white/5">
+              <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 shadow-inner">
+                    <span className="text-xs font-black text-zinc-500">#{s.number}</span>
+                  </div>
+                  <Badge variant="outline" className="border-zinc-800 text-[8px] font-black uppercase tracking-widest text-zinc-600">Chapter Node</Badge>
+                </div>
+                <CardTitle className="text-sm font-bold text-zinc-100 group-hover:text-white transition-colors leading-relaxed line-clamp-2 min-h-[2.5rem]">{s.name}</CardTitle>
+              </CardHeader>
+              
+              <CardContent className="p-8 flex-1 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900 text-center">
+                    <span className="text-[8px] font-black text-zinc-600 uppercase block mb-1 tracking-widest">Start</span>
+                    <span className="text-xs font-mono font-bold text-emerald-500">{s.start_hadith_number}</span>
+                  </div>
+                  <div className="p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900 text-center">
+                    <span className="text-[8px] font-black text-zinc-600 uppercase block mb-1 tracking-widest">End</span>
+                    <span className="text-xs font-mono font-bold text-zinc-400">{s.last_hadith_number}</span>
+                  </div>
+                </div>
+              </CardContent>
+
+              <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900">
+                <Button 
+                  variant="outline" 
+                  disabled={syncingSections[s.number]}
+                  onClick={() => handleSyncSectionContent(s)}
+                  className="w-full rounded-xl font-bold h-12 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all flex items-center justify-center gap-2"
+                >
+                  {syncingSections[s.number] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  <span>Sync Section</span>
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+          {sections.length === 0 && !isLoading && (
+            <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[3rem] border-2 border-dashed border-zinc-900">
+               <FilterX className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
+               <p className="text-zinc-600 font-medium">No chapters found matching "{searchTerm}"</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
