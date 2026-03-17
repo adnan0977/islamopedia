@@ -52,7 +52,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { fetchHadithRegistry, fetchHadithEditionContent, FawazEdition } from '@/services/hadith-api';
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-// Strict mapping for the 10 requested books
+// Strict mapping for the 10 requested canonical books
 const BOOK_SLUG_MAP: Record<string, string> = {
   'abudawud': 'Sunan Abu Dawud',
   'bukhari': 'Sahih Bukhari',
@@ -68,6 +68,9 @@ const BOOK_SLUG_MAP: Record<string, string> = {
 
 const ALLOWED_SLUGS = Object.keys(BOOK_SLUG_MAP);
 
+/**
+ * Level 1: Primary Registry View (Master Books)
+ */
 export function HadithManager() {
   const db = useFirestore();
   const { toast } = useToast();
@@ -84,11 +87,11 @@ export function HadithManager() {
   const handleSeedRegistry = async () => {
     setIsSeeding(true);
     try {
-      const editions = await fetchHadithRegistry();
+      const allEditions = await fetchHadithRegistry();
       
-      // 1. Group editions by book slug and filter for allowed 10
-      const bookGroups: Record<string, any[]> = {};
-      editions.forEach(ed => {
+      // 1. Group editions by book slug
+      const bookGroups: Record<string, FawazEdition[]> = {};
+      allEditions.forEach(ed => {
         if (ALLOWED_SLUGS.includes(ed.book)) {
           if (!bookGroups[ed.book]) bookGroups[ed.book] = [];
           bookGroups[ed.book].push(ed);
@@ -97,18 +100,20 @@ export function HadithManager() {
 
       const batch = writeBatch(db);
       
-      // 2. Save the 10 Master Books
+      // 2. Save Master Books and their specific Editions
       ALLOWED_SLUGS.forEach(slug => {
         const bookRef = doc(db, 'hadith_books', slug);
+        const bookEditions = bookGroups[slug] || [];
+        
         batch.set(bookRef, {
           id: slug,
           bookName: BOOK_SLUG_MAP[slug],
-          editionCount: bookGroups[slug]?.length || 0,
+          editionCount: bookEditions.length,
           lastSyncedAt: new Date().toISOString()
         }, { merge: true });
 
-        // 3. Save all editions for this book
-        bookGroups[slug]?.forEach((ed: FawazEdition) => {
+        // Save individual edition records linked to this book
+        bookEditions.forEach((ed) => {
           const editionRef = doc(db, 'hadith_editions', ed.name);
           batch.set(editionRef, {
             ...ed,
@@ -120,7 +125,7 @@ export function HadithManager() {
       });
 
       await batch.commit();
-      toast({ title: "Registry Seeded", description: `Successfully indexed the 10 canonical books and their language editions.` });
+      toast({ title: "Registry Hydrated", description: `Synchronized 10 collections and ${allEditions.length} language editions.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Seeding Failed", description: e.message });
     } finally {
@@ -134,9 +139,9 @@ export function HadithManager() {
         <div className="space-y-2 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-3">
             <Library className="w-6 h-6 text-zinc-500" />
-            <h2 className="text-2xl font-headline font-bold text-white">Hadith Hub</h2>
+            <h2 className="text-2xl font-headline font-bold text-white">Canonical Hadith Registry</h2>
           </div>
-          <p className="text-sm text-zinc-500 font-medium">Manage the 10 canonical collections and their language editions.</p>
+          <p className="text-sm text-zinc-500 font-medium">Manage primary collections and their language-specific source editions.</p>
         </div>
 
         <Button 
@@ -146,21 +151,21 @@ export function HadithManager() {
           disabled={isSeeding}
         >
           {isSeeding ? <Loader2 className="w-5 h-5 animate-spin" /> : <CloudDownload className="w-5 h-5" />}
-          <span>Seed Canonical Registry</span>
+          <span>Seed Registry</span>
         </Button>
       </div>
 
       {isLoadingBooks ? (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
           <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
-          <p className="text-zinc-600 font-medium">Initializing library nodes...</p>
+          <p className="text-zinc-600 font-medium">Loading library nodes...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {books?.map((book) => (
             <Card 
               key={book.id} 
-              className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl border-t border-white/5 cursor-pointer"
+              className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl border-t border-white/5 cursor-pointer"
               onClick={() => router.push(`/admin/hadith?bookId=${book.id}`)}
             >
               <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
@@ -180,21 +185,21 @@ export function HadithManager() {
                   <Languages className="w-5 h-5 text-zinc-600" />
                   <div className="flex flex-col">
                     <span className="text-xl font-headline font-bold text-zinc-300">{book.editionCount}</span>
-                    <span className="text-[9px] font-black uppercase text-zinc-600 tracking-widest">Available Languages</span>
+                    <span className="text-[9px] font-black uppercase text-zinc-600 tracking-widest">Available Translations</span>
                   </div>
                 </div>
               </CardContent>
 
               <CardFooter className="p-6 bg-zinc-900/10 border-t border-zinc-900 flex items-center justify-between">
-                <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black px-3 py-1 rounded-full uppercase">Master Collection</Badge>
-                <span className="text-[10px] font-mono text-zinc-700">ID: {book.id}</span>
+                <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black px-3 py-1 rounded-full uppercase">Master Grid</Badge>
+                <span className="text-[10px] font-mono text-zinc-700">Ref: {book.id}</span>
               </CardFooter>
             </Card>
           ))}
           {books?.length === 0 && (
             <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[2.5rem] border-2 border-dashed border-zinc-900">
                <Library className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-               <p className="text-zinc-600 font-medium">Registry is empty. Click "Seed Registry" to begin.</p>
+               <p className="text-zinc-600 font-medium">Registry empty. Seeding required.</p>
             </div>
           )}
         </div>
@@ -203,6 +208,9 @@ export function HadithManager() {
   );
 }
 
+/**
+ * Level 2: Book Specific Editions Grid
+ */
 export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { bookId: string, onBack: () => void, onSelectEdition: (id: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
@@ -236,7 +244,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       const data = await fetchHadithEditionContent(edition.linkmin);
       const { metadata, hadiths } = data;
 
-      // 1. Sync Index (Chapters)
+      // 1. Index Chapters (Structural Metadata)
       setSyncState(prev => ({ ...prev, status: 'indexing structural data' }));
       const indexBatch = writeBatch(db);
       if (metadata.sections) {
@@ -254,9 +262,9 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       }
       await indexBatch.commit();
 
-      // 2. Sync Content & Unique References
+      // 2. Ingest Hadith Records & Map Unique References
       setSyncState(prev => ({ ...prev, status: 'ingesting prophetic records' }));
-      const batchSize = 25; // Smaller batch for complex refs
+      const batchSize = 25; 
       for (let i = 0; i < hadiths.length; i += batchSize) {
         const chunk = hadiths.slice(i, i + batchSize);
         const dataBatch = writeBatch(db);
@@ -275,7 +283,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
             updatedAt: new Date().toISOString()
           }, { merge: true });
 
-          // Reference Indexing for uniqueness/cross-ref
+          // Reference Indexing for cross-edition matching
           const refId = `${bookId}_ref_${h.reference.book}_${h.reference.hadith}`;
           dataBatch.set(doc(db, 'hadith_reference', `${edition.name}_${refId}`), {
             id: `${edition.name}_${refId}`,
@@ -293,7 +301,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       }
 
       updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { dataSync: 'yes' });
-      toast({ title: "Deep Sync Complete", description: `Indexed ${hadiths.length} records for ${edition.name}.` });
+      toast({ title: "Deep Sync Complete", description: `Ingested ${hadiths.length} records for ${edition.name}.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -312,15 +320,15 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
                  <DatabaseZap className="w-10 h-10 text-white animate-bounce" />
                </div>
              </div>
-             <DialogTitle className="text-2xl font-headline font-bold">Deep Data Sync</DialogTitle>
-             <DialogDescription className="text-zinc-500 text-sm max-w-[280px] mx-auto">Ingesting Prophetic records and structural sections for {syncState.targetEdition}.</DialogDescription>
+             <DialogTitle className="text-2xl font-headline font-bold">System Level Ingestion</DialogTitle>
+             <DialogDescription className="text-zinc-500 text-sm max-w-[280px] mx-auto">Indexing {syncState.targetEdition} directly into the scholarly feed.</DialogDescription>
           </DialogHeader>
 
           <div className="w-full space-y-6 mt-8">
              <div className="space-y-3">
                <div className="flex justify-between items-end">
                  <div className="flex flex-col items-start gap-1">
-                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Current Phase</span>
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Sync Status</span>
                    <div className="flex items-center gap-2">
                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                      <span className="text-xs font-mono text-zinc-400 capitalize">{syncState.status}...</span>
@@ -345,7 +353,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
             <h2 className="text-2xl font-headline font-bold text-white leading-tight">{book?.bookName}</h2>
             <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
               <ScrollText className="w-3 h-3" />
-              <span>Language Edition Matrix</span>
+              <span>Language Matrix</span>
             </div>
           </div>
         </div>
@@ -353,7 +361,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
         <div className="relative w-full md:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder="Search languages..." 
+            placeholder="Search editions..." 
             className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
@@ -391,11 +399,11 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
               
               <CardContent className="p-8 flex-1 space-y-4">
                 <div className="space-y-2">
-                  <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em]">Scholarly Author</span>
+                  <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em]">Author / Scholar</span>
                   <p className="text-sm font-bold text-zinc-300 line-clamp-1">{ed.author}</p>
                 </div>
                 <div className="pt-4 border-t border-zinc-900">
-                  <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em]">Data Provenance</span>
+                  <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em]">Source Context</span>
                   <p className="text-[10px] text-zinc-500 truncate mt-1 italic">{ed.source}</p>
                 </div>
               </CardContent>
@@ -407,7 +415,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
                   onClick={() => handleDeepSync(ed)}
                 >
                   <RefreshCw className="w-4 h-4" />
-                  {isSynced ? 'Resync' : 'Sync Content'}
+                  {isSynced ? 'Resync' : 'Sync Data'}
                 </Button>
                 {isSynced && (
                   <Button variant="ghost" size="icon" onClick={() => onSelectEdition(ed.id)} className="rounded-xl h-12 w-12 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white transition-all active:scale-90">
@@ -423,6 +431,9 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
   );
 }
 
+/**
+ * Level 3: Granular Data Table Inspector
+ */
 export function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () => void }) {
   const db = useFirestore();
   const { toast } = useToast();
@@ -462,9 +473,9 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{edition?.language} Edition Ingestion</h2>
+            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{edition?.language} Source Inspection</h2>
             <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
-              <BookMarked className="w-3 h-3" />
+              <FileText className="w-3 h-3" />
               <span>Granular Record Viewport</span>
             </div>
           </div>
@@ -472,7 +483,7 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <Input 
-            placeholder="Search records..." 
+            placeholder="Search within source..." 
             className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
@@ -484,10 +495,10 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
         <Table>
           <TableHeader className="bg-zinc-900/50">
             <TableRow className="border-zinc-900">
-              <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-32">Index</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Structural Mapping</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">API Ref [B:H]</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Prophetic Text Preview</TableHead>
+              <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-32">Catalog ID</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Structural Index</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">API Mapping</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Content Preview</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -503,7 +514,7 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
                   <TableCell>
                     <div className="flex flex-col max-w-[200px]">
                       <span className="text-sm font-bold text-zinc-100 truncate">{h.chapterName}</span>
-                      <span className="text-[9px] text-zinc-600 uppercase font-black tracking-tighter mt-0.5">Section Identified</span>
+                      <span className="text-[9px] text-zinc-600 uppercase font-black tracking-tighter mt-0.5">Section Node</span>
                     </div>
                   </TableCell>
                   <TableCell>
