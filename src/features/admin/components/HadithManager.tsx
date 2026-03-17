@@ -568,7 +568,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   }, [rawRecords]);
 
   const handleEdit = (record: any) => {
-    // Deep clone to avoid immediate proxy updates
     setEditingRecord(JSON.parse(JSON.stringify(record)));
     setIsEditDialogOpen(true);
   };
@@ -585,7 +584,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
     setIsEditDialogOpen(false);
   };
 
-  const handleUpdateGrade = (index: number, field: 'scholar' | 'grade', value: string) => {
+  const handleUpdateGrade = (index: number, field: 'name' | 'grade', value: string) => {
     if (!editingRecord) return;
     const newGrades = [...(editingRecord.grades || [])];
     newGrades[index] = { ...newGrades[index], [field]: value };
@@ -594,7 +593,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
 
   const handleAddGrade = () => {
     if (!editingRecord) return;
-    const newGrades = [...(editingRecord.grades || []), { scholar: '', grade: '' }];
+    const newGrades = [...(editingRecord.grades || []), { name: '', grade: '' }];
     setEditingRecord({ ...editingRecord, grades: newGrades });
   };
 
@@ -629,9 +628,9 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="h-16">
                 <TableHead className="w-24 text-[10px] font-black uppercase tracking-[0.2em] pl-6 sm:pl-8">Ref</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Hadith Text Snippet</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Grade</TableHead>
-                <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.2em]">Reference</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Hadith Content</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Scholar Verdicts</TableHead>
+                <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.2em]">Canonical Ref</TableHead>
                 <TableHead className="w-32 text-right text-[10px] font-black uppercase tracking-[0.2em] pr-6 sm:pr-8">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -639,26 +638,37 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
               {isLoading ? (
                 <TableRow><TableCell colSpan={5} className="h-64 text-center text-muted-foreground text-xs uppercase font-bold tracking-widest">Indexing Viewport...</TableCell></TableRow>
               ) : sortedRecords?.map((r) => (
-                <TableRow key={r.id} className="h-20 hover:bg-zinc-50 transition-colors">
+                <TableRow key={r.id} className="h-24 hover:bg-zinc-50 transition-colors">
                   <TableCell className="pl-6 sm:pl-8">
                     <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber || r.id?.split('_h_').pop()}</Badge>
                   </TableCell>
                   <TableCell>
-                    <p className="text-xs text-zinc-500 line-clamp-1 max-w-md font-medium">{r.text || '---'}</p>
+                    <div className="flex flex-col gap-1 max-w-md">
+                      <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{indexDoc?.sections?.[sectionNumber]}</span>
+                      <p className="text-xs text-zinc-600 line-clamp-2 font-medium">{r.text || '---'}</p>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-2">
                       {r.grades?.map((g: any, i: number) => (
-                        <Badge key={i} variant="secondary" className="text-[8px] px-2 py-0 uppercase font-black tracking-tighter bg-zinc-100">
-                          {g.grade}
-                        </Badge>
+                        <div key={i} className="flex flex-col gap-0.5">
+                          <span className="text-[7px] text-zinc-400 font-black uppercase">{g.name || 'Unknown'}</span>
+                          <Badge variant="secondary" className="text-[8px] px-2 py-0 uppercase font-black tracking-tighter bg-zinc-100 border-zinc-200">
+                            {g.grade}
+                          </Badge>
+                        </div>
                       )) || <span className="text-[10px] text-zinc-400">---</span>}
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
-                      {r.reference ? `BK ${r.reference.book}, H ${r.reference.hadith}` : `H# ${r.hadithnumber}`}
-                    </span>
+                    {r.reference ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase">Book {r.reference.book}</span>
+                        <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase">Hadith {r.reference.hadith}</span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-tighter">No Reference</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right pr-6 sm:pr-8">
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-9 gap-2 px-3 sm:px-4 hover:bg-white border border-transparent hover:border-zinc-200 hover:shadow-sm rounded-xl">
@@ -698,7 +708,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                         type="number" 
                         value={editingRecord?.reference?.book || ''} 
                         onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...editingRecord.reference, book: parseInt(e.target.value) } })}
-                        className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900"
+                        className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900 shadow-inner"
                       />
                     </div>
                     <div className="space-y-2">
@@ -707,7 +717,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                         type="number" 
                         value={editingRecord?.reference?.hadith || ''} 
                         onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...editingRecord.reference, hadith: parseInt(e.target.value) } })}
-                        className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900"
+                        className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900 shadow-inner"
                       />
                     </div>
                   </div>
@@ -716,21 +726,21 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Authenticity Grades</Label>
-                    <Button variant="ghost" size="sm" onClick={handleAddGrade} className="h-7 px-2 text-[9px] uppercase font-black tracking-widest gap-1.5">
+                    <Button variant="ghost" size="sm" onClick={handleAddGrade} className="h-7 px-2 text-[9px] uppercase font-black tracking-widest gap-1.5 hover:bg-zinc-50 border border-transparent hover:border-zinc-100">
                       <Plus className="w-3 h-3" /> Add Entry
                     </Button>
                   </div>
                   <div className="space-y-3">
                     {editingRecord?.grades?.map((g: any, i: number) => (
-                      <div key={i} className="flex items-end gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+                      <div key={i} className="flex items-end gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-100 shadow-sm">
                         <div className="flex-1 grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <span className="text-[8px] text-zinc-400 font-bold uppercase">Scholar</span>
+                            <span className="text-[8px] text-zinc-400 font-bold uppercase">Scholar Name</span>
                             <Input 
-                              placeholder="Scholar Name"
-                              value={g.scholar || ''}
-                              onChange={(e) => handleUpdateGrade(i, 'scholar', e.target.value)}
-                              className="bg-white border-zinc-200 h-9 text-xs rounded-lg"
+                              placeholder="e.g. Al-Albani"
+                              value={g.name || ''}
+                              onChange={(e) => handleUpdateGrade(i, 'name', e.target.value)}
+                              className="bg-white border-zinc-200 h-9 text-xs rounded-lg shadow-sm"
                             />
                           </div>
                           <div className="space-y-1">
@@ -739,7 +749,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                               placeholder="Sahih, Da'if"
                               value={g.grade || ''}
                               onChange={(e) => handleUpdateGrade(i, 'grade', e.target.value)}
-                              className="bg-white border-zinc-200 h-9 text-xs rounded-lg"
+                              className="bg-white border-zinc-200 h-9 text-xs rounded-lg shadow-sm"
                             />
                           </div>
                         </div>
@@ -749,7 +759,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                       </div>
                     ))}
                     {(!editingRecord?.grades || editingRecord.grades.length === 0) && (
-                      <p className="text-[10px] text-zinc-400 italic text-center py-2">No authenticity grades defined.</p>
+                      <p className="text-[10px] text-zinc-400 italic text-center py-4 bg-zinc-50 rounded-xl border border-dashed">No authenticity grades defined.</p>
                     )}
                   </div>
                </div>
@@ -766,7 +776,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           </div>
 
           <DialogFooter className="p-6 sm:p-8 bg-zinc-50/50 border-t border-zinc-200 shrink-0 flex flex-row items-center justify-end gap-3 sm:gap-4">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-4 sm:px-8 font-bold text-zinc-400">Discard</Button>
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-4 sm:px-8 font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Discard</Button>
             <Button className="h-12 sm:h-14 px-6 sm:px-12 rounded-xl sm:rounded-2xl bg-zinc-900 text-white font-bold shadow-xl active:scale-95 transition-all" onClick={handleSaveEdit}>
               <Save className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
               Commit Changes
