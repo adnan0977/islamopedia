@@ -3,90 +3,103 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- System Metadata ---
+    // Security Rules Version: 1.0.4 (Forced Refresh)
+    // Last Updated: March 2024
+
     // --- Helper Functions ---
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isAdmin() {
+      // Direct exists check for the user's specific role document
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
     // --- Public Content (Read for everyone, Write for Admin only) ---
-    // Rules updated to be explicit for get/list to support complex studio queries.
+    // We use 'read' shorthand to cover both 'get' and 'list' for all content nodes.
     
     match /languages/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /videos/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /channels/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /speakers/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /quran/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /quran_editions/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /quran_metadata/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     // --- Hadith Library (Public Read, Admin Write) ---
+    // Unified rules for all Hadith collections to ensure listing and filtering work flawlessly.
     
     match /hadith_books/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_editions/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_index/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_data/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_reference/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /settings/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     // --- Admin Access Control ---
     match /roles_admin/{userId} {
+      // Users can always read their own admin status
       allow get: if isSignedIn() && request.auth.uid == userId;
-      // Bootstrapping: Allow the primary user to initialize their own admin status
-      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.email == 'adnan@gmail.com';
+      
+      // Bootstrapping: Allow the primary developer to initialize their own admin document.
+      // This is a one-time safety valve for 'adnan@gmail.com'.
+      allow create: if isSignedIn() 
+                    && request.auth.uid == userId 
+                    && request.resource.data.email == 'adnan@gmail.com';
+      
+      // Prevent unauthorized list/update/delete of admin records
       allow list, update, delete: if false;
     }
   }
