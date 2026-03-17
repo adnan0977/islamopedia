@@ -606,8 +606,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="h-16">
                 <TableHead className="w-20 text-[10px] font-black uppercase tracking-[0.2em] pl-6 sm:pl-8">Ref</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Hadith Content</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Authenticity (Scholar)</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Section</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Scholarly Grades</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Reference</TableHead>
                 <TableHead className="w-24 text-right text-[10px] font-black uppercase tracking-[0.2em] pr-6 sm:pr-8">Actions</TableHead>
               </TableRow>
@@ -620,18 +620,17 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <TableCell className="pl-6 sm:pl-8">
                     <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber || r.id?.split('_h_').pop()}</Badge>
                   </TableCell>
-                  <TableCell className="max-w-[300px]">
-                    <p className="text-[11px] font-medium text-zinc-600 line-clamp-2 leading-relaxed">{r.text || '---'}</p>
+                  <TableCell>
+                    <span className="text-[11px] font-bold text-zinc-900 truncate block max-w-[200px]">
+                      {indexDoc?.sections?.[sectionNumber] || '---'}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
                       {r.grades?.map((g: any, i: number) => (
-                        <div key={i} className="flex flex-col gap-0.5">
-                          <span className="text-[7px] text-zinc-400 font-black uppercase">{g.name || 'Scholar'}</span>
-                          <Badge variant="secondary" className="text-[8px] px-2 py-0 uppercase font-black tracking-tighter bg-zinc-100 border-zinc-200">
-                            {g.grade}
-                          </Badge>
-                        </div>
+                        <Badge key={i} variant="secondary" className="text-[9px] font-bold uppercase tracking-tight bg-zinc-100 border-zinc-200 whitespace-nowrap">
+                          <span className="text-zinc-400 mr-1">{g.name}:</span> {g.grade}
+                        </Badge>
                       )) || <span className="text-[10px] text-zinc-400">---</span>}
                     </div>
                   </TableCell>
