@@ -4,18 +4,13 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Loader2, ChevronRight, Users, TrendingUp, MapPin, Smartphone, Heart } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Play, Loader2, ChevronRight, TrendingUp, Clock } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const db = useFirestore();
@@ -26,18 +21,11 @@ export default function Home() {
   const trendingQuery = useMemoFirebase(() => query(
     collection(db, 'videos'),
     where('isTrending', '==', true),
-    limit(12)
+    limit(4)
   ), [db]);
   const { data: trendingVideos, isLoading: isTrendingLoading } = useCollection(trendingQuery);
 
-  const recommendedQuery = useMemoFirebase(() => query(
-    collection(db, 'videos'),
-    orderBy('publishedAt', 'desc'),
-    limit(12)
-  ), [db]);
-  const { data: recommendedVideos, isLoading: isRecommendedLoading } = useCollection(recommendedQuery);
-
-  const speakersQuery = useMemoFirebase(() => query(collection(db, 'speakers'), limit(12)), [db]);
+  const speakersQuery = useMemoFirebase(() => query(collection(db, 'speakers'), limit(8)), [db]);
   const { data: speakers } = useCollection(speakersQuery);
 
   useEffect(() => {
@@ -53,192 +41,199 @@ export default function Home() {
   }, [location]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-20 pb-32">
-      {/* Header Info */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-950/50 backdrop-blur-md p-8 rounded-[2rem] border border-zinc-900 shadow-2xl">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center shadow-lg">
-              <Play className="w-4 h-4 text-zinc-500 fill-zinc-500" />
+    <div className="container mx-auto px-4 py-8 space-y-16 pb-24 md:pb-8">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden rounded-[2.5rem] bg-zinc-950 px-6 py-12 md:px-16 md:py-24 text-white shadow-2xl">
+        <div className="relative z-10 grid gap-12 md:grid-cols-2 items-center">
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10">
+              <Badge variant="secondary" className="bg-primary text-primary-foreground">NEW</Badge>
+              <span>Explore Chapter 4: The Path of Wisdom</span>
             </div>
-            <h1 className="text-3xl font-headline font-bold text-zinc-100 tracking-tight">
-              VlogNest
+            <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
+              Spiritual <br />
+              <span className="text-zinc-500">Reflections.</span>
             </h1>
+            <p className="text-xl text-zinc-400 max-w-[500px] leading-relaxed">
+              A high-performance library of prophetic traditions and deep spiritual insights from leading scholars.
+            </p>
+            <div className="flex flex-wrap gap-4 pt-4">
+              <Button size="lg" className="rounded-full h-14 px-10 gap-3 text-base font-bold shadow-xl shadow-primary/20">
+                <Play className="h-5 w-5 fill-current" /> Start Watching
+              </Button>
+              <Button size="lg" variant="outline" className="rounded-full h-14 px-10 bg-transparent text-white border-white/20 hover:bg-white/10 text-base font-bold">
+                Browse Hadith
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center text-zinc-500 text-sm font-medium">
-            <MapPin className="w-4 h-4 mr-2" />
-            <span>{location.city}, {location.country}</span>
-          </div>
+          
+          {prayerTimes && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {Object.entries(prayerTimes.timings)
+                .filter(([k]) => ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(k))
+                .map(([name, time]) => (
+                  <Card key={name} className="bg-white/5 border-white/10 backdrop-blur-sm shadow-inner rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
+                    <CardHeader className="p-5 flex flex-row items-center justify-between space-y-0">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-zinc-300 transition-colors">{name}</span>
+                      <Clock className="h-3.5 w-3.5 text-zinc-600" />
+                    </CardHeader>
+                    <CardContent className="p-5 pt-0">
+                      <span className="text-2xl font-bold tracking-tighter">{time as string}</span>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          )}
         </div>
-        
-        {prayerTimes && (
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(prayerTimes.timings).filter(([k]) => ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(k)).map(([name, time]) => (
-              <div key={name} className="flex flex-col items-center bg-zinc-900/40 backdrop-blur-sm px-5 py-3 rounded-2xl border border-zinc-800/50 min-w-[90px] transition-all hover:border-zinc-700">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-black mb-1.5">{name}</span>
-                <span className="text-sm font-headline font-bold text-zinc-300">{time as string}</span>
-              </div>
+        {/* Abstract Gradients */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-primary opacity-30 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-zinc-500 opacity-10 blur-[120px]" />
+      </section>
+
+      {/* Trending Section */}
+      <section className="space-y-8">
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <TrendingUp className="h-8 w-8 text-primary" />
+              Trending Now
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium">Most watched spiritual insights this week.</p>
+          </div>
+          <Button variant="ghost" className="gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400 hover:text-primary transition-all" asChild>
+            <Link href="/videos">View Catalog <ChevronRight className="h-4 w-4" /></Link>
+          </Button>
+        </div>
+
+        {isTrendingLoading ? (
+          <div className="flex h-64 items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-zinc-200" /></div>
+        ) : (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {trendingVideos?.map((video) => (
+              <VideoCard key={video.id} video={video} />
             ))}
           </div>
         )}
       </section>
 
-      <div className="space-y-24">
-        {/* Trending Now Slider */}
-        <section className="space-y-8 relative">
-          <div className="flex items-center justify-between px-2">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-headline font-bold flex items-center gap-3 text-zinc-100">
-                <TrendingUp className="w-6 h-6 text-zinc-500" />
-                Trending Now
-              </h2>
-              <p className="text-xs text-zinc-500 font-medium">Most watched spiritual reflections this week</p>
-            </div>
-            <Link href="/videos" className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-zinc-100 flex items-center gap-2 transition-all group">
-              Explore All <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-          
-          {isTrendingLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
-          ) : (
-            <Carousel opts={{ align: "start", loop: false }} className="w-full">
-              <CarouselContent className="-ml-1">
-                {trendingVideos?.map((video) => (
-                  <CarouselItem key={video.id} className="pl-1 basis-full sm:basis-1/2 lg:basis-1/4">
-                    <VideoCard video={video} />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <div className="hidden md:flex gap-2 absolute -top-12 right-4">
-                <CarouselPrevious className="static translate-y-0 h-10 w-10 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-500" />
-                <CarouselNext className="static translate-y-0 h-10 w-10 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-500" />
-              </div>
-            </Carousel>
-          )}
-        </section>
-
-        {/* Recommended & Personalized Feed */}
-        <section className="space-y-8 relative">
-          <div className="flex items-center justify-between px-2">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-headline font-bold flex items-center gap-3 text-zinc-100">
-                <Play className="w-6 h-6 text-zinc-500 fill-zinc-500" />
-                Recommended For You
-              </h2>
-              <p className="text-xs text-zinc-500 font-medium">Curated based on trending spiritual content</p>
-            </div>
-          </div>
-          
-          {isRecommendedLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-zinc-800" /></div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-               {recommendedVideos?.slice(0, 4).map(video => (
-                 <VideoCard key={video.id} video={video} />
-               ))}
-            </div>
-          )}
-        </section>
-
-        {/* Scholars / Speakers */}
-        <section className="space-y-8">
-          <div className="flex items-center justify-between px-2">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-headline font-bold flex items-center gap-3 text-zinc-100">
-                <Users className="w-6 h-6 text-zinc-500" />
-                Featured Scholars
-              </h2>
-              <p className="text-xs text-zinc-500 font-medium">Profiles of leading spiritual teachers</p>
-            </div>
-            <Link href="/speakers" className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-zinc-100 flex items-center gap-2 transition-all">
-              View Directory <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="flex gap-8 overflow-x-auto pb-6 scrollbar-hide -mx-4 px-4">
-            {speakers?.map((speaker) => (
-              <Link key={speaker.id} href={`/videos?speakerId=${speaker.id}`} className="flex flex-col items-center space-y-4 shrink-0 group">
-                <div className="relative w-24 h-24 rounded-3xl overflow-hidden border border-zinc-900 p-1.5 ring-1 ring-zinc-900 group-hover:ring-zinc-600 transition-all duration-500 bg-zinc-950 shadow-2xl">
+      {/* Scholars Quick Access */}
+      <section className="space-y-10 py-16 px-8 rounded-[3rem] bg-zinc-50 border border-zinc-100 shadow-sm">
+        <div className="text-center space-y-3">
+          <h2 className="text-4xl font-bold tracking-tight">Our Scholars</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto text-base font-medium">Explore profiles and insights from leading teachers providing depth to modern challenges.</p>
+        </div>
+        
+        <div className="flex gap-8 overflow-x-auto pb-8 scrollbar-hide snap-x px-4">
+          {speakers?.map((speaker) => (
+            <Link key={speaker.id} href={`/videos?speakerId=${speaker.id}`} className="group shrink-0 snap-center">
+              <div className="flex flex-col items-center space-y-5">
+                <div className="relative h-32 w-32 md:h-40 md:w-40 overflow-hidden rounded-full border-4 border-white shadow-2xl ring-1 ring-zinc-100 transition-all duration-700 group-hover:scale-105 group-hover:ring-primary/20">
                   <Image 
-                    src={speaker.profileImageUrl || 'https://picsum.photos/seed/speaker/200'} 
+                    src={speaker.profileImageUrl || 'https://picsum.photos/seed/speaker/400'} 
                     alt={speaker.name} 
                     fill
-                    className="rounded-2xl object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
                   />
                 </div>
-                <span className="text-[10px] uppercase tracking-widest font-black text-center truncate w-24 px-1 text-zinc-500 group-hover:text-zinc-100 transition-colors">{speaker.name}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
+                <div className="text-center">
+                  <h3 className="text-sm font-bold group-hover:text-primary transition-colors tracking-tight">{speaker.name}</h3>
+                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] mt-1">Scholar</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-        {/* My Favorites Section */}
-        <section className="space-y-8">
-          <div className="flex items-center justify-between px-2">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-headline font-bold flex items-center gap-3 text-zinc-100">
-                <Heart className="w-6 h-6 text-zinc-500" />
-                Saved Favorites
-              </h2>
-              <p className="text-xs text-zinc-500 font-medium">Your most cherished reflections in one place</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-             {trendingVideos?.slice(4, 10).map((video, idx) => (
-               <Link key={video.id} href={`/watch?v=${video.id}`} className="group space-y-3">
-                 <div className="relative aspect-video rounded-xl overflow-hidden border border-zinc-900 bg-zinc-950">
-                    <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
-                 </div>
-                 <h3 className="text-[10px] font-bold text-zinc-400 group-hover:text-white transition-colors line-clamp-1 leading-tight">{video.title}</h3>
-               </Link>
-             ))}
-          </div>
-        </section>
-      </div>
+      {/* Quick Access Modules */}
+      <section className="grid gap-8 md:grid-cols-3 pb-16">
+        <ModuleCard 
+          title="Noble Quran" 
+          description="Read, reflect and listen to the Divine word with professional translations."
+          badge="SCRIPTURE"
+          href="/quran"
+          image="https://picsum.photos/seed/quran/800/400"
+          dark
+        />
+        <ModuleCard 
+          title="Hadith Library" 
+          description="Explore thousands of traditions with authenticity grades from verified sources."
+          badge="TRADITIONS"
+          href="/hadith"
+          image="https://picsum.photos/seed/hadith/800/400"
+        />
+        <ModuleCard 
+          title="Video Catalog" 
+          description="Watch curated high-definition spiritual content, lectures, and documentaries."
+          badge="VISUALS"
+          href="/videos"
+          image="https://picsum.photos/seed/video/800/400"
+          primary
+        />
+      </section>
     </div>
   );
 }
 
 function VideoCard({ video }: { video: any }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
-    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-2xl md:rounded-3xl h-full">
-      <Link href={`/watch?v=${video.id}`} className="flex flex-col h-full">
+    <Card className="group overflow-hidden rounded-[2rem] border-none bg-white shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-1">
+      <Link href={`/watch?v=${video.id}`}>
         <div className="relative aspect-video overflow-hidden">
           <Image 
             src={video.thumbnailUrl} 
             alt={video.title} 
             fill 
-            className="object-cover group-hover:scale-105 transition-transform duration-1000"
+            className="object-cover transition-transform duration-1000 group-hover:scale-110"
           />
-          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-xl md:rounded-2xl w-10 h-10 md:w-14 md:h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
-              <Play className="text-zinc-300 fill-zinc-300 ml-0.5 w-4 h-4 md:w-6 md:h-6" />
+          <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 flex items-center justify-center">
+            <div className="bg-white/20 backdrop-blur-md rounded-full p-5 scale-75 group-hover:scale-100 transition-all duration-500">
+              <Play className="h-8 w-8 text-white fill-current" />
             </div>
           </div>
         </div>
-        <CardHeader className="p-4 md:p-5 flex-1 flex flex-col justify-between">
-          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-xs md:text-sm tracking-tight mb-2 md:mb-4">
-            {video.title}
-          </CardTitle>
-          <div className="flex items-center justify-between text-[8px] md:text-[9px] text-zinc-600 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] pt-2 md:pt-4 border-t border-zinc-900">
-            <span className="flex items-center gap-1">
-              <Smartphone className="w-2.5 h-2.5" />
-              {video.appViewCount?.toLocaleString() || 0}
-            </span>
-            <span>
-              {mounted ? new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
-            </span>
+        <CardContent className="p-6 space-y-4">
+          <h3 className="font-bold line-clamp-2 leading-snug text-base tracking-tight group-hover:text-primary transition-colors">{video.title}</h3>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] border-t border-zinc-50 pt-4">
+            <span>{new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <Badge variant="outline" className="text-[8px] border-zinc-100">VIDEO</Badge>
           </div>
-        </CardHeader>
+        </CardContent>
       </Link>
+    </Card>
+  );
+}
+
+function ModuleCard({ title, description, badge, href, image, dark, primary }: any) {
+  return (
+    <Card className={cn(
+      "group cursor-pointer overflow-hidden border-none shadow-xl rounded-[2.5rem] flex flex-col h-full",
+      dark ? "bg-zinc-950 text-white" : primary ? "bg-primary text-primary-foreground" : "bg-white"
+    )}>
+      <CardHeader className="relative h-56 p-0 overflow-hidden">
+        <Image src={image} alt={title} fill className="object-cover opacity-40 transition-transform duration-1000 group-hover:scale-110" />
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-t",
+          dark ? "from-zinc-950" : primary ? "from-primary" : "from-white"
+        )} />
+        <div className="absolute bottom-8 left-8">
+          <Badge variant={dark || primary ? "secondary" : "default"} className="mb-3 uppercase tracking-[0.2em] text-[9px] font-black">
+            {badge}
+          </Badge>
+          <CardTitle className="text-3xl font-bold tracking-tight">{title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="p-8 pt-2 flex-1 flex flex-col justify-between">
+        <p className={cn(
+          "text-sm leading-relaxed mb-8 font-medium",
+          dark ? "text-zinc-400" : primary ? "text-primary-foreground/70" : "text-muted-foreground"
+        )}>
+          {description}
+        </p>
+        <Button variant={dark || primary ? "secondary" : "default"} className="w-full rounded-2xl h-12 font-bold text-sm shadow-lg" asChild>
+          <Link href={href}>Explore Now</Link>
+        </Button>
+      </CardContent>
     </Card>
   );
 }
