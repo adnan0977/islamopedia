@@ -70,8 +70,8 @@ import { fetchHadithRegistry, fetchHadithEditionContent, FawazEdition } from '@/
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const ALLOWED_SLUGS = [
-  'abudawud', 'bukhari', 'dehlawi', 'ibnmajah', 'malik', 
-  'muslim', 'nasai', 'nawawi', 'qudsi', 'tirmidhi'
+  'abudawud', 'bukhari', 'ibnmajah', 'malik', 
+  'muslim', 'nasai', 'tirmidhi'
 ];
 
 function isDataDifferent(newData: any, existingData: any): boolean {

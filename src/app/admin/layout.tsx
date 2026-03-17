@@ -44,7 +44,7 @@ import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }: { children: React.Node }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
