@@ -74,7 +74,7 @@ export default function HadithPage() {
   if (activeEditionId) {
     const book = books?.find(b => b.id === activeBookId);
     return (
-      <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl">
+      <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl pb-32 lg:pb-8">
         <header className="flex flex-col sm:flex-row justify-between items-center gap-4 pb-6 border-b">
           <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" className="rounded-full" onClick={() => navigateTo({ edition: null })}>
@@ -116,7 +116,7 @@ export default function HadithPage() {
   if (activeBookId) {
     const book = books?.find(b => b.id === activeBookId);
     return (
-      <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl">
+      <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl pb-32 lg:pb-8">
         <header className="flex items-center gap-4 pb-6 border-b">
           <Button variant="outline" size="icon" className="rounded-full" onClick={() => navigateTo({ book: null })}>
             <ArrowLeft className="h-4 w-4" />
@@ -149,7 +149,7 @@ export default function HadithPage() {
 
   // View 1: Books Directory
   return (
-    <div className="container mx-auto px-4 py-12 space-y-12 max-w-7xl pb-32 md:pb-12">
+    <div className="container mx-auto px-4 py-12 space-y-12 max-w-7xl pb-32 lg:pb-12">
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
         <div className="space-y-2">
           <h1 className="text-4xl font-extrabold tracking-tight">Hadith Library</h1>

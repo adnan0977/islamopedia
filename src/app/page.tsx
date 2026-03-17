@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -42,7 +41,7 @@ export default function Home() {
   }, [location]);
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-16 pb-24 md:pb-8">
+    <div className="container mx-auto px-4 py-8 space-y-16 pb-32 lg:pb-8">
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-[2.5rem] bg-zinc-950 px-6 py-12 md:px-16 md:py-24 text-white shadow-2xl">
         <div className="relative z-10 grid gap-12 md:grid-cols-2 items-center">

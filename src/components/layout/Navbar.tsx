@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, User, Play, ShieldCheck, Mic2, ScrollText, LogIn } from 'lucide-react';
+import { Home, BookOpen, User, Play, ShieldCheck, Mic2, ScrollText, LogIn, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -63,18 +63,17 @@ export function Navbar() {
               <NavigationMenuList>
                 {filteredNavItems.map((item) => (
                   <NavigationMenuItem key={item.href}>
-                    <NavigationMenuLink 
-                      asChild
-                      className={cn(
-                        navigationMenuTriggerStyle(),
-                        "bg-transparent cursor-pointer",
-                        pathname === item.href && "text-foreground font-bold underline underline-offset-4 decoration-2 decoration-primary"
-                      )}
-                    >
-                      <Link href={item.href}>
+                    <Link href={item.href} passHref legacyBehavior>
+                      <NavigationMenuLink 
+                        className={cn(
+                          navigationMenuTriggerStyle(),
+                          "bg-transparent cursor-pointer",
+                          pathname === item.href && "text-foreground font-bold underline underline-offset-4 decoration-2 decoration-primary"
+                        )}
+                      >
                         {item.label}
-                      </Link>
-                    </NavigationMenuLink>
+                      </NavigationMenuLink>
+                    </Link>
                   </NavigationMenuItem>
                 ))}
               </NavigationMenuList>
@@ -92,14 +91,14 @@ export function Navbar() {
             )}
             
             {!isUserLoading && user ? (
-              <Button variant="outline" size="sm" asChild className="gap-2 rounded-full px-4">
+              <Button variant="outline" size="sm" asChild className="gap-2 rounded-full px-4 h-9">
                 <Link href="/channel">
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
+                  <span className="hidden lg:inline">{user.email?.split('@')[0]}</span>
                 </Link>
               </Button>
             ) : (
-              <Button size="sm" asChild className="gap-2">
+              <Button size="sm" asChild className="gap-2 h-9 px-4 rounded-full">
                 <Link href="/login">
                   <LogIn className="h-4 w-4" />
                   <span>Sign In</span>
@@ -110,8 +109,8 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Tablet & Mobile Nav (Bottom Bar) - Visible below lg breakpoint */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background lg:hidden">
+      {/* Unified Tablet & Mobile Nav (Bottom Bar) - Visible below lg breakpoint */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background lg:hidden shadow-[0_-1px_10px_rgba(0,0,0,0.05)]">
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -120,15 +119,27 @@ export function Navbar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                "flex flex-col items-center justify-center gap-1 w-full h-full transition-all duration-300",
+                isActive ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <Icon className={cn("h-5 w-5", isActive && "fill-primary/10")} />
+              <span className="text-[9px] font-bold uppercase tracking-widest">{item.label}</span>
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 w-full h-full transition-all duration-300",
+              pathname.startsWith('/admin') ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutDashboard className="h-5 w-5" />
+            <span className="text-[9px] font-bold uppercase tracking-widest">Admin</span>
+          </Link>
+        )}
       </nav>
     </>
   );
