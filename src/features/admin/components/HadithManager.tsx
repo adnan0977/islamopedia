@@ -117,7 +117,6 @@ export function HadithManager() {
               ...ed,
               id: ed.name,
               bookId: slug,
-              // Preserving sync status if it already existed
               updatedAt: new Date().toISOString()
             }, { merge: true });
             seededEditionsCount++;
@@ -212,7 +211,6 @@ export function HadithManager() {
 export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { bookId: string, onBack: () => void, onSelectEdition: (id: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
   
   const [syncState, setSyncState] = useState({
     isSyncing: false,
@@ -229,11 +227,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
     where('bookId', '==', bookId)
   ), [db, bookId]);
   const { data: editions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
-
-  const filteredEditions = editions?.filter(e => 
-    e.language.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const handleSyncIndex = async (edition: FawazEdition) => {
     setSyncState({ isSyncing: true, progress: 0, status: 'fetching structure', targetEdition: edition.name });
@@ -308,17 +301,10 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
             </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-            <Input placeholder="Filter matrix..." className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-12" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredEditions?.map((ed) => {
+        {editions?.map((ed) => {
           const isSynced = ed.indexSynced === 'yes';
           return (
             <Card 
@@ -382,7 +368,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 export function HadithDataView({ editionId, onBack, onViewSection }: { editionId: string, onBack: () => void, onViewSection: (num: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
   
   const [syncState, setSyncState] = useState({
     isSyncing: false,
@@ -411,12 +396,8 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           isSynced: !!indexDoc.syncedSections?.[num]
         };
       })
-      .filter(s => 
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.number.includes(searchTerm)
-      )
       .sort((a, b) => parseInt(a.number) - parseInt(b.number));
-  }, [indexDoc, searchTerm]);
+  }, [indexDoc]);
 
   const handleSyncSectionContent = async (section: any) => {
     if (!edition?.linkmin) {
@@ -513,15 +494,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
               <span>Section Data Control</span>
             </div>
           </div>
-        </div>
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
-            placeholder="Search within index..." 
-            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14 shadow-inner" 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-          />
         </div>
       </div>
 
