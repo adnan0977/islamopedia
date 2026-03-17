@@ -63,8 +63,9 @@ export function Navbar() {
               <NavigationMenuList>
                 {filteredNavItems.map((item) => (
                   <NavigationMenuItem key={item.href}>
-                    <Link href={item.href} passHref legacyBehavior>
-                      <NavigationMenuLink 
+                    <NavigationMenuLink asChild>
+                      <Link 
+                        href={item.href}
                         className={cn(
                           navigationMenuTriggerStyle(),
                           "bg-transparent cursor-pointer",
@@ -72,8 +73,8 @@ export function Navbar() {
                         )}
                       >
                         {item.label}
-                      </NavigationMenuLink>
-                    </Link>
+                      </Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                 ))}
               </NavigationMenuList>
