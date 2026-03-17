@@ -362,7 +362,7 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
           onClick={() => onSyncIndex(edition)}
         >
           <ListTree className="w-3 h-3 mr-2" />
-          Sync
+          {isSynced ? 'Resync' : 'Sync'}
         </Button>
         {isSynced && (
           <Button variant="outline" size="icon" onClick={() => onSelect(edition.id)} className="h-8 w-8">
@@ -517,7 +517,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
                 onClick={() => handleSyncSectionContent(s)}
               >
                 <Zap className="w-3 h-3 mr-2" />
-                Resync
+                {s.isSynced ? 'Resync' : 'Sync'}
               </Button>
               {s.isSynced && (
                 <Button 
@@ -595,7 +595,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="w-24 text-[10px] font-bold uppercase tracking-widest pl-6">ID</TableHead>
+              <TableHead className="w-24 text-[10px] font-bold uppercase tracking-widest pl-6">Ref</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest">Content Narrative</TableHead>
               <TableHead className="w-32 text-right text-[10px] font-bold uppercase tracking-widest pr-6">Manage</TableHead>
             </TableRow>
