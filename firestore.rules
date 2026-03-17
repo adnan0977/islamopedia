@@ -13,79 +13,81 @@ service cloud.firestore {
     }
 
     // --- Public Content (Read for everyone, Write for Admin only) ---
+    // Rules updated to be explicit for get/list to support complex studio queries.
     
     match /languages/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /videos/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
     match /channels/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
     match /speakers/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
     match /quran/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
     match /quran_editions/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
     match /quran_metadata/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     // --- Hadith Library (Public Read, Admin Write) ---
-    // Rule update: explicitly allow list/get for all library nodes
     
     match /hadith_books/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_editions/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_index/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_data/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_reference/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
     match /settings/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     // --- Admin Access Control ---
     match /roles_admin/{userId} {
       allow get: if isSignedIn() && request.auth.uid == userId;
-      allow list, create, update, delete: if false;
+      // Bootstrapping: Allow the primary user to initialize their own admin status
+      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.email == 'adnan@gmail.com';
+      allow list, update, delete: if false;
     }
   }
 }

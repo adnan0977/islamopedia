@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { 
   ShieldCheck, 
   ShieldAlert, 
@@ -17,7 +18,8 @@ import {
   Mic2,
   Settings,
   ExternalLink,
-  ScrollText
+  ScrollText,
+  UserPlus
 } from 'lucide-react';
 import { 
   Sidebar, 
@@ -50,15 +52,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   
   const [copied, setCopied] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
 
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData, isLoading: isAdminLoading } = useDoc(adminRef);
 
   const isVerifiedAdmin = !!adminData;
+  const isTargetAdminEmail = user?.email === 'adnan@gmail.com';
 
   const handleSignOut = async () => {
     await signOut(auth);
     router.push('/');
+  };
+
+  const handleBootstrapAdmin = async () => {
+    if (!user?.uid || !isTargetAdminEmail) return;
+    
+    setIsBootstrapping(true);
+    try {
+      // Create the admin record. Security rules now permit this for adnan@gmail.com
+      await setDoc(doc(db, 'roles_admin', user.uid), {
+        email: user.email,
+        assignedAt: new Date().toISOString(),
+        role: 'super-admin'
+      });
+      toast({ title: "Admin Status Initialized", description: "Your studio permissions have been verified." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Bootstrap Failed", description: e.message });
+    } finally {
+      setIsBootstrapping(false);
+    }
   };
 
   const copyUid = () => {
@@ -74,23 +97,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4 bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-zinc-500" />
-        <p className="text-zinc-500 font-medium">Verifying access...</p>
+        <p className="text-zinc-500 font-medium text-sm uppercase tracking-widest font-black">Verifying studio access...</p>
       </div>
     );
   }
 
   if (!user || !isVerifiedAdmin) {
     return (
-      <div className="max-w-md mx-auto py-20 px-4 text-center space-y-8 bg-background min-h-screen">
-        <ShieldAlert className="w-16 h-16 text-zinc-500 mx-auto" />
-        <h1 className="text-3xl font-headline font-bold text-white">Access Denied</h1>
-        <div className="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 flex items-center justify-between">
-           <code className="text-xs font-mono truncate text-left text-white">{user?.uid || 'N/A'}</code>
-           <Button variant="secondary" size="sm" onClick={copyUid}>
-            {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          </Button>
+      <div className="max-w-md mx-auto py-20 px-4 text-center space-y-8 bg-background min-h-screen flex flex-col justify-center">
+        <div className="space-y-4">
+          <div className="w-20 h-20 bg-zinc-950 border border-zinc-900 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl">
+            <ShieldAlert className="w-10 h-10 text-zinc-500" />
+          </div>
+          <h1 className="text-3xl font-headline font-bold text-white">Studio Restricted</h1>
+          <p className="text-zinc-500 text-sm px-8">This portal is reserved for authorized creators and researchers.</p>
         </div>
-        <Button variant="outline" onClick={handleSignOut} className="w-full">Sign Out</Button>
+
+        <div className="bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-inner flex flex-col gap-4">
+           <div className="flex items-center justify-between bg-black/50 p-3 rounded-xl border border-zinc-900">
+             <code className="text-[10px] font-mono truncate text-zinc-400">{user?.uid || 'NOT_LOGGED_IN'}</code>
+             <Button variant="ghost" size="sm" onClick={copyUid} className="h-8 w-8 p-0 text-zinc-600 hover:text-white">
+              {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            </Button>
+           </div>
+           
+           {isTargetAdminEmail && !isVerifiedAdmin && (
+             <Button 
+               className="w-full h-12 bg-white text-black hover:bg-zinc-200 font-black uppercase text-[10px] tracking-[0.2em] rounded-xl"
+               onClick={handleBootstrapAdmin}
+               disabled={isBootstrapping}
+             >
+               {isBootstrapping ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
+               Initialize Admin Status
+             </Button>
+           )}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <Button variant="outline" onClick={handleSignOut} className="w-full rounded-xl h-12 font-bold border-zinc-800 text-zinc-500">Sign Out</Button>
+          <Link href="/">
+            <Button variant="link" className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">Return to Public Site</Button>
+          </Link>
+        </div>
       </div>
     );
   }
