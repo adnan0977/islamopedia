@@ -43,7 +43,8 @@ import {
   Pencil,
   Save,
   Type,
-  Hash
+  Hash,
+  Plus
 } from 'lucide-react';
 import { 
   Table, 
@@ -270,6 +271,16 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-10 w-10 shrink-0">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="space-y-0.5 min-w-0">
+          <h2 className="text-xl font-bold tracking-tight truncate">{book?.bookName}</h2>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Edition Registry</p>
+        </div>
+      </div>
+
       <Dialog open={syncState.isSyncing}>
         <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <div className="flex flex-col items-center text-center space-y-4 py-4">
@@ -292,16 +303,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack} className="h-10 w-10 shrink-0">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="space-y-0.5 min-w-0">
-          <h2 className="text-xl font-bold tracking-tight truncate">{book?.bookName}</h2>
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Edition Registry</p>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {editions?.map((ed) => (
@@ -567,7 +568,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   }, [rawRecords]);
 
   const handleEdit = (record: any) => {
-    setEditingRecord({ ...record });
+    // Deep clone to avoid immediate proxy updates
+    setEditingRecord(JSON.parse(JSON.stringify(record)));
     setIsEditDialogOpen(true);
   };
 
@@ -581,6 +583,25 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
     });
     toast({ title: "Record Updated" });
     setIsEditDialogOpen(false);
+  };
+
+  const handleUpdateGrade = (index: number, field: 'scholar' | 'grade', value: string) => {
+    if (!editingRecord) return;
+    const newGrades = [...(editingRecord.grades || [])];
+    newGrades[index] = { ...newGrades[index], [field]: value };
+    setEditingRecord({ ...editingRecord, grades: newGrades });
+  };
+
+  const handleAddGrade = () => {
+    if (!editingRecord) return;
+    const newGrades = [...(editingRecord.grades || []), { scholar: '', grade: '' }];
+    setEditingRecord({ ...editingRecord, grades: newGrades });
+  };
+
+  const handleRemoveGrade = (index: number) => {
+    if (!editingRecord) return;
+    const newGrades = editingRecord.grades.filter((_: any, i: number) => i !== index);
+    setEditingRecord({ ...editingRecord, grades: newGrades });
   };
 
   return (
@@ -608,7 +629,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="h-16">
                 <TableHead className="w-24 text-[10px] font-black uppercase tracking-[0.2em] pl-6 sm:pl-8">Ref</TableHead>
-                <TableHead className="hidden sm:table-cell text-[10px] font-black uppercase tracking-[0.2em]">Section</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Hadith Text Snippet</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Grade</TableHead>
                 <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.2em]">Reference</TableHead>
                 <TableHead className="w-32 text-right text-[10px] font-black uppercase tracking-[0.2em] pr-6 sm:pr-8">Actions</TableHead>
@@ -622,8 +643,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <TableCell className="pl-6 sm:pl-8">
                     <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber || r.id?.split('_h_').pop()}</Badge>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <span className="text-xs font-bold text-zinc-900 line-clamp-1">{indexDoc?.sections?.[r.sectionNumber] || '---'}</span>
+                  <TableCell>
+                    <p className="text-xs text-zinc-500 line-clamp-1 max-w-md font-medium">{r.text || '---'}</p>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -636,7 +657,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
-                      {r.reference ? `BK ${r.reference.book}, H ${r.reference.hadith}` : '---'}
+                      {r.reference ? `BK ${r.reference.book}, H ${r.reference.hadith}` : `H# ${r.hadithnumber}`}
                     </span>
                   </TableCell>
                   <TableCell className="text-right pr-6 sm:pr-8">
@@ -666,8 +687,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             </div>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 bg-white">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-10 bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                <div className="space-y-4">
                   <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Canonical Reference</Label>
                   <div className="grid grid-cols-2 gap-4">
@@ -691,24 +712,45 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     </div>
                   </div>
                </div>
+
                <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Primary Grade</Label>
-                  <div className="space-y-2">
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Verdict</span>
-                    <Input 
-                      placeholder="e.g. Sahih, Da'if"
-                      value={editingRecord?.grades?.[0]?.grade || ''} 
-                      onChange={(e) => {
-                        const newGrades = [...(editingRecord?.grades || [])];
-                        if (newGrades.length > 0) {
-                          newGrades[0] = { ...newGrades[0], grade: e.target.value };
-                        } else {
-                          newGrades.push({ grade: e.target.value, scholar: 'Unspecified' });
-                        }
-                        setEditingRecord({ ...editingRecord, grades: newGrades });
-                      }}
-                      className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900"
-                    />
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Authenticity Grades</Label>
+                    <Button variant="ghost" size="sm" onClick={handleAddGrade} className="h-7 px-2 text-[9px] uppercase font-black tracking-widest gap-1.5">
+                      <Plus className="w-3 h-3" /> Add Entry
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {editingRecord?.grades?.map((g: any, i: number) => (
+                      <div key={i} className="flex items-end gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+                        <div className="flex-1 grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <span className="text-[8px] text-zinc-400 font-bold uppercase">Scholar</span>
+                            <Input 
+                              placeholder="Scholar Name"
+                              value={g.scholar || ''}
+                              onChange={(e) => handleUpdateGrade(i, 'scholar', e.target.value)}
+                              className="bg-white border-zinc-200 h-9 text-xs rounded-lg"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[8px] text-zinc-400 font-bold uppercase">Verdict</span>
+                            <Input 
+                              placeholder="Sahih, Da'if"
+                              value={g.grade || ''}
+                              onChange={(e) => handleUpdateGrade(i, 'grade', e.target.value)}
+                              className="bg-white border-zinc-200 h-9 text-xs rounded-lg"
+                            />
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGrade(i)} className="h-9 w-9 text-zinc-300 hover:text-red-500">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                    {(!editingRecord?.grades || editingRecord.grades.length === 0) && (
+                      <p className="text-[10px] text-zinc-400 italic text-center py-2">No authenticity grades defined.</p>
+                    )}
                   </div>
                </div>
             </div>
