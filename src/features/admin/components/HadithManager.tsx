@@ -44,7 +44,8 @@ import {
   Save,
   Type,
   Hash,
-  Plus
+  Plus,
+  BookOpen
 } from 'lucide-react';
 import { 
   Table, 
@@ -470,29 +471,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         </div>
       </div>
 
-      <Dialog open={syncState.isSyncing}>
-        <DialogContent className="max-w-md w-[95vw] sm:w-full">
-          <div className="flex flex-col items-center text-center space-y-4 py-4">
-             <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center border animate-pulse">
-               <Zap className="w-6 h-6 text-primary" />
-             </div>
-             <DialogHeader>
-               <DialogTitle>Section Ingestion</DialogTitle>
-               <DialogDescription>Ingesting records for {syncState.targetSection}.</DialogDescription>
-             </DialogHeader>
-             <div className="w-full space-y-2">
-               <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                 <span>{syncState.status}...</span>
-                 <span>{syncState.progress}%</span>
-               </div>
-               <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                 <div className="h-full bg-primary transition-all duration-500" style={{ width: `${syncState.progress}%` }} />
-               </div>
-             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sections.map((s) => (
           <Card key={s.number} className="flex flex-col group border shadow-sm overflow-hidden rounded-[2rem]">
@@ -612,13 +590,13 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           </Button>
           <div className="space-y-0.5 min-w-0">
             <h2 className="text-xl font-bold tracking-tight truncate">
-              {indexDoc?.sections?.[sectionNumber] || `Section ${sectionNumber} Explorer`}
+              {indexDoc?.sections?.[sectionNumber] || `Section ${sectionNumber}`}
             </h2>
             <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Granular Audit</p>
           </div>
         </div>
         <Badge variant="secondary" className="px-4 py-1 font-mono text-[10px] w-full sm:w-auto text-center rounded-xl">
-          {sortedRecords?.length || 0} Records Loaded
+          {sortedRecords?.length || 0} Records
         </Badge>
       </div>
 
@@ -627,11 +605,11 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           <Table>
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="h-16">
-                <TableHead className="w-24 text-[10px] font-black uppercase tracking-[0.2em] pl-6 sm:pl-8">Ref</TableHead>
+                <TableHead className="w-20 text-[10px] font-black uppercase tracking-[0.2em] pl-6 sm:pl-8">Ref</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Hadith Content</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Scholar Verdicts</TableHead>
-                <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.2em]">Canonical Ref</TableHead>
-                <TableHead className="w-32 text-right text-[10px] font-black uppercase tracking-[0.2em] pr-6 sm:pr-8">Actions</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Authenticity (Scholar)</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Reference</TableHead>
+                <TableHead className="w-24 text-right text-[10px] font-black uppercase tracking-[0.2em] pr-6 sm:pr-8">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -642,17 +620,14 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <TableCell className="pl-6 sm:pl-8">
                     <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber || r.id?.split('_h_').pop()}</Badge>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1 max-w-md">
-                      <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{indexDoc?.sections?.[sectionNumber]}</span>
-                      <p className="text-xs text-zinc-600 line-clamp-2 font-medium">{r.text || '---'}</p>
-                    </div>
+                  <TableCell className="max-w-[300px]">
+                    <p className="text-[11px] font-medium text-zinc-600 line-clamp-2 leading-relaxed">{r.text || '---'}</p>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
                       {r.grades?.map((g: any, i: number) => (
                         <div key={i} className="flex flex-col gap-0.5">
-                          <span className="text-[7px] text-zinc-400 font-black uppercase">{g.name || 'Unknown'}</span>
+                          <span className="text-[7px] text-zinc-400 font-black uppercase">{g.name || 'Scholar'}</span>
                           <Badge variant="secondary" className="text-[8px] px-2 py-0 uppercase font-black tracking-tighter bg-zinc-100 border-zinc-200">
                             {g.grade}
                           </Badge>
@@ -660,20 +635,25 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                       )) || <span className="text-[10px] text-zinc-400">---</span>}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     {r.reference ? (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase">Book {r.reference.book}</span>
-                        <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase">Hadith {r.reference.hadith}</span>
+                      <div className="flex flex-col gap-0.5 min-w-[80px]">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8px] font-black text-zinc-400 uppercase">Book</span>
+                          <span className="text-[10px] font-bold text-zinc-900">{r.reference.book}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8px] font-black text-zinc-400 uppercase">Hadith</span>
+                          <span className="text-[10px] font-bold text-zinc-900">{r.reference.hadith}</span>
+                        </div>
                       </div>
                     ) : (
-                      <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-tighter">No Reference</span>
+                      <span className="text-[10px] font-medium text-zinc-300 italic">No Reference</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right pr-6 sm:pr-8">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-9 gap-2 px-3 sm:px-4 hover:bg-white border border-transparent hover:border-zinc-200 hover:shadow-sm rounded-xl">
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(r)} className="h-9 w-9 hover:bg-white border border-transparent hover:border-zinc-200 hover:shadow-sm rounded-xl">
                       <Pencil className="w-3.5 h-3.5 text-zinc-400" />
-                      <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-zinc-600">Refine</span>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -727,7 +707,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Authenticity Grades</Label>
                     <Button variant="ghost" size="sm" onClick={handleAddGrade} className="h-7 px-2 text-[9px] uppercase font-black tracking-widest gap-1.5 hover:bg-zinc-50 border border-transparent hover:border-zinc-100">
-                      <Plus className="w-3 h-3" /> Add Entry
+                      <Plus className="w-3 h-3" /> Add Verdict
                     </Button>
                   </div>
                   <div className="space-y-3">
