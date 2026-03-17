@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, writeBatch, where, limit, orderBy, getDocs, getCountFromServer } from 'firebase/firestore';
 import { 
   Card, 
@@ -683,7 +682,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-3xl bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        <DialogContent className="sm:max-w-4xl bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none overflow-hidden shadow-2xl flex flex-col h-[85vh]">
           <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Pencil className="w-5 h-5 text-zinc-500" />
@@ -693,12 +692,12 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           </DialogHeader>
           
           <div className="p-8 space-y-8 overflow-y-auto flex-1">
-            <div className="space-y-4">
+            <div className="space-y-4 h-full flex flex-col">
               <Label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest flex items-center gap-2">
                 <Type className="w-3 h-3" /> Text Content
               </Label>
               <Textarea 
-                className="bg-zinc-900 border-zinc-800 min-h-[300px] text-base text-zinc-300 rounded-2xl leading-relaxed"
+                className="bg-zinc-900 border-zinc-800 flex-1 min-h-[500px] text-lg text-zinc-200 rounded-2xl leading-relaxed p-8 focus:ring-zinc-700"
                 value={editingRecord?.text || ''}
                 onChange={(e) => setEditingRecord({ ...editingRecord, text: e.target.value })}
               />
