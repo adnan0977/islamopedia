@@ -4,8 +4,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- SYSTEM SECURITY METADATA ---
-    // Rules Version: 1.0.8 (Explicit Hadith Access)
-    // Last Updated: March 2024
+    // Rules Version: 1.1.0 (Explicit Global Read & Admin Writes)
+    // Forced redeployment to ensure all Hadith paths are active.
 
     // --- Helper Functions ---
     function isSignedIn() {
@@ -17,30 +17,30 @@ service cloud.firestore {
     }
 
     // --- Hadith Library (Public Read, Admin Write) ---
-    // Specifically placed at the top to ensure priority and visibility.
+    // Using explicit methods to ensure listing/getting are both allowed.
     
     match /hadith_books/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_editions/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_index/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_data/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_reference/{id} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 

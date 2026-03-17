@@ -21,18 +21,19 @@ export function Navbar() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
 
-  if (pathname?.startsWith('/admin')) {
-    return null;
-  }
-
-  // Fetch Auth & Permissions
+  // Fetch Auth & Permissions - MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
   const { data: adminData } = useDoc(adminRef);
   const isAdmin = !!adminData;
 
-  // Fetch App Settings
+  // Fetch App Settings - MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
+
+  // Early return for admin pages - Moved after hooks to prevent hook order violations
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   const filteredNavItems = baseNavItems.filter(item => {
     // Filter based on dynamic visibility settings from Firestore
