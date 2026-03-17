@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -42,7 +43,8 @@ import {
   Pencil,
   Save,
   Type,
-  Hash
+  Hash,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   Table, 
@@ -73,9 +75,6 @@ const ALLOWED_SLUGS = [
   'muslim', 'nasai', 'nawawi', 'qudsi', 'tirmidhi'
 ];
 
-/**
- * Utility to check if two objects are significantly different, ignoring system fields.
- */
 function isDataDifferent(newData: any, existingData: any): boolean {
   if (!existingData) return true;
   for (const key in newData) {
@@ -87,9 +86,6 @@ function isDataDifferent(newData: any, existingData: any): boolean {
   return false;
 }
 
-/**
- * Level 1: Primary Registry View (Master Books)
- */
 export function HadithManager() {
   const db = useFirestore();
   const { toast } = useToast();
@@ -107,7 +103,6 @@ export function HadithManager() {
     setIsSeeding(true);
     try {
       const registry = await fetchHadithRegistry();
-      
       const editionsSnap = await getDocs(collection(db, 'hadith_editions'));
       const existingEditions = new Map(editionsSnap.docs.map(d => [d.id, d.data()]));
       const existingBooksMap = new Map(books?.map(b => [b.id, b]) || []);
@@ -167,18 +162,17 @@ export function HadithManager() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2rem] border border-zinc-900 shadow-xl border-t border-white/5">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm">
         <div className="space-y-2 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-3">
-            <Library className="w-6 h-6 text-zinc-500" />
-            <h2 className="text-2xl font-headline font-bold text-white">Hadith Studio Library</h2>
+            <Library className="w-6 h-6 text-zinc-400" />
+            <h2 className="text-2xl font-headline font-bold text-zinc-900">Hadith Studio Library</h2>
           </div>
           <p className="text-sm text-zinc-500 font-medium">Manage master collections and their global language editions.</p>
         </div>
 
         <Button 
-          variant="outline"
-          className="rounded-xl h-12 px-8 font-bold border-white text-white hover:bg-white hover:text-black shadow-lg flex items-center gap-2 transition-all active:scale-95"
+          className="rounded-xl h-12 px-8 font-bold bg-zinc-900 text-white hover:bg-zinc-800 shadow-lg flex items-center gap-2 transition-all active:scale-95"
           onClick={handleSeedRegistry}
           disabled={isSeeding}
         >
@@ -189,42 +183,42 @@ export function HadithManager() {
 
       {isLoadingBooks ? (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
-          <p className="text-zinc-600 font-medium">Hydrating library nodes...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-zinc-200" />
+          <p className="text-zinc-400 font-bold text-xs uppercase tracking-widest">Hydrating library nodes...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {books?.map((book) => (
             <Card 
               key={book.id} 
-              className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl border-t border-white/5 cursor-pointer"
+              className="bg-white border-zinc-200 rounded-[2.5rem] overflow-hidden group hover:border-zinc-400 hover:shadow-xl transition-all flex flex-col cursor-pointer"
               onClick={() => router.push(`/admin/hadith?bookId=${book.id}`)}
             >
-              <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
+              <CardHeader className="p-8 border-b border-zinc-50 bg-zinc-50/50">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg font-bold text-zinc-100 group-hover:text-white transition-colors">{book.bookName}</CardTitle>
-                    <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">{book.id}</p>
+                    <CardTitle className="text-lg font-bold text-zinc-900 group-hover:text-zinc-900 transition-colors">{book.bookName}</CardTitle>
+                    <p className="text-[10px] text-zinc-400 font-mono uppercase tracking-widest">{book.id}</p>
                   </div>
-                  <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 shrink-0 shadow-inner">
-                    <ChevronRight className="w-5 h-5 text-zinc-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-zinc-200 shrink-0 shadow-sm">
+                    <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-zinc-900 group-hover:translate-x-1 transition-all" />
                   </div>
                 </div>
               </CardHeader>
               
               <CardContent className="p-8 flex-1">
-                <div className="flex items-center gap-3 p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900">
-                  <Languages className="w-5 h-5 text-zinc-600" />
+                <div className="flex items-center gap-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                  <Languages className="w-5 h-5 text-zinc-400" />
                   <div className="flex flex-col">
-                    <span className="text-xl font-headline font-bold text-zinc-300">{book.editionCount || 0}</span>
-                    <span className="text-[9px] font-black uppercase text-zinc-600 tracking-widest">Available Translations</span>
+                    <span className="text-xl font-headline font-bold text-zinc-900">{book.editionCount || 0}</span>
+                    <span className="text-[9px] font-black uppercase text-zinc-400 tracking-widest">Translations</span>
                   </div>
                 </div>
               </CardContent>
 
-              <CardFooter className="p-6 bg-zinc-900/10 border-t border-zinc-900 flex items-center justify-between">
-                <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black px-3 py-1 rounded-full uppercase">Master Collection</Badge>
-                <span className="text-[10px] font-mono text-zinc-700">{book.id}.json</span>
+              <CardFooter className="p-6 bg-zinc-50/50 border-t border-zinc-100 flex items-center justify-between">
+                <Badge className="bg-zinc-100 text-zinc-500 border-none text-[8px] font-black px-3 py-1 rounded-full uppercase">Master Collection</Badge>
+                <span className="text-[10px] font-mono text-zinc-300">{book.id}.json</span>
               </CardFooter>
             </Card>
           ))}
@@ -234,9 +228,6 @@ export function HadithManager() {
   );
 }
 
-/**
- * Level 2: Edition Matrix with Sync Stats
- */
 export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { bookId: string, onBack: () => void, onSelectEdition: (id: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
@@ -259,80 +250,57 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 
   const handleSyncIndex = async (edition: FawazEdition) => {
     setSyncState({ isSyncing: true, progress: 0, status: 'fetching structure', targetEdition: edition.name });
-    
     try {
       const data = await fetchHadithEditionContent(edition.linkmin);
       const { metadata, hadiths } = data;
-
       setSyncState(prev => ({ ...prev, status: 'comparing', progress: 50 }));
-      
       const indexRef = doc(db, 'hadith_index', edition.name);
       const existingSnap = await getDoc(indexRef);
       const existingData = existingSnap.exists() ? existingSnap.data() : null;
-
       const totalCount = hadiths?.length || 0;
-      const payload = {
-        id: edition.name,
-        editionId: edition.name,
-        bookSlug: bookId,
-        name: metadata.name || '',
-        totalHadiths: totalCount,
-        sections: metadata.sections || {},
-        sectionDetails: metadata.section_details || {},
-      };
-
+      const payload = { id: edition.name, editionId: edition.name, bookSlug: bookId, name: metadata.name || '', totalHadiths: totalCount, sections: metadata.sections || {}, sectionDetails: metadata.section_details || {} };
       if (isDataDifferent(payload, existingData)) {
         setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
-        updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { 
-          indexSynced: 'yes',
-          totalHadiths: totalCount
-        });
+        updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes', totalHadiths: totalCount });
         toast({ title: "Index Synchronized" });
-      } else {
-        toast({ title: "Index Up to Date" });
-      }
-
+      } else { toast({ title: "Index Up to Date" }); }
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Index Sync Failed", description: e.message });
-    } finally {
-      setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500);
-    }
+    } catch (e: any) { toast({ variant: "destructive", title: "Index Sync Failed", description: e.message }); } finally { setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500); }
   };
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <Dialog open={syncState.isSyncing}>
-        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-12 outline-none shadow-2xl max-lg border-t border-white/5">
-          <DialogHeader className="text-center">
-             <div className="w-20 h-20 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl mx-auto mb-6">
-               <DatabaseZap className="w-10 h-10 text-white animate-bounce" />
+        <DialogContent className="bg-white border-zinc-200 rounded-[2.5rem] p-12 outline-none shadow-2xl max-w-lg">
+          <div className="flex flex-col items-center text-center space-y-6">
+             <div className="w-20 h-20 bg-zinc-50 rounded-[2rem] flex items-center justify-center border border-zinc-100 shadow-inner">
+               <DatabaseZap className="w-10 h-10 text-zinc-900 animate-bounce" />
              </div>
-             <DialogTitle className="text-2xl font-headline font-bold text-center">Index Extraction</DialogTitle>
-             <DialogDescription className="text-zinc-500 text-sm text-center">Structural analysis for {syncState.targetEdition}.</DialogDescription>
-          </DialogHeader>
-          <div className="w-full space-y-6 mt-8">
-             <div className="space-y-3">
+             <DialogHeader className="space-y-2">
+               <DialogTitle className="text-2xl font-headline font-bold">Index Extraction</DialogTitle>
+               <DialogDescription className="text-zinc-500 text-sm">Structural analysis for {syncState.targetEdition}.</DialogDescription>
+             </DialogHeader>
+             <div className="w-full space-y-3">
                <div className="flex justify-between items-end">
-                 <span className="text-[10px] font-black uppercase text-zinc-600">{syncState.status}...</span>
-                 <span className="text-3xl font-headline font-bold text-white tabular-nums">{syncState.progress}%</span>
+                 <span className="text-[10px] font-black uppercase text-zinc-400">{syncState.status}...</span>
+                 <span className="text-2xl font-headline font-bold text-zinc-900">{syncState.progress}%</span>
                </div>
-               <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/50">
-                 <div className="h-full bg-white transition-all duration-500" style={{ width: `${syncState.progress}%` }} />
+               <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                 <div className="h-full bg-zinc-900 transition-all duration-500" style={{ width: `${syncState.progress}%` }} />
                </div>
              </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 shadow-xl border-t border-white/5">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm">
         <div className="flex items-center gap-6">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 transition-all active:scale-90">
+          <Button variant="outline" size="icon" onClick={onBack} className="rounded-xl border-zinc-200 bg-white text-zinc-400 hover:text-zinc-900 h-12 w-12 transition-all shadow-sm">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-headline font-bold text-white leading-tight">{book?.bookName}</h2>
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
+            <h2 className="text-2xl font-headline font-bold text-zinc-900 leading-tight">{book?.bookName}</h2>
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-400 tracking-widest">
               <ScrollText className="w-3 h-3" />
               <span>Edition Matrix</span>
             </div>
@@ -340,7 +308,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {editions?.map((ed) => (
           <EditionCard key={ed.id} edition={ed} onSelect={onSelectEdition} onSyncIndex={handleSyncIndex} />
         ))}
@@ -362,48 +330,48 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
   return (
     <Card 
       className={cn(
-        "bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden flex flex-col group transition-all shadow-xl relative border-t border-white/5",
-        isSynced ? "cursor-pointer hover:border-zinc-500" : "opacity-90"
+        "bg-white border-zinc-200 rounded-[2.5rem] overflow-hidden flex flex-col group transition-all shadow-sm relative",
+        isSynced ? "cursor-pointer hover:border-zinc-400 hover:shadow-md" : "opacity-90"
       )}
       onClick={() => isSynced && onSelect(edition.id)}
     >
-      <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
+      <CardHeader className="p-8 border-b border-zinc-50 bg-zinc-50/50">
         <div className="flex justify-between items-start mb-6">
-          <div className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 shadow-inner group-hover:border-zinc-600 transition-colors">
-            <Languages className={cn("w-6 h-6", edition.direction === 'rtl' ? "text-amber-500" : "text-zinc-500")} />
+          <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm group-hover:border-zinc-400 transition-colors">
+            <Languages className={cn("w-6 h-6", edition.direction === 'rtl' ? "text-amber-600" : "text-zinc-400")} />
           </div>
-          <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", isSynced ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900 text-zinc-600")}>
+          <Badge className={cn("border-none text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", isSynced ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
             {isSynced ? 'Indexed' : 'Pending'}
           </Badge>
         </div>
-        <CardTitle className="text-xl font-bold text-zinc-100 group-hover:text-white transition-colors">{edition.language} Edition</CardTitle>
-        <CardDescription className="text-[10px] font-mono text-zinc-600 uppercase mt-1">{edition.name}</CardDescription>
+        <CardTitle className="text-xl font-bold text-zinc-900 group-hover:text-zinc-900 transition-colors">{edition.language} Edition</CardTitle>
+        <CardDescription className="text-[10px] font-mono text-zinc-400 uppercase mt-1">{edition.name}</CardDescription>
       </CardHeader>
       
       <CardContent className="p-8 flex-1 space-y-6">
         <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900 text-center">
-            <span className="text-[8px] font-black text-zinc-600 uppercase block mb-1 tracking-widest">Total</span>
-            <span className="text-xs font-mono font-bold text-zinc-300">{edition.totalHadiths || '---'}</span>
+          <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
+            <span className="text-[8px] font-black text-zinc-400 uppercase block mb-1 tracking-widest">Total</span>
+            <span className="text-xs font-mono font-bold text-zinc-900">{edition.totalHadiths || '---'}</span>
           </div>
-          <div className="p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900 text-center">
-            <span className="text-[8px] font-black text-zinc-600 uppercase block mb-1 tracking-widest">Synced</span>
-            <span className="text-xs font-mono font-bold text-emerald-500">{syncedCount ?? '...'}</span>
+          <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
+            <span className="text-[8px] font-black text-zinc-400 uppercase block mb-1 tracking-widest">Synced</span>
+            <span className="text-xs font-mono font-bold text-emerald-600">{syncedCount ?? '...'}</span>
           </div>
         </div>
       </CardContent>
 
-      <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+      <CardFooter className="p-6 bg-zinc-50/50 border-t border-zinc-100 flex justify-between gap-3" onClick={(e) => e.stopPropagation()}>
         <Button 
           variant="outline" 
-          className="flex-1 rounded-xl font-bold h-12 border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all flex items-center justify-center gap-2"
+          className="flex-1 rounded-xl font-bold h-11 border-zinc-200 bg-white text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 transition-all flex items-center justify-center gap-2 shadow-sm"
           onClick={() => onSyncIndex(edition)}
         >
           <ListTree className="w-4 h-4" />
           {isSynced ? 'Resync' : 'Sync Index'}
         </Button>
         {isSynced && (
-          <Button variant="ghost" size="icon" onClick={() => onSelect(edition.id)} className="rounded-xl h-12 w-12 border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white transition-all">
+          <Button variant="ghost" size="icon" onClick={() => onSelect(edition.id)} className="rounded-xl h-11 w-11 border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-900 transition-all">
             <ChevronRight className="w-5 h-5" />
           </Button>
         )}
@@ -412,153 +380,73 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
   );
 }
 
-/**
- * Level 3: Section Grid
- */
 export function HadithDataView({ editionId, onBack, onViewSection }: { editionId: string, onBack: () => void, onViewSection: (num: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
-  
-  const [syncState, setSyncState] = useState({
-    isSyncing: false,
-    progress: 0,
-    status: 'idle',
-    targetSection: ''
-  });
-  
+  const [syncState, setSyncState] = useState({ isSyncing: false, progress: 0, status: 'idle', targetSection: '' });
   const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
   const { data: indexDoc, isLoading } = useDoc(indexRef);
-
   const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
   const { data: edition } = useDoc(editionRef);
 
   const sections = useMemo(() => {
     if (!indexDoc?.sections) return [];
-    return Object.entries(indexDoc.sections)
-      .filter(([num]) => num !== '0')
-      .map(([num, name]) => {
-        const details = indexDoc.sectionDetails?.[num] || {};
-        return {
-          number: num,
-          name: name as string,
-          start_hadith_number: details.hadithnumber_first ?? 0,
-          last_hadith_number: details.hadithnumber_last ?? 0,
-          isSynced: !!indexDoc.syncedSections?.[num]
-        };
-      })
-      .sort((a, b) => parseInt(a.number) - parseInt(b.number));
+    return Object.entries(indexDoc.sections).filter(([num]) => num !== '0').map(([num, name]) => {
+      const details = indexDoc.sectionDetails?.[num] || {};
+      return { number: num, name: name as string, start_hadith_number: details.hadithnumber_first ?? 0, last_hadith_number: details.hadithnumber_last ?? 0, isSynced: !!indexDoc.syncedSections?.[num] };
+    }).sort((a, b) => parseInt(a.number) - parseInt(b.number));
   }, [indexDoc]);
 
   const handleSyncSectionContent = async (section: any) => {
-    if (!edition?.linkmin) {
-      toast({ variant: "destructive", title: "Missing Source" });
-      return;
-    }
-
+    if (!edition?.linkmin) { toast({ variant: "destructive", title: "Missing Source" }); return; }
     setSyncState({ isSyncing: true, progress: 0, status: 'initializing', targetSection: section.name });
-    
     try {
-      setSyncState(prev => ({ ...prev, status: 'fetching pool', progress: 20 }));
       const payload = await fetchHadithEditionContent(edition.linkmin);
       const allHadiths = payload.hadiths || [];
-      
-      setSyncState(prev => ({ ...prev, status: 'comparing', progress: 40 }));
-      const inRange = allHadiths.filter((h: any) => {
-        const hNum = parseFloat(h.hadithnumber);
-        return hNum >= section.start_hadith_number && hNum <= section.last_hadith_number;
-      });
-
-      if (inRange.length === 0) {
-        toast({ title: "No Matching Records" });
-        setSyncState(prev => ({ ...prev, isSyncing: false }));
-        return;
-      }
-
-      // Fetch existing docs for this section to perform diff
-      const existingSnap = await getDocs(query(
-        collection(db, 'hadith_data'), 
-        where('editionId', '==', editionId), 
-        where('sectionNumber', '==', section.number)
-      ));
+      const inRange = allHadiths.filter((h: any) => { const hNum = parseFloat(h.hadithnumber); return hNum >= section.start_hadith_number && hNum <= section.last_hadith_number; });
+      if (inRange.length === 0) { toast({ title: "No Matching Records" }); setSyncState(prev => ({ ...prev, isSyncing: false })); return; }
+      const existingSnap = await getDocs(query(collection(db, 'hadith_data'), where('editionId', '==', editionId), where('sectionNumber', '==', section.number)));
       const existingMap = new Map(existingSnap.docs.map(d => [d.id, d.data()]));
-
       const batch = writeBatch(db);
       let updatesCount = 0;
-
       inRange.forEach((h: any) => {
         const hadithId = `${editionId}_h_${h.hadithnumber}`;
         const existing = existingMap.get(hadithId);
-        
-        const hPayload = {
-          ...h,
-          id: hadithId,
-          editionId,
-          bookSlug: indexDoc?.bookSlug,
-          sectionNumber: section.number,
-        };
-
-        if (isDataDifferent(hPayload, existing)) {
-          batch.set(doc(db, 'hadith_data', hadithId), { ...hPayload, updatedAt: new Date().toISOString() }, { merge: true });
-          updatesCount++;
-        }
+        const hPayload = { ...h, id: hadithId, editionId, bookSlug: indexDoc?.bookSlug, sectionNumber: section.number };
+        if (isDataDifferent(hPayload, existing)) { batch.set(doc(db, 'hadith_data', hadithId), { ...hPayload, updatedAt: new Date().toISOString() }, { merge: true }); updatesCount++; }
       });
-
-      if (updatesCount > 0) {
-        setSyncState(prev => ({ ...prev, status: 'committing', progress: 80 }));
-        await batch.commit();
-        toast({ title: "Section Ingested", description: `Updated ${updatesCount} records.` });
-      } else {
-        toast({ title: "Section Up to Date" });
-      }
-
-      // Always ensure the index recognizes the sync
-      if (!indexDoc?.syncedSections?.[section.number]) {
-        const syncedMap = indexDoc?.syncedSections || {};
-        syncedMap[section.number] = true;
-        updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap });
-      }
-
+      if (updatesCount > 0) { await batch.commit(); toast({ title: "Section Ingested", description: `Updated ${updatesCount} records.` }); } else { toast({ title: "Section Up to Date" }); }
+      if (!indexDoc?.syncedSections?.[section.number]) { const syncedMap = indexDoc?.syncedSections || {}; syncedMap[section.number] = true; updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap }); }
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Sync Failed", description: e.message });
-    } finally {
-      setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500);
-    }
+    } catch (e: any) { toast({ variant: "destructive", title: "Sync Failed", description: e.message }); } finally { setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500); }
   };
 
   return (
-    <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <Dialog open={syncState.isSyncing}>
-        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-12 outline-none shadow-2xl max-w-lg border-t border-white/5">
-          <DialogHeader className="text-center">
-             <div className="w-20 h-20 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl mx-auto mb-6">
-               <Zap className="w-10 h-10 text-amber-500 animate-pulse" />
+        <DialogContent className="bg-white border-zinc-200 rounded-[2.5rem] p-12 outline-none shadow-2xl max-w-lg">
+          <div className="flex flex-col items-center text-center space-y-6">
+             <div className="w-20 h-20 bg-amber-50 rounded-[2rem] flex items-center justify-center border border-amber-100 shadow-inner">
+               <Zap className="w-10 h-10 text-amber-600 animate-pulse" />
              </div>
-             <DialogTitle className="text-2xl font-headline font-bold text-center">Section Ingestion</DialogTitle>
-             <DialogDescription className="text-zinc-500 text-sm text-center">Pulling granular records for {syncState.targetSection}.</DialogDescription>
-          </DialogHeader>
-          <div className="w-full space-y-6 mt-8">
-             <div className="space-y-3">
-               <div className="flex justify-between items-end">
-                 <span className="text-[10px] font-black uppercase text-zinc-600">{syncState.status}...</span>
-                 <span className="text-3xl font-headline font-bold text-white tabular-nums">{syncState.progress}%</span>
-               </div>
-               <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/50">
-                 <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${syncState.progress}%` }} />
-               </div>
+             <DialogTitle className="text-2xl font-headline font-bold">Section Ingestion</DialogTitle>
+             <DialogDescription className="text-zinc-500 text-sm">Pulling granular records for {syncState.targetSection}.</DialogDescription>
+             <div className="w-full space-y-3">
+               <div className="flex justify-between items-end"><span className="text-[10px] font-black uppercase text-zinc-400">{syncState.status}...</span><span className="text-2xl font-headline font-bold text-zinc-900">{syncState.progress}%</span></div>
+               <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${syncState.progress}%` }} /></div>
              </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 border-t border-white/5 shadow-2xl">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm">
         <div className="flex items-center gap-6">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all active:scale-90">
+          <Button variant="outline" size="icon" onClick={onBack} className="rounded-xl border-zinc-200 bg-white text-zinc-400 hover:text-zinc-900 h-12 w-12 flex items-center justify-center transition-all shadow-sm">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{indexDoc?.name || 'Edition'} Analysis</h2>
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
+            <h2 className="text-2xl font-headline font-bold text-zinc-900 tracking-tight">{indexDoc?.name || 'Edition'} Analysis</h2>
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-400 tracking-widest">
               <DatabaseIcon className="w-3 h-3" />
               <span>Section Data Control</span>
             </div>
@@ -568,59 +456,52 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
-          <p className="text-zinc-600 font-medium">Indexing section nodes...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-zinc-200" />
+          <p className="text-zinc-400 font-bold text-xs uppercase tracking-widest">Indexing section nodes...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {sections.map((s) => (
-            <Card key={s.number} className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl border-t border-white/5">
-              <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20 space-y-4">
+            <Card key={s.number} className="bg-white border-zinc-200 rounded-[2.5rem] overflow-hidden group hover:border-zinc-400 transition-all flex flex-col shadow-sm">
+              <CardHeader className="p-8 border-b border-zinc-50 bg-zinc-50/50 space-y-4">
                 <div className="flex items-start justify-between gap-4">
-                  <CardTitle className="text-sm font-bold text-zinc-100 group-hover:text-white transition-colors leading-relaxed line-clamp-2 min-h-[2.5rem]">
+                  <CardTitle className="text-sm font-bold text-zinc-900 group-hover:text-zinc-900 transition-colors leading-relaxed line-clamp-2 min-h-[2.5rem]">
                     {s.name}
                   </CardTitle>
-                  <span className="text-[10px] font-black text-zinc-700 mt-1 shrink-0">#{s.number}</span>
+                  <span className="text-[10px] font-black text-zinc-300 mt-1 shrink-0">#{s.number}</span>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 pt-2 border-t border-zinc-900/50">
-                  <Badge variant="outline" className={cn("border-zinc-800 text-[8px] font-black uppercase tracking-widest shrink-0", s.isSynced ? "text-emerald-500" : "text-zinc-600")}>
+                <div className="flex items-center justify-between gap-4 pt-4 border-t border-zinc-100">
+                  <Badge variant="outline" className={cn("border-none text-[8px] font-black uppercase tracking-[0.1em] shrink-0 px-2 py-0.5 rounded-full", s.isSynced ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
                     {s.isSynced ? 'SYNCED' : 'PENDING'}
                   </Badge>
                   
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-end">
-                      <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Hadith Range</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold text-emerald-500">{s.start_hadith_number}</span>
-                        <div className="w-1.5 h-[1px] bg-zinc-800" />
-                        <span className="text-[10px] font-mono font-bold text-zinc-400">{s.last_hadith_number}</span>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold text-zinc-900">{s.start_hadith_number}</span>
+                    <div className="w-1.5 h-[1px] bg-zinc-200" />
+                    <span className="text-[10px] font-mono font-bold text-zinc-400">{s.last_hadith_number}</span>
                   </div>
                 </div>
               </CardHeader>
               
-              <CardContent className="p-0 flex-1" />
-
-              <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex flex-col gap-3">
+              <CardFooter className="p-6 bg-white border-t border-zinc-50 flex items-center gap-3">
                 <Button 
                   variant="outline" 
                   disabled={syncState.isSyncing}
                   onClick={() => handleSyncSectionContent(s)}
-                  className="w-full rounded-xl font-bold h-12 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 rounded-xl font-bold h-11 border-zinc-200 bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm"
                 >
                   <Zap className="w-4 h-4" />
-                  <span>{s.isSynced ? 'Resync' : 'Sync Data'}</span>
+                  <span>{s.isSynced ? 'Resync' : 'Sync'}</span>
                 </Button>
                 {s.isSynced && (
                   <Button 
                     variant="ghost" 
                     onClick={() => onViewSection(s.number)}
-                    className="w-full rounded-xl font-bold h-12 bg-zinc-900/50 text-white hover:bg-zinc-800 transition-all flex items-center justify-center gap-2 border border-zinc-800"
+                    className="flex-1 rounded-xl font-bold h-11 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 transition-all flex items-center justify-center gap-2"
                   >
                     <Eye className="w-4 h-4" />
-                    <span>View Data</span>
+                    <span>View</span>
                   </Button>
                 )}
               </CardFooter>
@@ -632,9 +513,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   );
 }
 
-/**
- * Level 4: Tabular Record Inspector
- */
 export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onBack }: { bookId: string, editionId: string, sectionNumber: string, onBack: () => void }) {
   const db = useFirestore();
   const { toast } = useToast();
@@ -673,55 +551,55 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div className="flex items-center justify-between bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 border-t border-white/5 shadow-2xl">
+      <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm">
         <div className="flex items-center gap-6">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all active:scale-90">
+          <Button variant="outline" size="icon" onClick={onBack} className="rounded-xl border-zinc-200 bg-white text-zinc-400 hover:text-zinc-900 h-12 w-12 flex items-center justify-center transition-all shadow-sm">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">Section {sectionNumber} Explorer</h2>
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
+            <h2 className="text-2xl font-headline font-bold text-zinc-900 tracking-tight">Section {sectionNumber} Explorer</h2>
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-400 tracking-widest">
               <TableIcon className="w-3 h-3" />
               <span>Granular Record Auditor</span>
             </div>
           </div>
         </div>
-        <Badge variant="outline" className="h-10 px-6 rounded-xl border-zinc-800 text-zinc-500 font-bold">
+        <Badge variant="outline" className="h-10 px-6 rounded-xl border-zinc-200 bg-white text-zinc-500 font-bold shadow-sm">
           {sortedRecords?.length || 0} Records Loaded
         </Badge>
       </div>
 
-      <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl border-t border-white/5">
+      <Card className="bg-white border-zinc-200 rounded-[2.5rem] overflow-hidden shadow-sm">
         <Table className="w-full">
-          <TableHeader className="bg-zinc-900/50">
-            <TableRow className="border-zinc-900 h-16">
-              <TableHead className="pl-10 text-[9px] font-black uppercase text-zinc-600 w-32">Index ID</TableHead>
-              <TableHead className="text-[9px] font-black uppercase text-zinc-600">Text Content</TableHead>
-              <TableHead className="text-[9px] font-black uppercase text-zinc-600 text-right pr-10">Actions</TableHead>
+          <TableHeader className="bg-zinc-50">
+            <TableRow className="border-zinc-100 h-16">
+              <TableHead className="pl-10 text-[9px] font-black uppercase text-zinc-400 w-32 tracking-[0.2em]">Index ID</TableHead>
+              <TableHead className="text-[9px] font-black uppercase text-zinc-400 tracking-[0.2em]">Text Content</TableHead>
+              <TableHead className="text-[9px] font-black uppercase text-zinc-400 text-right pr-10 tracking-[0.2em]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-zinc-800" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-zinc-200" /></TableCell></TableRow>
             ) : sortedRecords?.map((r) => (
-              <TableRow key={r.id} className="border-zinc-900 h-32 hover:bg-zinc-900/40 transition-colors">
+              <TableRow key={r.id} className="border-zinc-100 h-32 hover:bg-zinc-50/50 transition-colors">
                 <TableCell className="pl-10">
                   <div className="flex items-center gap-2">
-                    <Hash className="w-3 h-3 text-zinc-700" />
-                    <span className="text-xs font-mono font-bold text-zinc-500">{r.hadithnumber}</span>
+                    <Hash className="w-3 h-3 text-zinc-200" />
+                    <span className="text-xs font-mono font-bold text-zinc-900">{r.hadithnumber}</span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="max-w-4xl py-4">
-                    <p className="text-sm text-zinc-300 line-clamp-3 leading-relaxed font-medium">
+                    <p className="text-sm text-zinc-600 line-clamp-3 leading-relaxed font-medium">
                       {r.text || 'No textual content found.'}
                     </p>
                   </div>
                 </TableCell>
                 <TableCell className="text-right pr-10">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-10 px-5 text-zinc-500 hover:text-white transition-all border border-transparent hover:border-zinc-800 rounded-xl">
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-10 px-5 text-zinc-400 hover:text-zinc-900 transition-all border border-transparent hover:bg-zinc-100 rounded-xl">
                     <Pencil className="w-4 h-4 mr-2" />
-                    <span className="font-bold">Edit</span>
+                    <span className="font-bold text-xs uppercase tracking-widest">Edit</span>
                   </Button>
                 </TableCell>
               </TableRow>
@@ -731,10 +609,10 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-4xl bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none overflow-hidden shadow-2xl flex flex-col h-[85vh]">
-          <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
+        <DialogContent className="sm:max-w-4xl bg-white border-zinc-200 text-zinc-900 rounded-[2.5rem] p-0 outline-none overflow-hidden shadow-2xl flex flex-col h-[85vh]">
+          <DialogHeader className="p-8 border-b border-zinc-100 bg-zinc-50 shrink-0">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-zinc-500" />
+              <Pencil className="w-5 h-5 text-zinc-400" />
               Edit Record Content
             </DialogTitle>
             <DialogDescription className="text-zinc-500 text-xs mt-1">Direct modification of Prophetic text or translation.</DialogDescription>
@@ -742,23 +620,22 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           
           <div className="p-8 space-y-8 overflow-y-auto flex-1">
             <div className="space-y-4 h-full flex flex-col">
-              <Label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest flex items-center gap-2">
+              <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest flex items-center gap-2">
                 <Type className="w-3 h-3" /> Text Content
               </Label>
               <Textarea 
-                className="bg-zinc-900 border-zinc-800 flex-1 min-h-[500px] text-lg text-zinc-200 rounded-2xl leading-relaxed p-8 focus:ring-zinc-700"
+                className="bg-zinc-50 border-zinc-200 flex-1 min-h-[500px] text-lg text-zinc-900 rounded-2xl leading-relaxed p-8 focus:ring-zinc-900 focus:bg-white transition-all shadow-inner"
                 value={editingRecord?.text || ''}
                 onChange={(e) => setEditingRecord({ ...editingRecord, text: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="p-8 bg-zinc-900/20 border-t border-zinc-900 shrink-0 flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold text-zinc-500">Cancel</Button>
+          <div className="p-8 bg-zinc-50 border-t border-zinc-100 shrink-0 flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold text-zinc-400">Cancel</Button>
             <Button 
-              variant="outline" 
+              className="rounded-xl h-12 px-10 font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-all flex items-center gap-2 shadow-lg"
               onClick={handleSaveEdit}
-              className="rounded-xl h-12 px-10 font-bold border-white text-white hover:bg-white hover:text-black transition-all flex items-center gap-2"
             >
               <Save className="w-4 h-4" /> Save Changes
             </Button>
