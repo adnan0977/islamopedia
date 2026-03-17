@@ -4,8 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- SYSTEM SECURITY METADATA ---
-    // Rules Version: 1.1.0 (Explicit Global Read & Admin Writes)
-    // Forced redeployment to ensure all Hadith paths are active.
+    // Rules Version: 1.1.1 (Allow public view count increments)
 
     // --- Helper Functions ---
     function isSignedIn() {
@@ -17,7 +16,6 @@ service cloud.firestore {
     }
 
     // --- Hadith Library (Public Read, Admin Write) ---
-    // Using explicit methods to ensure listing/getting are both allowed.
     
     match /hadith_books/{id} {
       allow get, list: if true;
@@ -53,7 +51,9 @@ service cloud.firestore {
 
     match /videos/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      // Allow anyone to increment the appViewCount, but only admins to change other fields
+      allow update: if isAdmin() || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['appViewCount']));
+      allow create, delete: if isAdmin();
     }
     
     match /channels/{id} {
