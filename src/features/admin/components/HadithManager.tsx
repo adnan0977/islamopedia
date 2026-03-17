@@ -57,7 +57,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -147,9 +148,9 @@ export function HadithManager() {
 
       if (updatesCount > 0) {
         await batch.commit();
-        toast({ title: "Registry Synchronized", description: `Applied ${updatesCount} updates.` });
+        toast({ title: "Registry Updated", description: `${updatesCount} nodes refreshed.` });
       } else {
-        toast({ title: "Database Up to Date" });
+        toast({ title: "Database Sync Complete" });
       }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Seeding Failed", description: e.message });
@@ -159,71 +160,56 @@ export function HadithManager() {
   };
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 w-full">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-8 bg-white p-10 rounded-[3rem] border border-zinc-200 shadow-sm">
-        <div className="space-y-2 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-4">
-            <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center border border-zinc-100 shadow-inner">
-              <Library className="w-6 h-6 text-zinc-400" />
-            </div>
-            <h2 className="text-3xl font-headline font-bold text-zinc-900 tracking-tight">Hadith Studio Hub</h2>
-          </div>
-          <p className="text-sm text-zinc-500 font-medium max-w-lg">Manage canonical master collections and their verified global language editions.</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Hadith Library</h1>
+          <p className="text-sm text-muted-foreground">Manage canonical master collections and verified editions.</p>
         </div>
-
         <Button 
-          className="rounded-2xl h-14 px-10 font-bold bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl flex items-center gap-3 transition-all active:scale-95"
           onClick={handleSeedRegistry}
           disabled={isSeeding}
+          className="gap-2"
         >
-          {isSeeding ? <Loader2 className="w-5 h-5 animate-spin" /> : <CloudDownload className="w-5 h-5" />}
-          <span className="text-sm uppercase tracking-widest">Seed Registry</span>
+          {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
+          Seed Registry
         </Button>
       </div>
 
       {isLoadingBooks ? (
-        <div className="flex flex-col items-center justify-center py-40 space-y-6">
-          <Loader2 className="w-14 h-14 animate-spin text-zinc-200" />
-          <p className="text-zinc-400 font-black text-[10px] uppercase tracking-[0.3em]">Hydrating library nodes...</p>
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Hydrating Collections...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {books?.map((book) => (
             <Card 
               key={book.id} 
-              className="bg-white border-zinc-200 rounded-[3rem] overflow-hidden group hover:border-zinc-400 hover:shadow-2xl transition-all flex flex-col cursor-pointer border-t-4 border-t-transparent hover:border-t-zinc-900"
+              className="cursor-pointer transition-colors hover:bg-muted/50 group border-border shadow-sm"
               onClick={() => router.push(`/admin/hadith?bookId=${book.id}`)}
             >
-              <CardHeader className="p-10 border-b border-zinc-50 bg-zinc-50/30">
-                <div className="flex items-start justify-between gap-6">
-                  <div className="space-y-2">
-                    <CardTitle className="text-xl font-bold text-zinc-900 leading-snug group-hover:text-zinc-600 transition-colors">{book.bookName}</CardTitle>
-                    <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{book.id}</p>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 bg-muted rounded-lg group-hover:bg-background transition-colors">
+                    <Library className="w-5 h-5 text-muted-foreground" />
                   </div>
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-zinc-100 shrink-0 shadow-sm group-hover:bg-zinc-900 group-hover:border-zinc-900 transition-all">
-                    <ChevronRight className="w-6 h-6 text-zinc-300 group-hover:text-white group-hover:translate-x-1 transition-all" />
-                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                 </div>
+                <CardTitle className="text-lg leading-tight">{book.bookName}</CardTitle>
+                <CardDescription className="text-xs uppercase font-bold tracking-tight">{book.id}</CardDescription>
               </CardHeader>
-              
-              <CardContent className="p-10 flex-1">
-                <div className="flex items-center gap-4 p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner group-hover:bg-white group-hover:border-zinc-200 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-white border border-zinc-100 flex items-center justify-center">
-                    <Languages className="w-5 h-5 text-zinc-400" />
-                  </div>
+              <CardContent>
+                <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg border border-border/50">
                   <div className="flex flex-col">
-                    <span className="text-2xl font-headline font-bold text-zinc-900 leading-none">{book.editionCount || 0}</span>
-                    <span className="text-[9px] font-black uppercase text-zinc-400 tracking-[0.2em] mt-1">Available Editions</span>
+                    <span className="text-xl font-bold leading-none">{book.editionCount || 0}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase mt-1">Editions Available</span>
                   </div>
                 </div>
               </CardContent>
-
-              <CardFooter className="p-8 bg-zinc-50/30 border-t border-zinc-100 flex items-center justify-between">
-                <Badge className="bg-zinc-900 text-white border-none text-[8px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">Master Feed</Badge>
-                <div className="flex items-center gap-2 text-zinc-300">
-                  <Database className="w-3 h-3" />
-                  <span className="text-[9px] font-mono">{book.id}.db</span>
-                </div>
+              <CardFooter className="pt-0 pb-4 flex items-center justify-between text-muted-foreground">
+                <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-widest px-2 py-0">Master Feed</Badge>
+                <span className="text-[10px] font-mono opacity-50">{book.id}.db</span>
               </CardFooter>
             </Card>
           ))}
@@ -281,46 +267,41 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
   };
 
   return (
-    <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+    <div className="space-y-6">
       <Dialog open={syncState.isSyncing}>
-        <DialogContent className="bg-white border-zinc-200 rounded-[3rem] p-16 outline-none shadow-2xl max-w-xl">
-          <div className="flex flex-col items-center text-center space-y-8">
-             <div className="w-24 h-24 bg-zinc-50 rounded-[2.5rem] flex items-center justify-center border border-zinc-100 shadow-inner">
-               <DatabaseZap className="w-12 h-12 text-zinc-900 animate-bounce" />
+        <DialogContent className="max-w-md">
+          <div className="flex flex-col items-center text-center space-y-4 py-4">
+             <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center border animate-pulse">
+               <DatabaseZap className="w-6 h-6 text-primary" />
              </div>
-             <DialogHeader className="space-y-3">
-               <DialogTitle className="text-3xl font-headline font-bold text-zinc-900">Index Extraction</DialogTitle>
-               <DialogDescription className="text-zinc-500 text-sm max-w-xs mx-auto">Structural mapping analysis for {syncState.targetEdition}.</DialogDescription>
+             <DialogHeader>
+               <DialogTitle>Index Extraction</DialogTitle>
+               <DialogDescription>Structural mapping analysis for {syncState.targetEdition}.</DialogDescription>
              </DialogHeader>
-             <div className="w-full space-y-4">
-               <div className="flex justify-between items-end">
-                 <span className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">{syncState.status}...</span>
-                 <span className="text-3xl font-headline font-bold text-zinc-900 tabular-nums">{syncState.progress}%</span>
+             <div className="w-full space-y-2">
+               <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
+                 <span>{syncState.status}...</span>
+                 <span>{syncState.progress}%</span>
                </div>
-               <div className="h-3 w-full bg-zinc-50 rounded-full overflow-hidden border border-zinc-100 p-0.5">
-                 <div className="h-full bg-zinc-900 rounded-full transition-all duration-500 ease-out" style={{ width: `${syncState.progress}%` }} />
+               <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                 <div className="h-full bg-primary transition-all duration-500" style={{ width: `${syncState.progress}%` }} />
                </div>
              </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-8 bg-white p-10 rounded-[3rem] border border-zinc-200 shadow-sm">
-        <div className="flex items-center gap-8">
-          <Button variant="outline" size="icon" onClick={onBack} className="rounded-2xl border-zinc-200 bg-white text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 h-14 w-14 transition-all shadow-sm group">
-            <ArrowLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
-          </Button>
-          <div className="space-y-1">
-            <h2 className="text-3xl font-headline font-bold text-zinc-900 tracking-tight">{book?.bookName}</h2>
-            <div className="flex items-center gap-3 text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>Edition Matrix Directory</span>
-            </div>
-          </div>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <div className="space-y-0.5">
+          <h2 className="text-xl font-bold tracking-tight">{book?.bookName}</h2>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Edition Registry</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {editions?.map((ed) => (
           <EditionCard key={ed.id} edition={ed} onSelect={onSelectEdition} onSyncIndex={handleSyncIndex} />
         ))}
@@ -342,49 +323,50 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
   return (
     <Card 
       className={cn(
-        "bg-white border-zinc-200 rounded-[3rem] overflow-hidden flex flex-col group transition-all shadow-sm relative border-t-4 border-t-transparent",
-        isSynced ? "cursor-pointer hover:border-zinc-400 hover:shadow-2xl hover:border-t-emerald-500" : "opacity-90 hover:border-zinc-300"
+        "flex flex-col group transition-all border shadow-sm",
+        isSynced ? "cursor-pointer hover:border-primary/50" : "opacity-90"
       )}
       onClick={() => isSynced && onSelect(edition.id)}
     >
-      <CardHeader className="p-10 border-b border-zinc-50 bg-zinc-50/30">
-        <div className="flex justify-between items-start mb-8">
-          <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm group-hover:border-zinc-200 transition-colors">
-            <Languages className={cn("w-7 h-7", edition.direction === 'rtl' ? "text-amber-600" : "text-zinc-400")} />
+      <CardHeader className="pb-4">
+        <div className="flex justify-between items-start mb-4">
+          <div className="bg-muted p-2 rounded-lg">
+            <Languages className={cn("w-5 h-5", edition.direction === 'rtl' ? "text-primary" : "text-muted-foreground")} />
           </div>
-          <Badge className={cn("border-none text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full", isSynced ? "bg-emerald-50 text-emerald-600 shadow-sm" : "bg-zinc-100 text-zinc-400")}>
+          <Badge variant={isSynced ? "default" : "secondary"} className="text-[9px] font-bold uppercase tracking-widest">
             {isSynced ? 'Indexed' : 'Pending'}
           </Badge>
         </div>
-        <CardTitle className="text-xl font-bold text-zinc-900 group-hover:text-zinc-600 transition-colors leading-tight">{edition.language} Edition</CardTitle>
-        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter mt-2">{edition.name}</p>
+        <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors">{edition.language} Edition</CardTitle>
+        <CardDescription className="text-[10px] font-bold uppercase opacity-50">{edition.name}</CardDescription>
       </CardHeader>
       
-      <CardContent className="p-10 flex-1 space-y-8">
-        <div className="grid grid-cols-2 gap-6">
-          <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 text-center shadow-inner group-hover:bg-white transition-colors">
-            <span className="text-[9px] font-black text-zinc-400 uppercase block mb-2 tracking-widest">Total</span>
-            <span className="text-sm font-mono font-bold text-zinc-900">{edition.totalHadiths || '---'}</span>
+      <CardContent className="flex-1">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-3 bg-muted/50 rounded-lg text-center border">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase block mb-1">Total</span>
+            <span className="text-xs font-mono font-bold">{edition.totalHadiths || '---'}</span>
           </div>
-          <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 text-center shadow-inner group-hover:bg-white transition-colors">
-            <span className="text-[9px] font-black text-zinc-400 uppercase block mb-2 tracking-widest">Synced</span>
-            <span className="text-sm font-mono font-bold text-emerald-600">{syncedCount ?? '...'}</span>
+          <div className="p-3 bg-muted/50 rounded-lg text-center border">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase block mb-1">Synced</span>
+            <span className="text-xs font-mono font-bold text-primary">{syncedCount ?? '...'}</span>
           </div>
         </div>
       </CardContent>
 
-      <CardFooter className="p-8 bg-zinc-50/30 border-t border-zinc-100 flex items-center justify-between gap-4" onClick={(e) => e.stopPropagation()}>
+      <CardFooter className="pt-0 pb-4 gap-2" onClick={(e) => e.stopPropagation()}>
         <Button 
           variant="outline" 
-          className="flex-1 rounded-xl font-bold h-12 border-zinc-200 bg-white text-zinc-600 hover:text-zinc-900 hover:border-zinc-900 transition-all flex items-center justify-center gap-3 shadow-sm"
+          size="sm"
+          className="flex-1 h-8 text-[10px] font-bold uppercase tracking-widest"
           onClick={() => onSyncIndex(edition)}
         >
-          <ListTree className="w-4 h-4" />
-          <span className="text-[10px] uppercase tracking-widest">{isSynced ? 'Resync' : 'Sync Index'}</span>
+          <ListTree className="w-3 h-3 mr-2" />
+          Sync
         </Button>
         {isSynced && (
-          <Button variant="ghost" size="icon" onClick={() => onSelect(edition.id)} className="rounded-xl h-12 w-12 border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 transition-all shadow-sm group/btn">
-            <ChevronRight className="w-6 h-6 group-hover/btn:translate-x-1 transition-transform" />
+          <Button variant="outline" size="icon" onClick={() => onSelect(edition.id)} className="h-8 w-8">
+            <ChevronRight className="w-4 h-4" />
           </Button>
         )}
       </CardFooter>
@@ -455,7 +437,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
       if (updatesCount > 0) { 
         await batch.commit(); 
-        toast({ title: "Section Ingested", description: `Updated ${updatesCount} records.` }); 
+        toast({ title: "Section Sync complete", description: `${updatesCount} nodes updated.` }); 
       } else { 
         toast({ title: "Section Up to Date" }); 
       }
@@ -474,82 +456,78 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   };
 
   return (
-    <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+    <div className="space-y-6">
       <Dialog open={syncState.isSyncing}>
-        <DialogContent className="bg-white border-zinc-200 rounded-[3rem] p-16 outline-none shadow-2xl max-w-xl">
-          <div className="flex flex-col items-center text-center space-y-8">
-             <div className="w-24 h-24 bg-amber-50 rounded-[2.5rem] flex items-center justify-center border border-amber-100 shadow-inner">
-               <Zap className="w-12 h-12 text-amber-600 animate-pulse" />
+        <DialogContent className="max-w-md">
+          <div className="flex flex-col items-center text-center space-y-4 py-4">
+             <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center border animate-pulse">
+               <Zap className="w-6 h-6 text-primary" />
              </div>
-             <DialogTitle className="text-3xl font-headline font-bold text-zinc-900">Section Ingestion</DialogTitle>
-             <DialogDescription className="text-zinc-500 text-sm max-w-xs mx-auto">Ingesting Prophetic records for {syncState.targetSection}.</DialogDescription>
-             <div className="w-full space-y-4">
-               <div className="flex justify-between items-end"><span className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">{syncState.status}...</span><span className="text-3xl font-headline font-bold text-zinc-900 tabular-nums">{syncState.progress}%</span></div>
-               <div className="h-3 w-full bg-zinc-50 rounded-full overflow-hidden border border-zinc-100 p-0.5"><div className="h-full bg-amber-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_15px_rgba(245,158,11,0.3)]" style={{ width: `${syncState.progress}%` }} /></div>
+             <DialogHeader>
+               <DialogTitle>Section Ingestion</DialogTitle>
+               <DialogDescription>Ingesting records for {syncState.targetSection}.</DialogDescription>
+             </DialogHeader>
+             <div className="w-full space-y-2">
+               <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
+                 <span>{syncState.status}...</span>
+                 <span>{syncState.progress}%</span>
+               </div>
+               <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                 <div className="h-full bg-primary transition-all duration-500" style={{ width: `${syncState.progress}%` }} />
+               </div>
              </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-8 bg-white p-10 rounded-[3rem] border border-zinc-200 shadow-sm">
-        <div className="flex items-center gap-8">
-          <Button variant="outline" size="icon" onClick={onBack} className="rounded-2xl border-zinc-200 bg-white text-zinc-400 hover:text-zinc-900 h-14 w-14 flex items-center justify-center transition-all shadow-sm group">
-            <ArrowLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
-          </Button>
-          <div className="space-y-1">
-            <h2 className="text-3xl font-headline font-bold text-zinc-900 tracking-tight">{indexDoc?.name || 'Edition'} Analysis</h2>
-            <div className="flex items-center gap-3 text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">
-              <DatabaseIcon className="w-3.5 h-3.5" />
-              <span>Section Inventory Control</span>
-            </div>
-          </div>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <div className="space-y-0.5">
+          <h2 className="text-xl font-bold tracking-tight">{indexDoc?.name || 'Edition'} Analysis</h2>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Section Inventory</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sections.map((s) => (
-          <Card key={s.number} className="bg-white border-zinc-200 rounded-[3rem] overflow-hidden group hover:border-zinc-400 transition-all flex flex-col shadow-sm border-t-4 border-t-transparent hover:border-t-amber-500">
-            <CardHeader className="p-10 border-b border-zinc-50 bg-zinc-50/30 space-y-6">
-              <div className="flex items-start justify-between gap-6">
-                <CardTitle className="text-base font-bold text-zinc-900 group-hover:text-zinc-600 transition-colors leading-relaxed line-clamp-2 min-h-[3rem]">
-                  {s.name}
-                </CardTitle>
-                <div className="w-8 h-8 rounded-lg bg-white border border-zinc-100 flex items-center justify-center shadow-inner">
-                  <span className="text-[10px] font-black text-zinc-300">#{s.number}</span>
-                </div>
+          <Card key={s.number} className="flex flex-col group border shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between mb-4">
+                <CardTitle className="text-sm font-bold leading-tight line-clamp-2 min-h-[2.5rem]">{s.name}</CardTitle>
+                <Badge variant="outline" className="text-[10px] font-mono opacity-50 shrink-0">#{s.number}</Badge>
               </div>
-
-              <div className="flex items-center justify-between gap-4 pt-6 border-t border-zinc-100">
-                <Badge variant="outline" className={cn("border-none text-[9px] font-black uppercase tracking-[0.15em] shrink-0 px-4 py-1.5 rounded-full shadow-sm", s.isSynced ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
-                  {s.isSynced ? 'SYNCED' : 'PENDING'}
+              <div className="flex items-center justify-between pt-2 border-t">
+                <Badge variant={s.isSynced ? "default" : "secondary"} className="text-[8px] font-bold uppercase tracking-widest">
+                  {s.isSynced ? 'Synced' : 'Pending'}
                 </Badge>
-                
-                <div className="flex items-center gap-3 bg-white px-4 py-1.5 rounded-full border border-zinc-100 shadow-inner">
-                  <span className="text-[10px] font-mono font-bold text-zinc-900">{s.start_hadith_number}</span>
-                  <div className="w-2 h-[1px] bg-zinc-200" />
-                  <span className="text-[10px] font-mono font-bold text-zinc-400">{s.last_hadith_number}</span>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                  <span className="font-bold text-foreground">{s.start_hadith_number}</span>
+                  <span>-</span>
+                  <span className="font-bold text-foreground">{s.last_hadith_number}</span>
                 </div>
               </div>
             </CardHeader>
-            
-            <CardFooter className="p-8 bg-zinc-50/30 border-t border-zinc-100 flex items-center gap-4">
+            <CardFooter className="pt-0 pb-4 gap-2">
               <Button 
                 variant="outline" 
-                disabled={syncState.isSyncing}
+                size="sm"
+                className="flex-1 h-8 text-[10px] font-bold uppercase tracking-widest"
                 onClick={() => handleSyncSectionContent(s)}
-                className="flex-1 rounded-xl font-bold h-12 border-zinc-200 bg-white text-zinc-600 hover:text-amber-600 hover:border-amber-600 transition-all flex items-center justify-center gap-3 shadow-sm"
               >
-                <Zap className="w-4 h-4" />
-                <span className="text-[10px] uppercase tracking-widest">{s.isSynced ? 'Resync' : 'Sync'}</span>
+                <Zap className="w-3 h-3 mr-2" />
+                Resync
               </Button>
               {s.isSynced && (
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
+                  size="sm"
+                  className="flex-1 h-8 text-[10px] font-bold uppercase tracking-widest"
                   onClick={() => onViewSection(s.number)}
-                  className="flex-1 rounded-xl font-bold h-12 bg-zinc-100 text-zinc-900 hover:bg-zinc-900 hover:text-white transition-all flex items-center justify-center gap-3 shadow-sm"
                 >
-                  <Eye className="w-4 h-4" />
-                  <span className="text-[10px] uppercase tracking-widest">View</span>
+                  <Eye className="w-3 h-3 mr-2" />
+                  View
                 </Button>
               )}
             </CardFooter>
@@ -597,58 +575,48 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   };
 
   return (
-    <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
-      <div className="flex flex-col md:flex-row items-center justify-between bg-white p-10 rounded-[3rem] border border-zinc-200 shadow-sm gap-8">
-        <div className="flex items-center gap-8">
-          <Button variant="outline" size="icon" onClick={onBack} className="rounded-2xl border-zinc-200 bg-white text-zinc-400 hover:text-zinc-900 h-14 w-14 flex items-center justify-center transition-all shadow-sm group">
-            <ArrowLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+            <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="space-y-1">
-            <h2 className="text-3xl font-headline font-bold text-zinc-900 tracking-tight">Section {sectionNumber} Explorer</h2>
-            <div className="flex items-center gap-3 text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">
-              <TableIcon className="w-3.5 h-3.5" />
-              <span>Granular Record Auditor</span>
-            </div>
+          <div className="space-y-0.5">
+            <h2 className="text-xl font-bold tracking-tight">Section {sectionNumber} Explorer</h2>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Granular Audit</p>
           </div>
         </div>
-        <Badge variant="outline" className="h-12 px-8 rounded-2xl border-zinc-200 bg-zinc-50 text-zinc-500 font-bold shadow-inner uppercase tracking-widest text-[10px]">
+        <Badge variant="secondary" className="px-4 py-1 font-mono text-[10px]">
           {sortedRecords?.length || 0} Records Loaded
         </Badge>
       </div>
 
-      <Card className="bg-white border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
-        <Table className="w-full">
-          <TableHeader className="bg-zinc-50/50">
-            <TableRow className="border-zinc-100 h-24">
-              <TableHead className="pl-12 text-[10px] font-black uppercase text-zinc-400 w-40 tracking-[0.2em]">Index ID</TableHead>
-              <TableHead className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">Narrative Content</TableHead>
-              <TableHead className="text-[10px] font-black uppercase text-zinc-400 text-right pr-12 tracking-[0.2em]">Management</TableHead>
+      <Card className="overflow-hidden border shadow-sm">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead className="w-24 text-[10px] font-bold uppercase tracking-widest pl-6">ID</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest">Content Narrative</TableHead>
+              <TableHead className="w-32 text-right text-[10px] font-bold uppercase tracking-widest pr-6">Manage</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={3} className="h-96 text-center"><div className="flex flex-col items-center gap-4"><Loader2 className="w-10 h-10 animate-spin text-zinc-200" /><p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em]">Indexing viewport...</p></div></TableCell></TableRow>
+              <TableRow><TableCell colSpan={3} className="h-64 text-center text-muted-foreground text-xs uppercase font-bold tracking-widest">Indexing Viewport...</TableCell></TableRow>
             ) : sortedRecords?.map((r) => (
-              <TableRow key={r.id} className="border-zinc-100 h-40 hover:bg-zinc-50/50 transition-colors">
-                <TableCell className="pl-12">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-zinc-50 rounded-lg flex items-center justify-center border border-zinc-100 shadow-inner">
-                      <Hash className="w-3.5 h-3.5 text-zinc-200" />
-                    </div>
-                    <span className="text-xs font-mono font-bold text-zinc-900">{r.hadithnumber}</span>
-                  </div>
+              <TableRow key={r.id} className="h-24 hover:bg-muted/30 transition-colors">
+                <TableCell className="pl-6">
+                  <Badge variant="outline" className="font-mono text-[10px]">#{r.hadithnumber}</Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="max-w-5xl py-8">
-                    <p className="text-sm text-zinc-600 line-clamp-4 leading-relaxed font-medium">
-                      {r.text || 'No textual content detected.'}
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed font-medium max-w-2xl py-4">
+                    {r.text || '---'}
+                  </p>
                 </TableCell>
-                <TableCell className="text-right pr-12">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-12 px-8 text-zinc-400 hover:text-zinc-900 transition-all border border-transparent hover:bg-white hover:border-zinc-200 hover:shadow-sm rounded-xl">
-                    <Pencil className="w-4 h-4 mr-3" />
-                    <span className="font-bold text-[10px] uppercase tracking-[0.2em]">Edit</span>
+                <TableCell className="text-right pr-6">
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-8 gap-2 px-4 hover:bg-background border border-transparent hover:border-border">
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Edit</span>
                   </Button>
                 </TableCell>
               </TableRow>
@@ -658,43 +626,37 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-5xl bg-white border-zinc-200 text-zinc-900 rounded-[3rem] p-0 outline-none overflow-hidden shadow-2xl flex flex-col h-[85vh]">
-          <DialogHeader className="p-10 border-b border-zinc-100 bg-zinc-50 shrink-0">
-            <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-4">
-              <div className="w-10 h-10 bg-white border border-zinc-100 rounded-xl flex items-center justify-center shadow-sm">
-                <Pencil className="w-5 h-5 text-zinc-400" />
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 border-b bg-muted/30 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-background border rounded-lg">
+                <Pencil className="w-4 h-4 text-primary" />
               </div>
-              Edit Prophetic Record
-            </DialogTitle>
-            <DialogDescription className="text-zinc-500 text-sm mt-2">Refine textual content or correct translation errors.</DialogDescription>
+              <div>
+                <DialogTitle>Edit Prophetic Record</DialogTitle>
+                <DialogDescription>Refine textual content or correct translation errors.</DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           
-          <div className="p-10 space-y-10 overflow-y-auto flex-1 bg-white">
-            <div className="space-y-6 h-full flex flex-col">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-zinc-50 rounded-lg flex items-center justify-center border border-zinc-100 shadow-inner">
-                  <Type className="w-4 h-4 text-zinc-400" />
-                </div>
-                <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">Narrative Text</Label>
-              </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="grid gap-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Narrative Text</Label>
               <Textarea 
-                className="bg-zinc-50 border-zinc-200 flex-1 min-h-[500px] text-lg text-zinc-900 rounded-[2rem] leading-[1.8] p-10 focus:ring-zinc-900 focus:bg-white transition-all shadow-inner border-dashed border-2"
+                className="min-h-[500px] text-base leading-relaxed font-medium p-6 resize-none focus-visible:ring-primary"
                 value={editingRecord?.text || ''}
                 onChange={(e) => setEditingRecord({ ...editingRecord, text: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="p-10 bg-zinc-50 border-t border-zinc-100 shrink-0 flex justify-end gap-4">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl h-14 px-8 font-bold text-zinc-400 hover:text-zinc-900">Cancel</Button>
-            <Button 
-              className="rounded-2xl h-14 px-12 font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
-              onClick={handleSaveEdit}
-            >
-              <Save className="w-5 h-5" />
-              <span className="text-sm uppercase tracking-widest">Save Changes</span>
+          <DialogFooter className="p-6 border-t bg-muted/30 shrink-0">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button className="px-8" onClick={handleSaveEdit}>
+              <Save className="w-4 h-4 mr-2" />
+              Save Changes
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

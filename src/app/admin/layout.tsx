@@ -18,7 +18,8 @@ import {
   Settings,
   ExternalLink,
   ScrollText,
-  UserPlus
+  UserPlus,
+  PanelLeft
 } from 'lucide-react';
 import { 
   Sidebar, 
@@ -33,7 +34,8 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-  SidebarTrigger
+  SidebarTrigger,
+  useSidebar
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/firebase';
@@ -42,6 +44,41 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
+
+function SiteHeader() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useUser();
+
+  return (
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur px-4 sticky top-0 z-30">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
+      <div className="flex flex-1 items-center justify-between">
+        <div className="flex flex-col">
+          <h2 className="text-sm font-semibold capitalize tracking-tight">
+            {pathname === '/admin' ? 'Dashboard' : pathname?.split('/').pop()?.replace('-', ' ')}
+          </h2>
+        </div>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.push('/')}
+            className="hidden md:flex h-8 gap-2"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            View Site
+          </Button>
+          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center border">
+            <span className="text-[10px] font-bold text-muted-foreground">{user?.email?.charAt(0).toUpperCase()}</span>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -67,7 +104,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleBootstrapAdmin = async () => {
     if (!user?.uid || !isTargetAdminEmail) return;
-    
     setIsBootstrapping(true);
     try {
       await setDoc(doc(db, 'roles_admin', user.uid), {
@@ -75,7 +111,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         assignedAt: new Date().toISOString(),
         role: 'super-admin'
       });
-      toast({ title: "Admin Status Initialized", description: "Your studio permissions have been verified." });
+      toast({ title: "Admin Status Initialized" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Bootstrap Failed", description: e.message });
     } finally {
@@ -83,61 +119,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  const copyUid = () => {
-    if (user?.uid) {
-      navigator.clipboard.writeText(user.uid);
-      setCopied(true);
-      toast({ title: "UID Copied" });
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   if (isUserLoading || isAdminLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen space-y-4 bg-zinc-50">
-        <Loader2 className="w-12 h-12 animate-spin text-zinc-300" />
-        <p className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em]">Verifying Access...</p>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!user || !isVerifiedAdmin) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-[2.5rem] shadow-xl border border-zinc-200 text-center space-y-8">
-          <div className="space-y-4">
-            <div className="w-20 h-20 bg-zinc-50 border border-zinc-100 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
-              <ShieldAlert className="w-10 h-10 text-zinc-300" />
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card p-8 rounded-xl border shadow-lg text-center space-y-6">
+          <div className="space-y-2">
+            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
+              <ShieldAlert className="w-6 h-6 text-muted-foreground" />
             </div>
-            <h1 className="text-3xl font-headline font-bold text-zinc-900">Studio Restricted</h1>
-            <p className="text-zinc-500 text-sm px-4">Authorized access only. Please sign in with an administrator account.</p>
+            <h1 className="text-xl font-bold">Studio Restricted</h1>
+            <p className="text-muted-foreground text-sm">Authorized access only. Please sign in with an administrator account.</p>
           </div>
 
-          <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200 shadow-inner flex flex-col gap-4">
-             <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-zinc-200">
-               <code className="text-[10px] font-mono truncate text-zinc-400">{user?.uid || 'NOT_LOGGED_IN'}</code>
-               <Button variant="ghost" size="sm" onClick={copyUid} className="h-8 w-8 p-0 text-zinc-300 hover:text-zinc-900">
-                {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              </Button>
-             </div>
-             
-             {isTargetAdminEmail && !isVerifiedAdmin && (
-               <Button 
-                 className="w-full h-12 bg-zinc-900 text-white hover:bg-zinc-800 font-bold rounded-xl shadow-lg"
-                 onClick={handleBootstrapAdmin}
-                 disabled={isBootstrapping}
-               >
-                 {isBootstrapping ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
-                 Initialize Admin Status
-               </Button>
-             )}
-          </div>
+          {isTargetAdminEmail && !isVerifiedAdmin && (
+            <Button className="w-full" onClick={handleBootstrapAdmin} disabled={isBootstrapping}>
+              {isBootstrapping ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
+              Initialize Admin Status
+            </Button>
+          )}
 
-          <div className="flex flex-col gap-3">
-            <Button variant="outline" onClick={handleSignOut} className="w-full rounded-xl h-12 font-bold border-zinc-200 text-zinc-600">Sign Out</Button>
-            <Link href="/">
-              <Button variant="link" className="text-zinc-400 text-[10px] font-black uppercase tracking-widest text-zinc-900">Return to Public Site</Button>
-            </Link>
+          <div className="flex flex-col gap-2 pt-4">
+            <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
+            <Link href="/" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4">Return to Public Site</Link>
           </div>
         </div>
       </div>
@@ -146,99 +157,66 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin/channels', label: 'Channel Hub', icon: Youtube },
-    { href: '/admin/videos', label: 'Video Catalog', icon: VideoIcon },
+    { href: '/admin/channels', label: 'Channels', icon: Youtube },
+    { href: '/admin/videos', label: 'Videos', icon: VideoIcon },
     { href: '/admin/scholars', label: 'Scholars', icon: Mic2 },
     { href: '/admin/hadith', label: 'Hadith Hub', icon: ScrollText },
     { href: '/admin/quran', label: 'Quran Tools', icon: Book },
-    { href: '/admin/settings', label: 'App Settings', icon: Settings },
+    { href: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-zinc-50 text-zinc-900">
-        <Sidebar className="border-r border-zinc-800 bg-zinc-950">
-          <SidebarHeader className="p-8">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl">
-                <ShieldCheck className="text-zinc-950 w-6 h-6" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-headline font-bold text-xl text-white leading-none">Studio</span>
-                <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mt-1.5">v1.2.0</span>
-              </div>
+    <SidebarProvider
+      style={{
+        "--sidebar-width": "240px",
+      } as React.CSSProperties}
+    >
+      <Sidebar variant="inset" className="border-r">
+        <SidebarHeader className="h-14 flex items-center border-b px-4">
+          <Link href="/admin" className="flex items-center gap-2 font-bold">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground">
+              <ShieldCheck className="h-4 w-4" />
             </div>
-          </SidebarHeader>
-          <SidebarContent className="px-4">
-            <SidebarGroup>
-              <SidebarGroupLabel className="px-4 text-[9px] font-black text-zinc-600 uppercase mb-4 tracking-[0.2em]">Management Hub</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu className="gap-1.5">
-                  {navItems.map((item) => {
-                    const isActive = pathname === item.href || (item.href !== '/admin' && pathname?.startsWith(item.href));
-                    return (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton 
-                          asChild
-                          isActive={isActive}
-                          className={cn(
-                            "w-full h-12 px-4 transition-all rounded-xl", 
-                            isActive 
-                              ? "bg-white text-zinc-950 font-bold shadow-lg" 
-                              : "text-zinc-400 hover:bg-white/5 hover:text-white"
-                          )}
-                        >
-                          <Link href={item.href}>
-                            <item.icon className={cn("w-4 h-4", isActive ? "text-zinc-950" : "text-zinc-500")} />
-                            <span className="text-xs">{item.label}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-          <SidebarFooter className="p-8 border-t border-zinc-900">
-            <Button variant="ghost" className="w-full h-12 justify-start text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-3" /> 
-              <span className="font-bold text-xs uppercase tracking-widest">Sign Out</span>
-            </Button>
-          </SidebarFooter>
-        </Sidebar>
+            <span className="text-sm tracking-tight">VlogNest Studio</span>
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Management</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {navItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={pathname === item.href || (item.href !== '/admin' && pathname?.startsWith(item.href))}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter className="border-t p-4">
+          <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive" onClick={handleSignOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            <span>Sign Out</span>
+          </Button>
+        </SidebarFooter>
+      </Sidebar>
 
-        <SidebarInset className="flex-1 overflow-auto bg-zinc-50 p-0">
-          <header className="h-24 border-b border-zinc-200 flex items-center justify-between px-6 md:px-10 bg-white/80 sticky top-0 z-10 backdrop-blur-md">
-             <div className="flex items-center gap-6">
-               <SidebarTrigger className="md:hidden h-12 w-12 border border-zinc-200 rounded-xl bg-white shadow-sm" />
-               <div className="flex flex-col">
-                 <h2 className="font-headline font-bold text-2xl text-zinc-900 capitalize tracking-tight">
-                   {pathname === '/admin' ? 'Overview' : pathname?.split('/').pop()?.replace('-', ' ')}
-                 </h2>
-                 <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mt-0.5">Administrative Control</p>
-               </div>
-             </div>
-             <div className="flex items-center gap-4">
-               <Button 
-                 variant="outline" 
-                 onClick={() => router.push('/')}
-                 className="hidden md:flex border-zinc-200 text-zinc-600 hover:bg-zinc-900 hover:text-white font-bold rounded-xl h-12 px-8 shadow-sm transition-all items-center gap-2"
-               >
-                 <ExternalLink className="w-4 h-4" />
-                 View Site
-               </Button>
-               <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center shadow-inner">
-                 <span className="text-xs font-black text-zinc-400">{user.email?.charAt(0).toUpperCase()}</span>
-               </div>
-             </div>
-          </header>
-
-          <main className="p-6 md:p-10 pb-32 max-w-[1600px] mx-auto w-full">
-            {children}
-          </main>
-        </SidebarInset>
-      </div>
+      <SidebarInset>
+        <SiteHeader />
+        <main className="flex flex-1 flex-col gap-4 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+          {children}
+        </main>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
