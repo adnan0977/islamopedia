@@ -482,7 +482,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <Badge variant={s.isSynced ? "default" : "secondary"} className="text-[8px] font-black uppercase tracking-widest w-fit">
-                    {s.isSynced ? 'SYNCED' : 'PENDING'}
+                    {s.isSynced ? 'SYNCED' : 'SYNC'}
                   </Badge>
                   <div className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground">
                     <span className="font-bold text-foreground">{s.start_hadith_number}</span>
@@ -629,7 +629,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     <div className="flex flex-wrap gap-2">
                       {r.grades?.map((g: any, i: number) => (
                         <Badge key={i} variant="secondary" className="text-[9px] font-bold uppercase tracking-tight bg-zinc-100 border-zinc-200 whitespace-nowrap">
-                          <span className="text-zinc-400 mr-1">{g.name}:</span> {g.grade}
+                          <span className="text-zinc-400">{g.name}</span> : {g.grade}
                         </Badge>
                       )) || <span className="text-[10px] text-zinc-400">---</span>}
                     </div>
@@ -647,7 +647,10 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                         </div>
                       </div>
                     ) : (
-                      <span className="text-[10px] font-medium text-zinc-300 italic">No Reference</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-zinc-300 italic">No Map</span>
+                        <span className="text-[8px] font-mono text-zinc-400">Ref: {r.hadithnumber}</span>
+                      </div>
                     )}
                   </TableCell>
                   <TableCell className="text-right pr-6 sm:pr-8">
