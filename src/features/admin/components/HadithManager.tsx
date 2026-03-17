@@ -606,7 +606,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="h-16">
                 <TableHead className="w-20 text-[10px] font-black uppercase tracking-[0.2em] pl-6 sm:pl-8">Ref</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Section</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Hadith Content</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Scholarly Grades</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Reference</TableHead>
                 <TableHead className="w-24 text-right text-[10px] font-black uppercase tracking-[0.2em] pr-6 sm:pr-8">Actions</TableHead>
@@ -621,9 +621,9 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber || r.id?.split('_h_').pop()}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[11px] font-bold text-zinc-900 truncate block max-w-[200px]">
-                      {indexDoc?.sections?.[sectionNumber] || '---'}
-                    </span>
+                    <p className="text-[11px] text-zinc-600 line-clamp-2 leading-relaxed max-w-[400px]">
+                      {r.text || '---'}
+                    </p>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
