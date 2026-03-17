@@ -188,7 +188,7 @@ export function HadithManager() {
           {books?.map((book) => (
             <Card 
               key={book.id} 
-              className="cursor-pointer transition-colors hover:bg-muted/50 group border-border shadow-sm"
+              className="cursor-pointer transition-colors hover:bg-muted/50 group border-border shadow-sm rounded-[2rem]"
               onClick={() => router.push(`/admin/hadith?bookId=${book.id}`)}
             >
               <CardHeader className="pb-4">
@@ -325,7 +325,7 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
   return (
     <Card 
       className={cn(
-        "flex flex-col group transition-all border shadow-sm",
+        "flex flex-col group transition-all border shadow-sm rounded-[2rem]",
         isSynced ? "cursor-pointer hover:border-primary/50" : "opacity-90"
       )}
       onClick={() => isSynced && onSelect(edition.id)}
@@ -360,14 +360,14 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
         <Button 
           variant="outline" 
           size="sm"
-          className="flex-1 h-10 text-[10px] font-bold uppercase tracking-widest"
+          className="flex-1 h-10 text-[10px] font-bold uppercase tracking-widest rounded-xl"
           onClick={() => onSyncIndex(edition)}
         >
           <ListTree className="w-3.5 h-3.5 mr-2" />
           {isSynced ? 'Resync' : 'Sync'}
         </Button>
         {isSynced && (
-          <Button variant="outline" size="icon" onClick={() => onSelect(edition.id)} className="h-10 w-10 shrink-0">
+          <Button variant="outline" size="icon" onClick={() => onSelect(edition.id)} className="h-10 w-10 shrink-0 rounded-xl">
             <ChevronRight className="w-4 h-4" />
           </Button>
         )}
@@ -494,7 +494,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sections.map((s) => (
-          <Card key={s.number} className="flex flex-col group border shadow-sm overflow-hidden">
+          <Card key={s.number} className="flex flex-col group border shadow-sm overflow-hidden rounded-[2rem]">
             <CardHeader className="p-6 pb-4 space-y-4">
               <div className="flex items-start justify-between">
                 <CardTitle className="text-sm font-bold leading-tight line-clamp-2 min-h-[2.5rem] flex-1 pr-4">{s.name}</CardTitle>
@@ -517,7 +517,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex-1 h-10 text-[10px] font-bold uppercase tracking-widest"
+                className="flex-1 h-10 text-[10px] font-bold uppercase tracking-widest rounded-xl"
                 onClick={() => handleSyncSectionContent(s)}
               >
                 <Zap className="w-3.5 h-3.5 mr-2" />
@@ -527,7 +527,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="flex-1 h-10 text-[10px] font-bold uppercase tracking-widest"
+                  className="flex-1 h-10 text-[10px] font-bold uppercase tracking-widest rounded-xl"
                   onClick={() => onViewSection(s.number)}
                 >
                   <Eye className="w-3.5 h-3.5 mr-2" />
@@ -591,16 +591,18 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="space-y-0.5 min-w-0">
-            <h2 className="text-xl font-bold tracking-tight truncate">Section {sectionNumber} Explorer</h2>
+            <h2 className="text-xl font-bold tracking-tight truncate">
+              {indexDoc?.sections?.[sectionNumber] || `Section ${sectionNumber} Explorer`}
+            </h2>
             <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Granular Audit</p>
           </div>
         </div>
-        <Badge variant="secondary" className="px-4 py-1 font-mono text-[10px] w-full sm:w-auto text-center">
+        <Badge variant="secondary" className="px-4 py-1 font-mono text-[10px] w-full sm:w-auto text-center rounded-xl">
           {sortedRecords?.length || 0} Records Loaded
         </Badge>
       </div>
 
-      <Card className="overflow-hidden border shadow-sm bg-white">
+      <Card className="overflow-hidden border shadow-sm bg-white rounded-[2rem]">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-zinc-50/50">
@@ -714,7 +716,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <div className="grid gap-4">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Narrative Content</Label>
               <Textarea 
-                className="min-h-[300px] sm:min-h-[400px] text-sm sm:text-base leading-relaxed font-medium p-6 sm:p-8 bg-zinc-50 border-zinc-200 rounded-xl sm:rounded-[2rem] resize-none focus-visible:ring-zinc-900 shadow-inner"
+                className="min-h-[500px] text-sm sm:text-base leading-relaxed font-medium p-6 sm:p-8 bg-zinc-50 border-zinc-200 rounded-xl sm:rounded-[2rem] resize-none focus-visible:ring-zinc-900 shadow-inner"
                 value={editingRecord?.text || ''}
                 onChange={(e) => setEditingRecord({ ...editingRecord, text: e.target.value })}
               />
