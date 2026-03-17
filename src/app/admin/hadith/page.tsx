@@ -37,6 +37,7 @@ function HadithAdminContent() {
   if (bookId && editionId && sectionNumber) {
     return (
       <HadithSectionRecordsView 
+        bookId={bookId}
         editionId={editionId}
         sectionNumber={sectionNumber}
         onBack={() => navigateTo({ section: null })}
