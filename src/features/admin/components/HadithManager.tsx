@@ -526,30 +526,35 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {sections.map((s) => (
             <Card key={s.number} className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl border-t border-white/5">
-              <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 shadow-inner">
-                    <span className="text-xs font-black text-zinc-500">#{s.number}</span>
-                  </div>
-                  <Badge variant="outline" className={cn("border-zinc-800 text-[8px] font-black uppercase tracking-widest", s.isSynced ? "text-emerald-500" : "text-zinc-600")}>
+              <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20 space-y-4">
+                {/* 1st Line: Section Name */}
+                <div className="flex items-start justify-between gap-4">
+                  <CardTitle className="text-sm font-bold text-zinc-100 group-hover:text-white transition-colors leading-relaxed line-clamp-2 min-h-[2.5rem]">
+                    {s.name}
+                  </CardTitle>
+                  <span className="text-[10px] font-black text-zinc-700 mt-1 shrink-0">#{s.number}</span>
+                </div>
+
+                {/* 2nd Line: Status and Range */}
+                <div className="flex items-center justify-between gap-4 pt-2 border-t border-zinc-900/50">
+                  <Badge variant="outline" className={cn("border-zinc-800 text-[8px] font-black uppercase tracking-widest shrink-0", s.isSynced ? "text-emerald-500" : "text-zinc-600")}>
                     {s.isSynced ? 'SYNCED' : 'PENDING'}
                   </Badge>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-end">
+                      <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Hadith Range</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold text-emerald-500">{s.start_hadith_number}</span>
+                        <div className="w-1.5 h-[1px] bg-zinc-800" />
+                        <span className="text-[10px] font-mono font-bold text-zinc-400">{s.last_hadith_number}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <CardTitle className="text-sm font-bold text-zinc-100 group-hover:text-white transition-colors leading-relaxed line-clamp-2 min-h-[2.5rem]">{s.name}</CardTitle>
               </CardHeader>
               
-              <CardContent className="p-8 flex-1 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900 text-center">
-                    <span className="text-[8px] font-black text-zinc-600 uppercase block mb-1 tracking-widest">Start</span>
-                    <span className="text-xs font-mono font-bold text-emerald-500">{s.start_hadith_number}</span>
-                  </div>
-                  <div className="p-4 bg-zinc-900/30 rounded-2xl border border-zinc-900 text-center">
-                    <span className="text-[8px] font-black text-zinc-600 uppercase block mb-1 tracking-widest">End</span>
-                    <span className="text-xs font-mono font-bold text-zinc-400">{s.last_hadith_number}</span>
-                  </div>
-                </div>
-              </CardContent>
+              <CardContent className="p-0 flex-1" />
 
               <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex flex-col gap-3">
                 <Button 
