@@ -250,7 +250,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
             bookSlug: bookId,
             editionId: edition.name,
             chapterNumber: num,
-            chapterName: name,
+            chapterName: name as string,
             updatedAt: new Date().toISOString()
           }, { merge: true });
         });
@@ -400,7 +400,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
                   className="flex-1 rounded-xl font-bold h-12 border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all flex items-center justify-center gap-2"
                   onClick={() => handleDeepSyncContent(ed)}
                 >
-                  <Database Zap className="w-4 h-4" />
+                  <DatabaseZap className="w-4 h-4" />
                   {isSynced ? 'Resync' : 'Ingest Content'}
                 </Button>
                 {isSynced && (
