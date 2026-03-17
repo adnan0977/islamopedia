@@ -95,20 +95,41 @@ export function HadithManager() {
       const registry = await fetchHadithRegistry();
       const batch = writeBatch(db);
       
+      let seededEditionsCount = 0;
+
       ALLOWED_SLUGS.forEach(slug => {
         if (registry[slug]) {
+          const bookData = registry[slug];
+          
+          // 1. Update Master Book record
           const bookRef = doc(db, 'hadith_books', slug);
           batch.set(bookRef, {
             id: slug,
-            bookName: registry[slug].name,
-            editionCount: registry[slug].collection.length,
+            bookName: bookData.name,
+            editionCount: bookData.collection.length,
             lastSyncedAt: new Date().toISOString()
           }, { merge: true });
+
+          // 2. Simultaneously update all Editions for this book
+          bookData.collection.forEach((ed) => {
+            const editionRef = doc(db, 'hadith_editions', ed.name);
+            batch.set(editionRef, {
+              ...ed,
+              id: ed.name,
+              bookId: slug,
+              // Preserving sync status if it already existed
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+            seededEditionsCount++;
+          });
         }
       });
 
       await batch.commit();
-      toast({ title: "Registry Seeded", description: "Primary collections have been updated." });
+      toast({ 
+        title: "Registry Fully Synchronized", 
+        description: `Successfully indexed 10 books and ${seededEditionsCount} language editions.` 
+      });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Seeding Failed", description: e.message });
     } finally {
@@ -699,7 +720,7 @@ export function HadithSectionRecordsView({ editionId, sectionNumber, onBack }: {
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-3xl bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-          <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
+          <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Pencil className="w-5 h-5 text-zinc-500" />
               Edit Prophetic Record
@@ -735,7 +756,7 @@ export function HadithSectionRecordsView({ editionId, sectionNumber, onBack }: {
             </div>
           </div>
 
-          <div className="p-8 bg-zinc-900/20 border-t border-zinc-900 flex justify-end gap-3">
+          <div className="p-8 bg-zinc-900/20 border-t border-zinc-900 shrink-0 flex justify-end gap-3">
             <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold text-zinc-500">Cancel</Button>
             <Button 
               variant="outline" 
