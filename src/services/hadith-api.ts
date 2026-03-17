@@ -2,94 +2,43 @@
 'use server';
 
 /**
- * @fileOverview Service for interacting with HadithAPI.com
+ * @fileOverview Service for interacting with fawazahmed0 Hadith API
  */
 
-const API_KEY = '$2y$10$zBKMN41uis6ihOJnGbQGqOMvAugri3bY191hZlhdFtsfPjiCYO';
-const BASE_URL = 'https://hadithapi.com/public/api';
+const REGISTRY_URL = 'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions.min.json';
 
-export interface HadithApiBook {
-  id: number;
-  bookName: string;
-  bookSlug: string;
-  writerName: string;
-  writerDeath: string;
-  hadiths_count: string;
-  chapters_count: string;
+export interface FawazEdition {
+  name: string;
+  book: string;
+  author: string;
+  language: string;
+  has_sections: boolean;
+  direction: 'ltr' | 'rtl';
+  source: string;
+  comments: string;
+  link: string;
+  linkmin: string;
 }
 
-export interface HadithApiChapter {
-  id: number;
-  chapterNumber: string;
-  chapterArabic: string;
-  chapterEnglish: string;
-  chapterUrdu: string;
-  bookSlug: string;
-}
-
-export interface HadithApiRecord {
-  id: number;
-  hadithNumber: string;
-  englishTerjuma: string;
-  urduTerjuma: string;
-  arabicIndex: string;
-  hadithArabic: string;
-  hadithUrdu: string;
-  hadithEnglish: string;
-  chapterId: string;
-  bookSlug: string;
-  chapterName: string;
-  status?: string;
-}
-
-export async function fetchHadithBooks(): Promise<HadithApiBook[]> {
+export async function fetchHadithRegistry(): Promise<FawazEdition[]> {
   try {
-    const response = await fetch(`${BASE_URL}/books?apiKey=${API_KEY}`);
-    const data = await response.json();
-    
-    if (data.status !== 200) {
-      throw new Error(data.message || 'Failed to fetch books from HadithAPI');
-    }
-    
-    return data.books || [];
+    const res = await fetch(REGISTRY_URL);
+    if (!res.ok) throw new Error('Failed to fetch Hadith registry');
+    const data = await res.json();
+    return data.editions || [];
   } catch (error: any) {
-    console.error('HadithAPI Error:', error);
-    throw new Error(error.message || 'Network error fetching Hadith books');
+    console.error('Hadith Registry Error:', error);
+    throw new Error(error.message || 'Network error fetching registry');
   }
 }
 
-export async function fetchHadithChapters(bookSlug: string): Promise<HadithApiChapter[]> {
+export async function fetchHadithEditionContent(linkmin: string): Promise<any> {
   try {
-    const response = await fetch(`${BASE_URL}/${bookSlug}/chapters?apiKey=${API_KEY}`);
-    const data = await response.json();
-    
-    if (data.status !== 200) {
-      throw new Error(data.message || `Failed to fetch chapters for ${bookSlug}`);
-    }
-    
-    return data.chapters || [];
+    const res = await fetch(linkmin);
+    if (!res.ok) throw new Error('Failed to fetch edition content');
+    return res.json();
   } catch (error: any) {
-    console.error('HadithAPI Chapters Error:', error);
-    throw new Error(error.message || 'Network error fetching chapters');
-  }
-}
-
-export async function fetchHadiths(bookSlug: string, page: number = 1): Promise<{ data: HadithApiRecord[], lastPage: number }> {
-  try {
-    // Using the public API endpoint as requested
-    const response = await fetch(`${BASE_URL}/hadiths?apiKey=${API_KEY}&book=${bookSlug}&paginate=100&page=${page}`);
-    const data = await response.json();
-    
-    if (data.status !== 200) {
-      throw new Error(data.message || 'Failed to fetch Hadiths');
-    }
-    
-    return {
-      data: data.hadiths?.data || [],
-      lastPage: data.hadiths?.last_page || 1
-    };
-  } catch (error: any) {
-    console.error('HadithAPI Data Error:', error);
-    throw new Error(error.message || 'Network error fetching Hadith records');
+    console.error('Hadith Content Error:', error);
+    throw new Error(error.message || 'Network error fetching content');
   }
 }

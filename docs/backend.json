@@ -29,82 +29,45 @@
     },
     "HadithBook": {
       "title": "Hadith Book",
-      "description": "A primary collection of Hadith from HadithAPI.",
+      "description": "A primary collection of Hadith (e.g. Sahih Bukhari).",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "bookName": { "type": "string" },
-        "bookSlug": { "type": "string" },
-        "writerName": { "type": "string" },
-        "writerDeath": { "type": "string" },
-        "hadiths_count": { "type": "string" },
-        "chapters_count": { "type": "string" },
-        "isActive": { "type": "boolean" },
+        "editionCount": { "type": "number" },
         "lastSyncedAt": { "type": "string" }
       }
-    },
-    "HadithSlug": {
-      "title": "Hadith Slug",
-      "description": "A mapping of Book Name to its official URL/API slug.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "bookName": { "type": "string" },
-        "slug": { "type": "string" }
-      },
-      "required": ["bookName", "slug"]
     },
     "HadithEdition": {
       "title": "Hadith Edition",
-      "description": "A specific language version of a Hadith book.",
+      "description": "A specific language version of a Hadith book from the API registry.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "bookId": { "type": "string" },
+        "name": { "type": "string" },
+        "author": { "type": "string" },
         "language": { "type": "string" },
-        "editionName": { "type": "string" },
-        "sourceLinkMin": { "type": "string" },
-        "isActive": { "type": "boolean" },
-        "lastSyncedAt": { "type": "string" }
-      },
-      "required": ["bookId", "language"]
-    },
-    "HadithMetadata": {
-      "title": "Hadith Metadata",
-      "description": "Structural metadata for a Hadith edition (chapters, sections).",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "editionId": { "type": "string" },
-        "bookId": { "type": "string" },
-        "metadata": { "type": "object" }
+        "has_sections": { "type": "boolean" },
+        "direction": { "type": "string" },
+        "source": { "type": "string" },
+        "comments": { "type": "string" },
+        "link": { "type": "string" },
+        "linkmin": { "type": "string" },
+        "dataSync": { "type": "string", "enum": ["yes", "no"] }
       }
     },
-    "HadithIndex": {
-      "title": "Hadith Index",
-      "description": "Chapter definitions for a Hadith book.",
+    "HadithReference": {
+      "title": "Hadith Reference",
+      "description": "Mapping of internal API references to maintain uniqueness.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "bookSlug": { "type": "string" },
-        "chapterNumber": { "type": "string" },
-        "chapterArabic": { "type": "string" },
-        "chapterEnglish": { "type": "string" },
-        "chapterUrdu": { "type": "string" }
-      }
-    },
-    "HadithContent": {
-      "title": "Hadith Content",
-      "description": "Individual Hadith records.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "editionId": { "type": "string" },
+        "hadithId": { "type": "string" },
         "bookId": { "type": "string" },
-        "hadithNumber": { "type": "string" },
-        "arabicText": { "type": "string" },
-        "translatedText": { "type": "string" },
-        "chapterName": { "type": "string" }
+        "editionId": { "type": "string" },
+        "refBook": { "type": "number" },
+        "refHadith": { "type": "number" }
       }
     }
   },
@@ -123,9 +86,25 @@
       "schema": "Language",
       "description": "Platform language ISO mappings."
     },
-    "/channels/{channelId}": {
+    "/hadith_books/{bookId}": {
+      "schema": "HadithBook",
+      "description": "Primary Hadith collections."
+    },
+    "/hadith_editions/{editionId}": {
+      "schema": "HadithEdition",
+      "description": "Language-specific editions."
+    },
+    "/hadith_data/{contentId}": {
       "schema": "object",
-      "description": "Linked YouTube channels."
+      "description": "Individual Hadith records."
+    },
+    "/hadith_index/{indexId}": {
+      "schema": "object",
+      "description": "Chapter definitions for a Hadith book."
+    },
+    "/hadith_reference/{refId}": {
+      "schema": "HadithReference",
+      "description": "Unique mapping of Prophetic references."
     },
     "/roles_admin/{userId}": {
       "schema": "object",
@@ -134,46 +113,6 @@
     "/settings/{settingId}": {
       "schema": "object",
       "description": "Global config."
-    },
-    "/speakers/{speakerId}": {
-      "schema": "object",
-      "description": "Scholars and speakers."
-    },
-    "/quran/{surahId}": {
-      "schema": "object",
-      "description": "Quranic text."
-    },
-    "/quran_editions/{editionId}": {
-      "schema": "object",
-      "description": "Quran metadata."
-    },
-    "/quran_metadata/{metaId}": {
-      "schema": "object",
-      "description": "Structural Quran data."
-    },
-    "/hadith_books/{bookId}": {
-      "schema": "HadithBook",
-      "description": "Registry of primary Hadith collections."
-    },
-    "/hadith_slug/{slugId}": {
-      "schema": "HadithSlug",
-      "description": "Official slug mapping for Hadith collections."
-    },
-    "/hadith_editions/{editionId}": {
-      "schema": "HadithEdition",
-      "description": "Language-specific editions of Hadith books."
-    },
-    "/hadith_metadata/{metaId}": {
-      "schema": "HadithMetadata",
-      "description": "Edition-specific metadata (chapters/sections)."
-    },
-    "/hadith_index/{indexId}": {
-      "schema": "HadithIndex",
-      "description": "Chapter index for Hadith books."
-    },
-    "/hadith_data/{contentId}": {
-      "schema": "HadithContent",
-      "description": "Individual Hadith records."
     }
   }
 }
