@@ -54,7 +54,8 @@
         "comments": { "type": "string" },
         "link": { "type": "string" },
         "linkmin": { "type": "string" },
-        "dataSync": { "type": "string", "enum": ["yes", "no"] }
+        "dataSync": { "type": "string", "enum": ["yes", "no"] },
+        "indexSynced": { "type": "string", "enum": ["yes", "no"] }
       }
     },
     "HadithReference": {
@@ -68,6 +69,21 @@
         "editionId": { "type": "string" },
         "refBook": { "type": "number" },
         "refHadith": { "type": "number" }
+      }
+    },
+    "HadithIndex": {
+      "title": "Hadith Index",
+      "description": "Chapter structure for a specific edition.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "editionId": { "type": "string" },
+        "bookSlug": { "type": "string" },
+        "name": { "type": "string" },
+        "sections": { "type": "object" },
+        "sectionDetails": { "type": "object" },
+        "syncedSections": { "type": "object" },
+        "updatedAt": { "type": "string" }
       }
     }
   },
@@ -99,7 +115,7 @@
       "description": "Individual Prophetic records."
     },
     "/hadith_index/{indexId}": {
-      "schema": "object",
+      "schema": "HadithIndex",
       "description": "Chapter/Section definitions for a Hadith book."
     },
     "/hadith_reference/{refId}": {

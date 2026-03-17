@@ -15,72 +15,68 @@ service cloud.firestore {
     // --- Public Content (Read for everyone, Write for Admin only) ---
     
     match /languages/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /videos/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /channels/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /speakers/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /quran/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /quran_editions/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /quran_metadata/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
+    // Hadith Collections
     match /hadith_books/{id} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-
-    match /hadith_slug/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_editions/{id} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-
-    match /hadith_metadata/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_index/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /hadith_data/{id} {
-      allow get, list: if true;
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /hadith_reference/{id} {
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /settings/{id} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
