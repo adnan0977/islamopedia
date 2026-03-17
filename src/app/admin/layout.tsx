@@ -18,8 +18,7 @@ import {
   Settings,
   ExternalLink,
   ScrollText,
-  UserPlus,
-  Menu
+  UserPlus
 } from 'lucide-react';
 import { 
   Sidebar, 
@@ -44,7 +43,7 @@ import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function AdminLayout({ children }: { children: React.Node }) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
@@ -137,7 +136,7 @@ export default function AdminLayout({ children }: { children: React.Node }) {
           <div className="flex flex-col gap-3">
             <Button variant="outline" onClick={handleSignOut} className="w-full rounded-xl h-12 font-bold border-zinc-200 text-zinc-600">Sign Out</Button>
             <Link href="/">
-              <Button variant="link" className="text-zinc-400 text-[10px] font-black uppercase tracking-widest">Return to Public Site</Button>
+              <Button variant="link" className="text-zinc-400 text-[10px] font-black uppercase tracking-widest text-zinc-900">Return to Public Site</Button>
             </Link>
           </div>
         </div>

@@ -14,8 +14,7 @@ import {
   PowerOff, 
   Trash2,
   RefreshCw as SyncIcon,
-  Link2,
-  Users
+  Link2
 } from 'lucide-react';
 import {
   Dialog,
@@ -126,7 +125,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
       const ytVideos = await fetchPlaylistVideos(uploadsId, 500);
       const existingVideosQ = query(collection(db, 'videos'), where('channelId', '==', channel.id));
       const existingSnap = await getDocs(existingVideosQ);
-      const existingIds = new Set(existingSnap.docs.map(d => [d.id, d.data()]).map(([id]) => id));
+      const existingIds = new Set(existingSnap.docs.map(d => d.id));
       const missingVideos = ytVideos.filter(v => !existingIds.has(v.id));
 
       if (missingVideos.length > 0) {

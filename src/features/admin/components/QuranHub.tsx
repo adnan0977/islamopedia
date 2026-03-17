@@ -22,8 +22,7 @@ import {
   Table as TableIcon,
   FileText,
   Pencil,
-  Languages,
-  CheckCircle2
+  Languages
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';

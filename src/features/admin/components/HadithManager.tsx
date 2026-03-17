@@ -42,8 +42,7 @@ import {
   Pencil,
   Save,
   Type,
-  Hash,
-  CheckCircle2
+  Hash
 } from 'lucide-react';
 import { 
   Table, 
@@ -265,13 +264,20 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       const existingData = existingSnap.exists() ? existingSnap.data() : null;
       const totalCount = hadiths?.length || 0;
       const payload = { id: edition.name, editionId: edition.name, bookSlug: bookId, name: metadata.name || '', totalHadiths: totalCount, sections: metadata.sections || {}, sectionDetails: metadata.section_details || {} };
+      
       if (isDataDifferent(payload, existingData)) {
         setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes', totalHadiths: totalCount });
         toast({ title: "Index Synchronized" });
-      } else { toast({ title: "Index Up to Date" }); }
+      } else {
+        toast({ title: "Index Up to Date" });
+      }
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
-    } catch (e: any) { toast({ variant: "destructive", title: "Index Sync Failed", description: e.message }); } finally { setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500); }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Index Sync Failed", description: e.message });
+    } finally {
+      setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500);
+    }
   };
 
   return (
@@ -399,7 +405,13 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
     if (!indexDoc?.sections) return [];
     return Object.entries(indexDoc.sections).filter(([num]) => num !== '0').map(([num, name]) => {
       const details = indexDoc.sectionDetails?.[num] || {};
-      return { number: num, name: name as string, start_hadith_number: details.hadithnumber_first ?? 0, last_hadith_number: details.hadithnumber_last ?? 0, isSynced: !!indexDoc.syncedSections?.[num] };
+      return { 
+        number: num, 
+        name: name as string, 
+        start_hadith_number: details.hadithnumber_first ?? 0, 
+        last_hadith_number: details.hadithnumber_last ?? 0, 
+        isSynced: !!indexDoc.syncedSections?.[num] 
+      };
     }).sort((a, b) => parseInt(a.number) - parseInt(b.number));
   }, [indexDoc]);
 
@@ -409,22 +421,56 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
     try {
       const payload = await fetchHadithEditionContent(edition.linkmin);
       const allHadiths = payload.hadiths || [];
-      const inRange = allHadiths.filter((h: any) => { const hNum = parseFloat(h.hadithnumber); return hNum >= section.start_hadith_number && hNum <= section.last_hadith_number; });
-      if (inRange.length === 0) { toast({ title: "No Matching Records" }); setSyncState(prev => ({ ...prev, isSyncing: false })); return; }
-      const existingSnap = await getDocs(query(collection(db, 'hadith_data'), where('editionId', '==', editionId), where('sectionNumber', '==', section.number)));
+      const inRange = allHadiths.filter((h: any) => { 
+        const hNum = parseFloat(h.hadithnumber); 
+        return hNum >= section.start_hadith_number && hNum <= section.last_hadith_number; 
+      });
+      
+      if (inRange.length === 0) { 
+        toast({ title: "No Matching Records" }); 
+        setSyncState(prev => ({ ...prev, isSyncing: false })); 
+        return; 
+      }
+
+      const existingSnap = await getDocs(query(
+        collection(db, 'hadith_data'), 
+        where('editionId', '==', editionId), 
+        where('sectionNumber', '==', section.number)
+      ));
       const existingMap = new Map(existingSnap.docs.map(d => [d.id, d.data()]));
+      
       const batch = writeBatch(db);
       let updatesCount = 0;
+      
       inRange.forEach((h: any) => {
         const hadithId = `${editionId}_h_${h.hadithnumber}`;
         const existing = existingMap.get(hadithId);
         const hPayload = { ...h, id: hadithId, editionId, bookSlug: indexDoc?.bookSlug, sectionNumber: section.number };
-        if (isDataDifferent(hPayload, existing)) { batch.set(doc(db, 'hadith_data', hadithId), { ...hPayload, updatedAt: new Date().toISOString() }, { merge: true }); updatesCount++; }
+        
+        if (isDataDifferent(hPayload, existing)) { 
+          batch.set(doc(db, 'hadith_data', hadithId), { ...hPayload, updatedAt: new Date().toISOString() }, { merge: true }); 
+          updatesCount++; 
+        }
       });
-      if (updatesCount > 0) { await batch.commit(); toast({ title: "Section Ingested", description: `Updated ${updatesCount} records.` }); } else { toast({ title: "Section Up to Date" }); }
-      if (!indexDoc?.syncedSections?.[section.number]) { const syncedMap = indexDoc?.syncedSections || {}; syncedMap[section.number] = true; updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap }); }
+
+      if (updatesCount > 0) { 
+        await batch.commit(); 
+        toast({ title: "Section Ingested", description: `Updated ${updatesCount} records.` }); 
+      } else { 
+        toast({ title: "Section Up to Date" }); 
+      }
+
+      if (!indexDoc?.syncedSections?.[section.number]) { 
+        const syncedMap = indexDoc?.syncedSections || {}; 
+        syncedMap[section.number] = true; 
+        updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap }); 
+      }
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
-    } catch (e: any) { toast({ variant: "destructive", title: "Sync Failed", description: e.message }); } finally { setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500); }
+    } catch (e: any) { 
+      toast({ variant: "destructive", title: "Sync Failed", description: e.message }); 
+    } finally { 
+      setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500); 
+    }
   };
 
   return (
@@ -642,7 +688,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           <div className="p-10 bg-zinc-50 border-t border-zinc-100 shrink-0 flex justify-end gap-4">
             <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl h-14 px-8 font-bold text-zinc-400 hover:text-zinc-900">Cancel</Button>
             <Button 
-              className="rounded-2xl h-14 px-12 font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-all flex items-center gap-3 shadow-xl active:scale-95"
+              className="rounded-2xl h-14 px-12 font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
               onClick={handleSaveEdit}
             >
               <Save className="w-5 h-5" />

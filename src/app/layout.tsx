@@ -23,17 +23,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground min-h-screen flex flex-col overflow-x-hidden">
+      <body className="font-body antialiased min-h-screen flex flex-col overflow-x-hidden">
         <FirebaseClientProvider>
           <Navbar />
-          {/* pt-0 on mobile for zero gap as nav is at the bottom, pt-24 on desktop for alignment */}
-          <main className="flex-grow pt-0 md:pt-24 pb-20 md:pb-0">
+          <main className="flex-grow">
             {children}
           </main>
           <Toaster />
