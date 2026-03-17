@@ -2,7 +2,18 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, doc, writeBatch, where, limit, orderBy, getDocs, getCountFromServer } from 'firebase/firestore';
+import { 
+  collection, 
+  query, 
+  doc, 
+  writeBatch, 
+  where, 
+  limit, 
+  orderBy, 
+  getDocs, 
+  getDoc,
+  getCountFromServer 
+} from 'firebase/firestore';
 import { 
   Card, 
   CardHeader, 
@@ -63,6 +74,20 @@ const ALLOWED_SLUGS = [
 ];
 
 /**
+ * Utility to check if two objects are significantly different, ignoring system fields.
+ */
+function isDataDifferent(newData: any, existingData: any): boolean {
+  if (!existingData) return true;
+  for (const key in newData) {
+    if (key === 'updatedAt') continue;
+    if (JSON.stringify(newData[key]) !== JSON.stringify(existingData[key])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Level 1: Primary Registry View (Master Books)
  */
 export function HadithManager() {
@@ -101,7 +126,7 @@ export function HadithManager() {
             editionCount: bookData.collection.length
           };
 
-          if (!existingBook || existingBook.bookName !== bookPayload.bookName || existingBook.editionCount !== bookPayload.editionCount) {
+          if (isDataDifferent(bookPayload, existingBook)) {
             const bookRef = doc(db, 'hadith_books', slug);
             batch.set(bookRef, { ...bookPayload, lastSyncedAt: new Date().toISOString() }, { merge: true });
             updatesCount++;
@@ -109,18 +134,16 @@ export function HadithManager() {
 
           bookData.collection.forEach((ed) => {
             const existingEd = existingEditions.get(ed.name);
-            const isChanged = !existingEd || 
-              existingEd.author !== ed.author || 
-              existingEd.language !== ed.language || 
-              existingEd.linkmin !== ed.linkmin ||
-              existingEd.bookId !== slug;
+            const edPayload = {
+              ...ed,
+              id: ed.name,
+              bookId: slug,
+            };
 
-            if (isChanged) {
+            if (isDataDifferent(edPayload, existingEd)) {
               const editionRef = doc(db, 'hadith_editions', ed.name);
               batch.set(editionRef, {
-                ...ed,
-                id: ed.name,
-                bookId: slug,
+                ...edPayload,
                 updatedAt: new Date().toISOString()
               }, { merge: true });
               updatesCount++;
@@ -241,11 +264,13 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       const data = await fetchHadithEditionContent(edition.linkmin);
       const { metadata, hadiths } = data;
 
-      setSyncState(prev => ({ ...prev, status: 'mapping nodes', progress: 50 }));
+      setSyncState(prev => ({ ...prev, status: 'comparing', progress: 50 }));
       
       const indexRef = doc(db, 'hadith_index', edition.name);
-      const totalCount = hadiths?.length || 0;
+      const existingSnap = await getDoc(indexRef);
+      const existingData = existingSnap.exists() ? existingSnap.data() : null;
 
+      const totalCount = hadiths?.length || 0;
       const payload = {
         id: edition.name,
         editionId: edition.name,
@@ -254,17 +279,20 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
         totalHadiths: totalCount,
         sections: metadata.sections || {},
         sectionDetails: metadata.section_details || {},
-        updatedAt: new Date().toISOString()
       };
 
-      setDocumentNonBlocking(indexRef, payload, { merge: true });
-      updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { 
-        indexSynced: 'yes',
-        totalHadiths: totalCount
-      });
+      if (isDataDifferent(payload, existingData)) {
+        setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
+        updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { 
+          indexSynced: 'yes',
+          totalHadiths: totalCount
+        });
+        toast({ title: "Index Synchronized" });
+      } else {
+        toast({ title: "Index Up to Date" });
+      }
 
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
-      toast({ title: "Index Synchronized" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Index Sync Failed", description: e.message });
     } finally {
@@ -434,7 +462,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       const payload = await fetchHadithEditionContent(edition.linkmin);
       const allHadiths = payload.hadiths || [];
       
-      setSyncState(prev => ({ ...prev, status: 'filtering', progress: 40 }));
+      setSyncState(prev => ({ ...prev, status: 'comparing', progress: 40 }));
       const inRange = allHadiths.filter((h: any) => {
         const hNum = parseFloat(h.hadithnumber);
         return hNum >= section.start_hadith_number && hNum <= section.last_hadith_number;
@@ -446,30 +474,51 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         return;
       }
 
-      setSyncState(prev => ({ ...prev, status: 'committing', progress: 60 }));
+      // Fetch existing docs for this section to perform diff
+      const existingSnap = await getDocs(query(
+        collection(db, 'hadith_data'), 
+        where('editionId', '==', editionId), 
+        where('sectionNumber', '==', section.number)
+      ));
+      const existingMap = new Map(existingSnap.docs.map(d => [d.id, d.data()]));
+
       const batch = writeBatch(db);
+      let updatesCount = 0;
+
       inRange.forEach((h: any) => {
         const hadithId = `${editionId}_h_${h.hadithnumber}`;
-        const hRef = doc(db, 'hadith_data', hadithId);
-        batch.set(hRef, {
+        const existing = existingMap.get(hadithId);
+        
+        const hPayload = {
           ...h,
           id: hadithId,
           editionId,
           bookSlug: indexDoc?.bookSlug,
           sectionNumber: section.number,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
+        };
+
+        if (isDataDifferent(hPayload, existing)) {
+          batch.set(doc(db, 'hadith_data', hadithId), { ...hPayload, updatedAt: new Date().toISOString() }, { merge: true });
+          updatesCount++;
+        }
       });
 
-      const syncedMap = indexDoc?.syncedSections || {};
-      syncedMap[section.number] = true;
-      batch.update(indexRef, { syncedSections: syncedMap });
+      if (updatesCount > 0) {
+        setSyncState(prev => ({ ...prev, status: 'committing', progress: 80 }));
+        await batch.commit();
+        toast({ title: "Section Ingested", description: `Updated ${updatesCount} records.` });
+      } else {
+        toast({ title: "Section Up to Date" });
+      }
 
-      setSyncState(prev => ({ ...prev, status: 'finalizing', progress: 90 }));
-      await batch.commit();
-      
+      // Always ensure the index recognizes the sync
+      if (!indexDoc?.syncedSections?.[section.number]) {
+        const syncedMap = indexDoc?.syncedSections || {};
+        syncedMap[section.number] = true;
+        updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap });
+      }
+
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
-      toast({ title: "Section Ingested" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
@@ -527,7 +576,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           {sections.map((s) => (
             <Card key={s.number} className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden group hover:border-zinc-500 transition-all flex flex-col shadow-2xl border-t border-white/5">
               <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20 space-y-4">
-                {/* 1st Line: Section Name */}
                 <div className="flex items-start justify-between gap-4">
                   <CardTitle className="text-sm font-bold text-zinc-100 group-hover:text-white transition-colors leading-relaxed line-clamp-2 min-h-[2.5rem]">
                     {s.name}
@@ -535,7 +583,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
                   <span className="text-[10px] font-black text-zinc-700 mt-1 shrink-0">#{s.number}</span>
                 </div>
 
-                {/* 2nd Line: Status and Range */}
                 <div className="flex items-center justify-between gap-4 pt-2 border-t border-zinc-900/50">
                   <Badge variant="outline" className={cn("border-zinc-800 text-[8px] font-black uppercase tracking-widest shrink-0", s.isSynced ? "text-emerald-500" : "text-zinc-600")}>
                     {s.isSynced ? 'SYNCED' : 'PENDING'}
@@ -594,8 +641,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
 
-  // Optimized query: Removed server-side orderBy to avoid complex index requirements 
-  // that often surface as generic permission errors in proxied environments.
   const recordsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_data'),
     where('bookSlug', '==', bookId),
@@ -606,7 +651,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
 
   const { data: rawRecords, isLoading } = useCollection(recordsQuery);
 
-  // Sorting client-side to maintain performance without needing complex Firestore indexes.
   const sortedRecords = useMemo(() => {
     if (!rawRecords) return [];
     return [...rawRecords].sort((a, b) => parseFloat(a.hadithnumber) - parseFloat(b.hadithnumber));
