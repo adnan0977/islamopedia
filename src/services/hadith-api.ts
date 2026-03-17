@@ -20,12 +20,19 @@ export interface FawazEdition {
   linkmin: string;
 }
 
-export async function fetchHadithRegistry(): Promise<FawazEdition[]> {
+export interface FawazBook {
+  name: string;
+  collection: FawazEdition[];
+}
+
+export type FawazRegistry = Record<string, FawazBook>;
+
+export async function fetchHadithRegistry(): Promise<FawazRegistry> {
   try {
     const res = await fetch(REGISTRY_URL);
     if (!res.ok) throw new Error('Failed to fetch Hadith registry');
     const data = await res.json();
-    return data.editions || [];
+    return data;
   } catch (error: any) {
     console.error('Hadith Registry Error:', error);
     throw new Error(error.message || 'Network error fetching registry');
