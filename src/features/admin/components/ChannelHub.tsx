@@ -160,43 +160,43 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   };
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 w-full overflow-hidden">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-8 bg-white p-10 rounded-[3rem] border border-zinc-200 shadow-sm">
+    <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-500 w-full overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 sm:gap-8 bg-white p-6 sm:p-10 rounded-2xl sm:rounded-[3rem] border border-zinc-200 shadow-sm">
         <div className="space-y-2 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-4">
-            <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center border border-zinc-100 shadow-inner">
-              <Link2 className="w-6 h-6 text-zinc-400" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-50 rounded-xl flex items-center justify-center border border-zinc-100 shadow-inner">
+              <Link2 className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-400" />
             </div>
-            <h2 className="text-3xl font-headline font-bold text-zinc-900 tracking-tight">Channel Synchronization</h2>
+            <h2 className="text-xl sm:text-3xl font-headline font-bold text-zinc-900 tracking-tight">Channel Synchronization</h2>
           </div>
-          <p className="text-sm text-zinc-500 font-medium">Link and manage authorized YouTube creator feeds for the platform.</p>
+          <p className="text-xs sm:text-sm text-zinc-500 font-medium">Link and manage authorized YouTube creator feeds for the platform.</p>
         </div>
 
         <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              className="rounded-2xl h-14 px-10 font-bold bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl flex items-center gap-3 transition-all active:scale-95"
+              className="rounded-xl sm:rounded-2xl h-12 sm:h-14 px-6 sm:px-10 font-bold bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl flex items-center gap-3 transition-all active:scale-95 w-full sm:w-auto"
             >
-              <Plus className="w-5 h-5" />
-              <span className="text-sm uppercase tracking-widest">Link New Creator</span>
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm uppercase tracking-widest">Link New Creator</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-xl bg-white border-zinc-200 text-zinc-900 rounded-[3rem] p-0 outline-none shadow-2xl overflow-hidden">
-            <DialogHeader className="p-10 border-b border-zinc-100 bg-zinc-50">
-              <DialogTitle className="text-2xl font-headline font-bold">Import Creator Feeds</DialogTitle>
-              <DialogDescription className="text-zinc-500 text-sm mt-2">Paste YouTube Channel IDs or Handles below.</DialogDescription>
+          <DialogContent className="sm:max-w-xl w-[95vw] bg-white border-zinc-200 text-zinc-900 rounded-2xl sm:rounded-[3rem] p-0 outline-none shadow-2xl overflow-hidden">
+            <DialogHeader className="p-6 sm:p-10 border-b border-zinc-100 bg-zinc-50">
+              <DialogTitle className="text-xl sm:text-2xl font-headline font-bold">Import Creator Feeds</DialogTitle>
+              <DialogDescription className="text-zinc-500 text-xs sm:text-sm mt-1 sm:mt-2">Paste YouTube Channel IDs or Handles below.</DialogDescription>
             </DialogHeader>
-            <div className="p-10 space-y-8">
-              <Textarea placeholder="UC... or @handle" className="bg-zinc-50 border-zinc-200 h-56 rounded-[2rem] p-8 text-zinc-900 font-mono text-sm shadow-inner focus:ring-zinc-900 focus:bg-white transition-all" value={bulkIds} onChange={(e) => setBulkBulkIds(e.target.value)} />
+            <div className="p-6 sm:p-10 space-y-6 sm:space-y-8">
+              <Textarea placeholder="UC... or @handle" className="bg-zinc-50 border-zinc-200 h-40 sm:h-56 rounded-xl sm:rounded-[2rem] p-4 sm:p-8 text-zinc-900 font-mono text-xs sm:text-sm shadow-inner focus:ring-zinc-900 focus:bg-white transition-all" value={bulkIds} onChange={(e) => setBulkBulkIds(e.target.value)} />
               <Button 
-                className="w-full h-14 font-bold rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95" 
+                className="w-full h-12 sm:h-14 font-bold rounded-xl sm:rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95" 
                 onClick={() => handleSync(bulkIds)} 
                 disabled={isSyncing}
               >
-                {isSyncing ? <Loader2 className="animate-spin h-6 w-6 mx-auto" /> : (
+                {isSyncing ? <Loader2 className="animate-spin h-5 w-5 sm:h-6 sm:w-6 mx-auto" /> : (
                   <>
-                    <Link2 className="w-5 h-5" />
-                    <span className="text-sm uppercase tracking-widest">Start Ingestion</span>
+                    <Link2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-xs sm:text-sm uppercase tracking-widest">Start Ingestion</span>
                   </>
                 )}
               </Button>
@@ -206,68 +206,68 @@ export function ChannelHub({ videos }: { videos: any[] }) {
       </div>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
-        <AlertDialogContent className="bg-white border-zinc-200 text-zinc-900 rounded-[3rem] p-12 max-w-md shadow-2xl">
+        <AlertDialogContent className="bg-white border-zinc-200 text-zinc-900 rounded-2xl sm:rounded-[3rem] p-8 sm:p-12 max-w-md shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-headline font-bold">Unlink Creator?</AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-500 mt-2">Stopping synchronization for this channel. Cataloged data will remain in the local feed.</AlertDialogDescription>
+            <AlertDialogTitle className="text-xl sm:text-2xl font-headline font-bold">Unlink Creator?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500 text-sm sm:text-base mt-2">Stopping synchronization for this channel. Cataloged data will remain in the local feed.</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-10 gap-4">
+          <AlertDialogFooter className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4">
             <AlertDialogCancel className="bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100 rounded-xl h-12 font-bold px-6">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-600 text-white hover:bg-red-700 rounded-xl h-12 font-bold px-8 shadow-lg shadow-red-500/20">Unlink Feed</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <Card className="bg-white border-zinc-200 overflow-hidden rounded-[3rem] shadow-sm">
-        <div className="w-full overflow-hidden">
-          <Table className="w-full table-fixed">
+      <Card className="bg-white border-zinc-200 overflow-hidden rounded-2xl sm:rounded-[3rem] shadow-sm">
+        <div className="w-full overflow-x-auto">
+          <Table className="w-full table-fixed min-w-[800px] sm:min-w-full">
             <TableHeader className="bg-zinc-50/50">
-              <TableRow className="border-zinc-100 h-24">
-                <TableHead className="py-8 text-zinc-400 pl-12 w-[30%] text-[10px] font-black uppercase tracking-[0.2em]">Creator Branding</TableHead>
+              <TableRow className="border-zinc-100 h-20 sm:h-24">
+                <TableHead className="py-6 sm:py-8 text-zinc-400 pl-6 sm:pl-12 w-[35%] text-[10px] font-black uppercase tracking-[0.2em]">Creator Branding</TableHead>
                 <TableHead className="text-zinc-400 text-center w-[20%] text-[10px] font-black uppercase tracking-[0.2em]">Inventory</TableHead>
                 <TableHead className="text-zinc-400 text-center w-[15%] text-[10px] font-black uppercase tracking-[0.2em]">Subscribers</TableHead>
-                <TableHead className="text-right text-zinc-400 pr-12 w-[35%] text-[10px] font-black uppercase tracking-[0.2em]">Actions</TableHead>
+                <TableHead className="text-right text-zinc-400 pr-6 sm:pr-12 w-[30%] text-[10px] font-black uppercase tracking-[0.2em]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoadingChannels ? (
                 <TableRow><TableCell colSpan={4} className="h-96 text-center"><div className="flex flex-col items-center gap-4"><Loader2 className="animate-spin h-10 w-10 text-zinc-100" /><p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em]">Hydrating creators...</p></div></TableCell></TableRow>
               ) : linkedChannels?.map((channel) => (
-                <TableRow key={channel.id} className="border-zinc-100 h-28 hover:bg-zinc-50/50 transition-colors">
-                  <TableCell className="pl-12 max-w-0">
-                    <div className="flex items-center gap-5 min-w-0">
-                      <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-zinc-100 bg-zinc-50 shrink-0 shadow-sm">
+                <TableRow key={channel.id} className="border-zinc-100 h-24 sm:h-28 hover:bg-zinc-50/50 transition-colors">
+                  <TableCell className="pl-6 sm:pl-12 max-w-0">
+                    <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+                      <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden border border-zinc-100 bg-zinc-50 shrink-0 shadow-sm">
                         {channel.thumbnailUrl && <Image src={channel.thumbnailUrl} alt={channel.title} fill className="object-cover" />}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-zinc-900 truncate block text-sm leading-tight" title={channel.title}>{channel.title}</span>
-                        <Badge className={cn("border-none text-[7px] px-2 py-0 w-fit mt-1.5 uppercase font-black tracking-widest shadow-sm", channel.isActive ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>{channel.isActive ? 'Active Sync' : 'Paused'}</Badge>
+                        <span className="font-bold text-zinc-900 truncate block text-xs sm:text-sm leading-tight" title={channel.title}>{channel.title}</span>
+                        <Badge className={cn("border-none text-[7px] px-2 py-0 w-fit mt-1 uppercase font-black tracking-widest shadow-sm", channel.isActive ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>{channel.isActive ? 'Active' : 'Paused'}</Badge>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-sm font-bold text-zinc-900">{videos.filter(v => v.channelId === channel.id).length} / {channel.videoCount || 0}</span>
+                    <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                      <span className="text-xs sm:text-sm font-bold text-zinc-900">{videos.filter(v => v.channelId === channel.id).length} / {channel.videoCount || 0}</span>
                       <span className="text-[8px] text-zinc-400 font-black uppercase tracking-widest">Cached</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-sm font-bold text-zinc-900">{channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount}</span>
+                    <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                      <span className="text-xs sm:text-sm font-bold text-zinc-900">{channel.subscribersCount > 1000 ? (channel.subscribersCount / 1000).toFixed(1) + 'K' : channel.subscribersCount}</span>
                       <span className="text-[8px] text-zinc-400 font-black uppercase tracking-widest">Verified</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right pr-12">
-                    <div className="flex justify-end gap-3">
-                      <Button variant="ghost" size="sm" onClick={() => handleSyncVideos(channel)} className="h-11 px-6 text-zinc-400 hover:text-emerald-600 hover:bg-white hover:border-zinc-200 hover:shadow-sm rounded-xl transition-all">
-                        <SyncIcon className={cn("w-4 h-4 mr-3", syncingVideosFor === channel.id && "animate-spin")} />
-                        <span className="font-bold text-[10px] uppercase tracking-widest">Sync</span>
+                  <TableCell className="text-right pr-6 sm:pr-12">
+                    <div className="flex justify-end gap-1.5 sm:gap-3">
+                      <Button variant="ghost" size="sm" onClick={() => handleSyncVideos(channel)} className="h-9 sm:h-11 px-3 sm:px-6 text-zinc-400 hover:text-emerald-600 hover:bg-white hover:border-zinc-200 hover:shadow-sm rounded-xl transition-all">
+                        <SyncIcon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-3", syncingVideosFor === channel.id && "animate-spin")} />
+                        <span className="hidden sm:inline font-bold text-[10px] uppercase tracking-widest">Sync</span>
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)} className="h-11 w-11 text-zinc-400 hover:text-zinc-900 hover:bg-white hover:border-zinc-200 hover:shadow-sm rounded-xl transition-all">
-                        {channel.isActive ? <PowerOff className="w-5 h-5 text-amber-500" /> : <Power className="w-5 h-5 text-emerald-500" />}
+                      <Button variant="ghost" size="icon" onClick={() => toggleChannelActivation(channel.id, !!channel.isActive)} className="h-9 w-9 sm:h-11 sm:w-11 text-zinc-400 hover:text-zinc-900 hover:bg-white hover:border-zinc-200 hover:shadow-sm rounded-xl transition-all">
+                        {channel.isActive ? <PowerOff className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" /> : <Power className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />}
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(channel.id)} className="h-11 w-11 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-                        <Trash2 className="w-5 h-5" />
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(channel.id)} className="h-9 w-9 sm:h-11 sm:w-11 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
+                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                     </div>
                   </TableCell>

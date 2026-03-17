@@ -161,7 +161,7 @@ export function HadithManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">Hadith Library</h1>
           <p className="text-sm text-muted-foreground">Manage canonical master collections and verified editions.</p>
@@ -169,7 +169,7 @@ export function HadithManager() {
         <Button 
           onClick={handleSeedRegistry}
           disabled={isSeeding}
-          className="gap-2"
+          className="gap-2 w-full sm:w-auto"
         >
           {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
           Seed Registry
@@ -179,10 +179,10 @@ export function HadithManager() {
       {isLoadingBooks ? (
         <div className="flex flex-col items-center justify-center py-24 space-y-4">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Hydrating Collections...</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest text-center">Hydrating Collections...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {books?.map((book) => (
             <Card 
               key={book.id} 
@@ -269,7 +269,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
   return (
     <div className="space-y-6">
       <Dialog open={syncState.isSyncing}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <div className="flex flex-col items-center text-center space-y-4 py-4">
              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center border animate-pulse">
                <DatabaseZap className="w-6 h-6 text-primary" />
@@ -292,16 +292,16 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       </Dialog>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
-          <ArrowLeft className="w-4 h-4" />
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-10 w-10 shrink-0">
+          <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="space-y-0.5">
-          <h2 className="text-xl font-bold tracking-tight">{book?.bookName}</h2>
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Edition Registry</p>
+        <div className="space-y-0.5 min-w-0">
+          <h2 className="text-xl font-bold tracking-tight truncate">{book?.bookName}</h2>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Edition Registry</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {editions?.map((ed) => (
           <EditionCard key={ed.id} edition={ed} onSelect={onSelectEdition} onSyncIndex={handleSyncIndex} />
         ))}
@@ -358,14 +358,14 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
         <Button 
           variant="outline" 
           size="sm"
-          className="flex-1 h-8 text-[10px] font-bold uppercase tracking-widest"
+          className="flex-1 h-10 text-[10px] font-bold uppercase tracking-widest"
           onClick={() => onSyncIndex(edition)}
         >
-          <ListTree className="w-3 h-3 mr-2" />
+          <ListTree className="w-3.5 h-3.5 mr-2" />
           {isSynced ? 'Resync' : 'Sync'}
         </Button>
         {isSynced && (
-          <Button variant="outline" size="icon" onClick={() => onSelect(edition.id)} className="h-8 w-8">
+          <Button variant="outline" size="icon" onClick={() => onSelect(edition.id)} className="h-10 w-10 shrink-0">
             <ChevronRight className="w-4 h-4" />
           </Button>
         )}
@@ -457,20 +457,18 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div className="space-y-0.5">
-            <h2 className="text-xl font-bold tracking-tight">{indexDoc?.name || 'Edition'} Analysis</h2>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Section Inventory</p>
-          </div>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-10 w-10 shrink-0">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="space-y-0.5 min-w-0">
+          <h2 className="text-xl font-bold tracking-tight truncate">{indexDoc?.name || 'Edition'} Analysis</h2>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Section Inventory</p>
         </div>
       </div>
 
       <Dialog open={syncState.isSyncing}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <div className="flex flex-col items-center text-center space-y-4 py-4">
              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center border animate-pulse">
                <Zap className="w-6 h-6 text-primary" />
@@ -492,7 +490,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sections.map((s) => (
           <Card key={s.number} className="flex flex-col group border shadow-sm overflow-hidden">
             <CardHeader className="p-6 pb-4 space-y-4">
@@ -501,14 +499,15 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
                 <Badge variant="outline" className="text-[10px] font-mono opacity-50 shrink-0">#{s.number}</Badge>
               </div>
               <div className="flex flex-col gap-2">
-                <Badge variant={s.isSynced ? "default" : "secondary"} className="text-[8px] font-black uppercase tracking-widest w-fit">
-                  {s.isSynced ? 'SYNCED' : 'PENDING'}
-                </Badge>
-                <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
-                  <Hash className="w-2.5 h-2.5" />
-                  <span className="font-bold text-foreground">{s.start_hadith_number}</span>
-                  <span>-</span>
-                  <span className="font-bold text-foreground">{s.last_hadith_number}</span>
+                <div className="flex items-center justify-between">
+                  <Badge variant={s.isSynced ? "default" : "secondary"} className="text-[8px] font-black uppercase tracking-widest w-fit">
+                    {s.isSynced ? 'SYNCED' : 'PENDING'}
+                  </Badge>
+                  <div className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground">
+                    <span className="font-bold text-foreground">{s.start_hadith_number}</span>
+                    <span>-</span>
+                    <span className="font-bold text-foreground">{s.last_hadith_number}</span>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -582,99 +581,101 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
-            <ArrowLeft className="w-4 h-4" />
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-10 w-10 shrink-0">
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="space-y-0.5">
-            <h2 className="text-xl font-bold tracking-tight">Section {sectionNumber} Explorer</h2>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Granular Audit</p>
+          <div className="space-y-0.5 min-w-0">
+            <h2 className="text-xl font-bold tracking-tight truncate">Section {sectionNumber} Explorer</h2>
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Granular Audit</p>
           </div>
         </div>
-        <Badge variant="secondary" className="px-4 py-1 font-mono text-[10px]">
+        <Badge variant="secondary" className="px-4 py-1 font-mono text-[10px] w-full sm:w-auto text-center">
           {sortedRecords?.length || 0} Records Loaded
         </Badge>
       </div>
 
       <Card className="overflow-hidden border shadow-sm bg-white">
-        <Table>
-          <TableHeader className="bg-zinc-50/50">
-            <TableRow className="h-16">
-              <TableHead className="w-24 text-[10px] font-black uppercase tracking-[0.2em] pl-8">Ref</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Section</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Grade</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Reference</TableHead>
-              <TableHead className="w-32 text-right text-[10px] font-black uppercase tracking-[0.2em] pr-8">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="h-64 text-center text-muted-foreground text-xs uppercase font-bold tracking-widest">Indexing Viewport...</TableCell></TableRow>
-            ) : sortedRecords?.map((r) => (
-              <TableRow key={r.id} className="h-20 hover:bg-zinc-50 transition-colors">
-                <TableCell className="pl-8">
-                  <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber}</Badge>
-                </TableCell>
-                <TableCell>
-                  <span className="text-xs font-bold text-zinc-900 line-clamp-1">{indexDoc?.sections?.[r.sectionNumber] || '---'}</span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {r.grades?.map((g: any, i: number) => (
-                      <Badge key={i} variant="secondary" className="text-[8px] px-2 py-0 uppercase font-black tracking-tighter bg-zinc-100">
-                        {g.grade}
-                      </Badge>
-                    )) || <span className="text-[10px] text-zinc-400">---</span>}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
-                    {r.reference ? `BK ${r.reference.book}, H ${r.reference.hadith}` : '---'}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right pr-8">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-9 gap-2 px-4 hover:bg-white border border-transparent hover:border-zinc-200 hover:shadow-sm rounded-xl">
-                    <Pencil className="w-3.5 h-3.5 text-zinc-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Refine</span>
-                  </Button>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-zinc-50/50">
+              <TableRow className="h-16">
+                <TableHead className="w-24 text-[10px] font-black uppercase tracking-[0.2em] pl-6 sm:pl-8">Ref</TableHead>
+                <TableHead className="hidden sm:table-cell text-[10px] font-black uppercase tracking-[0.2em]">Section</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em]">Grade</TableHead>
+                <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.2em]">Reference</TableHead>
+                <TableHead className="w-32 text-right text-[10px] font-black uppercase tracking-[0.2em] pr-6 sm:pr-8">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={5} className="h-64 text-center text-muted-foreground text-xs uppercase font-bold tracking-widest">Indexing Viewport...</TableCell></TableRow>
+              ) : sortedRecords?.map((r) => (
+                <TableRow key={r.id} className="h-20 hover:bg-zinc-50 transition-colors">
+                  <TableCell className="pl-6 sm:pl-8">
+                    <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <span className="text-xs font-bold text-zinc-900 line-clamp-1">{indexDoc?.sections?.[r.sectionNumber] || '---'}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {r.grades?.map((g: any, i: number) => (
+                        <Badge key={i} variant="secondary" className="text-[8px] px-2 py-0 uppercase font-black tracking-tighter bg-zinc-100">
+                          {g.grade}
+                        </Badge>
+                      )) || <span className="text-[10px] text-zinc-400">---</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
+                      {r.reference ? `BK ${r.reference.book}, H ${r.reference.hadith}` : '---'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right pr-6 sm:pr-8">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-9 gap-2 px-3 sm:px-4 hover:bg-white border border-transparent hover:border-zinc-200 hover:shadow-sm rounded-xl">
+                      <Pencil className="w-3.5 h-3.5 text-zinc-400" />
+                      <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-zinc-600">Refine</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden rounded-[3rem] border-zinc-200 shadow-2xl">
-          <DialogHeader className="p-8 border-b bg-zinc-50/50 shrink-0">
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl sm:rounded-[3rem] border-zinc-200 shadow-2xl">
+          <DialogHeader className="p-6 sm:p-8 border-b bg-zinc-50/50 shrink-0">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-white border border-zinc-200 rounded-2xl shadow-sm">
+              <div className="p-2 sm:p-3 bg-white border border-zinc-200 rounded-2xl shadow-sm">
                 <Pencil className="w-5 h-5 text-zinc-400" />
               </div>
-              <div>
-                <DialogTitle className="text-2xl font-headline font-bold">Record Refinement</DialogTitle>
-                <DialogDescription className="text-sm text-zinc-500">Refine textual narrative or correct translation errors for Hadith #{editingRecord?.hadithnumber}.</DialogDescription>
+              <div className="min-w-0">
+                <DialogTitle className="text-xl sm:text-2xl font-headline font-bold truncate">Record Refinement</DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm text-zinc-500 truncate">Refining Hadith #{editingRecord?.hadithnumber}.</DialogDescription>
               </div>
             </div>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white">
+          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 bg-white">
             <div className="grid gap-4">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Narrative Content</Label>
               <Textarea 
-                className="min-h-[500px] text-base leading-relaxed font-medium p-8 bg-zinc-50 border-zinc-200 rounded-[2rem] resize-none focus-visible:ring-zinc-900 shadow-inner"
+                className="min-h-[400px] sm:min-h-[500px] text-sm sm:text-base leading-relaxed font-medium p-6 sm:p-8 bg-zinc-50 border-zinc-200 rounded-xl sm:rounded-[2rem] resize-none focus-visible:ring-zinc-900 shadow-inner"
                 value={editingRecord?.text || ''}
                 onChange={(e) => setEditingRecord({ ...editingRecord, text: e.target.value })}
               />
             </div>
           </div>
 
-          <DialogFooter className="p-8 bg-zinc-50/50 border-t border-zinc-200 shrink-0 gap-4">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-14 px-8 font-bold text-zinc-400">Discard</Button>
-            <Button className="h-14 px-12 rounded-2xl bg-zinc-900 text-white font-bold shadow-xl active:scale-95 transition-all" onClick={handleSaveEdit}>
-              <Save className="w-5 h-5 mr-3" />
-              Commit Changes
+          <DialogFooter className="p-6 sm:p-8 bg-zinc-50/50 border-t border-zinc-200 shrink-0 flex flex-row items-center justify-end gap-3 sm:gap-4">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-4 sm:px-8 font-bold text-zinc-400">Discard</Button>
+            <Button className="h-12 sm:h-14 px-6 sm:px-12 rounded-xl sm:rounded-2xl bg-zinc-900 text-white font-bold shadow-xl active:scale-95 transition-all" onClick={handleSaveEdit}>
+              <Save className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
+              Commit
             </Button>
           </DialogFooter>
         </DialogContent>
