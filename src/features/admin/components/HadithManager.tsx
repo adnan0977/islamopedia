@@ -395,11 +395,15 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
 
   const sections = useMemo(() => {
     if (!indexDoc?.sections) return [];
-    return Object.entries(indexDoc.sections).map(([num, name]) => ({
-      number: num,
-      name: name as string,
-      details: indexDoc.sectionDetails?.[num] || 'N/A'
-    })).filter(s => 
+    return Object.entries(indexDoc.sections).map(([num, name]) => {
+      const details = indexDoc.sectionDetails?.[num] || {};
+      return {
+        number: num,
+        name: name as string,
+        start_hadith_number: details.hadithnumber_first ?? '---',
+        last_hadith_number: details.hadithnumber_last ?? '---'
+      };
+    }).filter(s => 
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.number.includes(searchTerm)
     );
@@ -437,12 +441,13 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
             <TableRow className="border-zinc-900">
               <TableHead className="py-8 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 w-32">Section ID</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Chapter Title</TableHead>
-              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 pr-10 text-right">Details Mapping</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center">Start Hadith</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 pr-10 text-right">Last Hadith</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={3} className="h-96 text-center"><Loader2 className="animate-spin h-10 w-10 text-zinc-800 mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="h-96 text-center"><Loader2 className="animate-spin h-10 w-10 text-zinc-800 mx-auto" /></TableCell></TableRow>
             ) : sections.map((s) => (
               <TableRow key={s.number} className="border-zinc-900 h-24 hover:bg-zinc-900/40 transition-colors">
                 <TableCell className="pl-10 font-mono text-xs text-zinc-600">
@@ -451,15 +456,20 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
                 <TableCell>
                   <span className="text-sm font-bold text-zinc-100">{s.name}</span>
                 </TableCell>
+                <TableCell className="text-center">
+                  <span className="text-xs font-mono text-emerald-500 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">
+                    {s.start_hadith_number}
+                  </span>
+                </TableCell>
                 <TableCell className="text-right pr-10">
-                  <span className="text-xs font-mono text-zinc-500 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-zinc-800">
-                    {typeof s.details === 'object' ? JSON.stringify(s.details) : s.details}
+                  <span className="text-xs font-mono text-zinc-400 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-zinc-800">
+                    {s.last_hadith_number}
                   </span>
                 </TableCell>
               </TableRow>
             ))}
             {sections.length === 0 && !isLoading && (
-              <TableRow><TableCell colSpan={3} className="h-64 text-center text-zinc-600 font-bold uppercase tracking-widest text-[10px]">No structural nodes found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="h-64 text-center text-zinc-600 font-bold uppercase tracking-widest text-[10px]">No structural nodes found.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
