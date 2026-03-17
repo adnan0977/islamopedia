@@ -49,7 +49,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Hadith Collections
+    // --- Hadith Library (Public Read, Admin Write) ---
+    // Rule update: explicitly allow list/get for all library nodes
+    
     match /hadith_books/{id} {
       allow read: if true;
       allow write: if isAdmin();

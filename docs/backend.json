@@ -40,7 +40,7 @@
     },
     "HadithEdition": {
       "title": "Hadith Edition",
-      "description": "A specific language version of a Hadith book from the API registry.",
+      "description": "A specific language version of a Hadith book.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -48,27 +48,9 @@
         "name": { "type": "string" },
         "author": { "type": "string" },
         "language": { "type": "string" },
-        "has_sections": { "type": "boolean" },
         "direction": { "type": "string" },
-        "source": { "type": "string" },
-        "comments": { "type": "string" },
-        "link": { "type": "string" },
         "linkmin": { "type": "string" },
-        "dataSync": { "type": "string", "enum": ["yes", "no"] },
         "indexSynced": { "type": "string", "enum": ["yes", "no"] }
-      }
-    },
-    "HadithReference": {
-      "title": "Hadith Reference",
-      "description": "Unique mapping of internal API references to maintain uniqueness across editions.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "hadithId": { "type": "string" },
-        "bookId": { "type": "string" },
-        "editionId": { "type": "string" },
-        "refBook": { "type": "number" },
-        "refHadith": { "type": "number" }
       }
     },
     "HadithIndex": {
@@ -83,6 +65,21 @@
         "sections": { "type": "object" },
         "sectionDetails": { "type": "object" },
         "syncedSections": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "HadithData": {
+      "title": "Hadith Data",
+      "description": "Individual Prophetic records.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "editionId": { "type": "string" },
+        "sectionNumber": { "type": "string" },
+        "hadithnumber": { "type": "string" },
+        "hadithArabic": { "type": "string" },
+        "hadithEnglish": { "type": "string" },
+        "hadithUrdu": { "type": "string" },
         "updatedAt": { "type": "string" }
       }
     }
@@ -110,17 +107,13 @@
       "schema": "HadithEdition",
       "description": "Language-specific editions."
     },
-    "/hadith_data/{contentId}": {
-      "schema": "object",
-      "description": "Individual Prophetic records."
-    },
     "/hadith_index/{indexId}": {
       "schema": "HadithIndex",
-      "description": "Chapter/Section definitions for a Hadith book."
+      "description": "Chapter definitions."
     },
-    "/hadith_reference/{refId}": {
-      "schema": "HadithReference",
-      "description": "Unique cross-edition Prophetic references."
+    "/hadith_data/{contentId}": {
+      "schema": "HadithData",
+      "description": "Prophetic records."
     },
     "/roles_admin/{userId}": {
       "schema": "object",
