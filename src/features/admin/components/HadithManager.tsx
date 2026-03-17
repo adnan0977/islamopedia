@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, doc, writeBatch, where, limit, orderBy } from 'firebase/firestore';
+import { collection, query, doc, writeBatch, where, limit, orderBy, getDocs } from 'firebase/firestore';
 import { 
   Card, 
   CardHeader, 
@@ -284,8 +284,8 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
              <div className="w-20 h-20 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl mx-auto mb-6">
                <DatabaseZap className="w-10 h-10 text-white animate-bounce" />
              </div>
-             <DialogTitle className="text-2xl font-headline font-bold">Index Synchronization</DialogTitle>
-             <DialogDescription className="text-zinc-500 text-sm">Extracting structural nodes for {syncState.targetEdition}.</DialogDescription>
+             <DialogTitle className="text-2xl font-headline font-bold text-center">Index Synchronization</DialogTitle>
+             <DialogDescription className="text-zinc-500 text-sm text-center">Extracting structural nodes for {syncState.targetEdition}.</DialogDescription>
           </DialogHeader>
 
           <div className="w-full space-y-6 mt-8">
@@ -399,7 +399,13 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [syncingSections, setSyncingSections] = useState<Record<string, boolean>>({});
+  
+  const [syncState, setSyncState] = useState({
+    isSyncing: false,
+    progress: 0,
+    status: 'idle',
+    targetSection: ''
+  });
   
   const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
   const { data: indexDoc, isLoading } = useDoc(indexRef);
@@ -434,12 +440,14 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       return;
     }
 
-    setSyncingSections(prev => ({ ...prev, [section.number]: true }));
+    setSyncState({ isSyncing: true, progress: 0, status: 'initializing', targetSection: section.name });
     
     try {
+      setSyncState(prev => ({ ...prev, status: 'fetching data pool', progress: 20 }));
       const payload = await fetchHadithEditionContent(edition.linkmin);
       const allHadiths = payload.hadiths || [];
       
+      setSyncState(prev => ({ ...prev, status: 'filtering records', progress: 40 }));
       const inRange = allHadiths.filter((h: any) => {
         const hNum = parseFloat(h.hadithnumber);
         return hNum >= section.start_hadith_number && hNum <= section.last_hadith_number;
@@ -447,9 +455,11 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
       if (inRange.length === 0) {
         toast({ title: "No Matching Records", description: `Found 0 Hadiths in range ${section.start_hadith_number}-${section.last_hadith_number}.` });
+        setSyncState(prev => ({ ...prev, isSyncing: false }));
         return;
       }
 
+      setSyncState(prev => ({ ...prev, status: 'committing batches', progress: 60 }));
       const batch = writeBatch(db);
       inRange.forEach((h: any) => {
         const hadithId = `${editionId}_h_${h.hadithnumber}`;
@@ -469,17 +479,44 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       syncedMap[section.number] = true;
       batch.update(indexRef, { syncedSections: syncedMap });
 
+      setSyncState(prev => ({ ...prev, status: 'finalizing', progress: 90 }));
       await batch.commit();
+      
+      setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
       toast({ title: "Section Synchronized", description: `Ingested ${inRange.length} records for chapter ${section.number}.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Section Sync Failed", description: e.message });
     } finally {
-      setSyncingSections(prev => ({ ...prev, [section.number]: false }));
+      setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500);
     }
   };
 
   return (
     <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+      <Dialog open={syncState.isSyncing}>
+        <DialogContent className="bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-12 outline-none shadow-2xl max-w-lg border-t border-white/5">
+          <DialogHeader className="text-center">
+             <div className="w-20 h-20 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl mx-auto mb-6">
+               <Zap className="w-10 h-10 text-amber-500 animate-pulse" />
+             </div>
+             <DialogTitle className="text-2xl font-headline font-bold text-center">Section Ingestion</DialogTitle>
+             <DialogDescription className="text-zinc-500 text-sm text-center">Pulling granular records for {syncState.targetSection}.</DialogDescription>
+          </DialogHeader>
+
+          <div className="w-full space-y-6 mt-8">
+             <div className="space-y-3">
+               <div className="flex justify-between items-end">
+                 <span className="text-[10px] font-black uppercase text-zinc-600">{syncState.status}...</span>
+                 <span className="text-3xl font-headline font-bold text-white tabular-nums">{syncState.progress}%</span>
+               </div>
+               <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/50">
+                 <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${syncState.progress}%` }} />
+               </div>
+             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 border-t border-white/5 shadow-2xl">
         <div className="flex items-center gap-6">
           <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all active:scale-90">
@@ -541,11 +578,11 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
               <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex flex-col gap-3">
                 <Button 
                   variant="outline" 
-                  disabled={syncingSections[s.number]}
+                  disabled={syncState.isSyncing}
                   onClick={() => handleSyncSectionContent(s)}
                   className="w-full rounded-xl font-bold h-12 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all flex items-center justify-center gap-2"
                 >
-                  {syncingSections[s.number] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  <Zap className="w-4 h-4" />
                   <span>{s.isSynced ? 'Resync Data' : 'Sync Data'}</span>
                 </Button>
                 {s.isSynced && (
