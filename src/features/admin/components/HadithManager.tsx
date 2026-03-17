@@ -213,7 +213,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isSyncingEditions, setIsSyncingEditions] = useState(false);
   
   const [syncState, setSyncState] = useState({
     isSyncing: false,
@@ -235,33 +234,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
     e.language.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const handleSyncEditionsList = async () => {
-    setIsSyncingEditions(true);
-    try {
-      const registry = await fetchHadithRegistry();
-      const bookData = registry[bookId];
-      if (!bookData) throw new Error(`Collection '${bookId}' not found in registry.`);
-
-      const batch = writeBatch(db);
-      bookData.collection.forEach((ed) => {
-        const editionRef = doc(db, 'hadith_editions', ed.name);
-        batch.set(editionRef, {
-          ...ed,
-          id: ed.name,
-          bookId: bookId,
-          indexSynced: editions?.find(existing => existing.id === ed.name)?.indexSynced || 'no'
-        }, { merge: true });
-      });
-
-      await batch.commit();
-      toast({ title: "Editions Indexed", description: `Updated ${bookData.collection.length} language versions for ${bookId}.` });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Edition Sync Failed", description: e.message });
-    } finally {
-      setIsSyncingEditions(false);
-    }
-  };
 
   const handleSyncIndex = async (edition: FawazEdition) => {
     setSyncState({ isSyncing: true, progress: 0, status: 'fetching structure', targetEdition: edition.name });
@@ -323,7 +295,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 shadow-xl border-t border-white/5">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 shadow-xl border-t border-white/5">
         <div className="flex items-center gap-6">
           <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 transition-all active:scale-90">
             <ArrowLeft className="w-5 h-5" />
@@ -342,15 +314,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
             <Input placeholder="Filter matrix..." className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-12" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          <Button 
-            variant="outline"
-            className="rounded-xl h-12 px-6 font-bold border-white text-white hover:bg-white hover:text-black shadow-lg flex items-center gap-2 transition-all"
-            onClick={handleSyncEditionsList}
-            disabled={isSyncingEditions}
-          >
-            {isSyncingEditions ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            <span>Sync Editions</span>
-          </Button>
         </div>
       </div>
 
