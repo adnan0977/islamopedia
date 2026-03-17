@@ -185,7 +185,7 @@ export function QuranHub({ editions }: QuranHubProps) {
               <CloudDownload className="mr-2 h-4 w-4" /> Sync Standard Arabic
             </Button>
           </div>
-        </Alert>Standard Edition
+        </Alert>
       )}
 
       <Tabs defaultValue="directory" className="w-full">
