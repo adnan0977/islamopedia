@@ -29,7 +29,7 @@
     },
     "HadithBook": {
       "title": "Hadith Book",
-      "description": "A primary collection of Hadith (e.g. Sahih Bukhari).",
+      "description": "A primary canonical collection of Hadith (e.g. Sahih Bukhari).",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -59,7 +59,7 @@
     },
     "HadithReference": {
       "title": "Hadith Reference",
-      "description": "Mapping of internal API references to maintain uniqueness.",
+      "description": "Unique mapping of internal API references to maintain uniqueness across editions.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -88,7 +88,7 @@
     },
     "/hadith_books/{bookId}": {
       "schema": "HadithBook",
-      "description": "Primary Hadith collections."
+      "description": "Primary canonical Hadith collections."
     },
     "/hadith_editions/{editionId}": {
       "schema": "HadithEdition",
@@ -96,23 +96,23 @@
     },
     "/hadith_data/{contentId}": {
       "schema": "object",
-      "description": "Individual Hadith records."
+      "description": "Individual Prophetic records."
     },
     "/hadith_index/{indexId}": {
       "schema": "object",
-      "description": "Chapter definitions for a Hadith book."
+      "description": "Chapter/Section definitions for a Hadith book."
     },
     "/hadith_reference/{refId}": {
       "schema": "HadithReference",
-      "description": "Unique mapping of Prophetic references."
+      "description": "Unique cross-edition Prophetic references."
     },
     "/roles_admin/{userId}": {
       "schema": "object",
-      "description": "Admin marker."
+      "description": "Admin security marker."
     },
     "/settings/{settingId}": {
       "schema": "object",
-      "description": "Global config."
+      "description": "Global application configuration."
     }
   }
 }
