@@ -11,6 +11,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const db = useFirestore();
@@ -45,7 +46,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-[2.5rem] bg-zinc-950 px-6 py-12 md:px-16 md:py-24 text-white shadow-2xl">
         <div className="relative z-10 grid gap-12 md:grid-cols-2 items-center">
-          <div className="space-y-8">
+          <div className="space-y-8 text-center md:text-left">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10">
               <Badge variant="secondary" className="bg-primary text-primary-foreground">NEW</Badge>
               <span>Explore Chapter 4: The Path of Wisdom</span>
@@ -54,15 +55,15 @@ export default function Home() {
               Spiritual <br />
               <span className="text-zinc-500">Reflections.</span>
             </h1>
-            <p className="text-xl text-zinc-400 max-w-[500px] leading-relaxed">
+            <p className="text-xl text-zinc-400 max-w-[500px] leading-relaxed mx-auto md:mx-0">
               A high-performance library of prophetic traditions and deep spiritual insights from leading scholars.
             </p>
-            <div className="flex flex-wrap gap-4 pt-4">
-              <Button size="lg" className="rounded-full h-14 px-10 gap-3 text-base font-bold shadow-xl shadow-primary/20">
-                <Play className="h-5 w-5 fill-current" /> Start Watching
+            <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
+              <Button size="lg" className="rounded-full h-14 px-10 gap-3 text-base font-bold shadow-xl shadow-primary/20" asChild>
+                <Link href="/videos"><Play className="h-5 w-5 fill-current" /> Start Watching</Link>
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full h-14 px-10 bg-transparent text-white border-white/20 hover:bg-white/10 text-base font-bold">
-                Browse Hadith
+              <Button size="lg" variant="outline" className="rounded-full h-14 px-10 bg-transparent text-white border-white/20 hover:bg-white/10 text-base font-bold" asChild>
+                <Link href="/hadith">Browse Hadith</Link>
               </Button>
             </div>
           </div>
@@ -123,7 +124,7 @@ export default function Home() {
           <p className="text-muted-foreground max-w-xl mx-auto text-base font-medium">Explore profiles and insights from leading teachers providing depth to modern challenges.</p>
         </div>
         
-        <div className="flex gap-8 overflow-x-auto pb-8 scrollbar-hide snap-x px-4">
+        <div className="flex gap-8 overflow-x-auto pb-8 snap-x px-4 no-scrollbar">
           {speakers?.map((speaker) => (
             <Link key={speaker.id} href={`/videos?speakerId=${speaker.id}`} className="group shrink-0 snap-center">
               <div className="flex flex-col items-center space-y-5">
