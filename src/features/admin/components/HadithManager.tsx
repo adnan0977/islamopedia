@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, writeBatch, where, limit, orderBy } from 'firebase/firestore';
 import { 
@@ -37,7 +37,11 @@ import {
   Link2,
   ListTree,
   Database as DatabaseIcon,
-  Zap
+  Zap,
+  Eye,
+  Pencil,
+  Save,
+  Type
 } from 'lucide-react';
 import { 
   Table, 
@@ -52,10 +56,13 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription 
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { fetchHadithRegistry, fetchHadithEditionContent, FawazEdition, FawazRegistry } from '@/services/hadith-api';
@@ -386,9 +393,9 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 }
 
 /**
- * Level 3: Granular Data Inspector (Chapter Card Grid)
+ * Level 3: Granular Data Inspector (Section Grid)
  */
-export function HadithDataView({ editionId, onBack }: { editionId: string, onBack: () => void }) {
+export function HadithDataView({ editionId, onBack, onViewSection }: { editionId: string, onBack: () => void, onViewSection: (num: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -402,18 +409,23 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
 
   const sections = useMemo(() => {
     if (!indexDoc?.sections) return [];
-    return Object.entries(indexDoc.sections).map(([num, name]) => {
-      const details = indexDoc.sectionDetails?.[num] || {};
-      return {
-        number: num,
-        name: name as string,
-        start_hadith_number: details.hadithnumber_first ?? 0,
-        last_hadith_number: details.hadithnumber_last ?? 0
-      };
-    }).filter(s => 
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.number.includes(searchTerm)
-    ).sort((a, b) => parseInt(a.number) - parseInt(b.number));
+    return Object.entries(indexDoc.sections)
+      .filter(([num]) => num !== '0')
+      .map(([num, name]) => {
+        const details = indexDoc.sectionDetails?.[num] || {};
+        return {
+          number: num,
+          name: name as string,
+          start_hadith_number: details.hadithnumber_first ?? 0,
+          last_hadith_number: details.hadithnumber_last ?? 0,
+          isSynced: !!indexDoc.syncedSections?.[num]
+        };
+      })
+      .filter(s => 
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.number.includes(searchTerm)
+      )
+      .sort((a, b) => parseInt(a.number) - parseInt(b.number));
   }, [indexDoc, searchTerm]);
 
   const handleSyncSectionContent = async (section: any) => {
@@ -452,8 +464,13 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
         }, { merge: true });
       });
 
+      // Mark as synced in the index
+      const syncedMap = indexDoc?.syncedSections || {};
+      syncedMap[section.number] = true;
+      batch.update(indexRef, { syncedSections: syncedMap });
+
       await batch.commit();
-      toast({ title: "Section Synchronized", description: `Ingested ${inRange.length} Prophetic records for chapter ${section.number}.` });
+      toast({ title: "Section Synchronized", description: `Ingested ${inRange.length} records for chapter ${section.number}.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Section Sync Failed", description: e.message });
     } finally {
@@ -469,10 +486,10 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{indexDoc?.name || 'Edition'} Inspection</h2>
+            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">{indexDoc?.name || 'Edition'} Analysis</h2>
             <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
               <DatabaseIcon className="w-3 h-3" />
-              <span>Chapter-Level Data Ingestion</span>
+              <span>Section Data Control</span>
             </div>
           </div>
         </div>
@@ -501,7 +518,9 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
                   <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 shadow-inner">
                     <span className="text-xs font-black text-zinc-500">#{s.number}</span>
                   </div>
-                  <Badge variant="outline" className="border-zinc-800 text-[8px] font-black uppercase tracking-widest text-zinc-600">Chapter Node</Badge>
+                  <Badge variant="outline" className={cn("border-zinc-800 text-[8px] font-black uppercase tracking-widest", s.isSynced ? "text-emerald-500" : "text-zinc-600")}>
+                    {s.isSynced ? 'SYNCED' : 'PENDING'}
+                  </Badge>
                 </div>
                 <CardTitle className="text-sm font-bold text-zinc-100 group-hover:text-white transition-colors leading-relaxed line-clamp-2 min-h-[2.5rem]">{s.name}</CardTitle>
               </CardHeader>
@@ -519,7 +538,7 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
                 </div>
               </CardContent>
 
-              <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900">
+              <CardFooter className="p-8 bg-zinc-900/10 border-t border-zinc-900 flex flex-col gap-3">
                 <Button 
                   variant="outline" 
                   disabled={syncingSections[s.number]}
@@ -527,19 +546,170 @@ export function HadithDataView({ editionId, onBack }: { editionId: string, onBac
                   className="w-full rounded-xl font-bold h-12 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all flex items-center justify-center gap-2"
                 >
                   {syncingSections[s.number] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                  <span>Sync Section</span>
+                  <span>{s.isSynced ? 'Resync Data' : 'Sync Data'}</span>
                 </Button>
+                {s.isSynced && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => onViewSection(s.number)}
+                    className="w-full rounded-xl font-bold h-12 bg-zinc-900/50 text-white hover:bg-zinc-800 transition-all flex items-center justify-center gap-2 border border-zinc-800"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>View Data</span>
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           ))}
-          {sections.length === 0 && !isLoading && (
-            <div className="col-span-full py-32 text-center bg-zinc-950/30 rounded-[3rem] border-2 border-dashed border-zinc-900">
-               <FilterX className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-               <p className="text-zinc-600 font-medium">No chapters found matching "{searchTerm}"</p>
-            </div>
-          )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Level 4: Section Record Table View
+ */
+export function HadithSectionRecordsView({ editionId, sectionNumber, onBack }: { editionId: string, sectionNumber: string, onBack: () => void }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+
+  const recordsQuery = useMemoFirebase(() => query(
+    collection(db, 'hadith_data'),
+    where('editionId', '==', editionId),
+    where('sectionNumber', '==', sectionNumber),
+    orderBy('hadithnumber', 'asc'),
+    limit(200)
+  ), [db, editionId, sectionNumber]);
+
+  const { data: records, isLoading } = useCollection(recordsQuery);
+
+  const handleEdit = (record: any) => {
+    setEditingRecord({ ...record });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingRecord) return;
+    updateDocumentNonBlocking(doc(db, 'hadith_data', editingRecord.id), {
+      hadithArabic: editingRecord.hadithArabic,
+      hadithUrdu: editingRecord.hadithUrdu,
+      hadithEnglish: editingRecord.hadithEnglish,
+      updatedAt: new Date().toISOString()
+    });
+    toast({ title: "Record Updated" });
+    setIsEditDialogOpen(false);
+  };
+
+  return (
+    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+      <div className="flex items-center justify-between bg-zinc-950 p-8 rounded-[2.5rem] border border-zinc-900 border-t border-white/5 shadow-2xl">
+        <div className="flex items-center gap-6">
+          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl border border-zinc-900 bg-zinc-900/30 text-zinc-500 hover:text-white h-12 w-12 flex items-center justify-center transition-all active:scale-90">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-headline font-bold text-white tracking-tight">Records: Section {sectionNumber}</h2>
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-600 tracking-widest">
+              <TableIcon className="w-3 h-3" />
+              <span>Granular Record Management</span>
+            </div>
+          </div>
+        </div>
+        <Badge variant="outline" className="h-10 px-6 rounded-xl border-zinc-800 text-zinc-500 font-bold">
+          {records?.length || 0} Records Loaded
+        </Badge>
+      </div>
+
+      <Card className="bg-zinc-950 border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl border-t border-white/5">
+        <Table className="w-full">
+          <TableHeader className="bg-zinc-900/50">
+            <TableRow className="border-zinc-900 h-16">
+              <TableHead className="pl-10 text-[9px] font-black uppercase text-zinc-600 w-24">#</TableHead>
+              <TableHead className="text-[9px] font-black uppercase text-zinc-600">Script Content</TableHead>
+              <TableHead className="text-[9px] font-black uppercase text-zinc-600 text-right pr-10">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-zinc-800" /></TableCell></TableRow>
+            ) : records?.map((r) => (
+              <TableRow key={r.id} className="border-zinc-900 h-32 hover:bg-zinc-900/40 transition-colors">
+                <TableCell className="pl-10">
+                  <span className="text-xs font-mono font-bold text-zinc-500">#{r.hadithnumber}</span>
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-3 max-w-3xl">
+                    <p className="font-arabic text-xl text-zinc-300 line-clamp-1" dir="rtl">{r.hadithArabic}</p>
+                    <p className="text-xs text-zinc-500 italic line-clamp-2 leading-relaxed">
+                      {r.hadithEnglish || r.hadithUrdu || 'No translation loaded.'}
+                    </p>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right pr-10">
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)} className="h-10 px-5 text-zinc-500 hover:text-white transition-all border border-transparent hover:border-zinc-800 rounded-xl">
+                    <Pencil className="w-4 h-4 mr-2" />
+                    <span className="font-bold">Edit</span>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-3xl bg-zinc-950 border-zinc-900 text-white rounded-[2.5rem] p-0 outline-none overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-8 border-b border-zinc-900 bg-zinc-900/40">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-zinc-500" />
+              Edit Prophetic Record
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500 text-xs mt-1">Direct modification of authentic text and language mappings.</DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-8 space-y-8 overflow-y-auto flex-1">
+            <div className="space-y-4">
+              <Label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest flex items-center gap-2">
+                <DatabaseIcon className="w-3 h-3" /> Arabic Script
+              </Label>
+              <Textarea 
+                dir="rtl"
+                className="bg-zinc-900 border-zinc-800 min-h-[150px] font-arabic text-2xl text-zinc-300 rounded-2xl leading-relaxed"
+                value={editingRecord?.hadithArabic || ''}
+                onChange={(e) => setEditingRecord({ ...editingRecord, hadithArabic: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest flex items-center gap-2">
+                <Type className="w-3 h-3" /> Translation Content
+              </Label>
+              <Textarea 
+                className="bg-zinc-900 border-zinc-800 min-h-[150px] text-sm text-zinc-400 italic rounded-2xl leading-relaxed"
+                value={editingRecord?.hadithEnglish || editingRecord?.hadithUrdu || ''}
+                onChange={(e) => {
+                  const key = editingRecord?.hadithEnglish ? 'hadithEnglish' : 'hadithUrdu';
+                  setEditingRecord({ ...editingRecord, [key]: e.target.value });
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="p-8 bg-zinc-900/20 border-t border-zinc-900 flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold text-zinc-500">Cancel</Button>
+            <Button 
+              variant="outline" 
+              onClick={handleSaveEdit}
+              className="rounded-xl h-12 px-10 font-bold border-white text-white hover:bg-white hover:text-black transition-all flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" /> Save Record
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

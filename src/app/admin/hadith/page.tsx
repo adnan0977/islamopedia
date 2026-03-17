@@ -4,7 +4,7 @@
 import { Suspense } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { HadithManager, HadithBookDetailView, HadithDataView } from '@/features/admin/components/HadithManager';
+import { HadithManager, HadithBookDetailView, HadithDataView, HadithSectionRecordsView } from '@/features/admin/components/HadithManager';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -12,7 +12,8 @@ import { Loader2 } from 'lucide-react';
  * Handles the hierarchical switching logic for Hadith management:
  * 1. Book Registry (Default)
  * 2. Edition Grid (when bookId is present)
- * 3. Data Table (when both bookId and editionId are present)
+ * 3. Section Grid (when both bookId and editionId are present)
+ * 4. Records Table (when bookId, editionId, and sectionNumber are present)
  */
 function HadithAdminContent() {
   const db = useFirestore();
@@ -21,6 +22,7 @@ function HadithAdminContent() {
   
   const bookId = searchParams.get('bookId');
   const editionId = searchParams.get('editionId');
+  const sectionNumber = searchParams.get('section');
 
   const navigateTo = (params: Record<string, string | null>) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -31,12 +33,24 @@ function HadithAdminContent() {
     router.push(`/admin/hadith?${nextParams.toString()}`);
   };
 
-  // Level 3: Granular Data Inspector
+  // Level 4: Granular Record Inspector
+  if (bookId && editionId && sectionNumber) {
+    return (
+      <HadithSectionRecordsView 
+        editionId={editionId}
+        sectionNumber={sectionNumber}
+        onBack={() => navigateTo({ section: null })}
+      />
+    );
+  }
+
+  // Level 3: Section Grid
   if (bookId && editionId) {
     return (
       <HadithDataView 
         editionId={editionId} 
         onBack={() => navigateTo({ editionId: null })} 
+        onViewSection={(num) => navigateTo({ section: num })}
       />
     );
   }
