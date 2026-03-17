@@ -48,7 +48,8 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Top Header - Hidden on Mobile/Tablet, Visible on Desktop */}
+      <header className="hidden lg:block sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-8">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center space-x-2">
@@ -58,8 +59,7 @@ export function Navbar() {
               <span className="inline-block font-bold text-xl tracking-tighter">VlogNest</span>
             </Link>
 
-            {/* Desktop Nav - Only for lg screens and above */}
-            <NavigationMenu className="hidden lg:flex">
+            <NavigationMenu>
               <NavigationMenuList>
                 {filteredNavItems.map((item) => (
                   <NavigationMenuItem key={item.href}>
@@ -110,7 +110,7 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Unified Tablet & Mobile Nav (Bottom Bar) - Visible below lg breakpoint */}
+      {/* Shared Mobile/Tablet Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background lg:hidden shadow-[0_-1px_10px_rgba(0,0,0,0.05)]">
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
