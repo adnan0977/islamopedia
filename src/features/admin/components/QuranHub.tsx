@@ -1,21 +1,17 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, writeBatch, query, where, collection, limit } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, writeBatch, query, collection, limit } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Trash2, 
   Loader2, 
-  Search, 
-  Download, 
   AlertCircle,
-  CheckCircle2,
   BookOpen,
   ChevronRight,
-  ChevronLeft,
   Database,
   Power,
   PowerOff,
@@ -23,21 +19,10 @@ import {
   RefreshCw,
   Type as TypeIcon,
   Mic,
-  FilterX,
-  Globe,
-  Pencil,
   ArrowLeft,
   Table as TableIcon,
   FileText
 } from 'lucide-react';
-import { Input } from "@/components/ui/input"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select"
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getAllAlQuranEditions, getFullQuran, getQuranMetadata } from '@/lib/api';
@@ -48,7 +33,6 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
 
 interface QuranHubProps {
   editions: any[];
@@ -201,7 +185,7 @@ export function QuranHub({ editions }: QuranHubProps) {
               <CloudDownload className="mr-2 h-4 w-4" /> Sync Standard Arabic
             </Button>
           </div>
-        </Alert>
+        </Alert>Standard Edition
       )}
 
       <Tabs defaultValue="directory" className="w-full">
@@ -237,17 +221,8 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [metaLoading, setMetaLoading] = useState(false);
-  const [dirSearch, setDirSearch] = useState('');
-  const [filterFormat, setFilterFormat] = useState('all');
-  const [filterLanguage, setFilterLanguage] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType, setFilterType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
-
-  const languages = useMemo(() => Array.from(new Set(editions.map(e => e.language).filter(Boolean))).sort(), [editions]);
-  const formats = useMemo(() => Array.from(new Set(editions.map(e => e.format).filter(Boolean))).sort(), [editions]);
-  const types = useMemo(() => Array.from(new Set(editions.map(e => e.type).filter(Boolean))).sort(), [editions]);
 
   const fetchAndSeedRegistry = async () => {
     setLoading(true);
@@ -283,20 +258,8 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
     toast({ title: !currentStatus ? "Activated" : "Deactivated" });
   };
 
-  const filteredEditions = useMemo(() => editions.filter(e => {
-    const matchesSearch = e.name?.toLowerCase().includes(dirSearch.toLowerCase()) || e.id?.toLowerCase().includes(dirSearch.toLowerCase());
-    const matchesLanguage = filterLanguage === 'all' || e.language === filterLanguage;
-    const matchesFormat = filterFormat === 'all' || e.format === filterFormat;
-    const matchesType = filterType === 'all' || e.type === filterType;
-    let matchesStatus = true;
-    if (filterStatus === 'active') matchesStatus = e.isActive;
-    else if (filterStatus === 'inactive') matchesStatus = !e.isActive;
-    else if (filterStatus === 'synced') matchesStatus = e.dataSync === 'yes';
-    return matchesSearch && matchesLanguage && matchesFormat && matchesType && matchesStatus;
-  }), [editions, dirSearch, filterLanguage, filterFormat, filterStatus, filterType]);
-
-  const paginatedEditions = useMemo(() => filteredEditions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [filteredEditions, currentPage]);
-  const totalPages = Math.ceil(filteredEditions.length / itemsPerPage);
+  const paginatedEditions = useMemo(() => editions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [editions, currentPage]);
+  const totalPages = Math.ceil(editions.length / itemsPerPage);
 
   const handleCardClick = (id: string, isSynced: boolean) => {
     if (isSynced) {
@@ -309,9 +272,9 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
   return (
     <div className="space-y-10">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2rem] border border-zinc-900 shadow-xl border-t border-white/5">
-        <div className="space-y-2">
+        <div className="space-y-2 text-center md:text-left">
           <h3 className="font-headline font-bold text-2xl text-white">Platform Registry</h3>
-          <p className="text-sm text-zinc-500">Manage and filter {editions.length} indexed Quranic editions.</p>
+          <p className="text-sm text-zinc-500">Manage and oversee {editions.length} indexed Quranic editions.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={fetchAndSeedMetadata} disabled={metaLoading} className="rounded-xl h-12 px-8 font-bold border-zinc-800 text-zinc-400 hover:border-white hover:text-white transition-all">
@@ -321,16 +284,6 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CloudDownload className="w-4 h-4 mr-2" />} Seed Registry
           </Button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input placeholder="Search registry..." className="bg-zinc-950 border-zinc-900 h-14 pl-12 rounded-2xl text-white" value={dirSearch} onChange={(e) => setDirSearch(e.target.value)} />
-        </div>
-        <Select value={filterLanguage} onValueChange={setFilterLanguage}><SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white"><SelectValue placeholder="Language" /></SelectTrigger><SelectContent className="bg-zinc-950 border-zinc-800 text-white"><SelectItem value="all">All Languages</SelectItem>{languages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-        <Select value={filterType} onValueChange={setFilterType}><SelectTrigger className="bg-zinc-950 border-zinc-900 h-14 rounded-2xl text-white"><SelectValue placeholder="Type" /></SelectTrigger><SelectContent className="bg-zinc-950 border-zinc-800 text-white"><SelectItem value="all">All Types</SelectItem>{types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
-        <Button variant="ghost" onClick={() => { setDirSearch(''); setFilterLanguage('all'); setFilterType('all'); }} className="h-14 px-6 rounded-2xl text-zinc-500 hover:text-white transition-all"><FilterX className="w-5 h-5 mr-2" /> Reset Filters</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -380,8 +333,6 @@ function EditionDirectory({ editions, performSync, syncing }: { editions: any[],
 
 export function QuranEditionDataView({ editionId, onBack }: { editionId: string, onBack: () => void }) {
   const db = useFirestore();
-  const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
 
@@ -398,9 +349,8 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
     }))).sort((a, b) => a.number - b.number);
   }, [surahs]);
 
-  const filteredAyats = useMemo(() => allAyats.filter(a => a.text?.toLowerCase().includes(searchTerm.toLowerCase()) || a.translationText?.toLowerCase().includes(searchTerm.toLowerCase()) || a.surahName?.toLowerCase().includes(searchTerm.toLowerCase())), [allAyats, searchTerm]);
-  const paginatedAyats = useMemo(() => filteredAyats.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [filteredAyats, currentPage]);
-  const totalPages = Math.ceil(filteredAyats.length / itemsPerPage);
+  const paginatedAyats = useMemo(() => allAyats.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [allAyats, currentPage]);
+  const totalPages = Math.ceil(allAyats.length / itemsPerPage);
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -414,10 +364,6 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
               <span>Granular Verse Registry</span>
             </div>
           </div>
-        </div>
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input placeholder="Search within edition..." className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-14" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
@@ -453,7 +399,7 @@ export function QuranEditionDataView({ editionId, onBack }: { editionId: string,
                   <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed italic max-w-sm">{a.translationText || '---'}</p>
                 </TableCell>
                 <TableCell className="text-right pr-10">
-                  <Button variant="ghost" size="sm" className="h-10 px-5 text-zinc-500 hover:text-white transition-all border border-transparent hover:border-zinc-800 rounded-xl" onClick={() => toast({ title: "Granular Edit Tool Incoming" })}>
+                  <Button variant="ghost" size="sm" className="h-10 px-5 text-zinc-500 hover:text-white transition-all border border-transparent hover:border-zinc-800 rounded-xl">
                     <Pencil className="w-4 h-4 mr-2" />
                     <span className="font-bold">Edit</span>
                   </Button>

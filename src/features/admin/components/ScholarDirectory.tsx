@@ -16,14 +16,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  Mic2, 
-  Search, 
   Plus, 
   Trash2, 
   Loader2,
   Settings,
   UserCheck,
-  Video,
   UserPlus
 } from 'lucide-react';
 import {
@@ -47,12 +44,10 @@ import {
 import Image from 'next/image';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
 
 export function ScholarDirectory() {
   const db = useFirestore();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [newScholar, setNewScholar] = useState({ id: '', name: '', profileImageUrl: '' });
@@ -64,10 +59,6 @@ export function ScholarDirectory() {
   ), [db]);
 
   const { data: scholars, isLoading } = useCollection(scholarsQuery);
-
-  const filteredScholars = scholars?.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const handleAddScholar = () => {
     if (!newScholar.name || !newScholar.id) {
@@ -106,10 +97,10 @@ export function ScholarDirectory() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input placeholder="Search scholars..." className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-12" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2rem] border border-zinc-900 shadow-xl border-t border-white/5">
+        <div className="space-y-1 text-center md:text-left">
+          <h2 className="text-2xl font-headline font-bold text-white tracking-tight">Scholar Registry</h2>
+          <p className="text-xs text-zinc-500 font-medium">Manage featured spiritual teachers and their profiles.</p>
         </div>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -130,15 +121,15 @@ export function ScholarDirectory() {
             <div className="p-8 space-y-6">
               <div className="grid gap-2">
                 <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Name</Label>
-                <Input placeholder="e.g. Dr. Israr Ahmed" className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={newScholar.name} onChange={(e) => setNewScholar({ ...newScholar, name: e.target.value })} />
+                <Input placeholder="e.g. Dr. Israr Ahmed" className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white" value={newScholar.name} onChange={(e) => setNewScholar({ ...newScholar, name: e.target.value })} />
               </div>
               <div className="grid gap-2">
                 <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">ID Slug</Label>
-                <Input placeholder="e.g. dr-israr-ahmed" className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={newScholar.id} onChange={(e) => setNewScholar({ ...newScholar, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })} />
+                <Input placeholder="e.g. dr-israr-ahmed" className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white" value={newScholar.id} onChange={(e) => setNewScholar({ ...newScholar, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })} />
               </div>
               <div className="grid gap-2">
                 <Label className="text-zinc-500 uppercase text-[9px] font-black tracking-widest">Profile Image URL</Label>
-                <Input placeholder="https://..." className="bg-zinc-900 border-zinc-800 h-12 rounded-xl" value={newScholar.profileImageUrl} onChange={(e) => setNewScholar({ ...newScholar, profileImageUrl: e.target.value })} />
+                <Input placeholder="https://..." className="bg-zinc-900 border-zinc-800 h-12 rounded-xl text-white" value={newScholar.profileImageUrl} onChange={(e) => setNewScholar({ ...newScholar, profileImageUrl: e.target.value })} />
               </div>
               <Button 
                 variant="outline"
@@ -167,7 +158,7 @@ export function ScholarDirectory() {
       </AlertDialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredScholars?.map((scholar) => (
+        {scholars?.map((scholar) => (
           <Card key={scholar.id} className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group shadow-xl">
             <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
               <div className="flex items-center gap-5">

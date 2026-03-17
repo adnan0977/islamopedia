@@ -6,7 +6,6 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { 
   Card, 
-  CardContent, 
   CardHeader, 
   CardTitle, 
   CardDescription 
@@ -26,12 +25,9 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Video as VideoIcon, 
-  Search, 
   Trash2, 
   Smartphone,
-  Eye,
   Loader2,
-  TrendingUp,
   Plus,
   ChevronLeft,
   ChevronRight,
@@ -56,7 +52,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialog";
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -66,7 +62,6 @@ import { cn } from '@/lib/utils';
 export function VideoCatalog() {
   const db = useFirestore();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
@@ -91,24 +86,13 @@ export function VideoCatalog() {
   ), [db]);
   const { data: videos, isLoading: isLoadingVideos } = useCollection(videosQuery);
 
-  const filteredVideos = useMemo(() => {
-    if (!videos) return [];
-    return videos.filter(v => 
-      v.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.channelId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [videos, searchTerm]);
-
   const paginatedVideos = useMemo(() => {
+    if (!videos) return [];
     const start = (currentPage - 1) * itemsPerPage;
-    return filteredVideos.slice(start, start + itemsPerPage);
-  }, [filteredVideos, currentPage]);
+    return videos.slice(start, start + itemsPerPage);
+  }, [videos, currentPage]);
 
-  const totalPages = Math.ceil(filteredVideos.length / itemsPerPage);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+  const totalPages = Math.ceil((videos?.length || 0) / itemsPerPage);
 
   const handleOpenEdit = (video: any) => {
     setVideoFormData({
@@ -137,15 +121,10 @@ export function VideoCatalog() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input 
-            placeholder="Search library..." 
-            className="pl-12 bg-zinc-900 border-zinc-800 text-white rounded-2xl h-12"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2rem] border border-zinc-900 shadow-xl border-t border-white/5">
+        <div className="space-y-1 text-center md:text-left">
+          <h2 className="text-2xl font-headline font-bold text-white tracking-tight">Content Inventory</h2>
+          <p className="text-xs text-zinc-500 font-medium">Categorize and moderate cataloged spiritual content.</p>
         </div>
         <Button 
           variant="outline"

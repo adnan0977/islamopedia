@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useState, useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, writeBatch, where, limit, orderBy, getDocs } from 'firebase/firestore';
 import { 
   Card, 
@@ -13,13 +13,9 @@ import {
   CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { 
   Loader2, 
   Trash2, 
-  BookOpen, 
-  Hash,
-  RefreshCw,
   Library,
   ScrollText,
   Database,
@@ -27,14 +23,8 @@ import {
   ArrowLeft,
   Languages,
   CloudDownload,
-  CheckCircle2,
   Table as TableIcon,
-  Search,
-  FilterX,
-  FileText,
   DatabaseZap,
-  BookMarked,
-  Link2,
   ListTree,
   Database as DatabaseIcon,
   Zap,
@@ -56,8 +46,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription,
-  DialogFooter
+  DialogDescription
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -65,7 +54,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { fetchHadithRegistry, fetchHadithEditionContent, FawazEdition, FawazRegistry } from '@/services/hadith-api';
+import { fetchHadithRegistry, fetchHadithEditionContent, FawazEdition } from '@/services/hadith-api';
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const ALLOWED_SLUGS = [
@@ -93,42 +82,70 @@ export function HadithManager() {
     setIsSeeding(true);
     try {
       const registry = await fetchHadithRegistry();
-      const batch = writeBatch(db);
       
-      let seededEditionsCount = 0;
+      // Optimization: Fetch existing editions to compare and reduce writes
+      const editionsSnap = await getDocs(collection(db, 'hadith_editions'));
+      const existingEditions = new Map(editionsSnap.docs.map(d => [d.id, d.data()]));
+      
+      const existingBooksMap = new Map(books?.map(b => [b.id, b]) || []);
+
+      const batch = writeBatch(db);
+      let updatesCount = 0;
 
       ALLOWED_SLUGS.forEach(slug => {
         if (registry[slug]) {
           const bookData = registry[slug];
+          const existingBook = existingBooksMap.get(slug);
           
-          // 1. Update Master Book record
-          const bookRef = doc(db, 'hadith_books', slug);
-          batch.set(bookRef, {
+          const bookPayload = {
             id: slug,
             bookName: bookData.name,
-            editionCount: bookData.collection.length,
-            lastSyncedAt: new Date().toISOString()
-          }, { merge: true });
+            editionCount: bookData.collection.length
+          };
 
-          // 2. Simultaneously update all Editions for this book
+          // Only write if book metadata changed
+          if (!existingBook || existingBook.bookName !== bookPayload.bookName || existingBook.editionCount !== bookPayload.editionCount) {
+            const bookRef = doc(db, 'hadith_books', slug);
+            batch.set(bookRef, { ...bookPayload, lastSyncedAt: new Date().toISOString() }, { merge: true });
+            updatesCount++;
+          }
+
           bookData.collection.forEach((ed) => {
-            const editionRef = doc(db, 'hadith_editions', ed.name);
-            batch.set(editionRef, {
-              ...ed,
-              id: ed.name,
-              bookId: slug,
-              updatedAt: new Date().toISOString()
-            }, { merge: true });
-            seededEditionsCount++;
+            const existingEd = existingEditions.get(ed.name);
+            
+            // Optimization: Only update if fields are different
+            const isChanged = !existingEd || 
+              existingEd.author !== ed.author || 
+              existingEd.language !== ed.language || 
+              existingEd.linkmin !== ed.linkmin ||
+              existingEd.bookId !== slug;
+
+            if (isChanged) {
+              const editionRef = doc(db, 'hadith_editions', ed.name);
+              batch.set(editionRef, {
+                ...ed,
+                id: ed.name,
+                bookId: slug,
+                updatedAt: new Date().toISOString()
+              }, { merge: true });
+              updatesCount++;
+            }
           });
         }
       });
 
-      await batch.commit();
-      toast({ 
-        title: "Registry Fully Synchronized", 
-        description: `Successfully indexed 10 books and ${seededEditionsCount} language editions.` 
-      });
+      if (updatesCount > 0) {
+        await batch.commit();
+        toast({ 
+          title: "Registry Synchronized", 
+          description: `Applied ${updatesCount} updates to books and editions.` 
+        });
+      } else {
+        toast({ 
+          title: "Database Up to Date", 
+          description: "No changes detected in the canonical source." 
+        });
+      }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Seeding Failed", description: e.message });
     } finally {

@@ -8,13 +8,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import { 
   Loader2, 
-  Youtube, 
-  RefreshCw, 
   Plus, 
-  Search, 
   Power, 
   PowerOff, 
   Trash2,
@@ -49,7 +45,6 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { fetchYouTubeChannels, fetchYouTubeChannelByHandle, fetchPlaylistVideos } from '@/services/youtube-server';
-import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from '@/lib/utils';
@@ -65,9 +60,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncingVideosFor, setSyncingVideosFor] = useState<string | null>(null);
-  
   const [bulkIds, setBulkBulkIds] = useState(DEFAULT_IDS);
-  const [searchTerm, setSearchTerm] = useState('');
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -77,10 +70,6 @@ export function ChannelHub({ videos }: { videos: any[] }) {
     limit(100)
   ), [db]);
   const { data: linkedChannels, isLoading: isLoadingChannels } = useCollection(channelsQuery);
-
-  const filteredChannels = linkedChannels?.filter(ch => 
-    ch.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const extractSelectors = (text: string) => {
     const idMatches = text.match(/UC[a-zA-Z0-9_-]{22}/g) || [];
@@ -173,10 +162,10 @@ export function ChannelHub({ videos }: { videos: any[] }) {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full overflow-hidden">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-6 rounded-3xl border border-zinc-900 shadow-xl">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <Input placeholder="Search creators..." className="bg-zinc-900 border-zinc-800 pl-12 rounded-2xl h-12" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-950 p-8 rounded-[2rem] border border-zinc-900 shadow-xl border-t border-white/5">
+        <div className="space-y-1 text-center md:text-left">
+          <h2 className="text-2xl font-headline font-bold text-white tracking-tight">Channel Synchronization</h2>
+          <p className="text-xs text-zinc-500 font-medium">Link and manage authorized YouTube creator feeds.</p>
         </div>
 
         <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
@@ -195,7 +184,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
               <DialogDescription className="text-zinc-500 text-xs mt-1">Paste YouTube IDs or Handles below.</DialogDescription>
             </DialogHeader>
             <div className="p-8 space-y-6">
-              <Textarea placeholder="UC... or @handle" className="bg-zinc-900 border-zinc-800 h-48 rounded-2xl p-6" value={bulkIds} onChange={(e) => setBulkBulkIds(e.target.value)} />
+              <Textarea placeholder="UC... or @handle" className="bg-zinc-900 border-zinc-800 h-48 rounded-2xl p-6 text-white" value={bulkIds} onChange={(e) => setBulkBulkIds(e.target.value)} />
               <Button 
                 variant="outline"
                 className="w-full h-12 font-bold rounded-xl border-white text-white hover:bg-white hover:text-black shadow-xl transition-all flex items-center justify-center gap-2" 
@@ -241,7 +230,7 @@ export function ChannelHub({ videos }: { videos: any[] }) {
             <TableBody>
               {isLoadingChannels ? (
                 <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-zinc-800" /></TableCell></TableRow>
-              ) : filteredChannels?.map((channel) => (
+              ) : linkedChannels?.map((channel) => (
                 <TableRow key={channel.id} className="border-zinc-900 h-24 hover:bg-zinc-900/40">
                   <TableCell className="pl-6 max-w-0">
                     <div className="flex items-center gap-3 min-w-0">
