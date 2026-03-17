@@ -47,68 +47,71 @@ export function Navbar() {
   });
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-8">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="bg-primary text-primary-foreground rounded-lg p-1.5">
-              <Play className="h-5 w-5 fill-current" />
-            </div>
-            <span className="inline-block font-bold text-xl tracking-tighter">VlogNest</span>
-          </Link>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-8">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="bg-primary text-primary-foreground rounded-lg p-1.5">
+                <Play className="h-5 w-5 fill-current" />
+              </div>
+              <span className="inline-block font-bold text-xl tracking-tighter">VlogNest</span>
+            </Link>
 
-          <NavigationMenu className="hidden md:flex">
-            <NavigationMenuList>
-              {filteredNavItems.map((item) => (
-                <NavigationMenuItem key={item.href}>
-                  <NavigationMenuLink 
-                    asChild
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      "bg-transparent cursor-pointer",
-                      pathname === item.href && "text-foreground font-bold underline underline-offset-4 decoration-2 decoration-primary"
-                    )}
-                  >
-                    <Link href={item.href}>
-                      {item.label}
-                    </Link>
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              ))}
-            </NavigationMenuList>
-          </NavigationMenu>
+            {/* Desktop Nav - Only for lg screens and above */}
+            <NavigationMenu className="hidden lg:flex">
+              <NavigationMenuList>
+                {filteredNavItems.map((item) => (
+                  <NavigationMenuItem key={item.href}>
+                    <NavigationMenuLink 
+                      asChild
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        "bg-transparent cursor-pointer",
+                        pathname === item.href && "text-foreground font-bold underline underline-offset-4 decoration-2 decoration-primary"
+                      )}
+                    >
+                      <Link href={item.href}>
+                        {item.label}
+                      </Link>
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                ))}
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {isAdmin && (
+              <Button variant="ghost" size="sm" asChild className="hidden lg:flex gap-2">
+                <Link href="/admin">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Admin Studio</span>
+                </Link>
+              </Button>
+            )}
+            
+            {!isUserLoading && user ? (
+              <Button variant="outline" size="sm" asChild className="gap-2 rounded-full px-4">
+                <Link href="/channel">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
+                </Link>
+              </Button>
+            ) : (
+              <Button size="sm" asChild className="gap-2">
+                <Link href="/login">
+                  <LogIn className="h-4 w-4" />
+                  <span>Sign In</span>
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
+      </header>
 
-        <div className="flex items-center gap-4">
-          {isAdmin && (
-            <Button variant="ghost" size="sm" asChild className="hidden lg:flex gap-2">
-              <Link href="/admin">
-                <ShieldCheck className="h-4 w-4" />
-                <span>Admin Studio</span>
-              </Link>
-            </Button>
-          )}
-          
-          {!isUserLoading && user ? (
-            <Button variant="outline" size="sm" asChild className="gap-2 rounded-full px-4">
-              <Link href="/channel">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
-              </Link>
-            </Button>
-          ) : (
-            <Button size="sm" asChild className="gap-2">
-              <Link href="/login">
-                <LogIn className="h-4 w-4" />
-                <span>Sign In</span>
-              </Link>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Nav (Bottom Bar) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background md:hidden">
+      {/* Tablet & Mobile Nav (Bottom Bar) - Visible below lg breakpoint */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background lg:hidden">
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -117,7 +120,7 @@ export function Navbar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+                "flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -127,6 +130,6 @@ export function Navbar() {
           );
         })}
       </nav>
-    </header>
+    </>
   );
 }
