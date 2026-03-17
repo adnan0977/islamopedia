@@ -159,21 +159,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-zinc-50 text-zinc-900">
-        <Sidebar className="border-r border-zinc-200 bg-white">
+        <Sidebar className="border-r border-zinc-800 bg-zinc-950">
           <SidebarHeader className="p-8">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-xl">
-                <ShieldCheck className="text-white w-6 h-6" />
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl">
+                <ShieldCheck className="text-zinc-950 w-6 h-6" />
               </div>
               <div className="flex flex-col">
-                <span className="font-headline font-bold text-xl text-zinc-900 leading-none">Studio</span>
-                <span className="text-[10px] text-zinc-400 uppercase font-black tracking-widest mt-1.5">v1.2.0</span>
+                <span className="font-headline font-bold text-xl text-white leading-none">Studio</span>
+                <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mt-1.5">v1.2.0</span>
               </div>
             </div>
           </SidebarHeader>
           <SidebarContent className="px-4">
             <SidebarGroup>
-              <SidebarGroupLabel className="px-4 text-[9px] font-black text-zinc-400 uppercase mb-4 tracking-[0.2em]">Management Hub</SidebarGroupLabel>
+              <SidebarGroupLabel className="px-4 text-[9px] font-black text-zinc-600 uppercase mb-4 tracking-[0.2em]">Management Hub</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1.5">
                   {navItems.map((item) => {
@@ -186,12 +186,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           className={cn(
                             "w-full h-12 px-4 transition-all rounded-xl", 
                             isActive 
-                              ? "bg-zinc-900 text-white font-bold shadow-lg" 
-                              : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                              ? "bg-white text-zinc-950 font-bold shadow-lg" 
+                              : "text-zinc-400 hover:bg-white/5 hover:text-white"
                           )}
                         >
                           <Link href={item.href}>
-                            <item.icon className={cn("w-4 h-4", isActive ? "text-white" : "text-zinc-400")} />
+                            <item.icon className={cn("w-4 h-4", isActive ? "text-zinc-950" : "text-zinc-500")} />
                             <span className="text-xs">{item.label}</span>
                           </Link>
                         </SidebarMenuButton>
@@ -202,8 +202,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-          <SidebarFooter className="p-8 border-t border-zinc-100">
-            <Button variant="ghost" className="w-full h-12 justify-start text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" onClick={handleSignOut}>
+          <SidebarFooter className="p-8 border-t border-zinc-900">
+            <Button variant="ghost" className="w-full h-12 justify-start text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all" onClick={handleSignOut}>
               <LogOut className="w-4 h-4 mr-3" /> 
               <span className="font-bold text-xs uppercase tracking-widest">Sign Out</span>
             </Button>
