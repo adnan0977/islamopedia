@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -64,6 +65,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { fetchHadithRegistry, fetchHadithEditionContent, FawazEdition } from '@/services/hadith-api';
@@ -573,6 +575,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
     if (!editingRecord) return;
     updateDocumentNonBlocking(doc(db, 'hadith_data', editingRecord.id), {
       text: editingRecord.text,
+      grades: editingRecord.grades || [],
+      reference: editingRecord.reference || {},
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Record Updated" });
@@ -614,7 +618,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
               ) : sortedRecords?.map((r) => (
                 <TableRow key={r.id} className="h-20 hover:bg-zinc-50 transition-colors">
                   <TableCell className="pl-6 sm:pl-8">
-                    <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber}</Badge>
+                    <Badge variant="outline" className="font-mono text-[10px] border-zinc-200">#{r.hadithnumber || r.id?.split('_h_').pop()}</Badge>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <span className="text-xs font-bold text-zinc-900 line-clamp-1">{indexDoc?.sections?.[r.sectionNumber] || '---'}</span>
@@ -661,10 +665,56 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Canonical Reference</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Book Number</span>
+                      <Input 
+                        type="number" 
+                        value={editingRecord?.reference?.book || ''} 
+                        onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...editingRecord.reference, book: parseInt(e.target.value) } })}
+                        className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Hadith Number</span>
+                      <Input 
+                        type="number" 
+                        value={editingRecord?.reference?.hadith || ''} 
+                        onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...editingRecord.reference, hadith: parseInt(e.target.value) } })}
+                        className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900"
+                      />
+                    </div>
+                  </div>
+               </div>
+               <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Primary Grade</Label>
+                  <div className="space-y-2">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Verdict</span>
+                    <Input 
+                      placeholder="e.g. Sahih, Da'if"
+                      value={editingRecord?.grades?.[0]?.grade || ''} 
+                      onChange={(e) => {
+                        const newGrades = [...(editingRecord?.grades || [])];
+                        if (newGrades.length > 0) {
+                          newGrades[0] = { ...newGrades[0], grade: e.target.value };
+                        } else {
+                          newGrades.push({ grade: e.target.value, scholar: 'Unspecified' });
+                        }
+                        setEditingRecord({ ...editingRecord, grades: newGrades });
+                      }}
+                      className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900"
+                    />
+                  </div>
+               </div>
+            </div>
+
             <div className="grid gap-4">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Narrative Content</Label>
               <Textarea 
-                className="min-h-[400px] sm:min-h-[500px] text-sm sm:text-base leading-relaxed font-medium p-6 sm:p-8 bg-zinc-50 border-zinc-200 rounded-xl sm:rounded-[2rem] resize-none focus-visible:ring-zinc-900 shadow-inner"
+                className="min-h-[300px] sm:min-h-[400px] text-sm sm:text-base leading-relaxed font-medium p-6 sm:p-8 bg-zinc-50 border-zinc-200 rounded-xl sm:rounded-[2rem] resize-none focus-visible:ring-zinc-900 shadow-inner"
                 value={editingRecord?.text || ''}
                 onChange={(e) => setEditingRecord({ ...editingRecord, text: e.target.value })}
               />
@@ -675,7 +725,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-4 sm:px-8 font-bold text-zinc-400">Discard</Button>
             <Button className="h-12 sm:h-14 px-6 sm:px-12 rounded-xl sm:rounded-2xl bg-zinc-900 text-white font-bold shadow-xl active:scale-95 transition-all" onClick={handleSaveEdit}>
               <Save className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
-              Commit
+              Commit Changes
             </Button>
           </DialogFooter>
         </DialogContent>

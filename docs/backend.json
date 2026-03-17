@@ -75,11 +75,12 @@
       "properties": {
         "id": { "type": "string" },
         "editionId": { "type": "string" },
+        "bookSlug": { "type": "string" },
         "sectionNumber": { "type": "string" },
         "hadithnumber": { "type": "string" },
-        "hadithArabic": { "type": "string" },
-        "hadithEnglish": { "type": "string" },
-        "hadithUrdu": { "type": "string" },
+        "text": { "type": "string" },
+        "grades": { "type": "array" },
+        "reference": { "type": "object" },
         "updatedAt": { "type": "string" }
       }
     }
