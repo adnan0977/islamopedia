@@ -21,7 +21,8 @@ import {
   Mic,
   ArrowLeft,
   Table as TableIcon,
-  FileText
+  FileText,
+  Pencil
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -170,7 +171,7 @@ export function QuranHub({ editions }: QuranHubProps) {
       {!isStandardSynced && !syncState.isSyncing && (
         <Alert className="bg-amber-500/5 border-amber-500/20 text-amber-200/80 rounded-3xl p-8 shadow-2xl flex items-start gap-6">
           <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20">
-            <AlertCircle className="h-6 w-6 text-amber-500" />
+            <AlertCircle className="h-6 v-6 text-amber-500" />
           </div>
           <div className="flex-1 space-y-4">
             <div className="space-y-1">

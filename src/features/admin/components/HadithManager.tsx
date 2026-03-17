@@ -590,16 +590,23 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
 
+  // Optimized query: Removed server-side orderBy to avoid complex index requirements 
+  // that often surface as generic permission errors in proxied environments.
   const recordsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_data'),
     where('bookSlug', '==', bookId),
     where('editionId', '==', editionId),
     where('sectionNumber', '==', sectionNumber),
-    orderBy('hadithnumber', 'asc'),
     limit(200)
   ), [db, bookId, editionId, sectionNumber]);
 
-  const { data: records, isLoading } = useCollection(recordsQuery);
+  const { data: rawRecords, isLoading } = useCollection(recordsQuery);
+
+  // Sorting client-side to maintain performance without needing complex Firestore indexes.
+  const sortedRecords = useMemo(() => {
+    if (!rawRecords) return [];
+    return [...rawRecords].sort((a, b) => parseFloat(a.hadithnumber) - parseFloat(b.hadithnumber));
+  }, [rawRecords]);
 
   const handleEdit = (record: any) => {
     setEditingRecord({ ...record });
@@ -632,7 +639,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           </div>
         </div>
         <Badge variant="outline" className="h-10 px-6 rounded-xl border-zinc-800 text-zinc-500 font-bold">
-          {records?.length || 0} Records Loaded
+          {sortedRecords?.length || 0} Records Loaded
         </Badge>
       </div>
 
@@ -648,7 +655,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-zinc-800" /></TableCell></TableRow>
-            ) : records?.map((r) => (
+            ) : sortedRecords?.map((r) => (
               <TableRow key={r.id} className="border-zinc-900 h-32 hover:bg-zinc-900/40 transition-colors">
                 <TableCell className="pl-10">
                   <div className="flex items-center gap-2">
