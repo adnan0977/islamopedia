@@ -166,7 +166,7 @@ export function ScholarDirectory() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredScholars?.map((scholar) => (
           <Card key={scholar.id} className="bg-zinc-950 border-zinc-900 rounded-[2rem] overflow-hidden hover:border-zinc-700 transition-all group shadow-xl">
             <CardHeader className="p-8 border-b border-zinc-900 bg-zinc-900/20">
