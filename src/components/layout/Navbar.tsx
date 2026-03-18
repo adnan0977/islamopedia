@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, User, Play, ShieldCheck, Mic2, ScrollText, LogIn, LayoutDashboard } from 'lucide-react';
+import { Home, BookOpen, User, Play, Mic2, ScrollText, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -26,10 +26,6 @@ export function Navbar() {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
-
-  const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
-  const { data: adminData } = useDoc(adminRef);
-  const isAdmin = !!adminData;
 
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
   const { data: settings } = useDoc(settingsRef);
@@ -82,15 +78,6 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            {isAdmin && (
-              <Button variant="ghost" size="sm" asChild className="hidden lg:flex gap-2">
-                <Link href="/admin">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>Admin Studio</span>
-                </Link>
-              </Button>
-            )}
-            
             {!isUserLoading && user ? (
               <Button variant="outline" size="sm" asChild className="gap-2 rounded-full px-4 h-9">
                 <Link href="/channel">
@@ -141,19 +128,6 @@ export function Navbar() {
           <User className="h-5 w-5" />
           <span className="text-[9px] font-bold uppercase tracking-widest">{user ? 'Account' : 'Login'}</span>
         </Link>
-
-        {isAdmin && (
-          <Link
-            href="/admin"
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 w-full h-full transition-all duration-300",
-              pathname.startsWith('/admin') ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutDashboard className="h-5 w-5" />
-            <span className="text-[9px] font-bold uppercase tracking-widest">Admin</span>
-          </Link>
-        )}
       </nav>
     </>
   );
