@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -453,7 +452,8 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
   const sections = useMemo(() => {
     if (!indexDoc?.sections) return [];
-    return Object.entries(indexDoc.sections).filter(([num]) => num !== '0').map(([num, name]) => {
+    // Removed the filter that was excluding section '0'
+    return Object.entries(indexDoc.sections).map(([num, name]) => {
       const details = indexDoc.sectionDetails?.[num] || {};
       return { 
         number: num, 
@@ -820,7 +820,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                             />
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGrade(index)} className="h-10 w-10 text-zinc-300 hover:text-red-500 transition-colors">
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGrade(i)} className="h-10 w-10 text-zinc-300 hover:text-red-500 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
