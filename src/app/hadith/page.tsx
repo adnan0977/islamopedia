@@ -171,14 +171,16 @@ export default function HadithPage() {
   const bilingualChapters = useMemo(() => {
     if (!indices) return [];
     const arabicIdx = indices.find(i => i.id.endsWith('_arabic'));
-    const transIdx = indices.find(i => i.id.endsWith(`_${selectedLanguage}`));
-    const fallbackTransIdx = indices.find(i => !i.id.endsWith('_arabic')) || transIdx;
+    // Find the specific language index requested
+    const targetLangIdx = indices.find(i => i.id.endsWith(`_${selectedLanguage}`));
+    // Fallback to any other index if target not found
+    const fallbackIdx = indices.find(i => !i.id.endsWith('_arabic'));
     
     const sections = arabicIdx?.sections || {};
     return Object.keys(sections).map(num => ({
       number: num,
       arabicName: sections[num],
-      translationName: (fallbackTransIdx?.sections || {})[num] || (transIdx?.sections || {})[num] || `Chapter ${num}`
+      translationName: (targetLangIdx?.sections || {})[num] || (fallbackIdx?.sections || {})[num] || `Chapter ${num}`
     })).sort((a, b) => parseFloat(a.number) - parseFloat(b.number));
   }, [indices, selectedLanguage]);
 
@@ -738,7 +740,10 @@ export default function HadithPage() {
                     <h3 className="font-arabic text-xl text-zinc-900 leading-loose truncate" dir="rtl">{ch.arabicName}</h3>
                   </div>
                   <div className="pt-4 border-t border-dashed border-zinc-100">
-                    <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest line-clamp-2 leading-relaxed">
+                    <p className={cn(
+                      "text-[11px] font-bold text-zinc-400 uppercase tracking-widest line-clamp-2 leading-relaxed",
+                      selectedLanguage === 'urdu' && "font-arabic text-right text-base tracking-normal normal-case text-zinc-600"
+                    )} dir={selectedLanguage === 'urdu' ? 'rtl' : 'ltr'}>
                       {ch.translationName}
                     </p>
                   </div>
