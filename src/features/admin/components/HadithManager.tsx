@@ -13,7 +13,6 @@ import {
   orderBy, 
   getDocs, 
   getDoc,
-  getCountFromServer 
 } from 'firebase/firestore';
 import { 
   Card, 
@@ -38,10 +37,7 @@ import {
   Database,
   RefreshCcw,
   Globe,
-  CheckCircle2,
   Info,
-  BadgeCheck,
-  FileText,
   Save
 } from 'lucide-react';
 import { 
@@ -429,22 +425,19 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
         if (edition.type === 'english') {
           transformedRecord.englishNarrator = h.englishNarrator;
-          transformedRecord.hadithEnglish = h.hadithEnglish;
           transformedRecord.hadith_text = h.hadithEnglish;
           transformedRecord.headingEnglish = h.headingEnglish;
           transformedRecord.chapterTitle = h.chapter?.chapterEnglish || '';
         } else if (edition.type === 'urdu') {
-          transformedRecord.hadithUrdu = h.hadithUrdu;
           transformedRecord.hadith_text = h.hadithUrdu;
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
-          transformedRecord.hadithArabic = h.hadithArabic;
           transformedRecord.hadith_text = h.hadithArabic;
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
         Object.keys(h).forEach(key => {
-          if (key === 'grades' || key === 'chapter') return;
+          if (['grades', 'chapter', 'hadithEnglish', 'hadithUrdu', 'hadithArabic'].includes(key)) return;
 
           if (key === 'book' && typeof h[key] === 'object' && h[key] !== null) {
             Object.entries(h[key]).forEach(([bookKey, bookVal]) => {
@@ -561,13 +554,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   const handleSaveEdit = () => {
     if (!editingRecord) return;
     
-    const updatedRecord = { ...editingRecord };
-    if (edition?.type === 'english') updatedRecord.hadith_text = updatedRecord.hadithEnglish;
-    else if (edition?.type === 'urdu') updatedRecord.hadith_text = updatedRecord.hadithUrdu;
-    else if (edition?.type === 'arabic') updatedRecord.hadith_text = updatedRecord.hadithArabic;
-
-    updateDocumentNonBlocking(doc(db, 'hadith_data', updatedRecord.id), {
-      ...updatedRecord,
+    updateDocumentNonBlocking(doc(db, 'hadith_data', editingRecord.id), {
+      ...editingRecord,
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Record Refined" });
@@ -615,7 +603,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                       "text-[11px] text-zinc-600 line-clamp-2 leading-relaxed max-w-[500px]",
                       edition?.type === 'arabic' || edition?.type === 'urdu' ? "font-arabic text-right text-sm" : ""
                     )} dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"}>
-                      {r.hadithEnglish || r.hadithUrdu || r.hadithArabic}
+                      {r.hadith_text}
                     </p>
                   </TableCell>
                   <TableCell>
@@ -668,32 +656,16 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     </Badge>
                   </div>
                   
-                  {edition?.type === 'english' && (
-                    <Textarea 
-                      className="min-h-[350px] text-lg leading-relaxed p-8 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700"
-                      value={editingRecord?.hadithEnglish || ''}
-                      placeholder="Enter narration text..."
-                      onChange={(e) => setEditingRecord({ ...editingRecord, hadithEnglish: e.target.value })}
-                    />
-                  )}
-                  {edition?.type === 'urdu' && (
-                    <Textarea 
-                      dir="rtl"
-                      className="min-h-[350px] text-3xl font-arabic leading-[2.5] p-10 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all text-zinc-800"
-                      value={editingRecord?.hadithUrdu || ''}
-                      placeholder="اردو متن درج کریں..."
-                      onChange={(e) => setEditingRecord({ ...editingRecord, hadithUrdu: e.target.value })}
-                    />
-                  )}
-                  {edition?.type === 'arabic' && (
-                    <Textarea 
-                      dir="rtl"
-                      className="min-h-[350px] text-3xl font-arabic leading-[2.5] p-10 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all text-zinc-800"
-                      value={editingRecord?.hadithArabic || ''}
-                      placeholder="أدخل النص العربي..."
-                      onChange={(e) => setEditingRecord({ ...editingRecord, hadithArabic: e.target.value })}
-                    />
-                  )}
+                  <Textarea 
+                    dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"}
+                    className={cn(
+                      "min-h-[350px] leading-relaxed p-8 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700",
+                      edition?.type === 'english' ? "text-lg" : "text-3xl font-arabic leading-[2.5] text-zinc-800"
+                    )}
+                    value={editingRecord?.hadith_text || ''}
+                    placeholder={edition?.type === 'urdu' ? "اردو متن درج کریں..." : edition?.type === 'arabic' ? "أدخل النص العربي..." : "Enter narration text..."}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, hadith_text: e.target.value })}
+                  />
                 </div>
 
                 <div className="space-y-4">
