@@ -72,7 +72,7 @@
     },
     "HadithData": {
       "title": "Hadith Data",
-      "description": "Individual Prophetic records with exploded book metadata.",
+      "description": "Individual Prophetic records with exploded book metadata and unified text fields.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
