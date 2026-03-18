@@ -4,20 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   ArrowLeft, 
   RotateCcw, 
-  Settings2, 
-  Vibrate, 
-  Volume2, 
-  VolumeX, 
-  History,
+  Zap,
   CheckCircle2,
-  Trophy,
-  Zap
+  Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 const DHIKR_PRESETS = [
