@@ -179,7 +179,7 @@ export default function HadithPage() {
             
             <div className="mt-2 sm:mt-3 px-3 py-1 bg-background/50 rounded-full border border-muted/50">
               <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                {book.editionCount} Editions
+                {book.totalHadiths?.toLocaleString() || '---'} Hadiths
               </span>
             </div>
 

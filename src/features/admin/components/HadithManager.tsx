@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -206,8 +205,8 @@ export function HadithManager() {
               <CardContent>
                 <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg border border-border/50">
                   <div className="flex flex-col">
-                    <span className="text-xl font-bold leading-none">{book.editionCount || 0}</span>
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase mt-1">Editions Available</span>
+                    <span className="text-xl font-bold leading-none">{book.totalHadiths?.toLocaleString() || '---'}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase mt-1">Records Available</span>
                   </div>
                 </div>
               </CardContent>
@@ -258,6 +257,8 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       if (isDataDifferent(payload, existingData)) {
         setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes', totalHadiths: totalCount });
+        // Update parent book's representative total count
+        updateDocumentNonBlocking(doc(db, 'hadith_books', bookId), { totalHadiths: totalCount });
         toast({ title: "Index Synchronized" });
       } else {
         toast({ title: "Index Up to Date" });
