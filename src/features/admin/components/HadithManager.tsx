@@ -40,7 +40,8 @@ import {
   RefreshCcw,
   Database,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { 
   Table, 
@@ -86,7 +87,7 @@ const BOOK_ORDER: Record<string, number> = {
 function isDataDifferent(newData: any, existingData: any): boolean {
   if (!existingData) return true;
   for (const key in newData) {
-    if (key === 'updatedAt') continue;
+    if (key === 'updatedAt' || key === 'syncedSections') continue;
     if (JSON.stringify(newData[key]) !== JSON.stringify(existingData[key])) {
       return true;
     }
@@ -279,18 +280,35 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       const data = await fetchHadithEditionContent(edition.linkmin);
       const { metadata, hadiths } = data;
       setSyncState(prev => ({ ...prev, status: 'comparing', progress: 50 }));
-      const indexRef = doc(db, 'hadith_index', edition.name);
+      
+      // Changed from edition.name to bookId as requested
+      const indexRef = doc(db, 'hadith_index', bookId);
       const existingSnap = await getDoc(indexRef);
       const existingData = existingSnap.exists() ? existingSnap.data() : null;
+      
+      if (existingSnap.exists()) {
+        toast({ title: "Master Index Available", description: "Verifying structural integrity..." });
+      }
+
       const totalCount = hadiths?.length || 0;
-      const payload = { id: edition.name, editionId: edition.name, bookSlug: bookId, name: metadata.name || '', totalHadiths: totalCount, sections: metadata.sections || {}, sectionDetails: metadata.section_details || {} };
+      const payload = { 
+        id: bookId, 
+        bookSlug: bookId, 
+        name: metadata.name || '', 
+        totalHadiths: totalCount, 
+        sections: metadata.sections || {}, 
+        sectionDetails: metadata.section_details || {} 
+      };
       
       if (isDataDifferent(payload, existingData)) {
         setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
+        // Still track edition sync status locally
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes', totalHadiths: totalCount });
         updateDocumentNonBlocking(doc(db, 'hadith_books', bookId), { totalHadiths: totalCount });
         toast({ title: "Index Synchronized" });
       } else {
+        // Just ensure edition status is updated
+        updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes' });
         toast({ title: "Index Up to Date" });
       }
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
@@ -408,10 +426,12 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   const { toast } = useToast();
   const [syncState, setSyncState] = useState({ isSyncing: false, progress: 0, status: 'idle', targetSection: '' });
   
-  const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
-  const { data: indexDoc, isLoading } = useDoc(indexRef);
   const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
   const { data: edition } = useDoc(editionRef);
+
+  // Index is now keyed by bookId
+  const indexRef = useMemoFirebase(() => (edition?.bookId ? doc(db, 'hadith_index', edition.bookId) : null), [db, edition?.bookId]);
+  const { data: indexDoc, isLoading } = useDoc(indexRef);
 
   const sections = useMemo(() => {
     if (!indexDoc?.sections) return [];
@@ -458,7 +478,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       inRange.forEach((h: any) => {
         const hadithId = `${editionId}_h_${h.hadithnumber}`;
         const existing = existingMap.get(hadithId);
-        const hPayload = { ...h, id: hadithId, editionId, bookSlug: indexDoc?.bookSlug, sectionNumber: section.number };
+        const hPayload = { ...h, id: hadithId, editionId, bookSlug: edition.bookId, sectionNumber: section.number };
         
         if (isDataDifferent(hPayload, existing)) { 
           batch.set(doc(db, 'hadith_data', hadithId), { ...hPayload, updatedAt: new Date().toISOString() }, { merge: true }); 
@@ -476,7 +496,9 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
       const syncedMap = { ...(indexDoc?.syncedSections || {}) }; 
       syncedMap[section.number] = true; 
-      updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap }); 
+      if (indexRef) {
+        updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap }); 
+      }
       
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
     } catch (e: any) { 
@@ -575,7 +597,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
 
-  const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
+  // Index is keyed by bookId
+  const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', bookId), [db, bookId]);
   const { data: indexDoc } = useDoc(indexRef);
 
   const recordsQuery = useMemoFirebase(() => query(
