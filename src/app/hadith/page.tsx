@@ -16,7 +16,11 @@ import {
   Send,
   Hash,
   Database,
-  List
+  List,
+  Share2,
+  Copy,
+  Download,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +43,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const ERROR_TYPES = [
   "Mismatched translation",
@@ -67,6 +73,10 @@ export default function HadithPage() {
     reporterEmail: ''
   });
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  // Share State
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [hadithToShare, setHadithToShare] = useState<any>(null);
 
   // Query 1: All Books for the directory
   const booksQuery = useMemoFirebase(() => query(
@@ -143,6 +153,28 @@ export default function HadithPage() {
       reporterEmail: ''
     });
     setReportDialogOpen(true);
+  };
+
+  const handleOpenShare = (hadith: any) => {
+    setHadithToShare(hadith);
+    setShareDialogOpen(true);
+  };
+
+  const handleCopyShareText = () => {
+    if (!hadithToShare) return;
+    const text = `
+Hadith Reflection:
+${hadithToShare.arabic?.hadith_text || ''}
+
+${hadithToShare.translation?.hadith_text || ''}
+
+Source: ${activeBookId}
+Vol: ${hadithToShare.translation?.volume || '---'}
+Chapter: ${activeChapterId}
+Hadith No: ${hadithToShare.num}
+    `.trim();
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to Clipboard", description: "Reference text is ready to share." });
   };
 
   const handleSubmitReport = async () => {
@@ -278,7 +310,15 @@ export default function HadithPage() {
                     <span className="flex items-center gap-1.5"><Info className="w-3 h-3" /> NO: {group.num}</span>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
-                    <Button variant="ghost" size="sm" className="flex-1 sm:flex-none h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Share</Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 sm:flex-none h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900"
+                      onClick={() => handleOpenShare(group)}
+                    >
+                      <Share2 className="w-3 h-3 mr-1.5" />
+                      Share
+                    </Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -294,6 +334,68 @@ export default function HadithPage() {
             );
           })}
         </div>
+
+        {/* Share Dialog */}
+        <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+          <DialogContent className="max-w-2xl bg-zinc-50 border-none rounded-[3rem] p-0 overflow-hidden shadow-2xl">
+            <div className="p-8 sm:p-12 space-y-10">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold tracking-tight">Hadith Reflection</h3>
+                  <p className="text-xs text-zinc-400 font-black uppercase tracking-widest">Digital Prophetic Record</p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(false)} className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* The Square Visual Card */}
+              <div className="relative aspect-square w-full rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white">
+                <Image 
+                  src={PlaceHolderImages.find(img => img.id === 'quran-bg')?.imageUrl || "https://picsum.photos/seed/islamic/1080/1080"} 
+                  alt="Islamic Background" 
+                  fill 
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-zinc-900/70 backdrop-blur-[2px]" />
+                
+                <div className="absolute inset-0 p-8 sm:p-12 flex flex-col justify-center items-center text-center space-y-8">
+                  {hadithToShare?.arabic && (
+                    <p className="font-arabic text-white text-2xl sm:text-3xl leading-[2.2] drop-shadow-lg" dir="rtl">
+                      {hadithToShare.arabic.hadith_text}
+                    </p>
+                  )}
+                  {hadithToShare?.translation && (
+                    <p className="text-zinc-200 text-sm sm:text-lg font-medium leading-relaxed max-w-md line-clamp-[8]">
+                      "{hadithToShare.translation.hadith_text}"
+                    </p>
+                  )}
+                  
+                  <div className="pt-6 border-t border-white/10 w-full flex flex-col items-center gap-2">
+                    <span className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.3em]">Authentic Reference</span>
+                    <Badge variant="secondary" className="bg-white/10 text-white border-none rounded-full px-4 text-[9px] font-black uppercase tracking-widest">
+                      {activeBookId} • VOL: {hadithToShare?.translation?.volume || '---'} • CH: {activeChapterId} • #{hadithToShare?.num}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  className="flex-1 h-14 rounded-2xl bg-zinc-900 text-white font-bold gap-3 shadow-xl active:scale-95 transition-all"
+                  onClick={handleCopyShareText}
+                >
+                  <Copy className="w-5 h-5" />
+                  Copy Reference Text
+                </Button>
+                <Button variant="outline" className="flex-1 h-14 rounded-2xl border-zinc-200 bg-white font-bold gap-3 shadow-sm hover:bg-zinc-50">
+                  <Download className="w-5 h-5" />
+                  Download Card
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Reporting Dialog */}
         <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
