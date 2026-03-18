@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -279,38 +280,45 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
   const { data: editions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
 
   const handleSyncIndex = async (edition: FawazEdition) => {
-    setSyncState({ isSyncing: true, progress: 0, status: 'fetching structure', targetEdition: edition.name });
+    setSyncState({ isSyncing: true, progress: 0, status: 'validating existing indices', targetEdition: edition.name });
     try {
-      const data = await fetchHadithEditionContent(edition.linkmin);
-      const { metadata, hadiths } = data;
-      setSyncState(prev => ({ ...prev, status: 'comparing', progress: 50 }));
-      
+      // 1. Check if index already exists for this bookId
       const indexRef = doc(db, 'hadith_index', bookId);
       const existingSnap = await getDoc(indexRef);
-      const existingData = existingSnap.exists() ? existingSnap.data() : null;
-      
-      const totalCount = hadiths?.length || 0;
-      const payload = { 
-        id: bookId, 
-        bookSlug: bookId, 
-        name: metadata.name || '', 
-        totalHadiths: totalCount, 
-        sections: metadata.sections || {}, 
-        sectionDetails: metadata.section_details || {} 
-      };
-      
-      if (isDataDifferent(payload, existingData)) {
+      const indexExists = existingSnap.exists();
+
+      if (indexExists) {
+        // If it exists, just show message and ensure the edition is flagged as synced
+        toast({ title: `Index already Synced for ${book?.bookName || bookId}` });
+        updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes' });
+        setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
+      } else {
+        // 2. Perform actual sync if not available
+        setSyncState(prev => ({ ...prev, status: 'fetching canonical structure', progress: 20 }));
+        const data = await fetchHadithEditionContent(edition.linkmin);
+        const { metadata, hadiths } = data;
+        
+        setSyncState(prev => ({ ...prev, status: 'analyzing metadata', progress: 50 }));
+        
+        const totalCount = hadiths?.length || 0;
+        const payload = { 
+          id: bookId, 
+          bookSlug: bookId, 
+          name: metadata.name || '', 
+          totalHadiths: totalCount, 
+          sections: metadata.sections || {}, 
+          sectionDetails: metadata.section_details || {} 
+        };
+        
         setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes', totalHadiths: totalCount });
         updateDocumentNonBlocking(doc(db, 'hadith_books', bookId), { totalHadiths: totalCount });
-        toast({ title: "Index Synchronized" });
-      } else {
-        updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes' });
-        toast({ title: "Index Up to Date" });
+        
+        toast({ title: "Master Index Generated", description: "Structural blueprint saved to cluster." });
+        setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
       }
-      setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Index Sync Failed", description: e.message });
+      toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
       setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500);
     }
@@ -338,7 +346,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
-              <span className="text-xs font-bold uppercase tracking-widest">Auditing {syncState.targetEdition}...</span>
+              <span className="text-xs font-bold uppercase tracking-widest">{syncState.status}...</span>
             </div>
             <span className="text-xs font-mono">{syncState.progress}%</span>
           </div>
@@ -364,8 +372,8 @@ function EditionCard({ edition, masterIndexExists, onSelect, onSyncIndex }: { ed
   const db = useFirestore();
   const [syncedCount, setSyncedCount] = useState<number | null>(null);
   
-  // An edition is "Synced" if it has the local flag AND the master index doc exists
-  const isSynced = edition.indexSynced === 'yes' && masterIndexExists;
+  // An edition is "Inspectable" if it has been synced AND the index structural doc exists
+  const isInspectable = edition.indexSynced === 'yes' && masterIndexExists;
 
   useEffect(() => {
     const q = query(collection(db, 'hadith_data'), where('editionId', '==', edition.id));
@@ -376,17 +384,17 @@ function EditionCard({ edition, masterIndexExists, onSelect, onSyncIndex }: { ed
     <Card 
       className={cn(
         "flex flex-col group transition-all border shadow-sm rounded-[2rem] overflow-hidden bg-white",
-        isSynced ? "cursor-pointer hover:border-zinc-400" : "opacity-90"
+        isInspectable ? "cursor-pointer hover:border-zinc-400" : "opacity-90"
       )}
-      onClick={() => isSynced && onSelect(edition.id)}
+      onClick={() => isInspectable && onSelect(edition.id)}
     >
       <CardHeader className="p-8 pb-4">
         <div className="flex justify-between items-start mb-6">
           <div className="bg-zinc-50 p-3 rounded-2xl border">
             <Languages className={cn("w-6 h-6", edition.direction === 'rtl' ? "text-zinc-900" : "text-zinc-400")} />
           </div>
-          <Badge variant={isSynced ? "default" : "secondary"} className={cn("text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", isSynced ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
-            {isSynced ? 'AUDITED' : 'PENDING'}
+          <Badge variant={isInspectable ? "default" : "secondary"} className={cn("text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", isInspectable ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
+            {isInspectable ? 'AUDITED' : 'PENDING'}
           </Badge>
         </div>
         <CardTitle className="text-lg font-bold leading-tight group-hover:text-zinc-900 transition-colors">{edition.language} Edition</CardTitle>
@@ -414,9 +422,9 @@ function EditionCard({ edition, masterIndexExists, onSelect, onSyncIndex }: { ed
           onClick={() => onSyncIndex(edition)}
         >
           <RefreshCcw className="w-3.5 h-3.5 mr-2" />
-          {isSynced ? 'Resync' : 'Audit'}
+          {isInspectable ? 'Resync' : 'Audit'}
         </Button>
-        {isSynced && (
+        {isInspectable && (
           <Button variant="outline" size="icon" onClick={() => onSelect(edition.id)} className="h-12 w-12 shrink-0 rounded-xl border-zinc-200">
             <ChevronRight className="w-4 h-4" />
           </Button>
@@ -453,7 +461,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
   const handleSyncSectionContent = async (section: any) => {
     if (!edition?.linkmin) { toast({ variant: "destructive", title: "Missing Source" }); return; }
-    setSyncState({ isSyncing: true, progress: 0, status: 'initializing', targetSection: section.name });
+    setSyncState({ isSyncing: true, progress: 0, status: 'initializing section crawl', targetSection: section.name });
     try {
       const payload = await fetchHadithEditionContent(edition.linkmin);
       const allHadiths = payload.hadiths || [];
@@ -463,12 +471,12 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       });
       
       if (inRange.length === 0) { 
-        toast({ title: "No Matching Records" }); 
+        toast({ title: "No Matching Records Found" }); 
         setSyncState(prev => ({ ...prev, isSyncing: false })); 
         return; 
       }
 
-      setSyncState(prev => ({ ...prev, status: 'comparing', progress: 30 }));
+      setSyncState(prev => ({ ...prev, status: 'comparing local storage', progress: 30 }));
       const existingSnap = await getDocs(query(
         collection(db, 'hadith_data'), 
         where('editionId', '==', editionId), 
@@ -490,12 +498,12 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         }
       });
 
-      setSyncState(prev => ({ ...prev, status: 'committing', progress: 80 }));
+      setSyncState(prev => ({ ...prev, status: 'committing changes', progress: 80 }));
       if (updatesCount > 0) { 
         await batch.commit(); 
-        toast({ title: "Section Sync complete", description: `${updatesCount} nodes updated.` }); 
+        toast({ title: "Section Crawl Complete", description: `Synchronized ${updatesCount} prophetic records.` }); 
       } else { 
-        toast({ title: "Section Up to Date" }); 
+        toast({ title: "Section already in Sync" }); 
       }
 
       const syncedMap = { ...(indexDoc?.syncedSections || {}) }; 
@@ -506,7 +514,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
     } catch (e: any) { 
-      toast({ variant: "destructive", title: "Sync Failed", description: e.message }); 
+      toast({ variant: "destructive", title: "Crawl Failed", description: e.message }); 
     } finally { 
       setTimeout(() => setSyncState(prev => ({ ...prev, isSyncing: false })), 500); 
     }
@@ -534,7 +542,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <Zap className="w-5 h-5 text-amber-400 animate-pulse" />
-              <span className="text-sm font-bold uppercase tracking-widest">Auditing {syncState.targetSection}...</span>
+              <span className="text-sm font-bold uppercase tracking-widest">{syncState.status}...</span>
             </div>
             <Badge className="bg-white/10 text-white border-none font-mono">{syncState.progress}%</Badge>
           </div>
@@ -632,7 +640,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       reference: editingRecord.reference || {},
       updatedAt: new Date().toISOString()
     });
-    toast({ title: "Record Updated" });
+    toast({ title: "Record Refined" });
     setIsEditDialogOpen(false);
   };
 
