@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- SYSTEM SECURITY METADATA ---
-    // Rules Version: 1.1.1 (Allow public view count increments)
+    // Rules Version: 1.1.2 (Allow public Hadith reports)
 
     // --- Helper Functions ---
     function isSignedIn() {
@@ -40,6 +40,11 @@ service cloud.firestore {
     match /hadith_reference/{id} {
       allow get, list: if true;
       allow write: if isAdmin();
+    }
+
+    match /hadith_reports/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
     }
 
     // --- Public Content ---

@@ -2,7 +2,7 @@
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
 import { 
   BookOpen, 
   Loader2, 
@@ -11,7 +11,11 @@ import {
   Search,
   Library,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Mail,
+  Send,
+  Hash,
+  Database
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +25,26 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+
+const ERROR_TYPES = [
+  "Mismatched translation",
+  "Spelling mistake",
+  "Incomplete text",
+  "Mistranslation",
+  "Other"
+];
 
 export default function HadithPage() {
   const db = useFirestore();
@@ -31,6 +55,17 @@ export default function HadithPage() {
   const activeBookId = searchParams.get('book');
   const activeChapterId = searchParams.get('chapter');
   const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'urdu'>('english');
+
+  // Reporting State
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [selectedHadith, setSelectedHadith] = useState<any>(null);
+  const [reportForm, setReportForm] = useState({
+    typeOfError: ERROR_TYPES[0],
+    details: '',
+    notifyMe: false,
+    reporterEmail: ''
+  });
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   // Query 1: All Books for the directory
   const booksQuery = useMemoFirebase(() => query(
@@ -46,7 +81,7 @@ export default function HadithPage() {
   ) : null), [db, activeBookId]);
   const { data: indices, isLoading: isLoadingIndices } = useCollection(indexQuery);
 
-  // Query 3: Records for the active chapter (Fetches all language shards for this chapter)
+  // Query 3: Records for the active chapter
   const recordsQuery = useMemoFirebase(() => (activeBookId && activeChapterId ? query(
     collection(db, 'hadith_data'),
     where('bookSlug', '==', activeBookId),
@@ -60,8 +95,6 @@ export default function HadithPage() {
     if (!indices) return [];
     const arabicIdx = indices.find(i => i.id.endsWith('_arabic'));
     const transIdx = indices.find(i => i.id.endsWith(`_${selectedLanguage}`));
-    
-    // Fallback to any index if specifically requested one is missing
     const fallbackTransIdx = indices.find(i => !i.id.endsWith('_arabic')) || transIdx;
     
     const sections = arabicIdx?.sections || {};
@@ -72,7 +105,7 @@ export default function HadithPage() {
     })).sort((a, b) => parseFloat(a.number) - parseFloat(b.number));
   }, [indices, selectedLanguage]);
 
-  // Group records by hadithNumber to show Arabic + Translation paired
+  // Group records by hadithNumber
   const groupedRecords = useMemo(() => {
     if (!allRecords) return [];
     const groups: Record<string, any> = {};
@@ -100,6 +133,44 @@ export default function HadithPage() {
     router.push(`/hadith?${nextParams.toString()}`);
   };
 
+  const handleOpenReport = (hadith: any) => {
+    setSelectedHadith(hadith);
+    setReportForm({
+      typeOfError: ERROR_TYPES[0],
+      details: '',
+      notifyMe: false,
+      reporterEmail: ''
+    });
+    setReportDialogOpen(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!selectedHadith) return;
+    setIsSubmittingReport(true);
+    try {
+      const mainRecord = selectedHadith.arabic || selectedHadith.translation;
+      await addDoc(collection(db, 'hadith_reports'), {
+        hadithId: mainRecord.id,
+        bookSlug: activeBookId,
+        volume: mainRecord.volume || '',
+        chapterId: activeChapterId,
+        hadithNumber: selectedHadith.num,
+        typeOfError: reportForm.typeOfError,
+        details: reportForm.details,
+        notifyMe: reportForm.notifyMe,
+        reporterEmail: reportForm.reporterEmail,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      toast({ title: "Report Submitted", description: "Jazakallah. Our researchers will review this reference shortly." });
+      setReportDialogOpen(false);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Submission Failed", description: e.message });
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
   if (isLoadingBooks || isLoadingIndices || (activeChapterId && isLoadingRecords)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
@@ -109,7 +180,7 @@ export default function HadithPage() {
     );
   }
 
-  // View 3: Hadith Reader (Paired View)
+  // View 3: Hadith Reader
   if (activeBookId && activeChapterId) {
     const book = books?.find(b => b.id === activeBookId);
 
@@ -122,7 +193,7 @@ export default function HadithPage() {
             </Button>
             <div className="space-y-1">
               <h1 className="text-2xl font-bold tracking-tight text-zinc-900">{book?.bookName}</h1>
-              <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">Record Set • Chapter {activeChapterId}</p>
+              <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">Chapter {activeChapterId} • {selectedLanguage.toUpperCase()} FEED</p>
             </div>
           </div>
           <div className="flex items-center gap-3 bg-zinc-50 p-1 rounded-xl border border-zinc-100">
@@ -198,18 +269,20 @@ export default function HadithPage() {
                     </div>
                   )}
                 </CardContent>
-                <CardFooter className="p-8 pt-0 border-t border-zinc-50 bg-zinc-50/10 flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-300">
-                    Ref: {activeBookId} | Vol: {r.volume || '---'} | Ch: {r.chapterId || '---'} | No: {group.num}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Share</Button>
-                    <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cite</Button>
+                <CardFooter className="p-8 pt-0 border-t border-zinc-50 bg-zinc-50/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-zinc-300">
+                    <span className="flex items-center gap-1.5"><Database className="w-3 h-3" /> {activeBookId}</span>
+                    <span className="flex items-center gap-1.5"><Hash className="w-3 h-3" /> VOL: {r.volume || '---'}</span>
+                    <span className="flex items-center gap-1.5"><List className="w-3 h-3" /> CH: {activeChapterId}</span>
+                    <span className="flex items-center gap-1.5"><Info className="w-3 h-3" /> NO: {group.num}</span>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button variant="ghost" size="sm" className="flex-1 sm:flex-none h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Share</Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => toast({ title: "Reference Flagged", description: `Record ${activeBookId}:${group.num} has been submitted for review.` })}
+                      className="flex-1 sm:flex-none h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => handleOpenReport(group)}
                     >
                       <AlertTriangle className="w-3 h-3 mr-1.5" />
                       Report Error
@@ -220,6 +293,86 @@ export default function HadithPage() {
             );
           })}
         </div>
+
+        {/* Reporting Dialog */}
+        <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+          <DialogContent className="max-w-xl bg-white border-zinc-200 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+            <DialogHeader className="p-8 sm:p-10 border-b bg-zinc-50">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-red-50 rounded-2xl border border-red-100">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl font-bold tracking-tight">Report Content Error</DialogTitle>
+                  <DialogDescription className="text-zinc-500 font-medium">Flagging Record #{selectedHadith?.num} for scholarly review.</DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            
+            <div className="p-8 sm:p-10 space-y-8 max-h-[60vh] overflow-y-auto">
+              <section className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Type of error: *</Label>
+                <RadioGroup 
+                  value={reportForm.typeOfError} 
+                  onValueChange={(val) => setReportForm({ ...reportForm, typeOfError: val })}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                >
+                  {ERROR_TYPES.map((type) => (
+                    <div key={type} className="flex items-center space-x-3 p-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 hover:bg-white transition-colors cursor-pointer">
+                      <RadioGroupItem value={type} id={type} />
+                      <Label htmlFor={type} className="text-sm font-bold text-zinc-700 cursor-pointer flex-1">{type}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </section>
+
+              <section className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Additional details:</Label>
+                <Textarea 
+                  placeholder="Please describe the discrepancy in detail..."
+                  className="bg-zinc-50 border-zinc-100 rounded-2xl min-h-[120px] focus-visible:ring-zinc-900 shadow-inner"
+                  value={reportForm.details}
+                  onChange={(e) => setReportForm({ ...reportForm, details: e.target.value })}
+                />
+              </section>
+
+              <section className="space-y-6 pt-4 border-t border-zinc-100">
+                <div className="flex items-center justify-between p-4 bg-zinc-900 rounded-2xl text-white shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-4 h-4 text-zinc-400" />
+                    <Label className="text-sm font-bold">Email me when corrected</Label>
+                  </div>
+                  <Switch checked={reportForm.notifyMe} onCheckedChange={(val) => setReportForm({ ...reportForm, notifyMe: val })} />
+                </div>
+
+                {reportForm.notifyMe && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Your Email Address</Label>
+                    <Input 
+                      type="email" 
+                      placeholder="you@example.com"
+                      className="bg-white border-zinc-200 h-12 rounded-xl font-bold shadow-sm"
+                      value={reportForm.reporterEmail}
+                      onChange={(e) => setReportForm({ ...reportForm, reporterEmail: e.target.value })}
+                    />
+                  </div>
+                )}
+              </section>
+            </div>
+
+            <DialogFooter className="p-8 sm:p-10 bg-zinc-50 border-t gap-3">
+              <Button variant="ghost" onClick={() => setReportDialogOpen(false)} className="h-12 px-6 font-bold text-zinc-400 hover:text-zinc-900">Cancel</Button>
+              <Button 
+                className="h-12 px-10 rounded-xl bg-zinc-900 text-white font-bold shadow-xl active:scale-95 transition-all gap-2"
+                onClick={handleSubmitReport}
+                disabled={isSubmittingReport}
+              >
+                {isSubmittingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Submit Report
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

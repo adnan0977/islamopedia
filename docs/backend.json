@@ -87,6 +87,25 @@
         "heading_text": { "type": "string", "description": "Unified section heading text." },
         "updatedAt": { "type": "string" }
       }
+    },
+    "HadithReport": {
+      "title": "Hadith Report",
+      "description": "User feedback reporting errors in hadith records.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "hadithId": { "type": "string" },
+        "bookSlug": { "type": "string" },
+        "volume": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "hadithNumber": { "type": "string" },
+        "typeOfError": { "type": "string", "enum": ["Mismatched translation", "Spelling mistake", "Incomplete text", "Mistranslation", "Other"] },
+        "details": { "type": "string" },
+        "reporterEmail": { "type": "string", "format": "email" },
+        "notifyMe": { "type": "boolean" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -119,6 +138,10 @@
     "/hadith_data/{contentId}": {
       "schema": "HadithData",
       "description": "Prophetic records."
+    },
+    "/hadith_reports/{reportId}": {
+      "schema": "HadithReport",
+      "description": "User reported errors."
     },
     "/roles_admin/{userId}": {
       "schema": "object",
