@@ -25,7 +25,8 @@ import {
   Type,
   Palette,
   Check,
-  Settings
+  Settings,
+  Pencil
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -108,6 +109,9 @@ export default function HadithPage() {
     mode: 'both' as 'arabic' | 'translation' | 'both',
     bg: SHARE_BACKGROUNDS[0].url
   });
+  const [isEditingCard, setIsEditingCard] = useState(false);
+  const [tempArabic, setTempArabic] = useState('');
+  const [tempTranslation, setTempTranslation] = useState('');
 
   // Query 1: All Books for the directory
   const booksQuery = useMemoFirebase(() => query(
@@ -203,13 +207,16 @@ export default function HadithPage() {
 
   const handleOpenShare = (hadith: any) => {
     setHadithToShare(hadith);
+    setTempArabic(hadith.arabic?.hadith_text || '');
+    setTempTranslation(hadith.translation?.hadith_text || '');
+    setIsEditingCard(false);
     setShareDialogOpen(true);
   };
 
   const handleCopyShareText = () => {
     if (!hadithToShare) return;
-    const arabic = hadithToShare.arabic?.hadith_text || '';
-    const trans = hadithToShare.translation?.hadith_text || '';
+    const arabic = tempArabic || hadithToShare.arabic?.hadith_text || '';
+    const trans = tempTranslation || hadithToShare.translation?.hadith_text || '';
     
     let text = `Hadith Reflection:\n`;
     if (shareConfig.mode === 'both' || shareConfig.mode === 'arabic') text += `${arabic}\n\n`;
@@ -248,11 +255,11 @@ export default function HadithPage() {
     }
   };
 
-  // Automated Font Size Logic
+  // Automated Font Size Logic based on edited or original text
   const getShareFontSize = () => {
     if (!hadithToShare) return { arabic: 'text-2xl', translation: 'text-lg' };
-    const arabicLen = hadithToShare.arabic?.hadith_text?.length || 0;
-    const transLen = hadithToShare.translation?.hadith_text?.length || 0;
+    const arabicLen = tempArabic.length || 0;
+    const transLen = tempTranslation.length || 0;
     const totalLen = (shareConfig.mode === 'both' ? (arabicLen + transLen) : shareConfig.mode === 'arabic' ? arabicLen : transLen);
 
     if (totalLen > 600) return { arabic: 'text-lg', translation: 'text-xs' };
@@ -418,19 +425,21 @@ export default function HadithPage() {
                 />
                 <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-[1px]" />
                 
-                <div className="absolute inset-0 p-8 sm:p-12 flex flex-col justify-center items-center text-center space-y-6">
-                  {(shareConfig.mode === 'both' || shareConfig.mode === 'arabic') && hadithToShare?.arabic && (
-                    <p className={cn("font-arabic text-white leading-[2.2] drop-shadow-2xl", fontSizes.arabic)} dir="rtl">
-                      {hadithToShare.arabic.hadith_text}
-                    </p>
-                  )}
-                  {(shareConfig.mode === 'both' || shareConfig.mode === 'translation') && hadithToShare?.translation && (
-                    <p className={cn("text-zinc-200 font-medium leading-relaxed max-w-md line-clamp-[12] italic", fontSizes.translation)}>
-                      "{hadithToShare.translation.hadith_text}"
-                    </p>
-                  )}
+                <div className="absolute inset-0 p-8 sm:p-12 flex flex-col h-full">
+                  <div className="flex-1 flex flex-col justify-center items-center text-center space-y-6">
+                    {(shareConfig.mode === 'both' || shareConfig.mode === 'arabic') && (
+                      <p className={cn("font-arabic text-white leading-[2.2] drop-shadow-2xl", fontSizes.arabic)} dir="rtl">
+                        {tempArabic}
+                      </p>
+                    )}
+                    {(shareConfig.mode === 'both' || shareConfig.mode === 'translation') && (
+                      <p className={cn("text-zinc-200 font-medium leading-relaxed max-w-md line-clamp-[12] italic", fontSizes.translation)}>
+                        "{tempTranslation}"
+                      </p>
+                    )}
+                  </div>
                   
-                  <div className="pt-6 border-t border-white/10 w-full flex items-center justify-center gap-3 mt-auto">
+                  <div className="pt-6 border-t border-white/10 w-full flex items-center justify-center gap-3 shrink-0">
                     <span className="text-[9px] text-zinc-400 font-black uppercase tracking-[0.2em]">Authentic Reference:</span>
                     <Badge variant="secondary" className="bg-white/10 text-white border-none rounded-full px-3 py-0.5 text-[8px] font-black uppercase tracking-widest">
                       {activeBookId} • VOL: {hadithToShare?.translation?.volume || '---'} • CH: {activeChapterId} • #{hadithToShare?.num}
@@ -441,7 +450,30 @@ export default function HadithPage() {
             </div>
 
             {/* Controls Sidebar */}
-            <div className="w-full md:w-96 bg-white border-l border-zinc-100 p-8 sm:p-10 flex flex-col shrink-0">
+            <div className="w-full md:w-96 bg-white border-l border-zinc-100 p-8 sm:p-10 flex flex-col shrink-0 overflow-y-auto">
+              {/* Refinement Workbench Inputs (Hidden by default) */}
+              {isEditingCard && (
+                <div className="space-y-6 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <div className="space-y-3">
+                    <Label className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Refine Original</Label>
+                    <Textarea 
+                      value={tempArabic} 
+                      onChange={(e) => setTempArabic(e.target.value)}
+                      className="font-arabic text-right min-h-[120px] bg-zinc-50 border-zinc-100 rounded-xl text-lg p-4"
+                      dir="rtl"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Refine Translation</Label>
+                    <Textarea 
+                      value={tempTranslation} 
+                      onChange={(e) => setTempTranslation(e.target.value)}
+                      className="min-h-[120px] bg-zinc-50 border-zinc-100 rounded-xl text-sm p-4 leading-relaxed"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex-1" />
               
               <section className="space-y-6 mt-auto">
@@ -507,6 +539,19 @@ export default function HadithPage() {
                         </div>
                       </PopoverContent>
                     </Popover>
+                  </div>
+
+                  {/* Edit Toggle Button */}
+                  <div className="space-y-2">
+                    <Button 
+                      variant={isEditingCard ? "default" : "outline"}
+                      size="icon"
+                      className={cn("h-11 w-11 rounded-xl border-zinc-200 transition-all shadow-sm", isEditingCard && "bg-zinc-900 text-white")}
+                      onClick={() => setIsEditingCard(!isEditingCard)}
+                      title="Refine Text"
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </Button>
                   </div>
 
                   {/* Copy Button */}
