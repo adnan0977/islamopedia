@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -62,7 +63,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { saveOfflineHadithBooks } from '@/lib/offline-db';
+import { saveOfflineHadithBooks, saveOfflineHadithIndex } from '@/lib/offline-db';
 
 const ERROR_TYPES = [
   "Mismatched translation",
@@ -141,6 +142,21 @@ export default function HadithPage() {
     where('bookSlug', '==', activeBookId)
   ) : null), [db, activeBookId]);
   const { data: indices, isLoading: isLoadingIndices } = useCollection(indexQuery);
+
+  // Sync effect: When indices are loaded for a book, save them to IndexedDB
+  useEffect(() => {
+    if (indices && indices.length > 0) {
+      setIsSyncingOffline(true);
+      saveOfflineHadithIndex(indices)
+        .then(() => {
+          setTimeout(() => setIsSyncingOffline(false), 800);
+        })
+        .catch(err => {
+          console.error("Index offline sync failed", err);
+          setIsSyncingOffline(false);
+        });
+    }
+  }, [indices]);
 
   // Query 3: Records for the active chapter
   const recordsQuery = useMemoFirebase(() => (activeBookId && activeChapterId ? query(
@@ -702,7 +718,7 @@ export default function HadithPage() {
           </div>
         </header>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
           {bilingualChapters.map((ch) => (
             <Card 
               key={ch.number} 

@@ -6,10 +6,11 @@
  */
 
 const DB_NAME = 'IslamopediaOfflineDB';
-const DB_VERSION = 2; // Increment version to add hadith_books store
+const DB_VERSION = 3; // Increment version to add hadith_indices store
 const STORE_EDITIONS = 'editions';
 const STORE_SURAHS = 'surahs';
 const STORE_HADITH_BOOKS = 'hadith_books';
+const STORE_HADITH_INDICES = 'hadith_indices';
 
 export interface OfflineSurah {
   id: string; // {editionId}_surah_{number}
@@ -32,6 +33,9 @@ export async function initDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_HADITH_BOOKS)) {
         db.createObjectStore(STORE_HADITH_BOOKS, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(STORE_HADITH_INDICES)) {
+        db.createObjectStore(STORE_HADITH_INDICES, { keyPath: 'id' });
       }
     };
 
@@ -113,6 +117,32 @@ export async function getOfflineHadithBooks(): Promise<any[]> {
     const store = transaction.objectStore(STORE_HADITH_BOOKS);
     const request = store.getAll();
     request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function saveOfflineHadithIndex(indices: any[]): Promise<void> {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_HADITH_INDICES, 'readwrite');
+    const store = transaction.objectStore(STORE_HADITH_INDICES);
+    
+    indices.forEach(index => {
+      store.put({ id: index.id, ...index });
+    });
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+export async function getOfflineHadithIndex(id: string): Promise<any | null> {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_HADITH_INDICES, 'readonly');
+    const store = transaction.objectStore(STORE_HADITH_INDICES);
+    const request = store.get(id);
+    request.onsuccess = () => resolve(request.result || null);
     request.onerror = () => reject(request.error);
   });
 }
