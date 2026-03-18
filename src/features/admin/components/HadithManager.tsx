@@ -66,7 +66,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { fetchHadithRegistry, fetchHadithEditionContent, fetchHadithApiBooks, FawazEdition } from '@/services/hadith-api';
+import { fetchHadithEditionContent, fetchHadithApiBooks, FawazEdition } from '@/services/hadith-api';
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 /**
@@ -160,48 +160,6 @@ export function HadithManager() {
     }
   };
 
-  /**
-   * Legacy logic for refreshing edition counts from the old source.
-   */
-  const handleSyncEditions = async () => {
-    setIsSeeding(true);
-    try {
-      const registry = await fetchHadithRegistry();
-      const batch = writeBatch(db);
-      let count = 0;
-
-      // We only update editions for books that exist in our new overhauled list
-      const booksSnap = await getDocs(collection(db, 'hadith_books'));
-      const activeSlugs = new Set(booksSnap.docs.map(d => d.id));
-
-      Object.entries(registry).forEach(([slug, bookData]) => {
-        // Attempt to find a matching slug in our system (either bukhari or sahih-bukhari)
-        const match = Array.from(activeSlugs).find(s => s.includes(slug) || slug.includes(s));
-        if (match) {
-          bookData.collection.forEach((ed) => {
-            const editionRef = doc(db, 'hadith_editions', ed.name);
-            batch.set(editionRef, {
-              ...ed,
-              id: ed.name,
-              bookId: match,
-              updatedAt: new Date().toISOString()
-            }, { merge: true });
-            count++;
-          });
-        }
-      });
-
-      if (count > 0) {
-        await batch.commit();
-        toast({ title: "Editions Updated", description: `${count} source translations linked.` });
-      }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Sync Failed", description: e.message });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
   return (
     <div className="space-y-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white p-8 rounded-[2rem] border shadow-sm">
@@ -215,15 +173,6 @@ export function HadithManager() {
           <p className="text-sm text-muted-foreground ml-11">Managing canonical collections with premium API synchronization.</p>
         </div>
         <div className="flex gap-3 w-full sm:w-auto">
-          <Button 
-            variant="outline"
-            onClick={handleSyncEditions}
-            disabled={isSeeding}
-            className="gap-2 flex-1 sm:flex-none h-12 rounded-xl font-bold border-zinc-200"
-          >
-            {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
-            Sync Editions
-          </Button>
           <Button 
             onClick={handleOverhaulRegistry}
             disabled={isSeeding}
