@@ -12,14 +12,11 @@ import {
   Loader2, 
   LayoutDashboard,
   LogOut,
-  Copy,
-  CheckCircle2,
   Mic2,
   Settings,
   ExternalLink,
   ScrollText,
-  UserPlus,
-  PanelLeft
+  UserPlus
 } from 'lucide-react';
 import { 
   Sidebar, 
@@ -34,14 +31,12 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-  SidebarTrigger,
-  useSidebar
+  SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -52,7 +47,7 @@ function SiteHeader() {
   const { user } = useUser();
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur px-4 sticky top-0 z-30">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 sticky top-0 z-30">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
       <div className="flex flex-1 items-center justify-between">
@@ -88,7 +83,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   
-  const [copied, setCopied] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(false);
 
   const adminRef = useMemoFirebase(() => (user ? doc(db, 'roles_admin', user.uid) : null), [db, user]);
@@ -166,13 +160,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <SidebarProvider
-      style={{
-        "--sidebar-width": "240px",
-      } as React.CSSProperties}
-    >
-      <Sidebar variant="inset" className="border-r">
-        <SidebarHeader className="h-14 flex items-center border-b px-4">
+    <SidebarProvider>
+      <Sidebar className="border-r bg-sidebar">
+        <SidebarHeader className="h-14 flex items-center border-b px-4 bg-sidebar">
           <Link href="/admin" className="flex items-center gap-2 font-bold">
             <div className="flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground">
               <ShieldCheck className="h-4 w-4" />
@@ -180,7 +170,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="text-sm tracking-tight">VlogNest Studio</span>
           </Link>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="bg-sidebar">
           <SidebarGroup>
             <SidebarGroupLabel>Management</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -203,7 +193,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="border-t p-4">
+        <SidebarFooter className="border-t p-4 bg-sidebar">
           <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive" onClick={handleSignOut}>
             <LogOut className="w-4 h-4 mr-2" />
             <span>Sign Out</span>
