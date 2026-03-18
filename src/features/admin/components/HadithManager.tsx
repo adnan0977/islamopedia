@@ -268,6 +268,10 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
   const bookRef = useMemoFirebase(() => doc(db, 'hadith_books', bookId), [db, bookId]);
   const { data: book } = useDoc(bookRef);
 
+  // Structural index check
+  const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', bookId), [db, bookId]);
+  const { data: indexDoc } = useDoc(indexRef);
+
   const editionsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_editions'),
     where('bookId', '==', bookId)
@@ -281,15 +285,10 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       const { metadata, hadiths } = data;
       setSyncState(prev => ({ ...prev, status: 'comparing', progress: 50 }));
       
-      // Changed from edition.name to bookId as requested
       const indexRef = doc(db, 'hadith_index', bookId);
       const existingSnap = await getDoc(indexRef);
       const existingData = existingSnap.exists() ? existingSnap.data() : null;
       
-      if (existingSnap.exists()) {
-        toast({ title: "Master Index Available", description: "Verifying structural integrity..." });
-      }
-
       const totalCount = hadiths?.length || 0;
       const payload = { 
         id: bookId, 
@@ -302,12 +301,10 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       
       if (isDataDifferent(payload, existingData)) {
         setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
-        // Still track edition sync status locally
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes', totalHadiths: totalCount });
         updateDocumentNonBlocking(doc(db, 'hadith_books', bookId), { totalHadiths: totalCount });
         toast({ title: "Index Synchronized" });
       } else {
-        // Just ensure edition status is updated
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes' });
         toast({ title: "Index Up to Date" });
       }
@@ -350,17 +347,25 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {editions?.map((ed) => (
-          <EditionCard key={ed.id} edition={ed} onSelect={onSelectEdition} onSyncIndex={handleSyncIndex} />
+          <EditionCard 
+            key={ed.id} 
+            edition={ed} 
+            masterIndexExists={!!indexDoc}
+            onSelect={onSelectEdition} 
+            onSyncIndex={handleSyncIndex} 
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelect: (id: string) => void, onSyncIndex: (ed: any) => void }) {
+function EditionCard({ edition, masterIndexExists, onSelect, onSyncIndex }: { edition: any, masterIndexExists: boolean, onSelect: (id: string) => void, onSyncIndex: (ed: any) => void }) {
   const db = useFirestore();
   const [syncedCount, setSyncedCount] = useState<number | null>(null);
-  const isSynced = edition.indexSynced === 'yes';
+  
+  // An edition is "Synced" if it has the local flag AND the master index doc exists
+  const isSynced = edition.indexSynced === 'yes' && masterIndexExists;
 
   useEffect(() => {
     const q = query(collection(db, 'hadith_data'), where('editionId', '==', edition.id));
@@ -429,7 +434,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
   const { data: edition } = useDoc(editionRef);
 
-  // Index is now keyed by bookId
   const indexRef = useMemoFirebase(() => (edition?.bookId ? doc(db, 'hadith_index', edition.bookId) : null), [db, edition?.bookId]);
   const { data: indexDoc, isLoading } = useDoc(indexRef);
 
@@ -597,7 +601,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
 
-  // Index is keyed by bookId
   const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', bookId), [db, bookId]);
   const { data: indexDoc } = useDoc(indexRef);
 
