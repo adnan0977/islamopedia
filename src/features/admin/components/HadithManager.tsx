@@ -684,7 +684,7 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                   <Hash className="w-4 h-4" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Identity & Reference</h3>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Volume</Label>
                     <Input 
@@ -700,12 +700,6 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                       value={editingRecord?.chapterId || ''} 
                       onChange={(e) => setEditingRecord({...editingRecord, chapterId: e.target.value})}
                     />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Edition Key</Label>
-                    <div className="h-12 flex items-center px-6 rounded-xl bg-zinc-100 border border-transparent text-zinc-400 text-xs font-bold shadow-inner cursor-not-allowed">
-                      {editingRecord?.editionId}
-                    </div>
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Hadith Number</Label>
