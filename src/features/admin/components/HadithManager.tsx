@@ -426,18 +426,20 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         if (edition.type === 'english') {
           transformedRecord.englishNarrator = h.englishNarrator;
           transformedRecord.hadith_text = h.hadithEnglish;
-          transformedRecord.headingEnglish = h.headingEnglish;
+          transformedRecord.heading_text = h.headingEnglish || h.chapter?.chapterEnglish || '';
           transformedRecord.chapterTitle = h.chapter?.chapterEnglish || '';
         } else if (edition.type === 'urdu') {
           transformedRecord.hadith_text = h.hadithUrdu;
+          transformedRecord.heading_text = h.headingUrdu || h.chapter?.chapterUrdu || '';
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           transformedRecord.hadith_text = h.hadithArabic;
+          transformedRecord.heading_text = h.headingArabic || h.chapter?.chapterArabic || '';
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
         Object.keys(h).forEach(key => {
-          if (['grades', 'chapter', 'hadithEnglish', 'hadithUrdu', 'hadithArabic'].includes(key)) return;
+          if (['grades', 'chapter', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic'].includes(key)) return;
 
           if (key === 'book' && typeof h[key] === 'object' && h[key] !== null) {
             Object.entries(h[key]).forEach(([bookKey, bookVal]) => {
@@ -672,8 +674,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 ml-1">Section Heading</Label>
                   <Input 
                     className="bg-zinc-50/50 border-none h-14 px-6 rounded-2xl font-bold text-zinc-600 shadow-inner" 
-                    value={editingRecord?.headingEnglish || editingRecord?.chapterTitle || ''} 
-                    onChange={(e) => setEditingRecord({...editingRecord, headingEnglish: e.target.value})}
+                    value={editingRecord?.heading_text || editingRecord?.chapterTitle || ''} 
+                    onChange={(e) => setEditingRecord({...editingRecord, heading_text: e.target.value})}
                     placeholder="Contextual heading for this record..."
                   />
                 </div>
