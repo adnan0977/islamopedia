@@ -51,7 +51,6 @@
         "author": { "type": "string" },
         "language": { "type": "string" },
         "direction": { "type": "string" },
-        "linkmin": { "type": "string" },
         "indexSynced": { "type": "string", "enum": ["yes", "no"] }
       }
     },
@@ -65,14 +64,13 @@
         "bookSlug": { "type": "string" },
         "name": { "type": "string" },
         "sections": { "type": "object" },
-        "sectionDetails": { "type": "object" },
         "syncedSections": { "type": "object" },
         "updatedAt": { "type": "string" }
       }
     },
     "HadithData": {
       "title": "Hadith Data",
-      "description": "Individual Prophetic records with exploded book metadata and unified text fields.",
+      "description": "Prophetic records with exploded book metadata and unified text fields.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -82,10 +80,10 @@
         "sectionNumber": { "type": "string" },
         "hadithNumber": { "type": "string" },
         "chapterTitle": { "type": "string" },
-        "status": { "type": "string", "description": "Scholarly status or authenticity verdict." },
-        "narrator_text": { "type": "string", "description": "Unified primary narrator text for the edition language." },
-        "hadith_text": { "type": "string", "description": "Unified narration text for the edition language." },
-        "heading_text": { "type": "string", "description": "Unified section heading for the edition language." },
+        "status": { "type": "string", "description": "Authenticity verdict (Sahih, Hasan, etc.)" },
+        "narrator_text": { "type": "string", "description": "Unified primary narrator text (Sanad)." },
+        "hadith_text": { "type": "string", "description": "Unified narration text (Matn)." },
+        "heading_text": { "type": "string", "description": "Unified section heading text." },
         "updatedAt": { "type": "string" }
       }
     }
