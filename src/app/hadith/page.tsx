@@ -222,7 +222,7 @@ export default function HadithPage() {
     if (shareConfig.mode === 'both' || shareConfig.mode === 'arabic') text += `${arabic}\n\n`;
     if (shareConfig.mode === 'both' || shareConfig.mode === 'translation') text += `${trans}\n\n`;
     
-    text += `Source: ${activeBookId}\nVol: ${hadithToShare.translation?.volume || '---'}\nChapter: ${activeChapterId}\nHadith No: ${hadithToShare.num}`;
+    text += `Source: ${activeBookId}\n#${hadithToShare.num}\n\nShared via VlogNest`;
     
     navigator.clipboard.writeText(text.trim());
     toast({ title: "Copied to Clipboard" });
@@ -439,11 +439,11 @@ export default function HadithPage() {
                     )}
                   </div>
                   
-                  <div className="pt-6 border-t border-white/10 w-full flex items-center justify-center gap-3 shrink-0">
-                    <span className="text-[9px] text-zinc-400 font-black uppercase tracking-[0.2em]">Authentic Reference:</span>
+                  <div className="pt-6 border-t border-white/10 w-full flex items-center justify-between gap-3 shrink-0">
                     <Badge variant="secondary" className="bg-white/10 text-white border-none rounded-full px-3 py-0.5 text-[8px] font-black uppercase tracking-widest">
-                      {activeBookId} • VOL: {hadithToShare?.translation?.volume || '---'} • CH: {activeChapterId} • #{hadithToShare?.num}
+                      {activeBookId} • #{hadithToShare?.num}
                     </Badge>
+                    <span className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em]">VlogNest</span>
                   </div>
                 </div>
               </div>
