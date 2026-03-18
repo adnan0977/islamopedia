@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -693,12 +692,13 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
           
           <ScrollArea className="flex-1">
             <div className="p-8 sm:p-12 space-y-12">
+              {/* Identity Row - All horizontal */}
               <section className="space-y-6">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Identity & Reference</h3>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="grid grid-cols-3 gap-6">
                   <div className="flex flex-col gap-3">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Volume</Label>
                     <Input className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" value={editingRecord?.volume || ''} onChange={(e) => setEditingRecord({...editingRecord, volume: e.target.value})} />

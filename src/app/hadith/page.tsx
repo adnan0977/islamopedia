@@ -24,7 +24,8 @@ import {
   Languages,
   Type,
   Palette,
-  Check
+  Check,
+  Settings
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -360,18 +361,18 @@ export default function HadithPage() {
                     </div>
                   )}
                 </CardContent>
-                <CardFooter className="p-8 pt-0 border-t border-zinc-50 bg-zinc-50/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-zinc-300">
-                    <span className="flex items-center gap-1.5"><Database className="w-3 h-3" /> {activeBookId}</span>
-                    <span className="flex items-center gap-1.5"><Hash className="w-3 h-3" /> VOL: {r.volume || '---'}</span>
-                    <span className="flex items-center gap-1.5"><List className="w-3 h-3" /> CH: {activeChapterId}</span>
-                    <span className="flex items-center gap-1.5"><Info className="w-3 h-3" /> NO: {group.num}</span>
+                <CardFooter className="p-8 pt-4 border-t border-zinc-50 bg-zinc-50/10 flex flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-zinc-300 overflow-x-auto no-scrollbar">
+                    <span className="flex items-center gap-1.5 shrink-0"><Database className="w-3 h-3" /> {activeBookId}</span>
+                    <span className="flex items-center gap-1.5 shrink-0"><Hash className="w-3 h-3" /> VOL: {r.volume || '---'}</span>
+                    <span className="flex items-center gap-1.5 shrink-0"><List className="w-3 h-3" /> CH: {activeChapterId}</span>
+                    <span className="flex items-center gap-1.5 shrink-0"><Info className="w-3 h-3" /> NO: {group.num}</span>
                   </div>
-                  <div className="flex gap-2 w-full sm:w-auto">
+                  <div className="flex gap-2 shrink-0">
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="flex-1 sm:flex-none h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900"
+                      className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900"
                       onClick={() => handleOpenShare(group)}
                     >
                       <Share2 className="w-3 h-3 mr-1.5" />
@@ -380,11 +381,11 @@ export default function HadithPage() {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="flex-1 sm:flex-none h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                      className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-red-600 hover:bg-red-50"
                       onClick={() => handleOpenReport(group)}
                     >
                       <AlertTriangle className="w-3 h-3 mr-1.5" />
-                      Report Error
+                      Report
                     </Button>
                   </div>
                 </CardFooter>
@@ -408,7 +409,7 @@ export default function HadithPage() {
               </div>
 
               {/* The Square Visual Card */}
-              <div className="relative aspect-square w-full rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white transition-all duration-1000">
+              <div className="relative aspect-square w-full rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white transition-all duration-1000 mx-auto max-w-[500px]">
                 <Image 
                   src={shareConfig.bg} 
                   alt="Background" 
@@ -429,10 +430,10 @@ export default function HadithPage() {
                     </p>
                   )}
                   
-                  <div className="pt-6 border-t border-white/10 w-full flex flex-col items-center gap-2 mt-auto">
-                    <span className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.3em]">Authentic Reference</span>
-                    <Badge variant="secondary" className="bg-white/10 text-white border-none rounded-full px-4 text-[9px] font-black uppercase tracking-widest">
-                      {activeBookId} • CH: {activeChapterId} • #{hadithToShare?.num}
+                  <div className="pt-6 border-t border-white/10 w-full flex items-center justify-center gap-3 mt-auto">
+                    <span className="text-[9px] text-zinc-400 font-black uppercase tracking-[0.2em]">Authentic Reference:</span>
+                    <Badge variant="secondary" className="bg-white/10 text-white border-none rounded-full px-3 py-0.5 text-[8px] font-black uppercase tracking-widest">
+                      {activeBookId} • VOL: {hadithToShare?.translation?.volume || '---'} • CH: {activeChapterId} • #{hadithToShare?.num}
                     </Badge>
                   </div>
                 </div>
@@ -440,79 +441,89 @@ export default function HadithPage() {
             </div>
 
             {/* Controls Sidebar */}
-            <div className="w-full md:w-80 bg-white border-l border-zinc-100 p-8 sm:p-10 space-y-10 shrink-0">
-              <section className="space-y-4">
-                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
-                  <Type className="w-3 h-3" /> Display Content
-                </Label>
-                <Select 
-                  value={shareConfig.mode} 
-                  onValueChange={(val: any) => setShareConfig({ ...shareConfig, mode: val })}
-                >
-                  <SelectTrigger className="w-full h-11 rounded-xl border-zinc-200 font-bold capitalize">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-zinc-100 shadow-xl">
-                    <SelectItem value="both" className="font-bold">Original & Translation</SelectItem>
-                    <SelectItem value="arabic" className="font-bold">Arabic Script Only</SelectItem>
-                    <SelectItem value="translation" className="font-bold">Translation Only</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="w-full md:w-96 bg-white border-l border-zinc-100 p-8 sm:p-10 space-y-10 shrink-0">
+              <section className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Settings className="w-4 h-4 text-zinc-400" />
+                  <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Workbench Controls</h3>
+                </div>
+                
+                {/* CONFIG ROW: Content & Theme aligned horizontally */}
+                <div className="flex gap-4 items-end">
+                  <div className="flex-1 space-y-3">
+                    <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2 ml-1">
+                      <Type className="w-3 h-3" /> Content
+                    </Label>
+                    <Select 
+                      value={shareConfig.mode} 
+                      onValueChange={(val: any) => setShareConfig({ ...shareConfig, mode: val })}
+                    >
+                      <SelectTrigger className="w-full h-11 rounded-xl border-zinc-200 font-bold capitalize bg-zinc-50/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-zinc-100 shadow-xl">
+                        <SelectItem value="both" className="font-bold">Original & Trans</SelectItem>
+                        <SelectItem value="arabic" className="font-bold">Arabic Script</SelectItem>
+                        <SelectItem value="translation" className="font-bold">Translation</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex-1 space-y-3">
+                    <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2 ml-1">
+                      <Palette className="w-3 h-3" /> Visual Theme
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full h-11 rounded-xl border-zinc-200 font-bold justify-start gap-3 overflow-hidden bg-zinc-50/50">
+                          <div className="w-5 h-5 rounded-md overflow-hidden shrink-0 border border-zinc-100">
+                            <Image src={shareConfig.bg} alt="Current" width={20} height={20} className="object-cover" />
+                          </div>
+                          <span className="flex-1 text-left truncate text-xs">
+                            {SHARE_BACKGROUNDS.find(bg => bg.url === shareConfig.bg)?.label || 'Theme'}
+                          </span>
+                          <ChevronRight className="w-3 h-3 text-zinc-300" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3 rounded-[1.5rem] border-zinc-100 shadow-2xl" align="end" sideOffset={10}>
+                        <div className="grid grid-cols-1 gap-2">
+                          {SHARE_BACKGROUNDS.map((bg) => (
+                            <button 
+                              key={bg.id}
+                              onClick={() => setShareConfig({ ...shareConfig, bg: bg.url })}
+                              className={cn(
+                                "flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-zinc-50 w-full text-left",
+                                shareConfig.bg === bg.url ? "bg-zinc-50 ring-1 ring-zinc-900/5" : ""
+                              )}
+                            >
+                              <div className="relative h-12 w-12 rounded-lg overflow-hidden shrink-0 border border-zinc-100">
+                                <Image src={bg.url} alt={bg.label} fill className="object-cover" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-[11px] font-bold text-zinc-900">{bg.label}</p>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Background</p>
+                              </div>
+                              {shareConfig.bg === bg.url && <Check className="w-4 h-4 text-zinc-900" />}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
               </section>
 
-              <section className="space-y-4">
-                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
-                  <Palette className="w-3 h-3" /> Theme & Mood
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full h-11 rounded-xl border-zinc-200 font-bold justify-start gap-3 overflow-hidden">
-                      <div className="w-6 h-6 rounded-md overflow-hidden shrink-0 border border-zinc-100">
-                        <Image src={shareConfig.bg} alt="Current" width={24} height={24} className="object-cover" />
-                      </div>
-                      <span className="flex-1 text-left truncate">
-                        {SHARE_BACKGROUNDS.find(bg => bg.url === shareConfig.bg)?.label || 'Sacred Patterns'}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-zinc-300" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-3 rounded-[1.5rem] border-zinc-100 shadow-2xl" align="end" sideOffset={10}>
-                    <div className="grid grid-cols-1 gap-2">
-                      {SHARE_BACKGROUNDS.map((bg) => (
-                        <button 
-                          key={bg.id}
-                          onClick={() => setShareConfig({ ...shareConfig, bg: bg.url })}
-                          className={cn(
-                            "flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-zinc-50 w-full text-left",
-                            shareConfig.bg === bg.url ? "bg-zinc-50 ring-1 ring-zinc-900/5" : ""
-                          )}
-                        >
-                          <div className="relative h-12 w-12 rounded-lg overflow-hidden shrink-0 border border-zinc-100">
-                            <Image src={bg.url} alt={bg.label} fill className="object-cover" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-[11px] font-bold text-zinc-900">{bg.label}</p>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Background</p>
-                          </div>
-                          {shareConfig.bg === bg.url && <Check className="w-4 h-4 text-zinc-900" />}
-                        </button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </section>
-
-              <div className="pt-6 border-t border-zinc-50 space-y-4">
+              <div className="pt-10 border-t border-zinc-50 grid grid-cols-1 gap-4">
                 <Button 
-                  className="w-full h-14 rounded-2xl bg-zinc-900 text-white font-bold gap-3 shadow-xl active:scale-95 transition-all"
+                  className="w-full h-14 rounded-2xl bg-zinc-900 text-white font-bold gap-3 shadow-xl active:scale-95 transition-all hover:bg-black"
                   onClick={handleCopyShareText}
                 >
                   <Copy className="w-5 h-5" />
                   Copy Text
                 </Button>
-                <Button variant="outline" className="w-full h-14 rounded-2xl border-zinc-200 bg-white font-bold gap-3 shadow-sm hover:bg-zinc-50">
+                <Button variant="outline" className="w-full h-14 rounded-2xl border-zinc-200 bg-white font-bold gap-3 shadow-sm hover:bg-zinc-50 transition-all">
                   <Download className="w-5 h-5" />
-                  Save Image
+                  Download Card
                 </Button>
               </div>
             </div>
