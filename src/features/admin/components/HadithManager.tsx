@@ -141,7 +141,7 @@ export function HadithManager() {
       });
 
       await batch.commit();
-      toast({ title: "Overhaul Complete", description: `Synced ${registryData.books.length} collections with unified language shards.` });
+      toast({ title: "Overhaul Complete", description: `Synced ${registryData.books.length} collections.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Overhaul Failed", description: e.message });
     } finally {
@@ -268,7 +268,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
 
         setDocumentNonBlocking(indexRef, indexPayload, { merge: true });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { indexSynced: 'yes' });
-        toast({ title: "Shard Indexed", description: `Successfully extracted ${payload.chapters.length} ${edition.language} nodes.` });
+        toast({ title: "Shard Indexed", description: `Successfully extracted ${payload.chapters.length} nodes.` });
       }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Index Error", description: e.message });
@@ -340,8 +340,8 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
           <div className="bg-zinc-50 p-3 rounded-2xl border">
             <Globe className="w-6 h-6 text-zinc-400" />
           </div>
-          <Badge variant={isInspectable ? "default" : "secondary"} className={cn("text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full", isInspectable ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
-            {isInspectable ? 'INDEXED' : 'PENDING'}
+          <Badge variant={isInspectable ? "default" : "secondary"} className={cn("text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-sm", isInspectable ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
+            {isInspectable ? 'INDEX READY' : 'INDEX MISSING'}
           </Badge>
         </div>
         <CardTitle className="text-xl font-bold leading-tight group-hover:text-zinc-900 transition-colors">{edition.language} Shard</CardTitle>
@@ -427,6 +427,9 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
+        // Explicit Status Logic (Prioritizing specific status fields)
+        transformedRecord.status = h.status || h.hadithStatus || (h.grades && h.grades[0]?.grade) || 'Verified';
+
         // Extraction Logic based on Language Type
         if (edition.type === 'english') {
           transformedRecord.hadith_text = h.hadithEnglish || '';
@@ -440,11 +443,11 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           const rawArabic = h.hadithArabic || '';
-          // Python split logic: parts = re.split(r'["«]', text, 1)
+          // Regex split by first quote: parts = re.split(r'["«]', text, 1)
           const match = rawArabic.match(/^(.*?)(["«])(.*)$/s);
           if (match) {
             transformedRecord.narrator_text = match[1].trim(); // Sanad
-            transformedRecord.hadith_text = (match[2] + match[3]).trim(); // Matn (includes the quote char)
+            transformedRecord.hadith_text = (match[2] + match[3]).trim(); // Matn
           } else {
             transformedRecord.narrator_text = '';
             transformedRecord.hadith_text = rawArabic;
@@ -456,22 +459,14 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         // Explode Book Metadata into top-level keys
         if (h.book && typeof h.book === 'object') {
           Object.entries(h.book).forEach(([bk, bv]) => {
+            // Prevent overwriting core identity/status fields
             if (!(bk in transformedRecord)) {
               transformedRecord[bk] = bv;
             }
           });
         }
 
-        // Map status (Use existing status or from first grade)
-        if (h.status) {
-          transformedRecord.status = h.status;
-        } else if (h.grades && Array.isArray(h.grades) && h.grades.length > 0) {
-          transformedRecord.status = h.grades[0].grade || 'Authentic';
-        } else {
-          transformedRecord.status = 'Verified';
-        }
-
-        // General Flattening & Exclusion of 'grades' and 'chapter'
+        // General Flattening & Exclusion of forbidden objects
         Object.keys(h).forEach(key => {
           if (['grades', 'chapter', 'book', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic', 'englishNarrator', 'urduNarrator'].includes(key)) return;
           if (!(key in transformedRecord)) {
@@ -488,7 +483,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       syncedMap[section.number] = true; 
       updateDocumentNonBlocking(indexRef!, { syncedSections: syncedMap }); 
       
-      toast({ title: "Data Ingested", description: `Captured ${data.length} records for this chapter.` });
+      toast({ title: "Data Ingested", description: `Captured ${data.length} records.` });
     } catch (e: any) { 
       toast({ variant: "destructive", title: "Ingest Failed", description: e.message }); 
     } finally { 
@@ -638,7 +633,14 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <TableCell className="hidden sm:table-cell">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-bold text-zinc-400">{r.narrator_text || '---'}</span>
-                      {r.status && <Badge variant="outline" className="text-[7px] uppercase w-fit py-0 px-1 border-zinc-100">{r.status}</Badge>}
+                      {r.status && (
+                        <Badge variant="outline" className={cn(
+                          "text-[7px] uppercase w-fit py-0 px-1 border-zinc-100",
+                          r.status.toLowerCase().includes('sahih') ? "text-emerald-600 bg-emerald-50" : ""
+                        )}>
+                          {r.status}
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-right pr-6 sm:pr-10">
@@ -674,7 +676,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           
           <ScrollArea className="flex-1">
             <div className="p-8 sm:p-12 space-y-10 max-w-4xl mx-auto">
-              {/* Row 1: Reference Node */}
+              {/* Sequence 1: Reference Node */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
@@ -696,7 +698,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 </div>
               </section>
 
-              {/* Field 2: Status */}
+              {/* Sequence 2: Status */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <ShieldCheck className="w-4 h-4" />
@@ -710,7 +712,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 />
               </div>
 
-              {/* Field 3: Narrator */}
+              {/* Sequence 3: Narrator */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Info className="w-4 h-4" />
@@ -724,7 +726,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 />
               </div>
 
-              {/* Field 4: Hadith Text */}
+              {/* Sequence 4: Hadith Text */}
               <div className="space-y-4 pt-4 border-t border-zinc-100">
                 <div className="flex items-center justify-between ml-1">
                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Prophetic Narration (Matn)</Label>
