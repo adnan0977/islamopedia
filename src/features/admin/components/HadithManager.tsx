@@ -427,7 +427,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
-        // Unified Fields Extraction
+        // Unified Fields Extraction & Arabic Split Logic
         if (edition.type === 'english') {
           transformedRecord.hadith_text = h.hadithEnglish || '';
           transformedRecord.heading_text = h.headingEnglish || h.chapter?.chapterEnglish || '';
@@ -439,12 +439,12 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.narrator_text = h.urduNarrator || '';
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
-          // Special Arabic Split Logic: Sanad (narrator) vs Matn (text)
+          // Implementing advanced Sanad/Matn logic using the provided Regex approach
           const rawArabic = h.hadithArabic || '';
           const match = rawArabic.match(/^(.*?)(["«])(.*)$/s);
           if (match) {
-            transformedRecord.narrator_text = match[1].trim();
-            transformedRecord.hadith_text = match[3].trim();
+            transformedRecord.narrator_text = match[1].trim(); // Sanad
+            transformedRecord.hadith_text = (match[2] + match[3]).trim(); // Matn including the quote
           } else {
             transformedRecord.narrator_text = '';
             transformedRecord.hadith_text = rawArabic;
@@ -453,32 +453,24 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
-        // Explode Book Metadata & General Attribute Flattening
+        // Explode Book Metadata into top-level keys
+        if (h.book && typeof h.book === 'object') {
+          Object.entries(h.book).forEach(([bk, bv]) => {
+            if (!(bk in transformedRecord)) {
+              transformedRecord[bk] = bv;
+            }
+          });
+        }
+
+        // Attribute Flattening & Exclusion of 'grades' and 'chapter'
         Object.keys(h).forEach(key => {
-          // Flatten book object
-          if (key === 'book' && typeof h[key] === 'object' && h[key] !== null) {
-            Object.entries(h[key]).forEach(([bookKey, bookVal]) => {
-              if (!(bookKey in transformedRecord)) {
-                transformedRecord[bookKey] = bookVal;
-              }
-            });
-            return;
-          }
-
-          // Strict Exclusion List: grades, chapter, and redundant language shards
-          if ([
-            'grades', 'chapter', 'book',
-            'hadithEnglish', 'hadithUrdu', 'hadithArabic', 
-            'headingEnglish', 'headingUrdu', 'headingArabic', 
-            'englishNarrator', 'urduNarrator'
-          ].includes(key)) return;
-
+          if (['grades', 'chapter', 'book', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic', 'englishNarrator', 'urduNarrator'].includes(key)) return;
           if (!(key in transformedRecord)) {
             transformedRecord[key] = h[key];
           }
         });
 
-        // Set status from grades if available
+        // Map status
         if (h.grades && Array.isArray(h.grades) && h.grades.length > 0) {
           transformedRecord.status = h.grades[0].grade || 'Authentic';
         } else {
