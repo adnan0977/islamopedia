@@ -48,7 +48,7 @@ export function Navbar() {
 
   return (
     <>
-      {/* Top Header - Hidden on Mobile/Tablet, Visible on Desktop */}
+      {/* Top Header - Hidden on Mobile and Tablet, Visible on Desktop (lg and up) */}
       <header className="hidden lg:block sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-8">
           <div className="flex items-center gap-8">
@@ -110,7 +110,7 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Shared Mobile/Tablet Bottom Navigation */}
+      {/* Unified Mobile/Tablet Bottom Navigation (Hidden on Desktop lg and up) */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background lg:hidden shadow-[0_-1px_10px_rgba(0,0,0,0.05)]">
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
@@ -129,6 +129,19 @@ export function Navbar() {
             </Link>
           );
         })}
+        
+        {/* Profile/Auth Button for Mobile/Tablet */}
+        <Link
+          href={user ? "/channel" : "/login"}
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 w-full h-full transition-all duration-300",
+            (pathname === '/channel' || pathname === '/login') ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <User className="h-5 w-5" />
+          <span className="text-[9px] font-bold uppercase tracking-widest">{user ? 'Account' : 'Login'}</span>
+        </Link>
+
         {isAdmin && (
           <Link
             href="/admin"

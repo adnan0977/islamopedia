@@ -6,13 +6,9 @@ import {
   BookOpen, 
   Loader2, 
   ChevronRight, 
-  Hash, 
-  User, 
   ArrowLeft,
   Languages,
-  ScrollText,
-  Search,
-  Filter
+  Search
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,7 +78,7 @@ export default function HadithPage() {
             </Button>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">{book?.bookName}</h1>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Structural Index • {indexDoc?.name}</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Index • {indexDoc?.name}</p>
             </div>
           </div>
           <Badge variant="secondary" className="px-4 py-1 rounded-full uppercase text-[10px] font-black tracking-widest">
@@ -100,7 +96,6 @@ export default function HadithPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">{ch.chapterName}</h3>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Section Node</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-all" />
@@ -123,7 +118,7 @@ export default function HadithPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{book?.bookName}</h1>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Select Translation Edition</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Select Translation</p>
           </div>
         </header>
 
@@ -132,12 +127,12 @@ export default function HadithPage() {
             <Card key={ed.id} className="group cursor-pointer border-none bg-muted/30 hover:bg-primary hover:text-primary-foreground transition-all duration-500" onClick={() => navigateTo({ edition: ed.id })}>
               <CardHeader>
                 <Languages className="h-8 w-8 mb-2 group-hover:text-primary-foreground text-primary transition-colors" />
-                <CardTitle className="text-xl font-bold">{ed.language} Edition</CardTitle>
+                <CardTitle className="text-xl font-bold">{ed.language}</CardTitle>
                 <p className="text-[10px] uppercase font-black tracking-widest opacity-60">{ed.author || ed.name}</p>
               </CardHeader>
               <CardFooter className="pt-0">
                 <Button variant="secondary" className="w-full rounded-full font-bold text-xs uppercase group-hover:bg-white group-hover:text-primary">
-                  Explore Book
+                  Read Book
                 </Button>
               </CardFooter>
             </Card>
@@ -153,7 +148,7 @@ export default function HadithPage() {
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
         <div className="space-y-2">
           <h1 className="text-4xl font-extrabold tracking-tight">Hadith Library</h1>
-          <p className="text-muted-foreground max-w-2xl text-lg">Authentic collections of Prophetic traditions from canonical primary sources with multi-lingual verification.</p>
+          <p className="text-muted-foreground max-w-2xl text-lg">Authentic collections of Prophetic traditions from verified primary sources.</p>
         </div>
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -168,16 +163,9 @@ export default function HadithPage() {
               <div className="h-14 w-14 bg-background rounded-[1.25rem] flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500">
                 <BookOpen className="h-7 w-7 text-primary" />
               </div>
-              <Badge variant="secondary" className="font-mono text-[10px] border shadow-inner">
-                {book.editionCount || 0} EDITIONS
-              </Badge>
             </CardHeader>
             <CardContent className="px-6 pb-8 space-y-4">
-              <h3 className="text-xl font-bold tracking-tight line-clamp-2 leading-tight min-h-[3rem] group-hover:text-primary transition-colors">{book.bookName}</h3>
-              <div className="flex items-center gap-2 text-muted-foreground border-t pt-4">
-                <User className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Master Collection</span>
-              </div>
+              <h3 className="text-xl font-bold tracking-tight line-clamp-2 leading-tight group-hover:text-primary transition-colors">{book.bookName}</h3>
             </CardContent>
           </Card>
         ))}

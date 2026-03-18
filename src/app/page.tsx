@@ -77,7 +77,7 @@ export default function Home() {
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-zinc-300 transition-colors">{name}</span>
                       <Clock className="h-3.5 w-3.5 text-zinc-600" />
                     </CardHeader>
-                    <CardContent className="p-5 pt-0">
+                    <CardContent className="p-5 pt-0 text-white">
                       <span className="text-2xl font-bold tracking-tighter">{time as string}</span>
                     </CardContent>
                   </Card>
@@ -85,7 +85,6 @@ export default function Home() {
             </div>
           )}
         </div>
-        {/* Abstract Gradients */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-primary opacity-30 blur-[120px]" />
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-zinc-500 opacity-10 blur-[120px]" />
       </section>

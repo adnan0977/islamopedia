@@ -199,7 +199,7 @@ export function QuranReader() {
   return (
     <div className="container mx-auto px-4 py-8 space-y-8 pb-32 lg:pb-8 max-w-6xl">
       {/* Header Controls */}
-      <header className="sticky top-[4.5rem] z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-4 border-b">
+      <header className="sticky top-0 lg:top-[4.5rem] z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-4 border-b">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
             {isReading ? (
