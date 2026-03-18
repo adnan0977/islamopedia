@@ -362,7 +362,7 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
       <CardContent className="flex-1">
         <div className="grid grid-cols-2 gap-2">
           <div className="p-3 bg-muted/50 rounded-lg text-center border">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase block mb-1">Total</span>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase block mb-1">Records</span>
             <span className="text-xs font-mono font-bold">{edition.totalHadiths || '---'}</span>
           </div>
           <div className="p-3 bg-muted/50 rounded-lg text-center border">
@@ -749,7 +749,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                             />
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGrade(i)} className="h-9 w-9 text-zinc-300 hover:text-red-500">
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGrade(index)} className="h-9 w-9 text-zinc-300 hover:text-red-500">
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>

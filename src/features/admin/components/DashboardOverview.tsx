@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -26,15 +27,16 @@ interface DashboardProps {
   channels: any[];
   videos: any[];
   speakers: any[];
-  editions: any[];
+  quranEditions: any[];
+  hadithEditions: any[];
 }
 
-export function DashboardOverview({ channels, videos, speakers, editions }: DashboardProps) {
+export function DashboardOverview({ channels, videos, speakers, quranEditions, hadithEditions }: DashboardProps) {
   const stats = [
     { label: 'Total Videos', value: videos.length, icon: VideoIcon, color: 'text-blue-500', bg: 'bg-blue-50' },
     { label: 'Active Channels', value: channels.length, icon: Youtube, color: 'text-red-500', bg: 'bg-red-50' },
     { label: 'Featured Scholars', value: speakers.length, icon: Mic2, color: 'text-amber-500', bg: 'bg-amber-50' },
-    { label: 'Active Editions', value: editions.length, icon: Languages, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { label: 'Library Editions', value: quranEditions.length + hadithEditions.length, icon: Languages, color: 'text-emerald-500', bg: 'bg-emerald-50' },
   ];
 
   const chartData = [

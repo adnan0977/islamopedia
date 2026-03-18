@@ -18,15 +18,19 @@ export default function AdminDashboardPage() {
   const speakersQuery = useMemoFirebase(() => query(collection(db, 'speakers'), limit(1000)), [db]);
   const { data: speakers } = useCollection(speakersQuery);
 
-  const editionsQuery = useMemoFirebase(() => query(collection(db, 'quran_editions'), limit(1000)), [db]);
-  const { data: editions } = useCollection(editionsQuery);
+  const quranEditionsQuery = useMemoFirebase(() => query(collection(db, 'quran_editions'), limit(1000)), [db]);
+  const { data: quranEditions } = useCollection(quranEditionsQuery);
+
+  const hadithEditionsQuery = useMemoFirebase(() => query(collection(db, 'hadith_editions'), limit(1000)), [db]);
+  const { data: hadithEditions } = useCollection(hadithEditionsQuery);
 
   return (
     <DashboardOverview 
       channels={channels || []} 
       videos={videos || []} 
       speakers={speakers || []} 
-      editions={editions || []} 
+      quranEditions={quranEditions || []} 
+      hadithEditions={hadithEditions || []}
     />
   );
 }
