@@ -241,7 +241,7 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       const existingSnap = await getDoc(indexRef);
 
       if (existingSnap.exists()) {
-        toast({ title: "Index Found", description: `Active shard for ${edition.language} already initialized.` });
+        toast({ title: "Index Verified", description: `Index already Synced for ${book?.bookName || edition.id}` });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { indexSynced: 'yes' });
       } else {
         const payload = await fetchHadithApiChapters(bookId);
@@ -272,12 +272,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
     } finally {
       setSyncState(prev => ({ ...prev, isSyncing: false }));
     }
-  };
-
-  const grouped = {
-    arabic: editions?.find(e => e.type === 'arabic'),
-    english: editions?.find(e => e.type === 'english'),
-    urdu: editions?.find(e => e.type === 'urdu')
   };
 
   return (
@@ -329,15 +323,14 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
     getDoc(doc(db, 'hadith_index', edition.id)).then(snap => setIndexExists(snap.exists()));
   }, [db, edition.id]);
 
-  const isInspectable = indexExists;
+  const isInspectable = indexExists === true;
 
   return (
     <Card 
       className={cn(
         "flex flex-col group transition-all border shadow-sm rounded-[2rem] overflow-hidden bg-white",
-        isInspectable ? "cursor-pointer hover:border-zinc-400" : "opacity-90"
+        isInspectable ? "border-zinc-200" : "opacity-90"
       )}
-      onClick={() => isInspectable && onSelect(edition.id)}
     >
       <CardHeader className="p-8 pb-4">
         <div className="flex justify-between items-start mb-6">
@@ -359,7 +352,7 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
         </div>
       </CardContent>
 
-      <CardFooter className="p-8 pt-0 gap-3" onClick={(e) => e.stopPropagation()}>
+      <CardFooter className="p-8 pt-0 gap-3">
         <Button 
           variant="outline" 
           size="sm"
@@ -367,11 +360,16 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
           onClick={onSyncIndex}
         >
           {isInspectable ? <RefreshCcw className="w-3.5 h-3.5 mr-2" /> : <Zap className="w-3.5 h-3.5 mr-2" />}
-          {isInspectable ? 'Resync Index' : 'Audit Shard'}
+          {isInspectable ? 'Resync' : 'Audit Shard'}
         </Button>
         {isInspectable && (
-          <Button variant="outline" size="icon" onClick={() => onSelect(edition.id)} className="h-12 w-12 rounded-xl">
-            <Eye className="w-4 h-4" />
+          <Button 
+            variant="default" 
+            size="sm"
+            onClick={() => onSelect(edition.id)} 
+            className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest rounded-xl bg-zinc-900 text-white"
+          >
+            Inspect <ChevronRight className="w-3.5 h-3.5 ml-2" />
           </Button>
         )}
       </CardFooter>
