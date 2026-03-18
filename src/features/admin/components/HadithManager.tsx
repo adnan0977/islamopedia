@@ -179,7 +179,7 @@ export function HadithManager() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Hadith Library</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Hadith Studio</h1>
           <p className="text-sm text-muted-foreground">Manage canonical master collections and verified editions.</p>
         </div>
         <Button 
@@ -712,7 +712,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                       <Input 
                         type="number" 
                         value={editingRecord?.reference?.hadith || ''} 
-                        onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...editingRecord.reference, hadith: parseInt(e.target.value) } })}
+                        onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...editingRecord.hadith, book: parseInt(e.target.value) } })}
                         className="bg-zinc-50 border-zinc-200 h-12 rounded-xl focus:ring-zinc-900 shadow-inner"
                       />
                     </div>
