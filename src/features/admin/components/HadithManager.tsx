@@ -41,8 +41,7 @@ import {
   Save,
   BookOpen,
   Hash,
-  ShieldCheck,
-  Tag
+  ShieldCheck
 } from 'lucide-react';
 import { 
   Table, 
@@ -381,10 +380,10 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
   );
 }
 
-export function HadithDataView({ editionId, onBack, onViewSection }: { editionId: string, onBack: () => void, onViewSection: (num: string) => void }) {
+export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId: string, onBack: () => void, onViewChapter: (num: string) => void }) {
   const db = useFirestore();
   const { toast } = useToast();
-  const [syncState, setSyncState] = useState({ isSyncing: false, progress: 0, status: 'idle', targetSection: '' });
+  const [syncState, setSyncState] = useState({ isSyncing: false, progress: 0, status: 'idle', targetChapter: '' });
   
   const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
   const { data: indexDoc, isLoading } = useDoc(indexRef);
@@ -403,11 +402,11 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
     }).sort((a, b) => parseFloat(a.number) - parseFloat(b.number));
   }, [indexDoc]);
 
-  const handleSyncSectionContent = async (section: any) => {
+  const handleSyncChapterContent = async (chapter: any) => {
     if (!edition) return;
-    setSyncState({ isSyncing: true, progress: 0, status: 'fetching HadithAPI stream', targetSection: section.name });
+    setSyncState({ isSyncing: true, progress: 0, status: 'fetching HadithAPI stream', targetChapter: chapter.name });
     try {
-      const payload = await fetchHadithApiData(indexDoc?.bookSlug, section.number);
+      const payload = await fetchHadithApiData(indexDoc?.bookSlug, chapter.number);
       const data = payload.hadiths?.data || [];
       
       if (data.length === 0) {
@@ -423,15 +422,13 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           id: hadithId,
           editionId,
           bookSlug: indexDoc?.bookSlug,
-          sectionNumber: section.number,
+          chapterId: chapter.number,
           hadithNumber: h.hadithNumber,
           updatedAt: new Date().toISOString(),
         };
 
-        // Robust status capture
         transformedRecord.status = h.status || h.hadithStatus || (h.grades && h.grades[0]?.grade) || 'Verified';
 
-        // Unified extraction with Sanad/Matn splitting
         if (edition.type === 'english') {
           transformedRecord.hadith_text = h.hadithEnglish || '';
           transformedRecord.heading_text = h.headingEnglish || h.chapter?.chapterEnglish || '';
@@ -444,7 +441,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           const rawArabic = h.hadithArabic || '';
-          // Python-style split logic for Arabic text: Split by first quote
           const parts = rawArabic.split(/["«]/);
           if (parts.length > 1) {
             transformedRecord.narrator_text = parts[0].trim();
@@ -457,7 +453,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
-        // Explode book metadata
         if (h.book && typeof h.book === 'object') {
           Object.entries(h.book).forEach(([bk, bv]) => {
             if (!(bk in transformedRecord)) {
@@ -466,7 +461,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           });
         }
 
-        // Cleanup original language-specific shards and bulky nested objects
         Object.keys(h).forEach(key => {
           const excluded = [
             'grades', 'chapter', 'book', 
@@ -486,7 +480,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       await batch.commit();
       
       const syncedMap = { ...(indexDoc?.syncedSections || {}) }; 
-      syncedMap[section.number] = true; 
+      syncedMap[chapter.number] = true; 
       updateDocumentNonBlocking(indexRef!, { syncedSections: syncedMap }); 
       
       toast({ title: "Data Ingested", description: `Captured ${data.length} records.` });
@@ -536,11 +530,11 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
               </Badge>
             </CardHeader>
             <CardFooter className="p-8 pt-0 flex gap-3">
-              <Button variant="outline" size="sm" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase" onClick={() => handleSyncSectionContent(s)}>
+              <Button variant="outline" size="sm" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase" onClick={() => handleSyncChapterContent(s)}>
                 <Zap className="w-3.5 h-3.5 mr-2" /> {s.isSynced ? 'Update' : 'Ingest'}
               </Button>
               {s.isSynced && (
-                <Button variant="outline" size="sm" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase" onClick={() => onViewSection(s.number)}>
+                <Button variant="outline" size="sm" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase" onClick={() => onViewChapter(s.number)}>
                   <Eye className="w-3.5 h-3.5 mr-2" /> Inspect
                 </Button>
               )}
@@ -552,7 +546,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   );
 }
 
-export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onBack }: { bookId: string, editionId: string, sectionNumber: string, onBack: () => void }) {
+export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack }: { bookId: string, editionId: string, chapterId: string, onBack: () => void }) {
   const db = useFirestore();
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -567,9 +561,9 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   const recordsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_data'),
     where('editionId', '==', editionId),
-    where('sectionNumber', '==', sectionNumber),
+    where('chapterId', '==', chapterId),
     limit(200)
-  ), [db, editionId, sectionNumber]);
+  ), [db, editionId, chapterId]);
 
   const { data: rawRecords, isLoading } = useCollection(recordsQuery);
 
@@ -600,7 +594,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight truncate max-w-[200px] sm:max-w-none">{indexDoc?.sections?.[sectionNumber] || 'Records'}</h2>
+            <h2 className="text-2xl font-bold tracking-tight truncate max-w-[200px] sm:max-w-none">{indexDoc?.sections?.[chapterId] || 'Records'}</h2>
             <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">{edition?.language} Validation Workbench</p>
           </div>
         </div>
@@ -682,7 +676,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           
           <ScrollArea className="flex-1">
             <div className="p-8 sm:p-12 space-y-12">
-              {/* Sequence 1: Identity Node */}
               <section className="space-y-6">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
@@ -698,8 +691,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     <span className="text-sm font-bold text-zinc-900">{editingRecord?.chapterId || 'N/A'}</span>
                   </div>
                   <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Section Ref</span>
-                    <span className="text-sm font-bold text-zinc-900">#{editingRecord?.sectionNumber}</span>
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Edition Key</span>
+                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.editionId}</span>
                   </div>
                   <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
                     <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Hadith Number</span>
@@ -708,7 +701,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 </div>
               </section>
 
-              {/* Sequence 2: Status */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <ShieldCheck className="w-4 h-4" />
@@ -722,7 +714,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 />
               </section>
 
-              {/* Sequence 3: Narrator */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Info className="w-4 h-4" />
@@ -736,7 +727,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 />
               </section>
 
-              {/* Sequence 4: Hadith Text */}
               <section className="space-y-4 pt-6 border-t border-zinc-100">
                 <div className="flex items-center justify-between ml-1">
                   <div className="flex items-center gap-2 text-zinc-400">

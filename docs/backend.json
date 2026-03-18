@@ -79,7 +79,6 @@
         "bookName": { "type": "string" },
         "volume": { "type": "string" },
         "chapterId": { "type": "string" },
-        "sectionNumber": { "type": "string" },
         "hadithNumber": { "type": "string" },
         "chapterTitle": { "type": "string" },
         "status": { "type": "string", "description": "Authenticity verdict (Sahih, Hasan, etc.)" },
