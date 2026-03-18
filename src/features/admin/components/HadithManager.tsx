@@ -428,10 +428,10 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
-        // Explicit Status Logic
+        // Robust status capture
         transformedRecord.status = h.status || h.hadithStatus || (h.grades && h.grades[0]?.grade) || 'Verified';
 
-        // Extraction Logic
+        // Unified extraction with Sanad/Matn splitting
         if (edition.type === 'english') {
           transformedRecord.hadith_text = h.hadithEnglish || '';
           transformedRecord.heading_text = h.headingEnglish || h.chapter?.chapterEnglish || '';
@@ -444,10 +444,11 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           const rawArabic = h.hadithArabic || '';
-          const match = rawArabic.match(/^(.*?)(["«])(.*)$/s);
-          if (match) {
-            transformedRecord.narrator_text = match[1].trim(); 
-            transformedRecord.hadith_text = (match[2] + match[3]).trim(); 
+          // Python-style split logic for Arabic text: Split by first quote
+          const parts = rawArabic.split(/["«]/);
+          if (parts.length > 1) {
+            transformedRecord.narrator_text = parts[0].trim();
+            transformedRecord.hadith_text = rawArabic.substring(parts[0].length).trim();
           } else {
             transformedRecord.narrator_text = '';
             transformedRecord.hadith_text = rawArabic;
@@ -456,7 +457,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
-        // Explode Book Metadata
+        // Explode book metadata
         if (h.book && typeof h.book === 'object') {
           Object.entries(h.book).forEach(([bk, bv]) => {
             if (!(bk in transformedRecord)) {
@@ -465,9 +466,15 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           });
         }
 
-        // General Flattening
+        // Cleanup original language-specific shards and bulky nested objects
         Object.keys(h).forEach(key => {
-          if (['grades', 'chapter', 'book', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic', 'englishNarrator', 'urduNarrator'].includes(key)) return;
+          const excluded = [
+            'grades', 'chapter', 'book', 
+            'hadithEnglish', 'hadithUrdu', 'hadithArabic', 
+            'headingEnglish', 'headingUrdu', 'headingArabic', 
+            'englishNarrator', 'urduNarrator'
+          ];
+          if (excluded.includes(key)) return;
           if (!(key in transformedRecord)) {
             transformedRecord[key] = h[key];
           }
