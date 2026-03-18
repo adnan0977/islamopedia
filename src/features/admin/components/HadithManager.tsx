@@ -424,23 +424,24 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         };
 
         if (edition.type === 'english') {
-          transformedRecord.englishNarrator = h.englishNarrator;
           transformedRecord.hadith_text = h.hadithEnglish;
           transformedRecord.heading_text = h.headingEnglish || h.chapter?.chapterEnglish || '';
+          transformedRecord.narrator_text = h.englishNarrator || '';
           transformedRecord.chapterTitle = h.chapter?.chapterEnglish || '';
         } else if (edition.type === 'urdu') {
           transformedRecord.hadith_text = h.hadithUrdu;
           transformedRecord.heading_text = h.headingUrdu || h.chapter?.chapterUrdu || '';
+          transformedRecord.narrator_text = h.urduNarrator || '';
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           transformedRecord.hadith_text = h.hadithArabic;
           transformedRecord.heading_text = h.headingArabic || h.chapter?.chapterArabic || '';
+          transformedRecord.narrator_text = '';
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
         Object.keys(h).forEach(key => {
-          if (['grades', 'chapter', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic'].includes(key)) return;
-
+          // Flatten book metadata
           if (key === 'book' && typeof h[key] === 'object' && h[key] !== null) {
             Object.entries(h[key]).forEach(([bookKey, bookVal]) => {
               if (!(bookKey in transformedRecord)) {
@@ -449,6 +450,9 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
             });
             return;
           }
+
+          // Strict exclusion list
+          if (['grades', 'chapter', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic', 'englishNarrator', 'urduNarrator', 'book'].includes(key)) return;
 
           if (!(key in transformedRecord)) {
             transformedRecord[key] = h[key];
@@ -610,7 +614,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-bold text-zinc-400">{r.englishNarrator || r.urduNarrator || '---'}</span>
+                      <span className="text-[10px] font-bold text-zinc-400">{r.narrator_text || '---'}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right pr-10">
@@ -698,11 +702,10 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                       <Label className="text-[9px] font-black uppercase text-zinc-400 ml-1">Primary Narrator</Label>
                       <Input 
                         className="bg-white border-zinc-200 h-12 px-4 rounded-xl font-bold text-zinc-700 shadow-sm" 
-                        value={editingRecord?.englishNarrator || editingRecord?.urduNarrator || ''} 
+                        value={editingRecord?.narrator_text || ''} 
                         placeholder="e.g. Abu Huraira (RA)"
                         onChange={(e) => {
-                          if (edition?.type === 'urdu') setEditingRecord({...editingRecord, urduNarrator: e.target.value});
-                          else setEditingRecord({...editingRecord, englishNarrator: e.target.value});
+                          setEditingRecord({...editingRecord, narrator_text: e.target.value});
                         }} 
                       />
                     </div>

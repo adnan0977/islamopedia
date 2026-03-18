@@ -82,7 +82,7 @@
         "sectionNumber": { "type": "string" },
         "hadithNumber": { "type": "string" },
         "chapterTitle": { "type": "string" },
-        "englishNarrator": { "type": "string" },
+        "narrator_text": { "type": "string", "description": "Unified primary narrator text." },
         "hadith_text": { "type": "string", "description": "Unified narration text for the edition language." },
         "heading_text": { "type": "string", "description": "Unified section heading for the edition language." },
         "updatedAt": { "type": "string" }
