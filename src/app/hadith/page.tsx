@@ -343,10 +343,10 @@ export default function HadithPage() {
                       {group.arabic.narrator_text && (
                         <div className="flex flex-col gap-2 text-right">
                           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300">السند</span>
-                          <p className="text-sm font-arabic text-zinc-500 italic leading-relaxed" dir="rtl">{group.arabic.narrator_text}</p>
+                          <p className="text-sm font-arabic text-zinc-500 italic leading-[2.2]" dir="rtl">{group.arabic.narrator_text}</p>
                         </div>
                       )}
-                      <p className="text-right font-arabic leading-[2.5] text-zinc-900 text-3xl sm:text-4xl" dir="rtl">
+                      <p className="text-right font-arabic leading-[2.8] sm:leading-[2.5] text-zinc-900 text-3xl sm:text-4xl" dir="rtl">
                         {group.arabic.hadith_text}
                       </p>
                     </div>
@@ -428,7 +428,7 @@ export default function HadithPage() {
                 <div className="absolute inset-0 p-8 sm:p-12 flex flex-col h-full">
                   <div className="flex-1 flex flex-col justify-center items-center text-center space-y-6">
                     {(shareConfig.mode === 'both' || shareConfig.mode === 'arabic') && (
-                      <p className={cn("font-arabic text-white leading-[2.2] drop-shadow-2xl", fontSizes.arabic)} dir="rtl">
+                      <p className={cn("font-arabic text-white leading-[2.5] drop-shadow-2xl", fontSizes.arabic)} dir="rtl">
                         {tempArabic}
                       </p>
                     )}
@@ -459,7 +459,7 @@ export default function HadithPage() {
                     <Textarea 
                       value={tempArabic} 
                       onChange={(e) => setTempArabic(e.target.value)}
-                      className="font-arabic text-right min-h-[120px] bg-zinc-50 border-zinc-100 rounded-xl text-lg p-4"
+                      className="font-arabic text-right min-h-[120px] bg-zinc-50 border-zinc-100 rounded-xl text-lg p-4 leading-[2.2]"
                       dir="rtl"
                     />
                   </div>
@@ -719,7 +719,7 @@ export default function HadithPage() {
                 
                 <div className="space-y-4">
                   <div className="text-right">
-                    <h3 className="font-arabic text-xl text-zinc-900 leading-relaxed truncate" dir="rtl">{ch.arabicName}</h3>
+                    <h3 className="font-arabic text-xl text-zinc-900 leading-loose truncate" dir="rtl">{ch.arabicName}</h3>
                   </div>
                   <div className="pt-4 border-t border-dashed border-zinc-100">
                     <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest line-clamp-2 leading-relaxed">
