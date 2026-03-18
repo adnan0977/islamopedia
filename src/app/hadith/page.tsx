@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -443,8 +442,8 @@ export default function HadithPage() {
                 />
                 <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-[1px]" />
                 
-                <div className="absolute inset-0 p-8 sm:p-12 flex flex-col h-full">
-                  <div className="flex-1 flex flex-col justify-center items-center text-center space-y-6">
+                <div className="absolute inset-0 p-4 sm:p-6 flex flex-col h-full">
+                  <div className="flex-1 flex flex-col justify-center items-center text-center space-y-2">
                     {(shareConfig.mode === 'both' || shareConfig.mode === 'arabic') && (
                       <p className={cn("font-arabic text-white leading-[2.5] drop-shadow-2xl", fontSizes.arabic)} dir="rtl">
                         {tempArabic}
@@ -457,7 +456,7 @@ export default function HadithPage() {
                     )}
                   </div>
                   
-                  <div className="pt-6 border-t border-white/10 w-full flex items-center justify-between gap-3 shrink-0">
+                  <div className="pt-3 border-t border-white/10 w-full flex items-center justify-between gap-3 shrink-0">
                     <Badge variant="secondary" className="bg-white/10 text-white border-none rounded-full px-3 py-0.5 text-[8px] font-black uppercase tracking-widest">
                       {activeBookId} • #{hadithToShare?.num}
                     </Badge>
