@@ -82,7 +82,7 @@
         "sectionNumber": { "type": "string" },
         "hadithNumber": { "type": "string" },
         "chapterTitle": { "type": "string" },
-        "grade": { "type": "string", "description": "Authenticity grade (Sahih, Hasan, etc)." },
+        "status": { "type": "string", "description": "Scholarly status or authenticity verdict." },
         "narrator_text": { "type": "string", "description": "Unified primary narrator text for the edition language." },
         "hadith_text": { "type": "string", "description": "Unified narration text for the edition language." },
         "heading_text": { "type": "string", "description": "Unified section heading for the edition language." },

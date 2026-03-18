@@ -461,6 +461,13 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           }
         });
 
+        // Set initial status to 'verified' or similar if original data has grades
+        if (h.grades && Array.isArray(h.grades) && h.grades.length > 0) {
+          transformedRecord.status = h.grades[0].grade || 'Authentic';
+        } else {
+          transformedRecord.status = 'Pending';
+        }
+
         batch.set(doc(db, 'hadith_data', hadithId), transformedRecord, { merge: true });
       });
 
@@ -566,7 +573,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       hadith_text: editingRecord.hadith_text,
       heading_text: editingRecord.heading_text,
       narrator_text: editingRecord.narrator_text,
-      grade: editingRecord.grade || '',
+      status: editingRecord.status || '',
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Record Refined" });
@@ -620,7 +627,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <TableCell className="hidden sm:table-cell">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-bold text-zinc-400">{r.narrator_text || '---'}</span>
-                      {r.grade && <Badge variant="outline" className="text-[7px] uppercase w-fit py-0 px-1 border-zinc-100">{r.grade}</Badge>}
+                      {r.status && <Badge variant="outline" className="text-[7px] uppercase w-fit py-0 px-1 border-zinc-100">{r.status}</Badge>}
                     </div>
                   </TableCell>
                   <TableCell className="text-right pr-6 sm:pr-10">
@@ -636,7 +643,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-3xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] border-zinc-200 bg-white">
+        <DialogContent className="max-w-3xl w-[95vw] h-auto max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] border-zinc-200 bg-white">
           <DialogHeader className="px-8 sm:px-12 py-8 sm:py-10 border-b bg-zinc-50/50 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-5">
@@ -654,18 +661,18 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             </div>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 p-8 sm:p-12">
-            <div className="space-y-10 max-w-2xl mx-auto pb-10">
-              {/* 1. Reference Node */}
+          <ScrollArea className="flex-1">
+            <div className="p-8 sm:p-12 space-y-10 max-w-2xl mx-auto">
+              {/* 1. Identity Node */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Identity & Reference</h3>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
                     <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Section Node</span>
-                    <span className="text-sm font-bold text-zinc-900">Chapter {sectionNumber}</span>
+                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.chapterTitle || `Chapter ${sectionNumber}`}</span>
                   </div>
                   <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
                     <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Hadith Serial</span>
@@ -674,17 +681,17 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 </div>
               </section>
 
-              {/* 2. Grade Field */}
+              {/* 2. Status Field */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <ShieldCheck className="w-4 h-4" />
-                  <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Scholarly Grade</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Record Status</Label>
                 </div>
                 <Input 
                   className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900" 
-                  value={editingRecord?.grade || ''} 
-                  placeholder="e.g. Sahih, Hasan, Da'if"
-                  onChange={(e) => setEditingRecord({...editingRecord, grade: e.target.value})}
+                  value={editingRecord?.status || ''} 
+                  placeholder="e.g. Sahih, Hasan, Verified"
+                  onChange={(e) => setEditingRecord({...editingRecord, status: e.target.value})}
                 />
               </div>
 
