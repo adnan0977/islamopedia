@@ -37,7 +37,10 @@ import {
   Database,
   RefreshCcw,
   Globe,
-  CheckCircle2
+  CheckCircle2,
+  Info,
+  BadgeCheck,
+  FileText
 } from 'lucide-react';
 import { 
   Table, 
@@ -623,91 +626,156 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden rounded-[3rem] border-zinc-200">
-          <DialogHeader className="p-10 border-b bg-zinc-50 shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white border rounded-2xl shadow-sm">
-                <Database className="w-6 h-6 text-zinc-400" />
+        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden rounded-[3rem] border-zinc-200 bg-white">
+          <DialogHeader className="px-10 py-8 border-b bg-zinc-50/50 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-5">
+                <div className="p-3.5 bg-white border border-zinc-200 rounded-2xl shadow-sm text-zinc-400">
+                  <Database className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <DialogTitle className="text-2xl font-bold tracking-tight text-zinc-900">Record Refinement</DialogTitle>
+                  <DialogDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
+                    <Globe className="w-3 h-3" />
+                    Validating {edition?.language} Node • Record #{editingRecord?.hadithNumber}
+                  </DialogDescription>
+                </div>
               </div>
-              <div>
-                <DialogTitle className="text-2xl font-bold tracking-tight">Record Refinement</DialogTitle>
-                <DialogDescription className="text-sm text-zinc-500">Manually refine translation text and canonical metadata for {edition?.language}.</DialogDescription>
-              </div>
+              <Badge variant="outline" className="px-4 py-1.5 rounded-full border-zinc-200 bg-white text-zinc-500 font-bold text-[10px] uppercase tracking-widest shadow-sm">
+                Chapter {sectionNumber}
+              </Badge>
             </div>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-10 bg-white">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-              <div className="lg:col-span-2 space-y-8">
-                {edition?.type === 'english' && (
-                  <div className="space-y-4">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">English Narration</Label>
+          <div className="flex-1 overflow-y-auto p-10 bg-white space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+              {/* Primary Content Editor */}
+              <div className="lg:col-span-8 space-y-8">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 ml-1">Narration Text</Label>
+                    <Badge variant="ghost" className="text-[9px] text-zinc-300 uppercase font-black tracking-widest">
+                      {edition?.type === 'arabic' ? 'Original Source' : 'Translated Shard'}
+                    </Badge>
+                  </div>
+                  
+                  {edition?.type === 'english' && (
                     <Textarea 
-                      className="min-h-[200px] text-base leading-relaxed p-6 bg-zinc-50 rounded-2xl resize-none border-none shadow-inner"
+                      className="min-h-[350px] text-lg leading-relaxed p-8 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700"
                       value={editingRecord?.hadithEnglish || ''}
+                      placeholder="Enter narration text..."
                       onChange={(e) => setEditingRecord({ ...editingRecord, hadithEnglish: e.target.value })}
                     />
-                  </div>
-                )}
-                {edition?.type === 'urdu' && (
-                  <div className="space-y-4">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Urdu Text</Label>
+                  )}
+                  {edition?.type === 'urdu' && (
                     <Textarea 
                       dir="rtl"
-                      className="min-h-[200px] text-2xl font-arabic leading-loose p-6 bg-zinc-50 rounded-2xl resize-none border-none shadow-inner"
+                      className="min-h-[350px] text-3xl font-arabic leading-[2.5] p-10 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all text-zinc-800"
                       value={editingRecord?.hadithUrdu || ''}
+                      placeholder="اردو متن درج کریں..."
                       onChange={(e) => setEditingRecord({ ...editingRecord, hadithUrdu: e.target.value })}
                     />
-                  </div>
-                )}
-                {edition?.type === 'arabic' && (
-                  <div className="space-y-4">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Arabic Source</Label>
+                  )}
+                  {edition?.type === 'arabic' && (
                     <Textarea 
                       dir="rtl"
-                      className="min-h-[200px] text-2xl font-arabic leading-loose p-6 bg-zinc-50 rounded-2xl resize-none border-none shadow-inner"
+                      className="min-h-[350px] text-3xl font-arabic leading-[2.5] p-10 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all text-zinc-800"
                       value={editingRecord?.hadithArabic || ''}
+                      placeholder="أدخل النص العربي..."
                       onChange={(e) => setEditingRecord({ ...editingRecord, hadithArabic: e.target.value })}
                     />
-                  </div>
-                )}
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 ml-1">Section Heading</Label>
+                  <Input 
+                    className="bg-zinc-50/50 border-none h-14 px-6 rounded-2xl font-bold text-zinc-600 shadow-inner" 
+                    value={editingRecord?.headingEnglish || editingRecord?.chapterTitle || ''} 
+                    onChange={(e) => setEditingRecord({...editingRecord, headingEnglish: e.target.value})}
+                    placeholder="Contextual heading for this record..."
+                  />
+                </div>
               </div>
-              <div className="space-y-8">
-                <Card className="p-6 rounded-[2rem] bg-zinc-50/50 border-none shadow-inner space-y-6">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-zinc-400">Hadith Number</Label>
-                    <Input className="bg-white border-zinc-200" value={editingRecord?.hadithNumber || ''} readOnly />
+
+              {/* Sidebar: Attributes & Grades */}
+              <div className="lg:col-span-4 space-y-10">
+                <section className="space-y-6">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Info className="w-4 h-4" />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Canonical Identity</h3>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-zinc-400">Narrator Context</Label>
-                    <Input 
-                      className="bg-white border-zinc-200" 
-                      value={editingRecord?.englishNarrator || editingRecord?.urduNarrator || ''} 
-                      onChange={(e) => {
-                        if (edition?.type === 'urdu') setEditingRecord({...editingRecord, urduNarrator: e.target.value});
-                        else setEditingRecord({...editingRecord, englishNarrator: e.target.value});
-                      }} 
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <Label className="text-[10px] font-black uppercase text-zinc-400">Scholarly Grades</Label>
+                  
+                  <div className="grid gap-4">
+                    <div className="p-5 rounded-2xl bg-zinc-50/50 border border-zinc-100 flex flex-col gap-1 shadow-sm">
+                      <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Hadith Number</span>
+                      <span className="text-xl font-black text-zinc-900 tracking-tight">#{editingRecord?.hadithNumber}</span>
+                    </div>
+                    
                     <div className="space-y-2">
-                      {editingRecord?.grades?.map((g: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-white border border-zinc-100 rounded-xl shadow-sm">
-                          <span className="text-[10px] font-bold text-zinc-400">{g.scholar}</span>
-                          <Badge variant="secondary" className="text-[8px] uppercase font-black">{g.grade}</Badge>
-                        </div>
-                      ))}
+                      <Label className="text-[9px] font-black uppercase text-zinc-400 ml-1">Primary Narrator</Label>
+                      <Input 
+                        className="bg-white border-zinc-200 h-12 px-4 rounded-xl font-bold text-zinc-700 shadow-sm" 
+                        value={editingRecord?.englishNarrator || editingRecord?.urduNarrator || ''} 
+                        placeholder="e.g. Abu Huraira (RA)"
+                        onChange={(e) => {
+                          if (edition?.type === 'urdu') setEditingRecord({...editingRecord, urduNarrator: e.target.value});
+                          else setEditingRecord({...editingRecord, englishNarrator: e.target.value});
+                        }} 
+                      />
                     </div>
                   </div>
-                </Card>
+                </section>
+
+                <section className="space-y-6">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <BadgeCheck className="w-4 h-4" />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Scholarly Verification</h3>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {editingRecord?.grades?.map((g: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm hover:border-zinc-300 transition-all cursor-default group">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter group-hover:text-zinc-600 transition-colors">{g.scholar}</span>
+                          <span className="text-xs font-black text-zinc-900 mt-0.5">{g.grade}</span>
+                        </div>
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          g.grade.toLowerCase().includes('sahih') ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : 
+                          g.grade.toLowerCase().includes('daif') ? "bg-red-500" : "bg-amber-500"
+                        )} />
+                      </div>
+                    ))}
+                    {(!editingRecord?.grades || editingRecord.grades.length === 0) && (
+                      <div className="p-8 rounded-2xl border border-dashed border-zinc-200 text-center space-y-2">
+                        <FileText className="w-6 h-6 text-zinc-200 mx-auto" />
+                        <p className="text-[9px] font-black uppercase text-zinc-300 tracking-widest leading-relaxed">No authenticity grades<br />provided for this node</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
               </div>
             </div>
           </div>
 
-          <DialogFooter className="p-10 bg-zinc-50 border-t shrink-0">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-14 px-8 font-bold text-zinc-400">Discard Changes</Button>
-            <Button className="h-14 px-12 rounded-2xl bg-zinc-900 text-white font-bold shadow-xl shadow-zinc-200 active:scale-95 transition-all" onClick={handleSaveEdit}>Commit Refinement</Button>
+          <DialogFooter className="px-10 py-8 bg-zinc-50 border-t shrink-0 flex items-center justify-between gap-6">
+            <div className="hidden sm:flex items-center gap-3 text-zinc-400">
+              <RefreshCcw className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em]">Syncing to localized index shards</span>
+            </div>
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-14 px-8 font-bold text-zinc-400 hover:text-zinc-900 hover:bg-transparent">
+                Discard Changes
+              </Button>
+              <Button 
+                className="h-14 px-12 rounded-[1.25rem] bg-zinc-900 text-white font-bold shadow-2xl shadow-zinc-200 active:scale-95 transition-all hover:bg-black gap-3" 
+                onClick={handleSaveEdit}
+              >
+                <Save className="w-4 h-4" />
+                Commit Refinement
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
