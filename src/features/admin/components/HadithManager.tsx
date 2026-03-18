@@ -124,7 +124,6 @@ export function HadithManager() {
           updatedAt: new Date().toISOString()
         }, { merge: true });
 
-        // Auto-provision 3 standard editions for HadithAPI
         ['arabic', 'english', 'urdu'].forEach(lang => {
           const edId = `${slug}_${lang}`;
           const edRef = doc(db, 'hadith_editions', edId);
@@ -419,7 +418,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       data.forEach((h: any) => {
         const hadithId = `${editionId}_h_${h.hadithNumber}`;
         
-        // Language-specific record transformation
         const transformedRecord: any = {
           id: hadithId,
           editionId,
@@ -429,22 +427,22 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
-        // Targeted key extraction based on edition language
         if (edition.type === 'english') {
           transformedRecord.englishNarrator = h.englishNarrator;
           transformedRecord.hadithEnglish = h.hadithEnglish;
+          transformedRecord.hadith_text = h.hadithEnglish;
           transformedRecord.headingEnglish = h.headingEnglish;
           transformedRecord.chapterTitle = h.chapter?.chapterEnglish || '';
         } else if (edition.type === 'urdu') {
           transformedRecord.hadithUrdu = h.hadithUrdu;
+          transformedRecord.hadith_text = h.hadithUrdu;
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           transformedRecord.hadithArabic = h.hadithArabic;
+          transformedRecord.hadith_text = h.hadithArabic;
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
-        // Keep all other top-level keys from original API as requested, EXCLUDING grades and chapter
-        // Also explode the 'book' key and save each element as a top-level key
         Object.keys(h).forEach(key => {
           if (key === 'grades' || key === 'chapter') return;
 
@@ -562,8 +560,14 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
 
   const handleSaveEdit = () => {
     if (!editingRecord) return;
-    updateDocumentNonBlocking(doc(db, 'hadith_data', editingRecord.id), {
-      ...editingRecord,
+    
+    const updatedRecord = { ...editingRecord };
+    if (edition?.type === 'english') updatedRecord.hadith_text = updatedRecord.hadithEnglish;
+    else if (edition?.type === 'urdu') updatedRecord.hadith_text = updatedRecord.hadithUrdu;
+    else if (edition?.type === 'arabic') updatedRecord.hadith_text = updatedRecord.hadithArabic;
+
+    updateDocumentNonBlocking(doc(db, 'hadith_data', updatedRecord.id), {
+      ...updatedRecord,
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Record Refined" });
@@ -617,12 +621,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <TableCell>
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-bold text-zinc-400">{r.englishNarrator || r.urduNarrator || '---'}</span>
-                      <div className="flex gap-1 flex-wrap">
-                        {/* Grades logic removed from DB but UI can still show if provided by API object initially */}
-                        {r.grades?.slice(0, 2).map((g: any, i: number) => (
-                          <Badge key={i} variant="secondary" className="text-[7px] py-0 px-1.5 font-black uppercase">{g.grade}</Badge>
-                        ))}
-                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-right pr-10">
@@ -661,7 +659,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           
           <div className="flex-1 overflow-y-auto p-10 bg-white space-y-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-              {/* Primary Content Editor */}
               <div className="lg:col-span-8 space-y-8">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -710,7 +707,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 </div>
               </div>
 
-              {/* Sidebar: Attributes & Grades */}
               <div className="lg:col-span-4 space-y-10">
                 <section className="space-y-6">
                   <div className="flex items-center gap-2 text-zinc-400">
@@ -736,36 +732,6 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                         }} 
                       />
                     </div>
-                  </div>
-                </section>
-
-                <section className="space-y-6">
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <BadgeCheck className="w-4 h-4" />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Scholarly Verification</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {/* UI Note: Grades are no longer stored in hadith_data but can be viewed if present in memory */}
-                    {editingRecord?.grades?.map((g: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm hover:border-zinc-300 transition-all cursor-default group">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter group-hover:text-zinc-600 transition-colors">{g.scholar}</span>
-                          <span className="text-xs font-black text-zinc-900 mt-0.5">{g.grade}</span>
-                        </div>
-                        <div className={cn(
-                          "w-2 h-2 rounded-full",
-                          g.grade.toLowerCase().includes('sahih') ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : 
-                          g.grade.toLowerCase().includes('daif') ? "bg-red-500" : "bg-amber-500"
-                        )} />
-                      </div>
-                    ))}
-                    {(!editingRecord?.grades || editingRecord.grades.length === 0) && (
-                      <div className="p-8 rounded-2xl border border-dashed border-zinc-200 text-center space-y-2">
-                        <FileText className="w-6 h-6 text-zinc-200 mx-auto" />
-                        <p className="text-[9px] font-black uppercase text-zinc-300 tracking-widest leading-relaxed">No authenticity grades<br />provided for this node</p>
-                      </div>
-                    )}
                   </div>
                 </section>
               </div>

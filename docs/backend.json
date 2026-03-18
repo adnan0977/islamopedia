@@ -86,6 +86,7 @@
         "hadithEnglish": { "type": "string" },
         "hadithUrdu": { "type": "string" },
         "hadithArabic": { "type": "string" },
+        "hadith_text": { "type": "string", "description": "Unified source text for the edition language." },
         "updatedAt": { "type": "string" }
       }
     }
