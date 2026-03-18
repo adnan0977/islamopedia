@@ -448,17 +448,16 @@ export default function HadithPage() {
                   <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Workbench Controls</h3>
                 </div>
                 
-                {/* CONFIG ROW: Content & Theme aligned horizontally */}
-                <div className="flex gap-4 items-end">
-                  <div className="flex-1 space-y-3">
-                    <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2 ml-1">
-                      <Type className="w-3 h-3" /> Content
-                    </Label>
+                {/* Unified Control Row: Compact All-in-One Row */}
+                <div className="flex gap-2 items-end">
+                  {/* Content Selection */}
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Content</Label>
                     <Select 
                       value={shareConfig.mode} 
                       onValueChange={(val: any) => setShareConfig({ ...shareConfig, mode: val })}
                     >
-                      <SelectTrigger className="w-full h-11 rounded-xl border-zinc-200 font-bold capitalize bg-zinc-50/50">
+                      <SelectTrigger className="w-full h-11 rounded-xl border-zinc-200 font-bold bg-zinc-50/50 px-3">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-zinc-100 shadow-xl">
@@ -469,20 +468,18 @@ export default function HadithPage() {
                     </Select>
                   </div>
 
-                  <div className="flex-1 space-y-3">
-                    <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2 ml-1">
-                      <Palette className="w-3 h-3" /> Visual Theme
-                    </Label>
+                  {/* Theme Popover */}
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Theme</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full h-11 rounded-xl border-zinc-200 font-bold justify-start gap-3 overflow-hidden bg-zinc-50/50">
+                        <Button variant="outline" className="w-full h-11 rounded-xl border-zinc-200 font-bold justify-start gap-2 overflow-hidden bg-zinc-50/50 px-2">
                           <div className="w-5 h-5 rounded-md overflow-hidden shrink-0 border border-zinc-100">
                             <Image src={shareConfig.bg} alt="Current" width={20} height={20} className="object-cover" />
                           </div>
-                          <span className="flex-1 text-left truncate text-xs">
+                          <span className="flex-1 text-left truncate text-[10px]">
                             {SHARE_BACKGROUNDS.find(bg => bg.url === shareConfig.bg)?.label || 'Theme'}
                           </span>
-                          <ChevronRight className="w-3 h-3 text-zinc-300" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-64 p-3 rounded-[1.5rem] border-zinc-100 shadow-2xl" align="end" sideOffset={10}>
@@ -510,21 +507,38 @@ export default function HadithPage() {
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  {/* Copy Button */}
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline"
+                      size="icon"
+                      className="h-11 w-11 rounded-xl border-zinc-200 bg-white shadow-sm hover:bg-zinc-50 active:scale-95 transition-all"
+                      onClick={handleCopyShareText}
+                      title="Copy Text"
+                    >
+                      <Copy className="w-5 h-5 text-zinc-600" />
+                    </Button>
+                  </div>
+
+                  {/* Download Button */}
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline"
+                      size="icon"
+                      className="h-11 w-11 rounded-xl border-zinc-200 bg-white shadow-sm hover:bg-zinc-50 active:scale-95 transition-all"
+                      title="Download Card"
+                    >
+                      <Download className="w-5 h-5 text-zinc-600" />
+                    </Button>
+                  </div>
                 </div>
               </section>
 
-              <div className="pt-10 border-t border-zinc-50 grid grid-cols-1 gap-4">
-                <Button 
-                  className="w-full h-14 rounded-2xl bg-zinc-900 text-white font-bold gap-3 shadow-xl active:scale-95 transition-all hover:bg-black"
-                  onClick={handleCopyShareText}
-                >
-                  <Copy className="w-5 h-5" />
-                  Copy Text
-                </Button>
-                <Button variant="outline" className="w-full h-14 rounded-2xl border-zinc-200 bg-white font-bold gap-3 shadow-sm hover:bg-zinc-50 transition-all">
-                  <Download className="w-5 h-5" />
-                  Download Card
-                </Button>
+              <div className="pt-8 mt-auto border-t border-zinc-50">
+                <p className="text-[10px] text-zinc-400 font-medium leading-relaxed italic text-center">
+                  Generating high-fidelity reflections optimized for scholarly engagement.
+                </p>
               </div>
             </div>
           </DialogContent>
