@@ -218,8 +218,8 @@ export function HadithManager() {
               <CardContent>
                 <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg border border-border/50">
                   <div className="flex flex-col">
-                    <span className="text-xl font-bold leading-none">{book.totalHadiths?.toLocaleString() || '---'}</span>
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase mt-1">Records Available</span>
+                    <span className="text-xl font-bold leading-none">{book.editionCount || '---'}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase mt-1">Editions Cataloged</span>
                   </div>
                 </div>
               </CardContent>
