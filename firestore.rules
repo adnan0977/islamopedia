@@ -37,11 +37,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /hadith_reference/{id} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-
     match /hadith_reports/{id} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
