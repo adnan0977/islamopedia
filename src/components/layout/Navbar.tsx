@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, User, Play, Mic2, ScrollText, LogIn } from 'lucide-react';
+import { Home, BookOpen, Play, Mic2, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Button } from '@/components/ui/button';
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -24,7 +23,6 @@ const baseNavItems = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, isUserLoading } = useUser();
   const db = useFirestore();
 
   const settingsRef = useMemoFirebase(() => doc(db, 'settings', 'app_config'), [db]);
@@ -76,24 +74,6 @@ export function Navbar() {
               </NavigationMenuList>
             </NavigationMenu>
           </div>
-
-          <div className="flex items-center gap-4">
-            {!isUserLoading && user ? (
-              <Button variant="outline" size="sm" asChild className="gap-2 rounded-full px-4 h-9">
-                <Link href="/channel">
-                  <User className="h-4 w-4" />
-                  <span className="hidden lg:inline">{user.email?.split('@')[0]}</span>
-                </Link>
-              </Button>
-            ) : (
-              <Button size="sm" asChild className="gap-2 h-9 px-4 rounded-full">
-                <Link href="/login">
-                  <LogIn className="h-4 w-4" />
-                  <span>Sign In</span>
-                </Link>
-              </Button>
-            )}
-          </div>
         </div>
       </header>
 
@@ -116,18 +96,6 @@ export function Navbar() {
             </Link>
           );
         })}
-        
-        {/* Profile/Auth Button for Mobile/Tablet */}
-        <Link
-          href={user ? "/channel" : "/login"}
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 w-full h-full transition-all duration-300",
-            (pathname === '/channel' || pathname === '/login') ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <User className="h-5 w-5" />
-          <span className="text-[9px] font-bold uppercase tracking-widest">{user ? 'Account' : 'Login'}</span>
-        </Link>
       </nav>
     </>
   );
