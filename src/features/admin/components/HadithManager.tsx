@@ -66,28 +66,28 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { fetchHadithRegistry, fetchHadithEditionContent, FawazEdition } from '@/services/hadith-api';
+import { fetchHadithRegistry, fetchHadithEditionContent, fetchHadithApiBooks, FawazEdition } from '@/services/hadith-api';
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-const ALLOWED_SLUGS = [
-  'bukhari', 'muslim', 'tirmidhi', 'abudawud', 
-  'nasai', 'ibnmajah', 'malik'
-];
-
+/**
+ * Mapping for canonical book ordering from HadithAPI slugs.
+ */
 const BOOK_ORDER: Record<string, number> = {
-  'bukhari': 1,
-  'muslim': 2,
-  'tirmidhi': 3,
-  'abudawud': 4,
-  'nasai': 5,
-  'ibnmajah': 6,
-  'malik': 7
+  'sahih-bukhari': 1,
+  'sahih-muslim': 2,
+  'al-tirmidhi': 3,
+  'sunan-abu-dawood': 4,
+  'sunan-nasai': 5,
+  'sunan-ibn-majah': 6,
+  'mishkat-al-masabih': 7,
+  'musnad-ahmad': 8,
+  'al-muwatta': 9
 };
 
 function isDataDifferent(newData: any, existingData: any): boolean {
   if (!existingData) return true;
   for (const key in newData) {
-    if (key === 'updatedAt' || key === 'syncedSections') continue;
+    if (key === 'updatedAt' || key === 'syncedSections' || key === 'lastSyncedAt') continue;
     if (JSON.stringify(newData[key]) !== JSON.stringify(existingData[key])) {
       return true;
     }
@@ -108,64 +108,95 @@ export function HadithManager() {
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
-  const handleSeedRegistry = async () => {
+  /**
+   * Performs an overhaul of the Hadith collection using HadithAPI.com.
+   * This wipes existing book metadata and repopulates from the premium source.
+   */
+  const handleOverhaulRegistry = async () => {
+    setIsSeeding(true);
+    try {
+      // 1. Fetch new registry from HadithAPI.com
+      const registryData = await fetchHadithApiBooks();
+      if (!registryData.books || !Array.isArray(registryData.books)) {
+        throw new Error("Invalid response from HadithAPI");
+      }
+
+      // 2. Fetch existing books to handle cleanup
+      const existingSnap = await getDocs(collection(db, 'hadith_books'));
+      const existingIds = existingSnap.docs.map(d => d.id);
+
+      // 3. Batch process the overhaul
+      const batch = writeBatch(db);
+      
+      // Clear legacy books that might have different slugs
+      existingIds.forEach(id => {
+        batch.delete(doc(db, 'hadith_books', id));
+      });
+
+      // Populate new books
+      registryData.books.forEach((book: any) => {
+        const slug = book.bookSlug;
+        const bookRef = doc(db, 'hadith_books', slug);
+        
+        const payload = {
+          id: slug,
+          bookName: book.bookName,
+          totalHadiths: parseInt(book.hadiths_count) || 0,
+          editionCount: 1, // HadithAPI typically provides a unified view
+          orderKey: BOOK_ORDER[slug] || 99,
+          lastSyncedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        batch.set(bookRef, payload, { merge: true });
+      });
+
+      await batch.commit();
+      toast({ title: "Registry Overhauled", description: `Successfully synced ${registryData.books.length} canonical collections.` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Overhaul Failed", description: e.message });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  /**
+   * Legacy logic for refreshing edition counts from the old source.
+   */
+  const handleSyncEditions = async () => {
     setIsSeeding(true);
     try {
       const registry = await fetchHadithRegistry();
-      const editionsSnap = await getDocs(collection(db, 'hadith_editions'));
-      const existingEditions = new Map(editionsSnap.docs.map(d => [d.id, d.data()]));
-      const existingBooksMap = new Map(books?.map(b => [b.id, b]) || []);
-
       const batch = writeBatch(db);
-      let updatesCount = 0;
+      let count = 0;
 
-      ALLOWED_SLUGS.forEach(slug => {
-        if (registry[slug]) {
-          const bookData = registry[slug];
-          const existingBook = existingBooksMap.get(slug);
-          
-          const bookPayload = {
-            id: slug,
-            bookName: bookData.name,
-            editionCount: bookData.collection.length,
-            orderKey: BOOK_ORDER[slug] || 99,
-            totalHadiths: existingBook?.totalHadiths || 0
-          };
+      // We only update editions for books that exist in our new overhauled list
+      const booksSnap = await getDocs(collection(db, 'hadith_books'));
+      const activeSlugs = new Set(booksSnap.docs.map(d => d.id));
 
-          if (isDataDifferent(bookPayload, existingBook)) {
-            const bookRef = doc(db, 'hadith_books', slug);
-            batch.set(bookRef, { ...bookPayload, lastSyncedAt: new Date().toISOString() }, { merge: true });
-            updatesCount++;
-          }
-
+      Object.entries(registry).forEach(([slug, bookData]) => {
+        // Attempt to find a matching slug in our system (either bukhari or sahih-bukhari)
+        const match = Array.from(activeSlugs).find(s => s.includes(slug) || slug.includes(s));
+        if (match) {
           bookData.collection.forEach((ed) => {
-            const existingEd = existingEditions.get(ed.name);
-            const edPayload = {
+            const editionRef = doc(db, 'hadith_editions', ed.name);
+            batch.set(editionRef, {
               ...ed,
               id: ed.name,
-              bookId: slug,
-            };
-
-            if (isDataDifferent(edPayload, existingEd)) {
-              const editionRef = doc(db, 'hadith_editions', ed.name);
-              batch.set(editionRef, {
-                ...edPayload,
-                updatedAt: new Date().toISOString()
-              }, { merge: true });
-              updatesCount++;
-            }
+              bookId: match,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+            count++;
           });
         }
       });
 
-      if (updatesCount > 0) {
+      if (count > 0) {
         await batch.commit();
-        toast({ title: "Registry Updated", description: `${updatesCount} nodes refreshed.` });
-      } else {
-        toast({ title: "Database Sync Complete" });
+        toast({ title: "Editions Updated", description: `${count} source translations linked.` });
       }
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Seeding Failed", description: e.message });
+      toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     } finally {
       setIsSeeding(false);
     }
@@ -181,25 +212,25 @@ export function HadithManager() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Hadith Studio</h1>
           </div>
-          <p className="text-sm text-muted-foreground ml-11">Manage canonical master collections and verified editions.</p>
+          <p className="text-sm text-muted-foreground ml-11">Managing canonical collections with premium API synchronization.</p>
         </div>
         <div className="flex gap-3 w-full sm:w-auto">
           <Button 
             variant="outline"
-            onClick={handleSeedRegistry}
+            onClick={handleSyncEditions}
             disabled={isSeeding}
             className="gap-2 flex-1 sm:flex-none h-12 rounded-xl font-bold border-zinc-200"
           >
             {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
-            Refresh Registry
+            Sync Editions
           </Button>
           <Button 
-            onClick={handleSeedRegistry}
+            onClick={handleOverhaulRegistry}
             disabled={isSeeding}
-            className="gap-2 flex-1 sm:flex-none h-12 rounded-xl font-bold bg-zinc-900 text-white"
+            className="gap-2 flex-1 sm:flex-none h-12 rounded-xl font-bold bg-zinc-900 text-white shadow-xl shadow-zinc-200 hover:bg-black transition-all"
           >
-            <CloudDownload className="w-4 h-4" />
-            Seed Collections
+            {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
+            Overhaul Registry
           </Button>
         </div>
       </div>
@@ -225,7 +256,7 @@ export function HadithManager() {
                   <Badge variant="outline" className="text-[10px] font-mono border-zinc-100 text-zinc-400">#{book.orderKey || '---'}</Badge>
                 </div>
                 <CardTitle className="text-xl leading-tight group-hover:text-zinc-900 transition-colors">{book.bookName}</CardTitle>
-                <CardDescription className="text-[10px] uppercase font-black tracking-widest text-zinc-400 mt-1">{book.id}.master</CardDescription>
+                <CardDescription className="text-[10px] uppercase font-black tracking-widest text-zinc-400 mt-1">{book.id}</CardDescription>
               </CardHeader>
               <CardContent className="px-8 py-6">
                 <div className="flex items-center gap-6 p-4 bg-zinc-50/50 rounded-2xl border border-dashed">
@@ -235,10 +266,10 @@ export function HadithManager() {
                   </div>
                   <Separator orientation="vertical" className="h-8" />
                   <div className="flex flex-col">
-                    <span className="text-2xl font-black leading-none text-zinc-300">
-                      {book.totalHadiths ? `#${book.totalHadiths.toLocaleString()}` : '#0'}
+                    <span className="text-2xl font-black leading-none text-zinc-900">
+                      #{book.totalHadiths ? book.totalHadiths.toLocaleString() : '0'}
                     </span>
-                    <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-2">Records</span>
+                    <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-2">Registry</span>
                   </div>
                 </div>
               </CardContent>
@@ -250,6 +281,15 @@ export function HadithManager() {
               </CardFooter>
             </Card>
           ))}
+          {(!books || books.length === 0) && (
+            <Card className="col-span-full py-20 border-dashed flex flex-col items-center justify-center space-y-4">
+              <AlertCircle className="w-12 h-12 text-zinc-200" />
+              <div className="text-center">
+                <p className="font-bold text-zinc-400">No Collections Initialized</p>
+                <p className="text-xs text-zinc-400 mt-1">Click "Overhaul Registry" to sync from HadithAPI.com</p>
+              </div>
+            </Card>
+          )}
         </div>
       )}
     </div>
@@ -283,18 +323,15 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
   const handleSyncIndex = async (edition: FawazEdition) => {
     setSyncState({ isSyncing: true, progress: 0, status: 'validating existing indices', targetEdition: edition.name });
     try {
-      // 1. Check if index already exists for this bookId
       const indexRef = doc(db, 'hadith_index', bookId);
       const existingSnap = await getDoc(indexRef);
       const indexExists = existingSnap.exists();
 
       if (indexExists) {
-        // If it exists, just show message and ensure the edition is flagged as synced
         toast({ title: `Index already Synced for ${book?.bookName || bookId}` });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes' });
         setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
       } else {
-        // 2. Perform actual sync if not available
         setSyncState(prev => ({ ...prev, status: 'fetching canonical structure', progress: 20 }));
         const data = await fetchHadithEditionContent(edition.linkmin);
         const { metadata, hadiths } = data;
@@ -313,7 +350,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
         
         setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes', totalHadiths: totalCount });
-        updateDocumentNonBlocking(doc(db, 'hadith_books', bookId), { totalHadiths: totalCount });
         
         toast({ title: "Master Index Generated", description: "Structural blueprint saved to cluster." });
         setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
@@ -364,6 +400,12 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
             onSyncIndex={handleSyncIndex} 
           />
         ))}
+        {(!editions || editions.length === 0) && (
+          <div className="col-span-full py-20 text-center space-y-4">
+            <p className="text-sm font-medium text-zinc-400">No translations indexed for this collection.</p>
+            <Button variant="outline" onClick={onBack} className="rounded-xl">Go Back</Button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -373,7 +415,6 @@ function EditionCard({ edition, masterIndexExists, onSelect, onSyncIndex }: { ed
   const db = useFirestore();
   const [syncedCount, setSyncedCount] = useState<number | null>(null);
   
-  // An edition is "Inspectable" if it has been synced AND the index structural doc exists
   const isInspectable = edition.indexSynced === 'yes' && masterIndexExists;
 
   useEffect(() => {
@@ -407,13 +448,13 @@ function EditionCard({ edition, masterIndexExists, onSelect, onSyncIndex }: { ed
           <div className="p-4 bg-zinc-50 rounded-2xl border shadow-inner text-center">
             <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Registry</span>
             <span className="text-sm font-black text-zinc-900">
-              {edition.totalHadiths ? `#${edition.totalHadiths.toLocaleString()}` : '#0'}
+              #{edition.totalHadiths ? edition.totalHadiths.toLocaleString() : '0'}
             </span>
           </div>
           <div className="p-4 bg-zinc-50 rounded-2xl border shadow-inner text-center">
             <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Synced</span>
             <span className="text-sm font-black text-zinc-900">
-              {syncedCount !== null ? `#${syncedCount.toLocaleString()}` : '#0'}
+              #{syncedCount !== null ? syncedCount.toLocaleString() : '0'}
             </span>
           </div>
         </div>
@@ -452,7 +493,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
 
   const sections = useMemo(() => {
     if (!indexDoc?.sections) return [];
-    // Removed the filter that was excluding section '0'
     return Object.entries(indexDoc.sections).map(([num, name]) => {
       const details = indexDoc.sectionDetails?.[num] || {};
       return { 
