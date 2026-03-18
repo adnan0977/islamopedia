@@ -441,14 +441,16 @@ export default function HadithPage() {
             </div>
 
             {/* Controls Sidebar */}
-            <div className="w-full md:w-96 bg-white border-l border-zinc-100 p-8 sm:p-10 space-y-10 shrink-0">
+            <div className="w-full md:w-96 bg-white border-l border-zinc-100 p-8 sm:p-10 flex flex-col shrink-0">
+              <div className="flex-1" />
+              
               <section className="space-y-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Settings className="w-4 h-4 text-zinc-400" />
                   <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Workbench Controls</h3>
                 </div>
                 
-                {/* Unified Control Row: Compact All-in-One Row */}
+                {/* Unified Control Row: Compact All-in-One Row at the bottom */}
                 <div className="flex gap-2 items-end">
                   {/* Content Selection */}
                   <div className="flex-1 space-y-2">
@@ -534,12 +536,6 @@ export default function HadithPage() {
                   </div>
                 </div>
               </section>
-
-              <div className="pt-8 mt-auto border-t border-zinc-50">
-                <p className="text-[10px] text-zinc-400 font-medium leading-relaxed italic text-center">
-                  Generating high-fidelity reflections optimized for scholarly engagement.
-                </p>
-              </div>
             </div>
           </DialogContent>
         </Dialog>
