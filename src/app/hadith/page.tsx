@@ -7,14 +7,12 @@ import {
   Loader2, 
   ChevronRight, 
   ArrowLeft,
-  Languages,
   Search,
   Library,
   BookMarked,
-  Info,
-  Hash
+  Info
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -29,47 +27,66 @@ export default function HadithPage() {
 
   const activeBookId = searchParams.get('book');
   const activeChapterId = searchParams.get('chapter');
-  const [selectedTranslationType, setSelectedTranslationType] = useState<'english' | 'urdu'>('english');
+  const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'urdu'>('english');
 
-  // Query 1: All Books
+  // Query 1: All Books for the directory
   const booksQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_books'),
     orderBy('orderKey', 'asc')
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
-  // Query 2: All Indices for the active book
+  // Query 2: All Indices for the active book (Arabic + Translations)
   const indexQuery = useMemoFirebase(() => (activeBookId ? query(
     collection(db, 'hadith_index'),
     where('bookSlug', '==', activeBookId)
   ) : null), [db, activeBookId]);
   const { data: indices, isLoading: isLoadingIndices } = useCollection(indexQuery);
 
-  // Query 3: Records for the active chapter
+  // Query 3: Records for the active chapter (Fetches all language shards for this chapter)
   const recordsQuery = useMemoFirebase(() => (activeBookId && activeChapterId ? query(
     collection(db, 'hadith_data'),
     where('bookSlug', '==', activeBookId),
     where('chapterId', '==', activeChapterId),
-    limit(100)
+    limit(300) // Fetching Arabic + Translation records
   ) : null), [db, activeBookId, activeChapterId]);
-  const { data: records, isLoading: isLoadingRecords } = useCollection(recordsQuery);
+  const { data: allRecords, isLoading: isLoadingRecords } = useCollection(recordsQuery);
 
-  // Merge Arabic and Translation sections
+  // Merge Arabic and Selected Translation indices
   const bilingualChapters = useMemo(() => {
     if (!indices) return [];
     const arabicIdx = indices.find(i => i.id.endsWith('_arabic'));
-    const transIdx = indices.find(i => i.id.endsWith(`_${selectedTranslationType}`));
+    const transIdx = indices.find(i => i.id.endsWith(`_${selectedLanguage}`));
     
-    // Fallback if the specific translation isn't available
+    // Fallback if the specific translation index isn't available
     const fallbackTransIdx = indices.find(i => !i.id.endsWith('_arabic')) || transIdx;
     
     const sections = arabicIdx?.sections || {};
     return Object.keys(sections).map(num => ({
       number: num,
       arabicName: sections[num],
-      translationName: (fallbackTransIdx?.sections || {})[num] || `Chapter ${num}`
+      translationName: (fallbackTransIdx?.sections || {})[num] || (transIdx?.sections || {})[num] || `Chapter ${num}`
     })).sort((a, b) => parseFloat(a.number) - parseFloat(b.number));
-  }, [indices, selectedTranslationType]);
+  }, [indices, selectedLanguage]);
+
+  // Group records by hadithNumber to show Arabic + Translation paired
+  const groupedRecords = useMemo(() => {
+    if (!allRecords) return [];
+    const groups: Record<string, any> = {};
+    
+    allRecords.forEach(r => {
+      const num = r.hadithNumber;
+      if (!groups[num]) groups[num] = { num, arabic: null, translation: null };
+      
+      if (r.editionId.endsWith('_arabic')) {
+        groups[num].arabic = r;
+      } else if (r.editionId.endsWith(`_${selectedLanguage}`)) {
+        groups[num].translation = r;
+      }
+    });
+
+    return Object.values(groups).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
+  }, [allRecords, selectedLanguage]);
 
   const navigateTo = (params: Record<string, string | null>) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -80,7 +97,7 @@ export default function HadithPage() {
     router.push(`/hadith?${nextParams.toString()}`);
   };
 
-  if (isLoadingBooks || isLoadingIndices || isLoadingRecords) {
+  if (isLoadingBooks || isLoadingIndices || (activeChapterId && isLoadingRecords)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Loader2 className="h-12 w-12 animate-spin text-zinc-900" />
@@ -89,10 +106,9 @@ export default function HadithPage() {
     );
   }
 
-  // View 3: Hadith Records Reader
+  // View 3: Hadith Reader (Paired View)
   if (activeBookId && activeChapterId) {
     const book = books?.find(b => b.id === activeBookId);
-    const sortedRecords = records ? [...records].sort((a, b) => parseFloat(a.hadithNumber) - parseFloat(b.hadithNumber)) : [];
 
     return (
       <div className="container mx-auto px-4 py-12 space-y-12 max-w-5xl pb-32 lg:pb-12 animate-in fade-in duration-700">
@@ -106,63 +122,97 @@ export default function HadithPage() {
               <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">Record Set • Chapter {activeChapterId}</p>
             </div>
           </div>
-          <Badge variant="secondary" className="px-4 py-1.5 rounded-xl uppercase text-[9px] font-black tracking-widest bg-zinc-50 border border-zinc-100 text-zinc-500 shadow-inner">
-            {sortedRecords.length} Traditions
-          </Badge>
+          <div className="flex items-center gap-3 bg-zinc-50 p-1 rounded-xl border border-zinc-100">
+            <Button 
+              variant={selectedLanguage === 'english' ? 'default' : 'ghost'} 
+              size="sm" 
+              className={cn("h-8 px-4 rounded-lg font-bold text-[9px] uppercase tracking-widest", selectedLanguage === 'english' && "bg-zinc-900 text-white shadow-md")}
+              onClick={() => setSelectedLanguage('english')}
+            >
+              English
+            </Button>
+            <Button 
+              variant={selectedLanguage === 'urdu' ? 'default' : 'ghost'} 
+              size="sm" 
+              className={cn("h-8 px-4 rounded-lg font-bold text-[9px] uppercase tracking-widest", selectedLanguage === 'urdu' && "bg-zinc-900 text-white shadow-md")}
+              onClick={() => setSelectedLanguage('urdu')}
+            >
+              Urdu
+            </Button>
+          </div>
         </header>
 
         <div className="space-y-12">
-          {sortedRecords.map((r) => (
-            <Card key={r.id} className="border-none bg-white shadow-xl rounded-[2.5rem] overflow-hidden group hover:ring-1 hover:ring-zinc-200 transition-all">
-              <CardHeader className="p-8 pb-4 border-b border-zinc-50 bg-zinc-50/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-white border border-zinc-200 rounded-xl flex items-center justify-center font-bold text-[10px] text-zinc-400 shadow-sm">
-                      #{r.hadithNumber}
+          {groupedRecords.map((group) => {
+            const r = group.arabic || group.translation;
+            if (!r) return null;
+
+            return (
+              <Card key={group.num} className="border-none bg-white shadow-xl rounded-[2.5rem] overflow-hidden group hover:ring-1 hover:ring-zinc-200 transition-all">
+                <CardHeader className="p-8 pb-4 border-b border-zinc-50 bg-zinc-50/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 bg-white border border-zinc-200 rounded-xl flex items-center justify-center font-bold text-[10px] text-zinc-400 shadow-sm">
+                        #{group.num}
+                      </div>
+                      <Badge variant="outline" className={cn(
+                        "text-[8px] font-black uppercase tracking-widest border-zinc-100 py-0.5",
+                        (r.status || '').toLowerCase().includes('sahih') ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-zinc-400"
+                      )}>
+                        {r.status || 'Verified'}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className={cn(
-                      "text-[8px] font-black uppercase tracking-widest border-zinc-100 py-0.5",
-                      r.status?.toLowerCase().includes('sahih') ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-zinc-400"
-                    )}>
-                      {r.status || 'Verified'}
-                    </Badge>
                   </div>
-                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 text-zinc-300 hover:text-zinc-900">
-                    <BookMarked className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-8 sm:p-12 space-y-10">
-                {r.narrator_text && (
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 flex items-center gap-2">
-                      <Info className="w-3 h-3" /> Transmitted By
-                    </span>
-                    <p className="text-sm font-bold text-zinc-500 italic leading-relaxed">{r.narrator_text}</p>
+                </CardHeader>
+                <CardContent className="p-8 sm:p-12 space-y-12">
+                  {/* Arabic Section */}
+                  {group.arabic && (
+                    <div className="space-y-8">
+                      {group.arabic.narrator_text && (
+                        <div className="flex flex-col gap-2 text-right">
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300">السند</span>
+                          <p className="text-sm font-arabic text-zinc-500 italic leading-relaxed" dir="rtl">{group.arabic.narrator_text}</p>
+                        </div>
+                      )}
+                      <p className="text-right font-arabic leading-[2.5] text-zinc-900 text-3xl sm:text-4xl" dir="rtl">
+                        {group.arabic.hadith_text}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Translation Section */}
+                  {group.translation && (
+                    <div className="space-y-6 pt-10 border-t border-dashed border-zinc-100">
+                      {group.translation.narrator_text && (
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300 flex items-center gap-2">
+                            <Info className="w-3 h-3" /> Narrated By
+                          </span>
+                          <p className="text-sm font-bold text-zinc-500 italic leading-relaxed">{group.translation.narrator_text}</p>
+                        </div>
+                      )}
+                      <p className="text-lg font-medium text-zinc-700 leading-relaxed text-justify">
+                        {group.translation.hadith_text}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="p-8 pt-0 border-t border-zinc-50 bg-zinc-50/10 flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-300">Ref: {activeBookId}:{group.num}</span>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Share</Button>
+                    <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cite</Button>
                   </div>
-                )}
-                <div className="space-y-12">
-                  {/* Arabic Matn (if available) */}
-                  <p className="text-right font-arabic leading-[2.5] text-zinc-900 text-3xl sm:text-4xl" dir="rtl">
-                    {r.hadith_text}
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter className="p-8 pt-0 border-t border-zinc-50 bg-zinc-50/10 flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-300">Ref: {activeBookId}:{r.hadithNumber}</span>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Share</Button>
-                  <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cite</Button>
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       </div>
     );
   }
 
-  // View 2: Bilingual Index (Arabic + Translation)
+  // View 2: Bilingual Index
   if (activeBookId) {
     const book = books?.find(b => b.id === activeBookId);
     return (
@@ -179,18 +229,18 @@ export default function HadithPage() {
           </div>
           <div className="flex items-center gap-3 bg-zinc-50 p-1.5 rounded-2xl border border-zinc-100 shadow-inner">
             <Button 
-              variant={selectedTranslationType === 'english' ? 'default' : 'ghost'} 
+              variant={selectedLanguage === 'english' ? 'default' : 'ghost'} 
               size="sm" 
-              className={cn("h-10 px-6 rounded-xl font-bold text-[10px] uppercase tracking-widest", selectedTranslationType === 'english' && "bg-zinc-900 text-white shadow-lg")}
-              onClick={() => setSelectedTranslationType('english')}
+              className={cn("h-10 px-6 rounded-xl font-bold text-[10px] uppercase tracking-widest", selectedLanguage === 'english' && "bg-zinc-900 text-white shadow-lg")}
+              onClick={() => setSelectedLanguage('english')}
             >
               English
             </Button>
             <Button 
-              variant={selectedTranslationType === 'urdu' ? 'default' : 'ghost'} 
+              variant={selectedLanguage === 'urdu' ? 'default' : 'ghost'} 
               size="sm" 
-              className={cn("h-10 px-6 rounded-xl font-bold text-[10px] uppercase tracking-widest", selectedTranslationType === 'urdu' && "bg-zinc-900 text-white shadow-lg")}
-              onClick={() => setSelectedTranslationType('urdu')}
+              className={cn("h-10 px-6 rounded-xl font-bold text-[10px] uppercase tracking-widest", selectedLanguage === 'urdu' && "bg-zinc-900 text-white shadow-lg")}
+              onClick={() => setSelectedLanguage('urdu')}
             >
               Urdu
             </Button>
@@ -230,7 +280,7 @@ export default function HadithPage() {
     );
   }
 
-  // View 1: Books Directory (Square Grid)
+  // View 1: Books Directory
   return (
     <div className="container mx-auto px-4 py-12 space-y-16 max-w-7xl pb-32 lg:pb-16 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
