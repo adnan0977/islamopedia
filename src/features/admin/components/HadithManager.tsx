@@ -236,7 +236,9 @@ export function HadithManager() {
                   </div>
                   <Separator orientation="vertical" className="h-8" />
                   <div className="flex flex-col">
-                    <span className="text-2xl font-black leading-none text-zinc-300">{book.totalHadiths?.toLocaleString() || '0'}</span>
+                    <span className="text-2xl font-black leading-none text-zinc-300">
+                      {book.totalHadiths ? `#${book.totalHadiths.toLocaleString()}` : '#0'}
+                    </span>
                     <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-2">Records</span>
                   </div>
                 </div>
@@ -405,11 +407,15 @@ function EditionCard({ edition, masterIndexExists, onSelect, onSyncIndex }: { ed
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4 bg-zinc-50 rounded-2xl border shadow-inner text-center">
             <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Registry</span>
-            <span className="text-sm font-black text-zinc-900">{edition.totalHadiths || '---'}</span>
+            <span className="text-sm font-black text-zinc-900">
+              {edition.totalHadiths ? `#${edition.totalHadiths.toLocaleString()}` : '#0'}
+            </span>
           </div>
           <div className="p-4 bg-zinc-50 rounded-2xl border shadow-inner text-center">
             <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Synced</span>
-            <span className="text-sm font-black text-zinc-900">{syncedCount ?? '...'}</span>
+            <span className="text-sm font-black text-zinc-900">
+              {syncedCount !== null ? `#${syncedCount.toLocaleString()}` : '#0'}
+            </span>
           </div>
         </div>
       </CardContent>
@@ -814,7 +820,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                             />
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGrade(i)} className="h-10 w-10 text-zinc-300 hover:text-red-500 transition-colors">
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGrade(index)} className="h-10 w-10 text-zinc-300 hover:text-red-500 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
