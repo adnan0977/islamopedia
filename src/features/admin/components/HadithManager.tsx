@@ -41,7 +41,8 @@ import {
   Save,
   BookOpen,
   Hash,
-  ShieldCheck
+  ShieldCheck,
+  Tag
 } from 'lucide-react';
 import { 
   Table, 
@@ -427,10 +428,10 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
-        // Explicit Status Logic (Prioritizing specific status fields)
+        // Explicit Status Logic
         transformedRecord.status = h.status || h.hadithStatus || (h.grades && h.grades[0]?.grade) || 'Verified';
 
-        // Extraction Logic based on Language Type
+        // Extraction Logic
         if (edition.type === 'english') {
           transformedRecord.hadith_text = h.hadithEnglish || '';
           transformedRecord.heading_text = h.headingEnglish || h.chapter?.chapterEnglish || '';
@@ -443,11 +444,10 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           const rawArabic = h.hadithArabic || '';
-          // Regex split by first quote: parts = re.split(r'["«]', text, 1)
           const match = rawArabic.match(/^(.*?)(["«])(.*)$/s);
           if (match) {
-            transformedRecord.narrator_text = match[1].trim(); // Sanad
-            transformedRecord.hadith_text = (match[2] + match[3]).trim(); // Matn
+            transformedRecord.narrator_text = match[1].trim(); 
+            transformedRecord.hadith_text = (match[2] + match[3]).trim(); 
           } else {
             transformedRecord.narrator_text = '';
             transformedRecord.hadith_text = rawArabic;
@@ -456,17 +456,16 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
-        // Explode Book Metadata into top-level keys
+        // Explode Book Metadata
         if (h.book && typeof h.book === 'object') {
           Object.entries(h.book).forEach(([bk, bv]) => {
-            // Prevent overwriting core identity/status fields
             if (!(bk in transformedRecord)) {
               transformedRecord[bk] = bv;
             }
           });
         }
 
-        // General Flattening & Exclusion of forbidden objects
+        // General Flattening
         Object.keys(h).forEach(key => {
           if (['grades', 'chapter', 'book', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic', 'englishNarrator', 'urduNarrator'].includes(key)) return;
           if (!(key in transformedRecord)) {
@@ -656,7 +655,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-5xl w-[95vw] h-auto max-h-[95vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] border-zinc-200 bg-white">
+        <DialogContent className="max-w-6xl w-[95vw] h-auto max-h-[95vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] border-zinc-200 bg-white shadow-2xl">
           <DialogHeader className="px-8 sm:px-12 py-8 sm:py-10 border-b bg-zinc-50/50 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-5">
@@ -667,7 +666,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <DialogTitle className="text-2xl font-bold tracking-tight text-zinc-900">Record Refinement</DialogTitle>
                   <DialogDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
                     <Globe className="w-3.5 h-3.5" />
-                    Shard: {edition?.language} • Ref: #{editingRecord?.hadithNumber}
+                    Shard: {edition?.language} • Workspace ID: {editingRecord?.id}
                   </DialogDescription>
                 </div>
               </div>
@@ -675,23 +674,27 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           </DialogHeader>
           
           <ScrollArea className="flex-1">
-            <div className="p-8 sm:p-12 space-y-10 max-w-4xl mx-auto">
-              {/* Sequence 1: Reference Node */}
-              <section className="space-y-4">
+            <div className="p-8 sm:p-12 space-y-12">
+              {/* Sequence 1: Identity Node */}
+              <section className="space-y-6">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Identity & Reference</h3>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Collection</span>
-                    <span className="text-sm font-bold text-zinc-900 truncate">{editingRecord?.bookName || 'N/A'}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Volume</span>
+                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.volume || 'N/A'}</span>
                   </div>
-                  <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Section ID</span>
-                    <span className="text-sm font-bold text-zinc-900">#{editingRecord?.sectionNumber || sectionNumber}</span>
+                  <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Chapter ID</span>
+                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.chapterId || 'N/A'}</span>
                   </div>
-                  <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
+                  <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Section Ref</span>
+                    <span className="text-sm font-bold text-zinc-900">#{editingRecord?.sectionNumber}</span>
+                  </div>
+                  <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
                     <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Hadith Number</span>
                     <span className="text-sm font-bold text-zinc-900">#{editingRecord?.hadithNumber}</span>
                   </div>
@@ -699,37 +702,40 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
               </section>
 
               {/* Sequence 2: Status */}
-              <div className="space-y-3">
+              <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <ShieldCheck className="w-4 h-4" />
                   <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Scholarly Status</Label>
                 </div>
                 <Input 
-                  className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900" 
+                  className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900 text-lg" 
                   value={editingRecord?.status || ''} 
                   placeholder="Sahih, Hasan, Da'if..."
                   onChange={(e) => setEditingRecord({...editingRecord, status: e.target.value})}
                 />
-              </div>
+              </section>
 
               {/* Sequence 3: Narrator */}
-              <div className="space-y-3">
+              <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Info className="w-4 h-4" />
                   <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Primary Narrator (Sanad)</Label>
                 </div>
                 <Input 
-                  className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900" 
+                  className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900 text-lg" 
                   value={editingRecord?.narrator_text || ''} 
                   placeholder="Sanad chain..."
                   onChange={(e) => setEditingRecord({...editingRecord, narrator_text: e.target.value})} 
                 />
-              </div>
+              </section>
 
               {/* Sequence 4: Hadith Text */}
-              <div className="space-y-4 pt-4 border-t border-zinc-100">
+              <section className="space-y-4 pt-6 border-t border-zinc-100">
                 <div className="flex items-center justify-between ml-1">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Prophetic Narration (Matn)</Label>
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <BookOpen className="w-4 h-4" />
+                    <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Prophetic Narration (Matn)</Label>
+                  </div>
                   <Badge variant="ghost" className="text-[9px] text-zinc-300 uppercase font-black tracking-widest">
                     {edition?.type === 'arabic' ? 'Uthmani Source' : 'Translated Shard'}
                   </Badge>
@@ -738,23 +744,23 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 <Textarea 
                   dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"}
                   className={cn(
-                    "min-h-[400px] leading-relaxed p-8 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700 resize-none",
-                    edition?.type === 'english' ? "text-lg sm:text-xl" : "text-2xl sm:text-4xl font-arabic leading-[2.5] text-zinc-800"
+                    "min-h-[450px] leading-relaxed p-10 bg-zinc-50/50 rounded-[2.5rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700 resize-none",
+                    edition?.type === 'english' ? "text-xl" : "text-3xl sm:text-5xl font-arabic leading-[2.5] text-zinc-800"
                   )}
                   value={editingRecord?.hadith_text || ''}
                   placeholder="Enter narration text..."
                   onChange={(e) => setEditingRecord({ ...editingRecord, hadith_text: e.target.value })}
                 />
-              </div>
+              </section>
             </div>
           </ScrollArea>
 
           <DialogFooter className="px-8 sm:px-12 py-8 sm:py-10 bg-zinc-50 border-t shrink-0 flex flex-row items-center justify-end gap-4">
             <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-6 font-bold text-zinc-400 hover:text-zinc-900 hover:bg-transparent">
-              Discard
+              Discard Changes
             </Button>
             <Button 
-              className="h-12 sm:h-14 px-10 rounded-2xl bg-zinc-900 text-white font-bold shadow-2xl active:scale-95 transition-all hover:bg-black gap-3" 
+              className="h-12 sm:h-14 px-12 rounded-2xl bg-zinc-900 text-white font-bold shadow-2xl active:scale-95 transition-all hover:bg-black gap-3" 
               onClick={handleSaveEdit}
             >
               <Save className="w-4 h-4" />

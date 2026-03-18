@@ -77,6 +77,8 @@
         "editionId": { "type": "string" },
         "bookSlug": { "type": "string" },
         "bookName": { "type": "string" },
+        "volume": { "type": "string" },
+        "chapterId": { "type": "string" },
         "sectionNumber": { "type": "string" },
         "hadithNumber": { "type": "string" },
         "chapterTitle": { "type": "string" },
