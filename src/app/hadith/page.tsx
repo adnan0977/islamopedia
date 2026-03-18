@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -23,7 +22,9 @@ import {
   X,
   RefreshCcw,
   Languages,
-  Type
+  Type,
+  Palette,
+  Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { saveOfflineHadithBooks } from '@/lib/offline-db';
 
@@ -432,39 +445,61 @@ export default function HadithPage() {
                 <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
                   <Type className="w-3 h-3" /> Display Content
                 </Label>
-                <div className="grid grid-cols-1 gap-2">
-                  {(['both', 'arabic', 'translation'] as const).map((m) => (
-                    <Button 
-                      key={m}
-                      variant={shareConfig.mode === m ? 'default' : 'outline'}
-                      size="sm"
-                      className="justify-start h-11 rounded-xl font-bold capitalize text-xs"
-                      onClick={() => setShareConfig({ ...shareConfig, mode: m })}
-                    >
-                      {m}
-                    </Button>
-                  ))}
-                </div>
+                <Select 
+                  value={shareConfig.mode} 
+                  onValueChange={(val: any) => setShareConfig({ ...shareConfig, mode: val })}
+                >
+                  <SelectTrigger className="w-full h-11 rounded-xl border-zinc-200 font-bold capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-zinc-100 shadow-xl">
+                    <SelectItem value="both" className="font-bold">Original & Translation</SelectItem>
+                    <SelectItem value="arabic" className="font-bold">Arabic Script Only</SelectItem>
+                    <SelectItem value="translation" className="font-bold">Translation Only</SelectItem>
+                  </SelectContent>
+                </Select>
               </section>
 
               <section className="space-y-4">
                 <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
-                  <Library className="w-3 h-3" /> Choose Theme
+                  <Palette className="w-3 h-3" /> Theme & Mood
                 </Label>
-                <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-                  {SHARE_BACKGROUNDS.map((bg) => (
-                    <button 
-                      key={bg.id}
-                      onClick={() => setShareConfig({ ...shareConfig, bg: bg.url })}
-                      className={cn(
-                        "relative h-16 w-16 rounded-xl overflow-hidden border-2 transition-all shrink-0",
-                        shareConfig.bg === bg.url ? "border-zinc-900 scale-110 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"
-                      )}
-                    >
-                      <Image src={bg.url} alt={bg.label} fill className="object-cover" />
-                    </button>
-                  ))}
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full h-11 rounded-xl border-zinc-200 font-bold justify-start gap-3 overflow-hidden">
+                      <div className="w-6 h-6 rounded-md overflow-hidden shrink-0 border border-zinc-100">
+                        <Image src={shareConfig.bg} alt="Current" width={24} height={24} className="object-cover" />
+                      </div>
+                      <span className="flex-1 text-left truncate">
+                        {SHARE_BACKGROUNDS.find(bg => bg.url === shareConfig.bg)?.label || 'Sacred Patterns'}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-zinc-300" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3 rounded-[1.5rem] border-zinc-100 shadow-2xl" align="end" sideOffset={10}>
+                    <div className="grid grid-cols-1 gap-2">
+                      {SHARE_BACKGROUNDS.map((bg) => (
+                        <button 
+                          key={bg.id}
+                          onClick={() => setShareConfig({ ...shareConfig, bg: bg.url })}
+                          className={cn(
+                            "flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-zinc-50 w-full text-left",
+                            shareConfig.bg === bg.url ? "bg-zinc-50 ring-1 ring-zinc-900/5" : ""
+                          )}
+                        >
+                          <div className="relative h-12 w-12 rounded-lg overflow-hidden shrink-0 border border-zinc-100">
+                            <Image src={bg.url} alt={bg.label} fill className="object-cover" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[11px] font-bold text-zinc-900">{bg.label}</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Background</p>
+                          </div>
+                          {shareConfig.bg === bg.url && <Check className="w-4 h-4 text-zinc-900" />}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </section>
 
               <div className="pt-6 border-t border-zinc-50 space-y-4">
