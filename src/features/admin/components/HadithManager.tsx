@@ -38,7 +38,9 @@ import {
   Save,
   Plus,
   RefreshCcw,
-  Database
+  Database,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { 
   Table, 
@@ -286,7 +288,6 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
       if (isDataDifferent(payload, existingData)) {
         setDocumentNonBlocking(indexRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.name), { indexSynced: 'yes', totalHadiths: totalCount });
-        // Update parent book's representative total count
         updateDocumentNonBlocking(doc(db, 'hadith_books', bookId), { totalHadiths: totalCount });
         toast({ title: "Index Synchronized" });
       } else {
@@ -316,6 +317,18 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
           {editions?.length || 0} Editions Found
         </Badge>
       </header>
+
+      {syncState.isSyncing && (
+        <Card className="bg-zinc-900 text-white p-6 rounded-3xl border-none shadow-2xl animate-pulse">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+              <span className="text-xs font-bold uppercase tracking-widest">Auditing {syncState.targetEdition}...</span>
+            </div>
+            <span className="text-xs font-mono">{syncState.progress}%</span>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {editions?.map((ed) => (
@@ -394,6 +407,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   const db = useFirestore();
   const { toast } = useToast();
   const [syncState, setSyncState] = useState({ isSyncing: false, progress: 0, status: 'idle', targetSection: '' });
+  
   const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
   const { data: indexDoc, isLoading } = useDoc(indexRef);
   const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
@@ -430,6 +444,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         return; 
       }
 
+      setSyncState(prev => ({ ...prev, status: 'comparing', progress: 30 }));
       const existingSnap = await getDocs(query(
         collection(db, 'hadith_data'), 
         where('editionId', '==', editionId), 
@@ -451,6 +466,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         }
       });
 
+      setSyncState(prev => ({ ...prev, status: 'committing', progress: 80 }));
       if (updatesCount > 0) { 
         await batch.commit(); 
         toast({ title: "Section Sync complete", description: `${updatesCount} nodes updated.` }); 
@@ -458,11 +474,10 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         toast({ title: "Section Up to Date" }); 
       }
 
-      if (!indexDoc?.syncedSections?.[section.number]) { 
-        const syncedMap = indexDoc?.syncedSections || {}; 
-        syncedMap[section.number] = true; 
-        updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap }); 
-      }
+      const syncedMap = { ...(indexDoc?.syncedSections || {}) }; 
+      syncedMap[section.number] = true; 
+      updateDocumentNonBlocking(indexRef, { syncedSections: syncedMap }); 
+      
       setSyncState(prev => ({ ...prev, progress: 100, status: 'complete' }));
     } catch (e: any) { 
       toast({ variant: "destructive", title: "Sync Failed", description: e.message }); 
@@ -487,6 +502,21 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           {sections.length} Chapters Cataloged
         </Badge>
       </header>
+
+      {syncState.isSyncing && (
+        <Card className="bg-zinc-900 text-white p-8 rounded-[2rem] border-none shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Zap className="w-5 h-5 text-amber-400 animate-pulse" />
+              <span className="text-sm font-bold uppercase tracking-widest">Auditing {syncState.targetSection}...</span>
+            </div>
+            <Badge className="bg-white/10 text-white border-none font-mono">{syncState.progress}%</Badge>
+          </div>
+          <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${syncState.progress}%` }} />
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sections.map((s) => (
@@ -515,6 +545,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
                 size="sm"
                 className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest rounded-xl border-zinc-200 hover:bg-zinc-900 hover:text-white transition-all"
                 onClick={() => handleSyncSectionContent(s)}
+                disabled={syncState.isSyncing}
               >
                 <Zap className="w-3.5 h-3.5 mr-2" />
                 {s.isSynced ? 'Resync' : 'Audit'}
@@ -703,7 +734,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                       <Input 
                         type="number" 
                         value={editingRecord?.reference?.book || ''} 
-                        onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...editingRecord.reference, book: parseInt(e.target.value) } })}
+                        onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...(editingRecord.reference || {}), book: parseInt(e.target.value) } })}
                         className="bg-zinc-50 border-zinc-200 h-14 rounded-2xl focus:ring-zinc-900 shadow-inner font-black"
                       />
                     </div>
@@ -712,7 +743,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                       <Input 
                         type="number" 
                         value={editingRecord?.reference?.hadith || ''} 
-                        onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...editingRecord.hadith, book: parseInt(e.target.value) } })}
+                        onChange={(e) => setEditingRecord({ ...editingRecord, reference: { ...(editingRecord.reference || {}), hadith: parseInt(e.target.value) } })}
                         className="bg-zinc-50 border-zinc-200 h-14 rounded-2xl focus:ring-zinc-900 shadow-inner font-black"
                       />
                     </div>
