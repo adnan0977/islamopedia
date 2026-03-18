@@ -3,7 +3,7 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* Capacitor requires a static export for native apps */
-  output: 'export',
+  //output: 'export',
   images: {
     /* Static exports do not support Next.js Image Optimization API on the device */
     unoptimized: true,
