@@ -444,8 +444,20 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         }
 
         // Keep all other top-level keys from original API as requested, EXCLUDING grades and chapter
+        // Also explode the 'book' key and save each element as a top-level key
         Object.keys(h).forEach(key => {
-          if (!(key in transformedRecord) && key !== 'grades' && key !== 'chapter') {
+          if (key === 'grades' || key === 'chapter') return;
+
+          if (key === 'book' && typeof h[key] === 'object' && h[key] !== null) {
+            Object.entries(h[key]).forEach(([bookKey, bookVal]) => {
+              if (!(bookKey in transformedRecord)) {
+                transformedRecord[bookKey] = bookVal;
+              }
+            });
+            return;
+          }
+
+          if (!(key in transformedRecord)) {
             transformedRecord[key] = h[key];
           }
         });
@@ -606,6 +618,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-bold text-zinc-400">{r.englishNarrator || r.urduNarrator || '---'}</span>
                       <div className="flex gap-1 flex-wrap">
+                        {/* Grades logic removed from DB but UI can still show if provided by API object initially */}
                         {r.grades?.slice(0, 2).map((g: any, i: number) => (
                           <Badge key={i} variant="secondary" className="text-[7px] py-0 px-1.5 font-black uppercase">{g.grade}</Badge>
                         ))}
@@ -733,6 +746,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   </div>
                   
                   <div className="space-y-3">
+                    {/* UI Note: Grades are no longer stored in hadith_data but can be viewed if present in memory */}
                     {editingRecord?.grades?.map((g: any, i: number) => (
                       <div key={i} className="flex items-center justify-between p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm hover:border-zinc-300 transition-all cursor-default group">
                         <div className="flex flex-col">

@@ -72,16 +72,20 @@
     },
     "HadithData": {
       "title": "Hadith Data",
-      "description": "Individual Prophetic records.",
+      "description": "Individual Prophetic records with exploded book metadata.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "editionId": { "type": "string" },
         "bookSlug": { "type": "string" },
+        "bookName": { "type": "string" },
         "sectionNumber": { "type": "string" },
         "hadithNumber": { "type": "string" },
-        "text": { "type": "string" },
-        "reference": { "type": "object" },
+        "chapterTitle": { "type": "string" },
+        "englishNarrator": { "type": "string" },
+        "hadithEnglish": { "type": "string" },
+        "hadithUrdu": { "type": "string" },
+        "hadithArabic": { "type": "string" },
         "updatedAt": { "type": "string" }
       }
     }
