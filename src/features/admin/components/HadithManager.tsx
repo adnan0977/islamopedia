@@ -162,7 +162,7 @@ export function HadithManager() {
           <p className="text-sm text-muted-foreground ml-11">Exclusive HadithAPI.com premium synchronization engine.</p>
         </div>
         <Button 
-          onClick={handleOverhaulRegistry}
+          onClick={handleOverhaulRegistry} 
           disabled={isSeeding}
           className="gap-2 h-12 rounded-xl font-bold bg-zinc-900 text-white shadow-xl shadow-zinc-200 hover:bg-black transition-all"
         >
@@ -580,6 +580,9 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
       heading_text: editingRecord.heading_text,
       narrator_text: editingRecord.narrator_text,
       status: editingRecord.status || '',
+      volume: editingRecord.volume || '',
+      chapterId: editingRecord.chapterId || '',
+      hadithNumber: editingRecord.hadithNumber || '',
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Record Refined" });
@@ -682,21 +685,35 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Identity & Reference</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Volume</span>
-                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.volume || 'N/A'}</span>
+                  <div className="flex flex-col gap-2">
+                    <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Volume</Label>
+                    <Input 
+                      className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
+                      value={editingRecord?.volume || ''} 
+                      onChange={(e) => setEditingRecord({...editingRecord, volume: e.target.value})}
+                    />
                   </div>
-                  <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Chapter ID</span>
-                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.chapterId || 'N/A'}</span>
+                  <div className="flex flex-col gap-2">
+                    <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Chapter ID</Label>
+                    <Input 
+                      className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
+                      value={editingRecord?.chapterId || ''} 
+                      onChange={(e) => setEditingRecord({...editingRecord, chapterId: e.target.value})}
+                    />
                   </div>
-                  <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Edition Key</span>
-                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.editionId}</span>
+                  <div className="flex flex-col gap-2">
+                    <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Edition Key</Label>
+                    <div className="h-12 flex items-center px-6 rounded-xl bg-zinc-100 border border-transparent text-zinc-400 text-xs font-bold shadow-inner cursor-not-allowed">
+                      {editingRecord?.editionId}
+                    </div>
                   </div>
-                  <div className="p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-100 flex flex-col gap-1.5 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Hadith Number</span>
-                    <span className="text-sm font-bold text-zinc-900">#{editingRecord?.hadithNumber}</span>
+                  <div className="flex flex-col gap-2">
+                    <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Hadith Number</Label>
+                    <Input 
+                      className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
+                      value={editingRecord?.hadithNumber || ''} 
+                      onChange={(e) => setEditingRecord({...editingRecord, hadithNumber: e.target.value})}
+                    />
                   </div>
                 </div>
               </section>
