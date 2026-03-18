@@ -427,24 +427,35 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
+        // Unified Fields Extraction
         if (edition.type === 'english') {
-          transformedRecord.hadith_text = h.hadithEnglish;
+          transformedRecord.hadith_text = h.hadithEnglish || '';
           transformedRecord.heading_text = h.headingEnglish || h.chapter?.chapterEnglish || '';
           transformedRecord.narrator_text = h.englishNarrator || '';
           transformedRecord.chapterTitle = h.chapter?.chapterEnglish || '';
         } else if (edition.type === 'urdu') {
-          transformedRecord.hadith_text = h.hadithUrdu;
+          transformedRecord.hadith_text = h.hadithUrdu || '';
           transformedRecord.heading_text = h.headingUrdu || h.chapter?.chapterUrdu || '';
           transformedRecord.narrator_text = h.urduNarrator || '';
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
-          transformedRecord.hadith_text = h.hadithArabic;
+          // Special Arabic Split Logic: Sanad (narrator) vs Matn (text)
+          const rawArabic = h.hadithArabic || '';
+          const match = rawArabic.match(/^(.*?)(["«])(.*)$/s);
+          if (match) {
+            transformedRecord.narrator_text = match[1].trim();
+            transformedRecord.hadith_text = match[3].trim();
+          } else {
+            transformedRecord.narrator_text = '';
+            transformedRecord.hadith_text = rawArabic;
+          }
           transformedRecord.heading_text = h.headingArabic || h.chapter?.chapterArabic || '';
-          transformedRecord.narrator_text = '';
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
+        // Explode Book Metadata & General Attribute Flattening
         Object.keys(h).forEach(key => {
+          // Flatten book object
           if (key === 'book' && typeof h[key] === 'object' && h[key] !== null) {
             Object.entries(h[key]).forEach(([bookKey, bookVal]) => {
               if (!(bookKey in transformedRecord)) {
@@ -454,13 +465,20 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
             return;
           }
 
-          if (['grades', 'chapter', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic', 'englishNarrator', 'urduNarrator', 'book'].includes(key)) return;
+          // Strict Exclusion List: grades, chapter, and redundant language shards
+          if ([
+            'grades', 'chapter', 'book',
+            'hadithEnglish', 'hadithUrdu', 'hadithArabic', 
+            'headingEnglish', 'headingUrdu', 'headingArabic', 
+            'englishNarrator', 'urduNarrator'
+          ].includes(key)) return;
 
           if (!(key in transformedRecord)) {
             transformedRecord[key] = h[key];
           }
         });
 
+        // Set status from grades if available
         if (h.grades && Array.isArray(h.grades) && h.grades.length > 0) {
           transformedRecord.status = h.grades[0].grade || 'Authentic';
         } else {
@@ -662,7 +680,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           
           <ScrollArea className="flex-1">
             <div className="p-8 sm:p-12 space-y-10 max-w-4xl mx-auto">
-              {/* 1. Reference Block */}
+              {/* 1. Identity & Reference */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
@@ -670,17 +688,17 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Section Node</span>
-                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.chapterTitle || `Chapter ${sectionNumber}`}</span>
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Book & Node</span>
+                    <span className="text-sm font-bold text-zinc-900">{editingRecord?.bookName || 'Unknown Book'} • Chapter {sectionNumber}</span>
                   </div>
                   <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
-                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Hadith Serial</span>
-                    <span className="text-sm font-bold text-zinc-900">Record #{editingRecord?.hadithNumber}</span>
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Record Serial</span>
+                    <span className="text-sm font-bold text-zinc-900">Hadith #{editingRecord?.hadithNumber}</span>
                   </div>
                 </div>
               </section>
 
-              {/* 2. Status Node */}
+              {/* 2. Scholarly Status */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <ShieldCheck className="w-4 h-4" />
@@ -689,12 +707,12 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 <Input 
                   className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900" 
                   value={editingRecord?.status || ''} 
-                  placeholder="e.g. Sahih, Hasan, Verified"
+                  placeholder="e.g. Sahih, Hasan, Da'if"
                   onChange={(e) => setEditingRecord({...editingRecord, status: e.target.value})}
                 />
               </div>
 
-              {/* 3. Narrator Node */}
+              {/* 3. Primary Narrator (narrator_text) */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Info className="w-4 h-4" />
@@ -703,17 +721,17 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 <Input 
                   className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900" 
                   value={editingRecord?.narrator_text || ''} 
-                  placeholder="Enter narrator chain..."
+                  placeholder="Sanad chain..."
                   onChange={(e) => setEditingRecord({...editingRecord, narrator_text: e.target.value})} 
                 />
               </div>
 
-              {/* 4. Multiline Text Workbench */}
+              {/* 4. Prophetic Narration (hadith_text) */}
               <div className="space-y-4 pt-4 border-t border-zinc-100">
                 <div className="flex items-center justify-between ml-1">
                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Prophetic Narration</Label>
                   <Badge variant="ghost" className="text-[9px] text-zinc-300 uppercase font-black tracking-widest">
-                    {edition?.type === 'arabic' ? 'Source Text' : 'Translated Node'}
+                    {edition?.type === 'arabic' ? 'Source Matn' : 'Translated Node'}
                   </Badge>
                 </div>
                 
