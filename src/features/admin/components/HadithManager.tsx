@@ -461,7 +461,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           }
         });
 
-        // Set initial status to 'verified' or similar if original data has grades
         if (h.grades && Array.isArray(h.grades) && h.grades.length > 0) {
           transformedRecord.status = h.grades[0].grade || 'Authentic';
         } else {
@@ -643,7 +642,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-3xl w-[95vw] h-auto max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] border-zinc-200 bg-white">
+        <DialogContent className="max-w-5xl w-[95vw] h-auto max-h-[95vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] border-zinc-200 bg-white">
           <DialogHeader className="px-8 sm:px-12 py-8 sm:py-10 border-b bg-zinc-50/50 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-5">
@@ -662,8 +661,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           </DialogHeader>
           
           <ScrollArea className="flex-1">
-            <div className="p-8 sm:p-12 space-y-10 max-w-2xl mx-auto">
-              {/* 1. Identity Node */}
+            <div className="p-8 sm:p-12 space-y-10 max-w-4xl mx-auto">
+              {/* 1. Reference Block */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
@@ -681,11 +680,11 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 </div>
               </section>
 
-              {/* 2. Status Field */}
+              {/* 2. Status Node */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <ShieldCheck className="w-4 h-4" />
-                  <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Record Status</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Scholarly Status</Label>
                 </div>
                 <Input 
                   className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900" 
@@ -695,7 +694,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 />
               </div>
 
-              {/* 3. Narrator Field */}
+              {/* 3. Narrator Node */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Info className="w-4 h-4" />
@@ -709,7 +708,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 />
               </div>
 
-              {/* 4. Multiline Hadith Text */}
+              {/* 4. Multiline Text Workbench */}
               <div className="space-y-4 pt-4 border-t border-zinc-100">
                 <div className="flex items-center justify-between ml-1">
                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Prophetic Narration</Label>
@@ -721,7 +720,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                 <Textarea 
                   dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"}
                   className={cn(
-                    "min-h-[350px] leading-relaxed p-8 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700 resize-none",
+                    "min-h-[400px] leading-relaxed p-8 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700 resize-none",
                     edition?.type === 'english' ? "text-lg sm:text-xl" : "text-2xl sm:text-4xl font-arabic leading-[2.5] text-zinc-800"
                   )}
                   value={editingRecord?.hadith_text || ''}
