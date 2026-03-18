@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -29,7 +30,7 @@ export default function HadithPage() {
 
   const booksQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_books'),
-    orderBy('bookName', 'asc')
+    orderBy('orderKey', 'asc')
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 

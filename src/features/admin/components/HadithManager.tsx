@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -73,9 +74,19 @@ import { fetchHadithRegistry, fetchHadithEditionContent, FawazEdition } from '@/
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const ALLOWED_SLUGS = [
-  'abudawud', 'bukhari', 'ibnmajah', 'malik', 
-  'muslim', 'nasai', 'tirmidhi'
+  'bukhari', 'muslim', 'tirmidhi', 'abudawud', 
+  'nasai', 'ibnmajah', 'malik'
 ];
+
+const BOOK_ORDER: Record<string, number> = {
+  'bukhari': 1,
+  'muslim': 2,
+  'tirmidhi': 3,
+  'abudawud': 4,
+  'nasai': 5,
+  'ibnmajah': 6,
+  'malik': 7
+};
 
 function isDataDifferent(newData: any, existingData: any): boolean {
   if (!existingData) return true;
@@ -97,7 +108,7 @@ export function HadithManager() {
 
   const booksQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_books'),
-    orderBy('bookName', 'asc')
+    orderBy('orderKey', 'asc')
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
 
@@ -120,7 +131,9 @@ export function HadithManager() {
           const bookPayload = {
             id: slug,
             bookName: bookData.name,
-            editionCount: bookData.collection.length
+            editionCount: bookData.collection.length,
+            orderKey: BOOK_ORDER[slug] || 99,
+            totalHadiths: existingBook?.totalHadiths || 0
           };
 
           if (isDataDifferent(bookPayload, existingBook)) {
@@ -211,7 +224,7 @@ export function HadithManager() {
                 </div>
               </CardContent>
               <CardFooter className="pt-0 pb-4 flex items-center justify-between text-muted-foreground">
-                <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-widest px-2 py-0">Master Feed</Badge>
+                <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-widest px-2 py-0">#{book.orderKey || '---'}</Badge>
                 <span className="text-[10px] font-mono opacity-50">{book.id}.db</span>
               </CardFooter>
             </Card>
@@ -630,7 +643,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     <div className="flex flex-wrap gap-2">
                       {r.grades?.map((g: any, i: number) => (
                         <Badge key={i} variant="secondary" className="text-[9px] font-bold uppercase tracking-tight bg-zinc-100 border-zinc-200 whitespace-nowrap">
-                          <span className="text-zinc-400">{g.name}</span> : {g.grade}
+                          {g.name} : {g.grade}
                         </Badge>
                       )) || <span className="text-[10px] text-zinc-400">---</span>}
                     </div>

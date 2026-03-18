@@ -35,6 +35,8 @@
         "id": { "type": "string" },
         "bookName": { "type": "string" },
         "editionCount": { "type": "number" },
+        "totalHadiths": { "type": "number" },
+        "orderKey": { "type": "number" },
         "lastSyncedAt": { "type": "string" }
       }
     },
