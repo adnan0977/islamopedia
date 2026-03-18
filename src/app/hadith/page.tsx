@@ -398,15 +398,15 @@ export default function HadithPage() {
         <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
           <DialogContent className="max-w-4xl bg-zinc-50 border-none rounded-[3rem] p-0 overflow-hidden shadow-2xl flex flex-col md:flex-row h-auto max-h-[95vh]">
             <div className="flex-1 p-8 sm:p-12 space-y-10 overflow-y-auto">
-              <div className="flex items-center justify-between">
+              <DialogHeader className="flex flex-row items-center justify-between space-y-0 text-left">
                 <div className="space-y-1">
-                  <h3 className="text-xl font-bold tracking-tight">Generate Card</h3>
-                  <p className="text-xs text-zinc-400 font-black uppercase tracking-widest">Share Prophetic Wisdom</p>
+                  <DialogTitle className="text-xl font-bold tracking-tight">Generate Card</DialogTitle>
+                  <DialogDescription className="text-xs text-zinc-400 font-black uppercase tracking-widest">Share Prophetic Wisdom</DialogDescription>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(false)} className="rounded-full h-10 w-10 md:hidden">
                   <X className="w-5 h-5" />
                 </Button>
-              </div>
+              </DialogHeader>
 
               {/* The Square Visual Card */}
               <div className="relative aspect-square w-full rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white transition-all duration-1000 mx-auto max-w-[500px]">
@@ -444,13 +444,12 @@ export default function HadithPage() {
             <div className="w-full md:w-96 bg-white border-l border-zinc-100 p-8 sm:p-10 flex flex-col shrink-0">
               <div className="flex-1" />
               
-              <section className="space-y-6">
+              <section className="space-y-6 mt-auto">
                 <div className="flex items-center gap-2 mb-4">
                   <Settings className="w-4 h-4 text-zinc-400" />
                   <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Workbench Controls</h3>
                 </div>
                 
-                {/* Unified Control Row: Compact All-in-One Row at the bottom */}
                 <div className="flex gap-2 items-end">
                   {/* Content Selection */}
                   <div className="flex-1 space-y-2">
