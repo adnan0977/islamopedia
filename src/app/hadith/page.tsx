@@ -21,7 +21,9 @@ import {
   Copy,
   Download,
   X,
-  RefreshCcw
+  RefreshCcw,
+  Languages,
+  Type
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +57,12 @@ const ERROR_TYPES = [
   "Other"
 ];
 
+const SHARE_BACKGROUNDS = [
+  { id: 'sacred', url: PlaceHolderImages.find(img => img.id === 'quran-bg')?.imageUrl || "https://picsum.photos/seed/sacred/1080/1080", label: 'Sacred' },
+  { id: 'reflection', url: PlaceHolderImages.find(img => img.id === 'reflection-bg')?.imageUrl || "https://picsum.photos/seed/reflect/1080/1080", label: 'Glow' },
+  { id: 'night', url: PlaceHolderImages.find(img => img.id === 'trending-1')?.imageUrl || "https://picsum.photos/seed/night/1080/1080", label: 'Night' }
+];
+
 export default function HadithPage() {
   const db = useFirestore();
   const searchParams = useSearchParams();
@@ -82,6 +90,10 @@ export default function HadithPage() {
   // Share State
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [hadithToShare, setHadithToShare] = useState<any>(null);
+  const [shareConfig, setShareConfig] = useState({
+    mode: 'both' as 'arabic' | 'translation' | 'both',
+    bg: SHARE_BACKGROUNDS[0].url
+  });
 
   // Query 1: All Books for the directory
   const booksQuery = useMemoFirebase(() => query(
@@ -96,7 +108,6 @@ export default function HadithPage() {
       setIsSyncingOffline(true);
       saveOfflineHadithBooks(books)
         .then(() => {
-          // Keep loader visible for a beat for visual confirmation as requested
           setTimeout(() => setIsSyncingOffline(false), 800);
         })
         .catch(err => {
@@ -106,7 +117,7 @@ export default function HadithPage() {
     }
   }, [books]);
 
-  // Query 2: All Indices for the active book (Arabic + Translations)
+  // Query 2: All Indices for the active book
   const indexQuery = useMemoFirebase(() => (activeBookId ? query(
     collection(db, 'hadith_index'),
     where('bookSlug', '==', activeBookId)
@@ -183,19 +194,17 @@ export default function HadithPage() {
 
   const handleCopyShareText = () => {
     if (!hadithToShare) return;
-    const text = `
-Hadith Reflection:
-${hadithToShare.arabic?.hadith_text || ''}
-
-${hadithToShare.translation?.hadith_text || ''}
-
-Source: ${activeBookId}
-Vol: ${hadithToShare.translation?.volume || '---'}
-Chapter: ${activeChapterId}
-Hadith No: ${hadithToShare.num}
-    `.trim();
-    navigator.clipboard.writeText(text);
-    toast({ title: "Copied to Clipboard", description: "Reference text is ready to share." });
+    const arabic = hadithToShare.arabic?.hadith_text || '';
+    const trans = hadithToShare.translation?.hadith_text || '';
+    
+    let text = `Hadith Reflection:\n`;
+    if (shareConfig.mode === 'both' || shareConfig.mode === 'arabic') text += `${arabic}\n\n`;
+    if (shareConfig.mode === 'both' || shareConfig.mode === 'translation') text += `${trans}\n\n`;
+    
+    text += `Source: ${activeBookId}\nVol: ${hadithToShare.translation?.volume || '---'}\nChapter: ${activeChapterId}\nHadith No: ${hadithToShare.num}`;
+    
+    navigator.clipboard.writeText(text.trim());
+    toast({ title: "Copied to Clipboard" });
   };
 
   const handleSubmitReport = async () => {
@@ -216,7 +225,7 @@ Hadith No: ${hadithToShare.num}
         status: 'pending',
         createdAt: new Date().toISOString()
       });
-      toast({ title: "Report Submitted", description: "Jazakallah. Our researchers will review this reference shortly." });
+      toast({ title: "Report Submitted", description: "Jazakallah for your feedback." });
       setReportDialogOpen(false);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Submission Failed", description: e.message });
@@ -224,6 +233,21 @@ Hadith No: ${hadithToShare.num}
       setIsSubmittingReport(false);
     }
   };
+
+  // Automated Font Size Logic
+  const getShareFontSize = () => {
+    if (!hadithToShare) return { arabic: 'text-2xl', translation: 'text-lg' };
+    const arabicLen = hadithToShare.arabic?.hadith_text?.length || 0;
+    const transLen = hadithToShare.translation?.hadith_text?.length || 0;
+    const totalLen = (shareConfig.mode === 'both' ? (arabicLen + transLen) : shareConfig.mode === 'arabic' ? arabicLen : transLen);
+
+    if (totalLen > 600) return { arabic: 'text-lg', translation: 'text-xs' };
+    if (totalLen > 300) return { arabic: 'text-xl', translation: 'text-sm' };
+    if (totalLen > 150) return { arabic: 'text-2xl', translation: 'text-base' };
+    return { arabic: 'text-4xl', translation: 'text-xl' };
+  };
+
+  const fontSizes = getShareFontSize();
 
   if (isLoadingBooks || isLoadingIndices || (activeChapterId && isLoadingRecords)) {
     return (
@@ -358,60 +382,102 @@ Hadith No: ${hadithToShare.num}
 
         {/* Share Dialog */}
         <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-          <DialogContent className="max-w-2xl bg-zinc-50 border-none rounded-[3rem] p-0 overflow-hidden shadow-2xl">
-            <div className="p-8 sm:p-12 space-y-10">
+          <DialogContent className="max-w-4xl bg-zinc-50 border-none rounded-[3rem] p-0 overflow-hidden shadow-2xl flex flex-col md:flex-row h-auto max-h-[95vh]">
+            <div className="flex-1 p-8 sm:p-12 space-y-10 overflow-y-auto">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <h3 className="text-xl font-bold tracking-tight">Hadith Reflection</h3>
-                  <p className="text-xs text-zinc-400 font-black uppercase tracking-widest">Digital Prophetic Record</p>
+                  <h3 className="text-xl font-bold tracking-tight">Generate Card</h3>
+                  <p className="text-xs text-zinc-400 font-black uppercase tracking-widest">Share Prophetic Wisdom</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(false)} className="rounded-full h-10 w-10">
+                <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(false)} className="rounded-full h-10 w-10 md:hidden">
                   <X className="w-5 h-5" />
                 </Button>
               </div>
 
               {/* The Square Visual Card */}
-              <div className="relative aspect-square w-full rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white">
+              <div className="relative aspect-square w-full rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white transition-all duration-1000">
                 <Image 
-                  src={PlaceHolderImages.find(img => img.id === 'quran-bg')?.imageUrl || "https://picsum.photos/seed/islamic/1080/1080"} 
-                  alt="Islamic Background" 
+                  src={shareConfig.bg} 
+                  alt="Background" 
                   fill 
-                  className="object-cover"
+                  className="object-cover transition-all duration-1000"
                 />
-                <div className="absolute inset-0 bg-zinc-900/70 backdrop-blur-[2px]" />
+                <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-[1px]" />
                 
-                <div className="absolute inset-0 p-8 sm:p-12 flex flex-col justify-center items-center text-center space-y-8">
-                  {hadithToShare?.arabic && (
-                    <p className="font-arabic text-white text-2xl sm:text-3xl leading-[2.2] drop-shadow-lg" dir="rtl">
+                <div className="absolute inset-0 p-8 sm:p-12 flex flex-col justify-center items-center text-center space-y-6">
+                  {(shareConfig.mode === 'both' || shareConfig.mode === 'arabic') && hadithToShare?.arabic && (
+                    <p className={cn("font-arabic text-white leading-[2.2] drop-shadow-2xl", fontSizes.arabic)} dir="rtl">
                       {hadithToShare.arabic.hadith_text}
                     </p>
                   )}
-                  {hadithToShare?.translation && (
-                    <p className="text-zinc-200 text-sm sm:text-lg font-medium leading-relaxed max-w-md line-clamp-[8]">
+                  {(shareConfig.mode === 'both' || shareConfig.mode === 'translation') && hadithToShare?.translation && (
+                    <p className={cn("text-zinc-200 font-medium leading-relaxed max-w-md line-clamp-[12] italic", fontSizes.translation)}>
                       "{hadithToShare.translation.hadith_text}"
                     </p>
                   )}
                   
-                  <div className="pt-6 border-t border-white/10 w-full flex flex-col items-center gap-2">
+                  <div className="pt-6 border-t border-white/10 w-full flex flex-col items-center gap-2 mt-auto">
                     <span className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.3em]">Authentic Reference</span>
                     <Badge variant="secondary" className="bg-white/10 text-white border-none rounded-full px-4 text-[9px] font-black uppercase tracking-widest">
-                      {activeBookId} • VOL: {hadithToShare?.translation?.volume || '---'} • CH: {activeChapterId} • #{hadithToShare?.num}
+                      {activeBookId} • CH: {activeChapterId} • #{hadithToShare?.num}
                     </Badge>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+            {/* Controls Sidebar */}
+            <div className="w-full md:w-80 bg-white border-l border-zinc-100 p-8 sm:p-10 space-y-10 shrink-0">
+              <section className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
+                  <Type className="w-3 h-3" /> Display Content
+                </Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {(['both', 'arabic', 'translation'] as const).map((m) => (
+                    <Button 
+                      key={m}
+                      variant={shareConfig.mode === m ? 'default' : 'outline'}
+                      size="sm"
+                      className="justify-start h-11 rounded-xl font-bold capitalize text-xs"
+                      onClick={() => setShareConfig({ ...shareConfig, mode: m })}
+                    >
+                      {m}
+                    </Button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
+                  <Library className="w-3 h-3" /> Choose Theme
+                </Label>
+                <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                  {SHARE_BACKGROUNDS.map((bg) => (
+                    <button 
+                      key={bg.id}
+                      onClick={() => setShareConfig({ ...shareConfig, bg: bg.url })}
+                      className={cn(
+                        "relative h-16 w-16 rounded-xl overflow-hidden border-2 transition-all shrink-0",
+                        shareConfig.bg === bg.url ? "border-zinc-900 scale-110 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"
+                      )}
+                    >
+                      <Image src={bg.url} alt={bg.label} fill className="object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <div className="pt-6 border-t border-zinc-50 space-y-4">
                 <Button 
-                  className="flex-1 h-14 rounded-2xl bg-zinc-900 text-white font-bold gap-3 shadow-xl active:scale-95 transition-all"
+                  className="w-full h-14 rounded-2xl bg-zinc-900 text-white font-bold gap-3 shadow-xl active:scale-95 transition-all"
                   onClick={handleCopyShareText}
                 >
                   <Copy className="w-5 h-5" />
-                  Copy Reference Text
+                  Copy Text
                 </Button>
-                <Button variant="outline" className="flex-1 h-14 rounded-2xl border-zinc-200 bg-white font-bold gap-3 shadow-sm hover:bg-zinc-50">
+                <Button variant="outline" className="w-full h-14 rounded-2xl border-zinc-200 bg-white font-bold gap-3 shadow-sm hover:bg-zinc-50">
                   <Download className="w-5 h-5" />
-                  Download Card
+                  Save Image
                 </Button>
               </div>
             </div>
