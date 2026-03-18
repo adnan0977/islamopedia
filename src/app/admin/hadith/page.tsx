@@ -78,8 +78,8 @@ export default function AdminHadithHubPage() {
     <div className="w-full">
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
-          <p className="text-zinc-600 font-medium">Initializing Hadith Hub...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-zinc-900" />
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Opening Hadith Studio...</p>
         </div>
       }>
         <HadithAdminContent />

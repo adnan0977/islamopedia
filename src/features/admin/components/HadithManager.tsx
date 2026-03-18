@@ -157,14 +157,14 @@ export function HadithManager() {
             <div className="p-2 bg-zinc-50 rounded-xl border">
               <Database className="w-5 h-5 text-zinc-400" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Hadith Studio</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Hadith Studio</h1>
           </div>
-          <p className="text-sm text-muted-foreground ml-11">Exclusive HadithAPI.com premium synchronization engine.</p>
+          <p className="text-sm text-zinc-500 ml-11">Professional HadithAPI synchronization engine.</p>
         </div>
         <Button 
           onClick={handleOverhaulRegistry} 
           disabled={isSeeding}
-          className="gap-2 h-12 rounded-xl font-bold bg-zinc-900 text-white shadow-xl shadow-zinc-200 hover:bg-black transition-all"
+          className="gap-2 h-12 rounded-xl font-bold bg-zinc-900 text-white shadow-xl hover:bg-black transition-all"
         >
           {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
           Overhaul Registry
@@ -172,9 +172,9 @@ export function HadithManager() {
       </div>
 
       {isLoadingBooks ? (
-        <div className="flex flex-col items-center justify-center py-24 space-y-4">
-          <Loader2 className="w-10 h-10 animate-spin text-zinc-200" />
-          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Opening Library...</p>
+        <div className="flex flex-col items-center justify-center py-32 space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-zinc-900" />
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Initializing Studio...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -238,13 +238,13 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
   const { data: editions, isLoading: isLoadingEditions } = useCollection(editionsQuery);
 
   const handleSyncIndex = async (edition: any) => {
-    setSyncState({ isSyncing: true, progress: 0, status: 'requesting HadithAPI schema', targetEdition: edition.id });
+    setSyncState({ isSyncing: true, progress: 0, status: 'fetching HadithAPI schema', targetEdition: edition.id });
     try {
       const indexRef = doc(db, 'hadith_index', edition.id);
       const existingSnap = await getDoc(indexRef);
 
       if (existingSnap.exists()) {
-        toast({ title: "Index Verified", description: `Index already Synced for ${book?.bookName || edition.id}` });
+        toast({ title: "Index Verified", description: `Index already exists for ${book?.bookName || edition.id}` });
         updateDocumentNonBlocking(doc(db, 'hadith_editions', edition.id), { indexSynced: 'yes' });
       } else {
         const payload = await fetchHadithApiChapters(bookId);
@@ -285,8 +285,8 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">{book?.bookName}</h2>
-            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">Unified Language Management</p>
+            <h2 className="text-2xl font-bold tracking-tight text-zinc-900">{book?.bookName}</h2>
+            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">Language Shard Management</p>
           </div>
         </div>
       </header>
@@ -300,20 +300,27 @@ export function HadithBookDetailView({ bookId, onBack, onSelectEdition }: { book
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {['arabic', 'english', 'urdu'].map(type => {
-          const ed = editions?.find(e => e.type === type);
-          if (!ed) return null;
-          return (
-            <EditionCard 
-              key={ed.id} 
-              edition={ed} 
-              onSelect={onSelectEdition} 
-              onSyncIndex={() => handleSyncIndex(ed)} 
-            />
-          );
-        })}
-      </div>
+      {isLoadingEditions ? (
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-zinc-900" />
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Hydrating Shards...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {['arabic', 'english', 'urdu'].map(type => {
+            const ed = editions?.find(e => e.type === type);
+            if (!ed) return null;
+            return (
+              <EditionCard 
+                key={ed.id} 
+                edition={ed} 
+                onSelect={onSelectEdition} 
+                onSyncIndex={() => handleSyncIndex(ed)} 
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -404,7 +411,7 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
 
   const handleSyncChapterContent = async (chapter: any) => {
     if (!edition) return;
-    setSyncState({ isSyncing: true, progress: 0, status: 'fetching HadithAPI stream', targetChapter: chapter.name });
+    setSyncState({ isSyncing: true, progress: 0, status: 'streaming HadithAPI records', targetChapter: chapter.name });
     try {
       const payload = await fetchHadithApiData(indexDoc?.bookSlug, chapter.number);
       const data = payload.hadiths?.data || [];
@@ -427,6 +434,7 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
+        // Capture status robustly
         transformedRecord.status = h.status || h.hadithStatus || (h.grades && h.grades[0]?.grade) || 'Verified';
 
         if (edition.type === 'english') {
@@ -441,10 +449,10 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           const rawArabic = h.hadithArabic || '';
-          const parts = rawArabic.split(/["«]/);
-          if (parts.length > 1) {
-            transformedRecord.narrator_text = parts[0].trim();
-            transformedRecord.hadith_text = rawArabic.substring(parts[0].length).trim();
+          const quoteIndex = rawArabic.search(/["«]/);
+          if (quoteIndex !== -1) {
+            transformedRecord.narrator_text = rawArabic.substring(0, quoteIndex).trim();
+            transformedRecord.hadith_text = rawArabic.substring(quoteIndex).trim();
           } else {
             transformedRecord.narrator_text = '';
             transformedRecord.hadith_text = rawArabic;
@@ -453,6 +461,7 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
+        // Explode book object and strip redundant fields
         if (h.book && typeof h.book === 'object') {
           Object.entries(h.book).forEach(([bk, bv]) => {
             if (!(bk in transformedRecord)) {
@@ -499,8 +508,8 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">{indexDoc?.name || 'Edition'} Inventory</h2>
-            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">Structural Record Audit</p>
+            <h2 className="text-2xl font-bold tracking-tight text-zinc-900">{indexDoc?.name || 'Edition'} Shard</h2>
+            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">Structural Content Audit</p>
           </div>
         </div>
         <Badge variant="outline" className="h-10 px-6 rounded-xl font-bold border-zinc-100 text-zinc-500">
@@ -517,31 +526,38 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {sections.map((s) => (
-          <Card key={s.number} className="flex flex-col group border border-zinc-200 shadow-sm rounded-[2rem] bg-white transition-all hover:border-zinc-400">
-            <CardHeader className="p-8 pb-4 space-y-6">
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-sm font-bold leading-tight line-clamp-2 min-h-[3rem] flex-1 pr-4">{s.name}</CardTitle>
-                <Badge variant="outline" className="text-[10px] font-mono text-zinc-400 bg-zinc-50 border-zinc-100 px-3 shrink-0">#{s.number}</Badge>
-              </div>
-              <Badge variant={s.isSynced ? "default" : "secondary"} className={cn("text-[8px] font-black uppercase tracking-widest w-fit px-3 py-1 rounded-full", s.isSynced ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
-                {s.isSynced ? 'DATA READY' : 'NO DATA'}
-              </Badge>
-            </CardHeader>
-            <CardFooter className="p-8 pt-0 flex gap-3">
-              <Button variant="outline" size="sm" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase" onClick={() => handleSyncChapterContent(s)}>
-                <Zap className="w-3.5 h-3.5 mr-2" /> {s.isSynced ? 'Update' : 'Ingest'}
-              </Button>
-              {s.isSynced && (
-                <Button variant="outline" size="sm" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase" onClick={() => onViewChapter(s.number)}>
-                  <Eye className="w-3.5 h-3.5 mr-2" /> Inspect
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-zinc-900" />
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Scanning Shards...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {sections.map((s) => (
+            <Card key={s.number} className="flex flex-col group border border-zinc-200 shadow-sm rounded-[2rem] bg-white transition-all hover:border-zinc-400">
+              <CardHeader className="p-8 pb-4 space-y-6">
+                <div className="flex items-start justify-between">
+                  <CardTitle className="text-sm font-bold leading-tight line-clamp-2 min-h-[3rem] flex-1 pr-4">{s.name}</CardTitle>
+                  <Badge variant="outline" className="text-[10px] font-mono text-zinc-400 bg-zinc-50 border-zinc-100 px-3 shrink-0">#{s.number}</Badge>
+                </div>
+                <Badge variant={s.isSynced ? "default" : "secondary"} className={cn("text-[8px] font-black uppercase tracking-widest w-fit px-3 py-1 rounded-full", s.isSynced ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400")}>
+                  {s.isSynced ? 'DATA READY' : 'NO DATA'}
+                </Badge>
+              </CardHeader>
+              <CardFooter className="p-8 pt-0 flex gap-3">
+                <Button variant="outline" size="sm" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase" onClick={() => handleSyncChapterContent(s)}>
+                  <Zap className="w-3.5 h-3.5 mr-2" /> {s.isSynced ? 'Update' : 'Ingest'}
                 </Button>
-              )}
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+                {s.isSynced && (
+                  <Button variant="outline" size="sm" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase" onClick={() => onViewChapter(s.number)}>
+                    <Eye className="w-3.5 h-3.5 mr-2" /> Inspect
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -576,13 +592,12 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
     if (!editingRecord) return;
     
     updateDocumentNonBlocking(doc(db, 'hadith_data', editingRecord.id), {
-      hadith_text: editingRecord.hadith_text,
-      heading_text: editingRecord.heading_text,
-      narrator_text: editingRecord.narrator_text,
-      status: editingRecord.status || '',
       volume: editingRecord.volume || '',
       chapterId: editingRecord.chapterId || '',
       hadithNumber: editingRecord.hadithNumber || '',
+      status: editingRecord.status || '',
+      narrator_text: editingRecord.narrator_text || '',
+      hadith_text: editingRecord.hadith_text || '',
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Record Refined" });
@@ -597,12 +612,12 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight truncate max-w-[200px] sm:max-w-none">{indexDoc?.sections?.[chapterId] || 'Records'}</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-zinc-900 truncate max-w-[200px] sm:max-w-none">{indexDoc?.sections?.[chapterId] || 'Records'}</h2>
             <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">{edition?.language} Validation Workbench</p>
           </div>
         </div>
         <Badge variant="outline" className="h-10 px-6 rounded-xl font-bold border-zinc-100 text-zinc-500">
-          {sortedRecords?.length || 0} Records
+          {sortedRecords?.length || 0} Records Found
         </Badge>
       </header>
 
@@ -612,14 +627,14 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="h-20">
                 <TableHead className="w-24 text-[10px] font-black uppercase pl-6 sm:pl-10">Ref</TableHead>
-                <TableHead className="text-[10px] font-black uppercase">Translated Content</TableHead>
+                <TableHead className="text-[10px] font-black uppercase">Content Preview</TableHead>
                 <TableHead className="text-[10px] font-black uppercase hidden sm:table-cell">Attributes</TableHead>
                 <TableHead className="w-32 text-right pr-6 sm:pr-10">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={4} className="h-96 text-center animate-pulse">Scanning Shards...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="h-96 text-center"><div className="flex flex-col items-center gap-4"><Loader2 className="animate-spin h-10 w-10 text-zinc-900" /><p className="text-[10px] font-black uppercase text-zinc-300">Hydrating Records...</p></div></TableCell></TableRow>
               ) : sortedRecords?.map((r) => (
                 <TableRow key={r.id} className="h-28 border-zinc-100 hover:bg-zinc-50/50 transition-colors">
                   <TableCell className="pl-6 sm:pl-10">
@@ -635,11 +650,11 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-bold text-zinc-400">{r.narrator_text || '---'}</span>
+                      <span className="text-[10px] font-bold text-zinc-400 truncate max-w-[150px]">{r.narrator_text || '---'}</span>
                       {r.status && (
                         <Badge variant="outline" className={cn(
-                          "text-[7px] uppercase w-fit py-0 px-1 border-zinc-100",
-                          r.status.toLowerCase().includes('sahih') ? "text-emerald-600 bg-emerald-50" : ""
+                          "text-[7px] uppercase w-fit py-0 px-1 border-zinc-100 font-black tracking-widest",
+                          r.status.toLowerCase().includes('sahih') ? "text-emerald-600 bg-emerald-50 border-emerald-100" : ""
                         )}>
                           {r.status}
                         </Badge>
@@ -661,31 +676,30 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-6xl w-[95vw] h-auto max-h-[95vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] border-zinc-200 bg-white shadow-2xl">
           <DialogHeader className="px-8 sm:px-12 py-8 sm:py-10 border-b bg-zinc-50/50 shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-5">
-                <div className="p-3 bg-white border border-zinc-200 rounded-2xl shadow-sm text-zinc-400 hidden sm:block">
-                  <Database className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <DialogTitle className="text-2xl font-bold tracking-tight text-zinc-900">Record Refinement</DialogTitle>
-                  <DialogDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
-                    <Globe className="w-3.5 h-3.5" />
-                    Shard: {edition?.language} • Workspace ID: {editingRecord?.id}
-                  </DialogDescription>
-                </div>
+            <div className="flex items-center gap-5">
+              <div className="p-3 bg-white border border-zinc-200 rounded-2xl shadow-sm text-zinc-400 hidden sm:block">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle className="text-2xl font-bold tracking-tight text-zinc-900">Record Refinement</DialogTitle>
+                <DialogDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
+                  <Database className="w-3.5 h-3.5" />
+                  Shard: {edition?.language} • Resource: {editingRecord?.id}
+                </DialogDescription>
               </div>
             </div>
           </DialogHeader>
           
           <ScrollArea className="flex-1">
             <div className="p-8 sm:p-12 space-y-12">
+              {/* 1st: Identity & Reference (Editable) */}
               <section className="space-y-6">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Identity & Reference</h3>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Volume</Label>
                     <Input 
                       className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
@@ -693,7 +707,7 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                       onChange={(e) => setEditingRecord({...editingRecord, volume: e.target.value})}
                     />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Chapter ID</Label>
                     <Input 
                       className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
@@ -701,7 +715,7 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                       onChange={(e) => setEditingRecord({...editingRecord, chapterId: e.target.value})}
                     />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Hadith Number</Label>
                     <Input 
                       className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
@@ -712,6 +726,7 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                 </div>
               </section>
 
+              {/* 2nd: Scholarly Status */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <ShieldCheck className="w-4 h-4" />
@@ -725,6 +740,7 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                 />
               </section>
 
+              {/* 3rd: Primary Narrator (Sanad) */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Info className="w-4 h-4" />
@@ -733,11 +749,12 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                 <Input 
                   className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900 text-lg" 
                   value={editingRecord?.narrator_text || ''} 
-                  placeholder="Sanad chain..."
+                  placeholder="Enter Sanad chain..."
                   onChange={(e) => setEditingRecord({...editingRecord, narrator_text: e.target.value})} 
                 />
               </section>
 
+              {/* 4th: Prophetic Narration (Matn) */}
               <section className="space-y-4 pt-6 border-t border-zinc-100">
                 <div className="flex items-center justify-between ml-1">
                   <div className="flex items-center gap-2 text-zinc-400">
@@ -745,7 +762,7 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                     <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Prophetic Narration (Matn)</Label>
                   </div>
                   <Badge variant="ghost" className="text-[9px] text-zinc-300 uppercase font-black tracking-widest">
-                    {edition?.type === 'arabic' ? 'Uthmani Source' : 'Translated Shard'}
+                    {edition?.type === 'arabic' ? 'Original Script' : 'Translated Content'}
                   </Badge>
                 </div>
                 
@@ -764,7 +781,7 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
           </ScrollArea>
 
           <DialogFooter className="px-8 sm:px-12 py-8 sm:py-10 bg-zinc-50 border-t shrink-0 flex flex-row items-center justify-end gap-4">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-6 font-bold text-zinc-400 hover:text-zinc-900 hover:bg-transparent">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-6 font-bold text-zinc-400 hover:text-zinc-900">
               Discard Changes
             </Button>
             <Button 
