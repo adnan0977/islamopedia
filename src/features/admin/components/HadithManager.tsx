@@ -39,7 +39,9 @@ import {
   Globe,
   Info,
   Save,
-  BookOpen
+  BookOpen,
+  Hash,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   Table, 
@@ -66,6 +68,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { fetchHadithApiBooks, fetchHadithApiChapters, fetchHadithApiData } from '@/services/hadith-api';
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const BOOK_ORDER: Record<string, number> = {
   'sahih-bukhari': 1,
@@ -442,7 +445,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
         }
 
         Object.keys(h).forEach(key => {
-          // Flatten book metadata
           if (key === 'book' && typeof h[key] === 'object' && h[key] !== null) {
             Object.entries(h[key]).forEach(([bookKey, bookVal]) => {
               if (!(bookKey in transformedRecord)) {
@@ -452,7 +454,6 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
             return;
           }
 
-          // Strict exclusion list
           if (['grades', 'chapter', 'hadithEnglish', 'hadithUrdu', 'hadithArabic', 'headingEnglish', 'headingUrdu', 'headingArabic', 'englishNarrator', 'urduNarrator', 'book'].includes(key)) return;
 
           if (!(key in transformedRecord)) {
@@ -565,6 +566,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       hadith_text: editingRecord.hadith_text,
       heading_text: editingRecord.heading_text,
       narrator_text: editingRecord.narrator_text,
+      grade: editingRecord.grade || '',
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Record Refined" });
@@ -618,6 +620,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                   <TableCell className="hidden sm:table-cell">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-bold text-zinc-400">{r.narrator_text || '---'}</span>
+                      {r.grade && <Badge variant="outline" className="text-[7px] uppercase w-fit py-0 px-1 border-zinc-100">{r.grade}</Badge>}
                     </div>
                   </TableCell>
                   <TableCell className="text-right pr-6 sm:pr-10">
@@ -633,118 +636,105 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-6xl w-[95vw] h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2rem] sm:rounded-[3rem] border-zinc-200 bg-white">
-          <DialogHeader className="px-6 sm:px-10 py-6 sm:py-8 border-b bg-zinc-50/50 shrink-0">
+        <DialogContent className="max-w-3xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] border-zinc-200 bg-white">
+          <DialogHeader className="px-8 sm:px-12 py-8 sm:py-10 border-b bg-zinc-50/50 shrink-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 sm:gap-5">
+              <div className="flex items-center gap-5">
                 <div className="p-3 bg-white border border-zinc-200 rounded-2xl shadow-sm text-zinc-400 hidden sm:block">
                   <Database className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900">Record Refinement</DialogTitle>
-                  <DialogDescription className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
-                    <Globe className="w-3 h-3" />
-                    Validating {edition?.language} • #{editingRecord?.hadithNumber}
+                  <DialogTitle className="text-2xl font-bold tracking-tight text-zinc-900">Record Refinement</DialogTitle>
+                  <DialogDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
+                    <Globe className="w-3.5 h-3.5" />
+                    Shard: {edition?.language} • Ref: #{editingRecord?.hadithNumber}
                   </DialogDescription>
                 </div>
               </div>
-              <Badge variant="outline" className="px-3 sm:px-4 py-1 rounded-full border-zinc-200 bg-white text-zinc-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-sm">
-                Chapter {sectionNumber}
-              </Badge>
             </div>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-6 sm:p-10 bg-white">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-              {/* Main Form Content */}
-              <div className="lg:col-span-8 space-y-8">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 ml-1">Prophetic Narration</Label>
-                    <Badge variant="ghost" className="text-[9px] text-zinc-300 uppercase font-black tracking-widest">
-                      {edition?.type === 'arabic' ? 'Source' : 'Shard'}
-                    </Badge>
-                  </div>
-                  
-                  <Textarea 
-                    dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"}
-                    className={cn(
-                      "min-h-[300px] md:min-h-[450px] leading-relaxed p-6 sm:p-10 bg-zinc-50/50 rounded-[1.5rem] sm:rounded-[2.5rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700 resize-none",
-                      edition?.type === 'english' ? "text-lg sm:text-xl" : "text-2xl sm:text-4xl font-arabic leading-[2.5] text-zinc-800"
-                    )}
-                    value={editingRecord?.hadith_text || ''}
-                    placeholder="Enter narration text..."
-                    onChange={(e) => setEditingRecord({ ...editingRecord, hadith_text: e.target.value })}
-                  />
+          <ScrollArea className="flex-1 p-8 sm:p-12">
+            <div className="space-y-10 max-w-2xl mx-auto pb-10">
+              {/* 1. Reference Node */}
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-zinc-400 ml-1">
+                  <Hash className="w-4 h-4" />
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Identity & Reference</h3>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Section Node</span>
+                    <span className="text-sm font-bold text-zinc-900">Chapter {sectionNumber}</span>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1 shadow-inner">
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Hadith Serial</span>
+                    <span className="text-sm font-bold text-zinc-900">Record #{editingRecord?.hadithNumber}</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* 2. Grade Field */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-zinc-400 ml-1">
+                  <ShieldCheck className="w-4 h-4" />
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Scholarly Grade</Label>
+                </div>
+                <Input 
+                  className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900" 
+                  value={editingRecord?.grade || ''} 
+                  placeholder="e.g. Sahih, Hasan, Da'if"
+                  onChange={(e) => setEditingRecord({...editingRecord, grade: e.target.value})}
+                />
               </div>
 
-              {/* Metadata Sidebar Form */}
-              <div className="lg:col-span-4 space-y-8">
-                <section className="space-y-6 p-6 sm:p-8 bg-zinc-50/50 rounded-[1.5rem] sm:rounded-[2.5rem] border border-zinc-100">
-                  <div className="flex items-center gap-2 text-zinc-400 border-b border-zinc-200 pb-4">
-                    <Info className="w-4 h-4" />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]">Identity Node</h3>
-                  </div>
-                  
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-zinc-400 ml-1">Heading</Label>
-                      <Input 
-                        className="bg-white border-zinc-200 h-12 sm:h-14 px-4 sm:px-6 rounded-xl sm:rounded-2xl font-bold text-zinc-700 shadow-sm" 
-                        value={editingRecord?.heading_text || ''} 
-                        onChange={(e) => setEditingRecord({...editingRecord, heading_text: e.target.value})}
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-zinc-400 ml-1">Narrator</Label>
-                      <Input 
-                        className="bg-white border-zinc-200 h-12 sm:h-14 px-4 sm:px-6 rounded-xl sm:rounded-2xl font-bold text-zinc-700 shadow-sm" 
-                        value={editingRecord?.narrator_text || ''} 
-                        onChange={(e) => setEditingRecord({...editingRecord, narrator_text: e.target.value})} 
-                      />
-                    </div>
-
-                    <div className="pt-6 border-t border-zinc-200">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl bg-white border border-zinc-100 flex flex-col gap-1 shadow-sm">
-                          <span className="text-[8px] font-black text-zinc-400 uppercase">Hadith #</span>
-                          <span className="text-base sm:text-lg font-black text-zinc-900">#{editingRecord?.hadithNumber}</span>
-                        </div>
-                        <div className="p-4 rounded-xl bg-white border border-zinc-100 flex flex-col gap-1 shadow-sm">
-                          <span className="text-[8px] font-black text-zinc-400 uppercase">Chapter</span>
-                          <span className="text-base sm:text-lg font-black text-zinc-900">#{sectionNumber}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <div className="p-6 sm:p-8 bg-zinc-900 rounded-[1.5rem] sm:rounded-[2.5rem] text-zinc-400 space-y-4 shadow-2xl">
-                   <div className="flex items-center gap-2">
-                     <RefreshCcw className="w-4 h-4 text-zinc-500" />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Consistency</span>
-                   </div>
-                   <p className="text-[10px] sm:text-[11px] leading-relaxed italic opacity-80">
-                     Updates will be mirrored across public nodes immediately.
-                   </p>
+              {/* 3. Narrator Field */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-zinc-400 ml-1">
+                  <Info className="w-4 h-4" />
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Primary Narrator</Label>
                 </div>
+                <Input 
+                  className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900" 
+                  value={editingRecord?.narrator_text || ''} 
+                  placeholder="Enter narrator chain..."
+                  onChange={(e) => setEditingRecord({...editingRecord, narrator_text: e.target.value})} 
+                />
+              </div>
+
+              {/* 4. Multiline Hadith Text */}
+              <div className="space-y-4 pt-4 border-t border-zinc-100">
+                <div className="flex items-center justify-between ml-1">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Prophetic Narration</Label>
+                  <Badge variant="ghost" className="text-[9px] text-zinc-300 uppercase font-black tracking-widest">
+                    {edition?.type === 'arabic' ? 'Source Text' : 'Translated Node'}
+                  </Badge>
+                </div>
+                
+                <Textarea 
+                  dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"}
+                  className={cn(
+                    "min-h-[350px] leading-relaxed p-8 bg-zinc-50/50 rounded-[2rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700 resize-none",
+                    edition?.type === 'english' ? "text-lg sm:text-xl" : "text-2xl sm:text-4xl font-arabic leading-[2.5] text-zinc-800"
+                  )}
+                  value={editingRecord?.hadith_text || ''}
+                  placeholder="Enter narration text..."
+                  onChange={(e) => setEditingRecord({ ...editingRecord, hadith_text: e.target.value })}
+                />
               </div>
             </div>
-          </div>
+          </ScrollArea>
 
-          <DialogFooter className="px-6 sm:px-10 py-6 sm:py-8 bg-zinc-50 border-t shrink-0 flex flex-row items-center justify-end gap-4 sm:gap-6">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-4 sm:px-8 font-bold text-zinc-400 hover:text-zinc-900 hover:bg-transparent">
+          <DialogFooter className="px-8 sm:px-12 py-8 sm:py-10 bg-zinc-50 border-t shrink-0 flex flex-row items-center justify-end gap-4">
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-6 font-bold text-zinc-400 hover:text-zinc-900 hover:bg-transparent">
               Discard
             </Button>
             <Button 
-              className="h-12 sm:h-14 px-6 sm:px-12 rounded-xl sm:rounded-[1.25rem] bg-zinc-900 text-white font-bold shadow-2xl active:scale-95 transition-all hover:bg-black gap-2 sm:gap-3" 
+              className="h-12 sm:h-14 px-10 rounded-2xl bg-zinc-900 text-white font-bold shadow-2xl active:scale-95 transition-all hover:bg-black gap-3" 
               onClick={handleSaveEdit}
             >
               <Save className="w-4 h-4" />
-              <span className="hidden sm:inline">Commit Refinement</span>
-              <span className="sm:hidden">Commit</span>
+              <span>Commit Refinement</span>
             </Button>
           </DialogFooter>
         </DialogContent>
