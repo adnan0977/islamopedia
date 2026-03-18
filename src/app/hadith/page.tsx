@@ -8,7 +8,8 @@ import {
   ChevronRight, 
   ArrowLeft,
   Languages,
-  Search
+  Search,
+  Library
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 export default function HadithPage() {
   const db = useFirestore();
@@ -61,7 +63,7 @@ export default function HadithPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Opening Library...</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Opening Library...</p>
       </div>
     );
   }
@@ -73,32 +75,30 @@ export default function HadithPage() {
       <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl pb-32 lg:pb-8">
         <header className="flex flex-col sm:flex-row justify-between items-center gap-4 pb-6 border-b">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" className="rounded-full" onClick={() => navigateTo({ edition: null })}>
+            <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-muted" onClick={() => navigateTo({ edition: null })}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">{book?.bookName}</h1>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Index • {indexDoc?.name}</p>
+              <h1 className="text-xl font-bold tracking-tight">{book?.bookName}</h1>
+              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">Index • {indexDoc?.name}</p>
             </div>
           </div>
-          <Badge variant="secondary" className="px-4 py-1 rounded-full uppercase text-[10px] font-black tracking-widest">
+          <Badge variant="secondary" className="px-4 py-1 rounded-full uppercase text-[9px] font-black tracking-widest bg-muted/50 border-none">
             {sortedChapters.length} Chapters
           </Badge>
         </header>
 
         <div className="grid gap-3">
           {sortedChapters.map((ch) => (
-            <Card key={ch.chapterNumber} className="group cursor-pointer border-none bg-muted/30 hover:bg-muted/50 transition-all">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="h-12 w-12 bg-background border rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm group-hover:border-primary group-hover:text-primary transition-all">
+            <Card key={ch.chapterNumber} className="group cursor-pointer border-none bg-muted/20 hover:bg-muted/40 transition-all rounded-2xl overflow-hidden">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                  <div className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center font-bold text-xs shadow-sm group-hover:border-primary group-hover:text-primary transition-all">
                     {ch.chapterNumber}
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">{ch.chapterName}</h3>
-                  </div>
+                  <h3 className="font-bold text-sm leading-tight group-hover:text-primary transition-colors">{ch.chapterName}</h3>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-all" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-all" />
               </CardContent>
             </Card>
           ))}
@@ -111,27 +111,29 @@ export default function HadithPage() {
   if (activeBookId) {
     const book = books?.find(b => b.id === activeBookId);
     return (
-      <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl pb-32 lg:pb-8">
+      <div className="container mx-auto px-4 py-8 space-y-10 max-w-5xl pb-32 lg:pb-8">
         <header className="flex items-center gap-4 pb-6 border-b">
-          <Button variant="outline" size="icon" className="rounded-full" onClick={() => navigateTo({ book: null })}>
+          <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-muted" onClick={() => navigateTo({ book: null })}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{book?.bookName}</h1>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Select Translation</p>
+            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.2em]">Select Translation</p>
           </div>
         </header>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {editions?.map((ed) => (
-            <Card key={ed.id} className="group cursor-pointer border-none bg-muted/30 hover:bg-primary hover:text-primary-foreground transition-all duration-500" onClick={() => navigateTo({ edition: ed.id })}>
-              <CardHeader>
-                <Languages className="h-8 w-8 mb-2 group-hover:text-primary-foreground text-primary transition-colors" />
+            <Card key={ed.id} className="group cursor-pointer border-none bg-muted/20 hover:bg-primary hover:text-primary-foreground transition-all duration-500 rounded-[2rem] overflow-hidden" onClick={() => navigateTo({ edition: ed.id })}>
+              <CardHeader className="p-8">
+                <div className="h-12 w-12 bg-background rounded-2xl flex items-center justify-center border shadow-sm mb-4 group-hover:bg-white/10 group-hover:border-white/20 transition-all">
+                  <Languages className="h-6 w-6 text-primary group-hover:text-white" />
+                </div>
                 <CardTitle className="text-xl font-bold">{ed.language}</CardTitle>
-                <p className="text-[10px] uppercase font-black tracking-widest opacity-60">{ed.author || ed.name}</p>
+                <p className="text-[9px] uppercase font-black tracking-widest opacity-60 mt-1">{ed.author || ed.name}</p>
               </CardHeader>
-              <CardFooter className="pt-0">
-                <Button variant="secondary" className="w-full rounded-full font-bold text-xs uppercase group-hover:bg-white group-hover:text-primary">
+              <CardFooter className="p-8 pt-0">
+                <Button variant="secondary" className="w-full rounded-2xl h-12 font-bold text-[10px] uppercase tracking-widest group-hover:bg-white group-hover:text-primary transition-colors">
                   Read Book
                 </Button>
               </CardFooter>
@@ -142,31 +144,48 @@ export default function HadithPage() {
     );
   }
 
-  // View 1: Books Directory
+  // View 1: Books Directory (Square Grid)
   return (
     <div className="container mx-auto px-4 py-12 space-y-12 max-w-7xl pb-32 lg:pb-12">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-extrabold tracking-tight">Hadith Library</h1>
-          <p className="text-muted-foreground max-w-2xl text-lg">Authentic collections of Prophetic traditions from verified primary sources.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary text-primary-foreground rounded-xl">
+              <Library className="h-6 w-6" />
+            </div>
+            <h1 className="text-4xl font-extrabold tracking-tight">Hadith Library</h1>
+          </div>
+          <p className="text-muted-foreground max-w-2xl text-lg font-medium leading-relaxed">Authentic collections of Prophetic traditions from verified primary sources.</p>
         </div>
         <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search collections..." className="pl-10 rounded-full bg-muted/50 border-none h-12" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+          <Input placeholder="Search collections..." className="pl-12 rounded-2xl bg-muted/30 border-none h-14 font-bold text-sm focus-visible:ring-primary" />
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {books?.map((book) => (
-          <Card key={book.id} className="group cursor-pointer border-none bg-muted/30 shadow-sm transition-all hover:shadow-xl hover:bg-muted/50 hover:ring-1 hover:ring-primary overflow-hidden" onClick={() => navigateTo({ book: book.id })}>
-            <CardHeader className="relative h-32 flex flex-row items-start justify-between p-6">
-              <div className="h-14 w-14 bg-background rounded-[1.25rem] flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500">
-                <BookOpen className="h-7 w-7 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-8 space-y-4">
-              <h3 className="text-xl font-bold tracking-tight line-clamp-2 leading-tight group-hover:text-primary transition-colors">{book.bookName}</h3>
-            </CardContent>
+          <Card 
+            key={book.id} 
+            className="aspect-square group cursor-pointer border-none bg-muted/10 transition-all hover:bg-muted/20 hover:ring-1 hover:ring-primary/50 flex flex-col items-center justify-center p-6 text-center rounded-[2.5rem] relative overflow-hidden" 
+            onClick={() => navigateTo({ book: book.id })}
+          >
+            <div className="h-12 w-12 sm:h-16 sm:w-16 bg-background rounded-2xl sm:rounded-3xl flex items-center justify-center border border-muted shadow-sm group-hover:scale-110 group-hover:border-primary/20 transition-all duration-700 mb-4 sm:mb-6">
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            </div>
+            <h3 className="text-xs sm:text-sm font-bold tracking-tight line-clamp-2 leading-tight px-2 group-hover:text-primary transition-colors">
+              {book.bookName}
+            </h3>
+            
+            <div className="mt-2 sm:mt-3 px-3 py-1 bg-background/50 rounded-full border border-muted/50">
+              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                {book.editionCount} Editions
+              </span>
+            </div>
+
+            <div className="absolute top-4 right-4">
+               <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500" />
+            </div>
           </Card>
         ))}
       </div>
