@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -60,6 +61,7 @@ export default function HadithPage() {
     const arabicIdx = indices.find(i => i.id.endsWith('_arabic'));
     const transIdx = indices.find(i => i.id.endsWith(`_${selectedLanguage}`));
     
+    // Fallback to any index if specifically requested one is missing
     const fallbackTransIdx = indices.find(i => !i.id.endsWith('_arabic')) || transIdx;
     
     const sections = arabicIdx?.sections || {};
@@ -197,7 +199,9 @@ export default function HadithPage() {
                   )}
                 </CardContent>
                 <CardFooter className="p-8 pt-0 border-t border-zinc-50 bg-zinc-50/10 flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-300">Ref: {activeBookId}:{group.num}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-300">
+                    Ref: {activeBookId} | Vol: {r.volume || '---'} | Ch: {r.chapterId || '---'} | No: {group.num}
+                  </span>
                   <div className="flex gap-2">
                     <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Share</Button>
                     <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cite</Button>
@@ -259,7 +263,7 @@ export default function HadithPage() {
           {bilingualChapters.map((ch) => (
             <Card 
               key={ch.number} 
-              className="group cursor-pointer border-none bg-white shadow-sm ring-1 ring-zinc-100 hover:ring-zinc-900 hover:shadow-2xl transition-all duration-500 rounded-[2rem] overflow-hidden"
+              className="group cursor-pointer border-none bg-white shadow-sm ring-1 ring-zinc-100 hover:ring-zinc-900 hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] transition-all duration-500 rounded-[2rem] overflow-hidden"
               onClick={() => navigateTo({ chapter: ch.number })}
             >
               <CardContent className="p-8 flex flex-col gap-6">

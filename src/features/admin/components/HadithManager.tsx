@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -367,7 +368,7 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
           className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest rounded-xl"
           onClick={onSyncIndex}
         >
-          {isInspectable ? <RefreshCw className="w-3.5 h-3.5 mr-2" /> : <Zap className="w-3.5 h-3.5 mr-2" />}
+          {isInspectable ? <RefreshCcw className="w-3.5 h-3.5 mr-2" /> : <Zap className="w-3.5 h-3.5 mr-2" />}
           {isInspectable ? 'Resync' : 'Audit Shard'}
         </Button>
         {isInspectable && (
@@ -432,6 +433,7 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
+        // Capture Status robustly
         transformedRecord.status = h.status || h.hadithStatus || (h.grades && h.grades[0]?.grade) || 'Verified';
 
         if (edition.type === 'english') {
@@ -446,10 +448,11 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
         } else if (edition.type === 'arabic') {
           const rawArabic = h.hadithArabic || '';
-          const quoteIndex = rawArabic.search(/["«]/);
-          if (quoteIndex !== -1) {
-            transformedRecord.narrator_text = rawArabic.substring(0, quoteIndex).trim();
-            transformedRecord.hadith_text = rawArabic.substring(quoteIndex + 1).trim();
+          // Python-style split: re.split(r'["«]', text, 1)
+          const match = rawArabic.match(/["«]/);
+          if (match) {
+            transformedRecord.narrator_text = rawArabic.substring(0, match.index).trim();
+            transformedRecord.hadith_text = rawArabic.substring(match.index + 1).trim();
           } else {
             transformedRecord.narrator_text = '';
             transformedRecord.hadith_text = rawArabic;
@@ -458,6 +461,7 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
+        // Explode book metadata
         if (h.book && typeof h.book === 'object') {
           Object.entries(h.book).forEach(([bk, bv]) => {
             if (!(bk in transformedRecord)) {
@@ -466,6 +470,7 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           });
         }
 
+        // Strip bulky redundant objects
         Object.keys(h).forEach(key => {
           const excluded = [
             'grades', 'chapter', 'book', 
@@ -484,15 +489,15 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
 
       await batch.commit();
       
-      const syncedMap = { ...(indexDoc?.syncedSections || {}) }; 
-      syncedMap[chapter.number] = true; 
-      updateDocumentNonBlocking(indexRef!, { syncedSections: syncedMap }); 
+      const syncedMap = { ...(indexDoc?.syncedSections || {}) };
+      syncedMap[chapter.number] = true;
+      updateDocumentNonBlocking(indexRef!, { syncedSections: syncedMap });
       
       toast({ title: "Data Ingested", description: `Captured ${data.length} records.` });
-    } catch (e: any) { 
-      toast({ variant: "destructive", title: "Ingest Failed", description: e.message }); 
-    } finally { 
-      setSyncState(prev => ({ ...prev, isSyncing: false })); 
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Ingest Failed", description: e.message });
+    } finally {
+      setSyncState(prev => ({ ...prev, isSyncing: false }));
     }
   };
 

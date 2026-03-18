@@ -29,7 +29,7 @@
     },
     "HadithBook": {
       "title": "Hadith Book",
-      "description": "A primary canonical collection of Hadith (e.g. Sahih Bukhari).",
+      "description": "A primary canonical collection of Hadith.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
