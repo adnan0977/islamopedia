@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, addDoc } from 'firebase/firestore';
 import { 
   BookOpen, 
   Loader2, 
@@ -20,12 +19,13 @@ import {
   Share2,
   Copy,
   Download,
-  X
+  X,
+  RefreshCcw
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +44,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { saveOfflineHadithBooks } from '@/lib/offline-db';
 
 const ERROR_TYPES = [
   "Mismatched translation",
@@ -62,6 +63,9 @@ export default function HadithPage() {
   const activeBookId = searchParams.get('book');
   const activeChapterId = searchParams.get('chapter');
   const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'urdu'>('english');
+
+  // Sync State
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
 
   // Reporting State
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
@@ -84,6 +88,22 @@ export default function HadithPage() {
     orderBy('orderKey', 'asc')
   ), [db]);
   const { data: books, isLoading: isLoadingBooks } = useCollection(booksQuery);
+
+  // Sync effect: When books are loaded from Firestore, save them to IndexedDB
+  useEffect(() => {
+    if (books && books.length > 0) {
+      setIsSyncingOffline(true);
+      saveOfflineHadithBooks(books)
+        .then(() => {
+          // Keep loader visible for a beat for visual confirmation as requested
+          setTimeout(() => setIsSyncingOffline(false), 800);
+        })
+        .catch(err => {
+          console.error("Offline sync failed", err);
+          setIsSyncingOffline(false);
+        });
+    }
+  }, [books]);
 
   // Query 2: All Indices for the active book (Arabic + Translations)
   const indexQuery = useMemoFirebase(() => (activeBookId ? query(
@@ -551,6 +571,19 @@ Hadith No: ${hadithToShare.num}
   // View 1: Books Directory
   return (
     <div className="container mx-auto px-4 py-12 space-y-16 max-w-7xl pb-32 lg:pb-16 animate-in fade-in duration-700">
+      {/* Offline Sync Loader Overlay */}
+      {isSyncingOffline && (
+        <div className="fixed top-24 right-8 z-[60] animate-in slide-in-from-right duration-500">
+          <Card className="bg-zinc-900 border-none text-white shadow-2xl rounded-2xl overflow-hidden p-4 flex items-center gap-4">
+            <RefreshCcw className="w-5 h-5 text-emerald-400 animate-spin" />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Local Cache</span>
+              <span className="text-xs font-bold">Data getting Synced...</span>
+            </div>
+          </Card>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
