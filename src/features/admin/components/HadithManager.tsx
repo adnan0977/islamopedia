@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -425,10 +426,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           bookSlug: indexDoc?.bookSlug,
           sectionNumber: section.number,
           hadithNumber: h.hadithNumber,
-          grades: h.grades || [],
           updatedAt: new Date().toISOString(),
-          // Preserve full original chapter metadata as requested
-          chapter: h.chapter || {}
         };
 
         // Targeted key extraction based on edition language
@@ -445,9 +443,9 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
-        // Keep all other top-level keys from original API as requested
+        // Keep all other top-level keys from original API as requested, EXCLUDING grades and chapter
         Object.keys(h).forEach(key => {
-          if (!(key in transformedRecord)) {
+          if (!(key in transformedRecord) && key !== 'grades' && key !== 'chapter') {
             transformedRecord[key] = h[key];
           }
         });
