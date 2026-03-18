@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -385,6 +384,9 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
   const { data: indexDoc, isLoading } = useDoc(indexRef);
 
+  const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
+  const { data: edition } = useDoc(editionRef);
+
   const sections = useMemo(() => {
     if (!indexDoc?.sections) return [];
     return Object.entries(indexDoc.sections).map(([num, name]) => {
@@ -397,6 +399,7 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
   }, [indexDoc]);
 
   const handleSyncSectionContent = async (section: any) => {
+    if (!edition) return;
     setSyncState({ isSyncing: true, progress: 0, status: 'fetching HadithAPI stream', targetSection: section.name });
     try {
       const payload = await fetchHadithApiData(indexDoc?.bookSlug, section.number);
@@ -410,14 +413,42 @@ export function HadithDataView({ editionId, onBack, onViewSection }: { editionId
       const batch = writeBatch(db);
       data.forEach((h: any) => {
         const hadithId = `${editionId}_h_${h.hadithNumber}`;
-        batch.set(doc(db, 'hadith_data', hadithId), { 
-          ...h, 
-          id: hadithId, 
-          editionId, 
-          bookSlug: indexDoc?.bookSlug, 
+        
+        // Language-specific record transformation
+        const transformedRecord: any = {
+          id: hadithId,
+          editionId,
+          bookSlug: indexDoc?.bookSlug,
           sectionNumber: section.number,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
+          hadithNumber: h.hadithNumber,
+          grades: h.grades || [],
+          updatedAt: new Date().toISOString(),
+          // Preserve full original chapter metadata as requested
+          chapter: h.chapter || {}
+        };
+
+        // Targeted key extraction based on edition language
+        if (edition.type === 'english') {
+          transformedRecord.englishNarrator = h.englishNarrator;
+          transformedRecord.hadithEnglish = h.hadithEnglish;
+          transformedRecord.headingEnglish = h.headingEnglish;
+          transformedRecord.chapterTitle = h.chapter?.chapterEnglish || '';
+        } else if (edition.type === 'urdu') {
+          transformedRecord.hadithUrdu = h.hadithUrdu;
+          transformedRecord.chapterTitle = h.chapter?.chapterUrdu || '';
+        } else if (edition.type === 'arabic') {
+          transformedRecord.hadithArabic = h.hadithArabic;
+          transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
+        }
+
+        // Keep all other top-level keys from original API as requested
+        Object.keys(h).forEach(key => {
+          if (!(key in transformedRecord)) {
+            transformedRecord[key] = h[key];
+          }
+        });
+
+        batch.set(doc(db, 'hadith_data', hadithId), transformedRecord, { merge: true });
       });
 
       await batch.commit();
@@ -498,6 +529,9 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   const indexRef = useMemoFirebase(() => doc(db, 'hadith_index', editionId), [db, editionId]);
   const { data: indexDoc } = useDoc(indexRef);
 
+  const editionRef = useMemoFirebase(() => doc(db, 'hadith_editions', editionId), [db, editionId]);
+  const { data: edition } = useDoc(editionRef);
+
   const recordsQuery = useMemoFirebase(() => query(
     collection(db, 'hadith_data'),
     where('editionId', '==', editionId),
@@ -515,11 +549,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
   const handleSaveEdit = () => {
     if (!editingRecord) return;
     updateDocumentNonBlocking(doc(db, 'hadith_data', editingRecord.id), {
-      hadithArabic: editingRecord.hadithArabic,
-      hadithEnglish: editingRecord.hadithEnglish,
-      hadithUrdu: editingRecord.hadithUrdu,
-      englishNarrator: editingRecord.englishNarrator,
-      hadithStatus: editingRecord.hadithNumber,
+      ...editingRecord,
       updatedAt: new Date().toISOString()
     });
     toast({ title: "Record Refined" });
@@ -535,7 +565,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           </Button>
           <div className="space-y-1">
             <h2 className="text-2xl font-bold tracking-tight truncate">{indexDoc?.sections?.[sectionNumber] || 'Records'}</h2>
-            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">Validation Workbench</p>
+            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">{edition?.language} Validation Workbench</p>
           </div>
         </div>
         <Badge variant="outline" className="h-10 px-6 rounded-xl font-bold border-zinc-100 text-zinc-500">
@@ -549,8 +579,8 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="h-20">
                 <TableHead className="w-24 text-[10px] font-black uppercase pl-10">Ref</TableHead>
-                <TableHead className="text-[10px] font-black uppercase">Hadith Content</TableHead>
-                <TableHead className="text-[10px] font-black uppercase">Narrator</TableHead>
+                <TableHead className="text-[10px] font-black uppercase">Translated Content</TableHead>
+                <TableHead className="text-[10px] font-black uppercase">Attributes</TableHead>
                 <TableHead className="w-32 text-right pr-10">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -563,12 +593,22 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     <Badge variant="outline" className="font-mono text-[10px] font-bold">#{r.hadithNumber}</Badge>
                   </TableCell>
                   <TableCell>
-                    <p className="text-[11px] text-zinc-600 line-clamp-2 leading-relaxed max-w-[500px]">
+                    <p className={cn(
+                      "text-[11px] text-zinc-600 line-clamp-2 leading-relaxed max-w-[500px]",
+                      edition?.type === 'arabic' || edition?.type === 'urdu' ? "font-arabic text-right text-sm" : ""
+                    )} dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"}>
                       {r.hadithEnglish || r.hadithUrdu || r.hadithArabic}
                     </p>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[10px] font-bold text-zinc-400">{r.englishNarrator || '---'}</span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold text-zinc-400">{r.englishNarrator || r.urduNarrator || '---'}</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {r.grades?.slice(0, 2).map((g: any, i: number) => (
+                          <Badge key={i} variant="secondary" className="text-[7px] py-0 px-1.5 font-black uppercase">{g.grade}</Badge>
+                        ))}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right pr-10">
                     <Button variant="ghost" size="icon" onClick={() => { setEditingRecord(JSON.parse(JSON.stringify(r))); setIsEditDialogOpen(true); }} className="h-11 w-11 rounded-xl">
@@ -591,7 +631,7 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
               </div>
               <div>
                 <DialogTitle className="text-2xl font-bold tracking-tight">Record Refinement</DialogTitle>
-                <DialogDescription className="text-sm text-zinc-500">Manually refine translation text and canonical metadata.</DialogDescription>
+                <DialogDescription className="text-sm text-zinc-500">Manually refine translation text and canonical metadata for {edition?.language}.</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -599,23 +639,38 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
           <div className="flex-1 overflow-y-auto p-10 bg-white">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
               <div className="lg:col-span-2 space-y-8">
-                <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">English Narration</Label>
-                  <Textarea 
-                    className="min-h-[200px] text-base leading-relaxed p-6 bg-zinc-50 rounded-2xl resize-none border-none shadow-inner"
-                    value={editingRecord?.hadithEnglish || ''}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, hadithEnglish: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Arabic Source</Label>
-                  <Textarea 
-                    dir="rtl"
-                    className="min-h-[150px] text-2xl font-arabic leading-loose p-6 bg-zinc-50 rounded-2xl resize-none border-none shadow-inner"
-                    value={editingRecord?.hadithArabic || ''}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, hadithArabic: e.target.value })}
-                  />
-                </div>
+                {edition?.type === 'english' && (
+                  <div className="space-y-4">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">English Narration</Label>
+                    <Textarea 
+                      className="min-h-[200px] text-base leading-relaxed p-6 bg-zinc-50 rounded-2xl resize-none border-none shadow-inner"
+                      value={editingRecord?.hadithEnglish || ''}
+                      onChange={(e) => setEditingRecord({ ...editingRecord, hadithEnglish: e.target.value })}
+                    />
+                  </div>
+                )}
+                {edition?.type === 'urdu' && (
+                  <div className="space-y-4">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Urdu Text</Label>
+                    <Textarea 
+                      dir="rtl"
+                      className="min-h-[200px] text-2xl font-arabic leading-loose p-6 bg-zinc-50 rounded-2xl resize-none border-none shadow-inner"
+                      value={editingRecord?.hadithUrdu || ''}
+                      onChange={(e) => setEditingRecord({ ...editingRecord, hadithUrdu: e.target.value })}
+                    />
+                  </div>
+                )}
+                {edition?.type === 'arabic' && (
+                  <div className="space-y-4">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Arabic Source</Label>
+                    <Textarea 
+                      dir="rtl"
+                      className="min-h-[200px] text-2xl font-arabic leading-loose p-6 bg-zinc-50 rounded-2xl resize-none border-none shadow-inner"
+                      value={editingRecord?.hadithArabic || ''}
+                      onChange={(e) => setEditingRecord({ ...editingRecord, hadithArabic: e.target.value })}
+                    />
+                  </div>
+                )}
               </div>
               <div className="space-y-8">
                 <Card className="p-6 rounded-[2rem] bg-zinc-50/50 border-none shadow-inner space-y-6">
@@ -624,17 +679,26 @@ export function HadithSectionRecordsView({ bookId, editionId, sectionNumber, onB
                     <Input className="bg-white border-zinc-200" value={editingRecord?.hadithNumber || ''} readOnly />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-zinc-400">Narrator</Label>
-                    <Input className="bg-white border-zinc-200" value={editingRecord?.englishNarrator || ''} onChange={(e) => setEditingRecord({...editingRecord, englishNarrator: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-zinc-400">Urdu Text</Label>
-                    <Textarea 
-                      dir="rtl"
-                      className="bg-white border-zinc-200 min-h-[100px]" 
-                      value={editingRecord?.hadithUrdu || ''} 
-                      onChange={(e) => setEditingRecord({...editingRecord, hadithUrdu: e.target.value})} 
+                    <Label className="text-[10px] font-black uppercase text-zinc-400">Narrator Context</Label>
+                    <Input 
+                      className="bg-white border-zinc-200" 
+                      value={editingRecord?.englishNarrator || editingRecord?.urduNarrator || ''} 
+                      onChange={(e) => {
+                        if (edition?.type === 'urdu') setEditingRecord({...editingRecord, urduNarrator: e.target.value});
+                        else setEditingRecord({...editingRecord, englishNarrator: e.target.value});
+                      }} 
                     />
+                  </div>
+                  <div className="space-y-4">
+                    <Label className="text-[10px] font-black uppercase text-zinc-400">Scholarly Grades</Label>
+                    <div className="space-y-2">
+                      {editingRecord?.grades?.map((g: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-white border border-zinc-100 rounded-xl shadow-sm">
+                          <span className="text-[10px] font-bold text-zinc-400">{g.scholar}</span>
+                          <Badge variant="secondary" className="text-[8px] uppercase font-black">{g.grade}</Badge>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </Card>
               </div>

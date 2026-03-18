@@ -40,10 +40,11 @@ export async function fetchHadithApiChapters(bookSlug: string): Promise<any> {
 
 /**
  * Fetches Hadiths for a specific book and chapter from HadithAPI.com.
+ * Uses the public endpoint as requested for deep data ingestion.
  */
 export async function fetchHadithApiData(bookSlug: string, chapterNumber: string): Promise<any> {
   try {
-    const url = `https://hadithapi.com/api/hadiths?apiKey=${HADITH_API_KEY}&book=${bookSlug}&chapter=${chapterNumber}&paginate=1000`;
+    const url = `https://hadithapi.com/public/api/hadiths?apiKey=${HADITH_API_KEY}&book=${bookSlug}&chapter=${chapterNumber}&paginate=1000`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch hadiths from HadithAPI');
     const data = await res.json();
