@@ -18,16 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 const DHIKR_PRESETS = [
   { id: 'subhanallah', arabic: 'سُبْحَانَ ٱللّٰهِ', english: 'SubhanAllah', target: 33 },
@@ -75,19 +66,46 @@ export default function TasbihPage() {
     }));
   }, [count, sessionTotal, target, selectedDhikr, isLoaded]);
 
-  const handleIncrement = useCallback(() => {
-    if (hapticEnabled && 'vibrate' in navigator) {
-      navigator.vibrate(50);
+  const triggerHaptic = useCallback(async (isReset = false, isTargetReached = false) => {
+    if (!hapticEnabled) return;
+
+    try {
+      // Try Capacitor Haptics first (for native iOS/Android builds)
+      if (isReset) {
+        await Haptics.notification({ type: ImpactStyle.Heavy as any });
+      } else if (isTargetReached) {
+        await Haptics.notification({ type: ImpactStyle.Medium as any });
+      } else {
+        await Haptics.impact({ style: ImpactStyle.Light });
+      }
+    } catch {
+      // Fallback to Web Vibration API (for mobile browsers)
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        if (isReset) {
+          navigator.vibrate([100, 50, 100]);
+        } else if (isTargetReached) {
+          navigator.vibrate(200);
+        } else {
+          navigator.vibrate(50);
+        }
+      }
     }
-    setCount(prev => prev + 1);
-    setSessionTotal(prev => prev + 1);
   }, [hapticEnabled]);
 
+  const handleIncrement = useCallback(() => {
+    const nextCount = count + 1;
+    const isTargetReached = nextCount === target;
+    
+    // Call triggerHaptic immediately on user interaction
+    triggerHaptic(false, isTargetReached);
+    
+    setCount(nextCount);
+    setSessionTotal(prev => prev + 1);
+  }, [count, target, triggerHaptic]);
+
   const handleReset = () => {
+    triggerHaptic(true);
     setCount(0);
-    if (hapticEnabled && 'vibrate' in navigator) {
-      navigator.vibrate([100, 50, 100]);
-    }
   };
 
   const changeDhikr = (id: string) => {
