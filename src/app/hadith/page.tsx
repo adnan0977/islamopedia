@@ -9,8 +9,8 @@ import {
   ArrowLeft,
   Search,
   Library,
-  BookMarked,
-  Info
+  Info,
+  AlertTriangle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,12 +18,14 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export default function HadithPage() {
   const db = useFirestore();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { toast } = useToast();
 
   const activeBookId = searchParams.get('book');
   const activeChapterId = searchParams.get('chapter');
@@ -48,7 +50,7 @@ export default function HadithPage() {
     collection(db, 'hadith_data'),
     where('bookSlug', '==', activeBookId),
     where('chapterId', '==', activeChapterId),
-    limit(300) // Fetching Arabic + Translation records
+    limit(300)
   ) : null), [db, activeBookId, activeChapterId]);
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection(recordsQuery);
 
@@ -58,7 +60,6 @@ export default function HadithPage() {
     const arabicIdx = indices.find(i => i.id.endsWith('_arabic'));
     const transIdx = indices.find(i => i.id.endsWith(`_${selectedLanguage}`));
     
-    // Fallback if the specific translation index isn't available
     const fallbackTransIdx = indices.find(i => !i.id.endsWith('_arabic')) || transIdx;
     
     const sections = arabicIdx?.sections || {};
@@ -165,7 +166,6 @@ export default function HadithPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-8 sm:p-12 space-y-12">
-                  {/* Arabic Section */}
                   {group.arabic && (
                     <div className="space-y-8">
                       {group.arabic.narrator_text && (
@@ -180,7 +180,6 @@ export default function HadithPage() {
                     </div>
                   )}
 
-                  {/* Translation Section */}
                   {group.translation && (
                     <div className="space-y-6 pt-10 border-t border-dashed border-zinc-100">
                       {group.translation.narrator_text && (
@@ -202,6 +201,15 @@ export default function HadithPage() {
                   <div className="flex gap-2">
                     <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Share</Button>
                     <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cite</Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => toast({ title: "Reference Flagged", description: `Record ${activeBookId}:${group.num} has been submitted for review.` })}
+                    >
+                      <AlertTriangle className="w-3 h-3 mr-1.5" />
+                      Report Error
+                    </Button>
                   </div>
                 </CardFooter>
               </Card>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -29,7 +28,6 @@ import {
   Library,
   ChevronRight,
   ArrowLeft,
-  Languages,
   CloudDownload,
   Zap,
   Eye,
@@ -369,7 +367,7 @@ function EditionCard({ edition, onSelect, onSyncIndex }: { edition: any, onSelec
           className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest rounded-xl"
           onClick={onSyncIndex}
         >
-          {isInspectable ? <RefreshCcw className="w-3.5 h-3.5 mr-2" /> : <Zap className="w-3.5 h-3.5 mr-2" />}
+          {isInspectable ? <RefreshCw className="w-3.5 h-3.5 mr-2" /> : <Zap className="w-3.5 h-3.5 mr-2" />}
           {isInspectable ? 'Resync' : 'Audit Shard'}
         </Button>
         {isInspectable && (
@@ -434,7 +432,6 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           updatedAt: new Date().toISOString(),
         };
 
-        // Capture status robustly
         transformedRecord.status = h.status || h.hadithStatus || (h.grades && h.grades[0]?.grade) || 'Verified';
 
         if (edition.type === 'english') {
@@ -452,7 +449,7 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           const quoteIndex = rawArabic.search(/["«]/);
           if (quoteIndex !== -1) {
             transformedRecord.narrator_text = rawArabic.substring(0, quoteIndex).trim();
-            transformedRecord.hadith_text = rawArabic.substring(quoteIndex).trim();
+            transformedRecord.hadith_text = rawArabic.substring(quoteIndex + 1).trim();
           } else {
             transformedRecord.narrator_text = '';
             transformedRecord.hadith_text = rawArabic;
@@ -461,7 +458,6 @@ export function HadithDataView({ editionId, onBack, onViewChapter }: { editionId
           transformedRecord.chapterTitle = h.chapter?.chapterArabic || '';
         }
 
-        // Explode book object and strip redundant fields
         if (h.book && typeof h.book === 'object') {
           Object.entries(h.book).forEach(([bk, bv]) => {
             if (!(bk in transformedRecord)) {
@@ -692,7 +688,6 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
           
           <ScrollArea className="flex-1">
             <div className="p-8 sm:p-12 space-y-12">
-              {/* 1st: Identity & Reference (Editable) */}
               <section className="space-y-6">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Hash className="w-4 h-4" />
@@ -701,60 +696,35 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="flex flex-col gap-3">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Volume</Label>
-                    <Input 
-                      className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
-                      value={editingRecord?.volume || ''} 
-                      onChange={(e) => setEditingRecord({...editingRecord, volume: e.target.value})}
-                    />
+                    <Input className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" value={editingRecord?.volume || ''} onChange={(e) => setEditingRecord({...editingRecord, volume: e.target.value})} />
                   </div>
                   <div className="flex flex-col gap-3">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Chapter ID</Label>
-                    <Input 
-                      className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
-                      value={editingRecord?.chapterId || ''} 
-                      onChange={(e) => setEditingRecord({...editingRecord, chapterId: e.target.value})}
-                    />
+                    <Input className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" value={editingRecord?.chapterId || ''} onChange={(e) => setEditingRecord({...editingRecord, chapterId: e.target.value})} />
                   </div>
                   <div className="flex flex-col gap-3">
                     <Label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Hadith Number</Label>
-                    <Input 
-                      className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" 
-                      value={editingRecord?.hadithNumber || ''} 
-                      onChange={(e) => setEditingRecord({...editingRecord, hadithNumber: e.target.value})}
-                    />
+                    <Input className="bg-zinc-50 border-zinc-100 h-12 rounded-xl font-bold text-zinc-900 shadow-inner focus-visible:ring-zinc-900" value={editingRecord?.hadithNumber || ''} onChange={(e) => setEditingRecord({...editingRecord, hadithNumber: e.target.value})} />
                   </div>
                 </div>
               </section>
 
-              {/* 2nd: Scholarly Status */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <ShieldCheck className="w-4 h-4" />
                   <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Scholarly Status</Label>
                 </div>
-                <Input 
-                  className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900 text-lg" 
-                  value={editingRecord?.status || ''} 
-                  placeholder="Sahih, Hasan, Da'if..."
-                  onChange={(e) => setEditingRecord({...editingRecord, status: e.target.value})}
-                />
+                <Input className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900 text-lg" value={editingRecord?.status || ''} placeholder="Sahih, Hasan, Da'if..." onChange={(e) => setEditingRecord({...editingRecord, status: e.target.value})} />
               </section>
 
-              {/* 3rd: Primary Narrator (Sanad) */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-zinc-400 ml-1">
                   <Info className="w-4 h-4" />
                   <Label className="text-[10px] font-black uppercase tracking-[0.3em]">Primary Narrator (Sanad)</Label>
                 </div>
-                <Input 
-                  className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900 text-lg" 
-                  value={editingRecord?.narrator_text || ''} 
-                  placeholder="Enter Sanad chain..."
-                  onChange={(e) => setEditingRecord({...editingRecord, narrator_text: e.target.value})} 
-                />
+                <Input className="bg-white border-zinc-200 h-14 px-6 rounded-2xl font-bold text-zinc-700 shadow-sm focus-visible:ring-zinc-900 text-lg" value={editingRecord?.narrator_text || ''} placeholder="Enter Sanad chain..." onChange={(e) => setEditingRecord({...editingRecord, narrator_text: e.target.value})} />
               </section>
 
-              {/* 4th: Prophetic Narration (Matn) */}
               <section className="space-y-4 pt-6 border-t border-zinc-100">
                 <div className="flex items-center justify-between ml-1">
                   <div className="flex items-center gap-2 text-zinc-400">
@@ -765,29 +735,14 @@ export function HadithChapterRecordsView({ bookId, editionId, chapterId, onBack 
                     {edition?.type === 'arabic' ? 'Original Script' : 'Translated Content'}
                   </Badge>
                 </div>
-                
-                <Textarea 
-                  dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"}
-                  className={cn(
-                    "min-h-[450px] leading-relaxed p-10 bg-zinc-50/50 rounded-[2.5rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700 resize-none",
-                    edition?.type === 'english' ? "text-xl" : "text-3xl sm:text-5xl font-arabic leading-[2.5] text-zinc-800"
-                  )}
-                  value={editingRecord?.hadith_text || ''}
-                  placeholder="Enter narration text..."
-                  onChange={(e) => setEditingRecord({ ...editingRecord, hadith_text: e.target.value })}
-                />
+                <Textarea dir={edition?.type === 'arabic' || edition?.type === 'urdu' ? "rtl" : "ltr"} className={cn("min-h-[450px] leading-relaxed p-10 bg-zinc-50/50 rounded-[2.5rem] border-none shadow-inner focus-visible:ring-1 focus-visible:ring-zinc-200 transition-all font-medium text-zinc-700 resize-none", edition?.type === 'english' ? "text-xl" : "text-3xl sm:text-5xl font-arabic leading-[2.5] text-zinc-800")} value={editingRecord?.hadith_text || ''} placeholder="Enter narration text..." onChange={(e) => setEditingRecord({ ...editingRecord, hadith_text: e.target.value })} />
               </section>
             </div>
           </ScrollArea>
 
           <DialogFooter className="px-8 sm:px-12 py-8 sm:py-10 bg-zinc-50 border-t shrink-0 flex flex-row items-center justify-end gap-4">
-            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-6 font-bold text-zinc-400 hover:text-zinc-900">
-              Discard Changes
-            </Button>
-            <Button 
-              className="h-12 sm:h-14 px-12 rounded-2xl bg-zinc-900 text-white font-bold shadow-2xl active:scale-95 transition-all hover:bg-black gap-3" 
-              onClick={handleSaveEdit}
-            >
+            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-12 sm:h-14 px-6 font-bold text-zinc-400 hover:text-zinc-900">Discard Changes</Button>
+            <Button className="h-12 sm:h-14 px-12 rounded-2xl bg-zinc-900 text-white font-bold shadow-2xl active:scale-95 transition-all hover:bg-black gap-3" onClick={handleSaveEdit}>
               <Save className="w-4 h-4" />
               <span>Commit Refinement</span>
             </Button>
