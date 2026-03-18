@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, Play, Mic2, ScrollText } from 'lucide-react';
+import { Home, BookOpen, Play, ScrollText, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -18,7 +18,8 @@ const baseNavItems = [
   { id: 'home', label: 'Home', icon: Home, href: '/' },
   { id: 'quran', label: 'Quran', icon: BookOpen, href: '/quran' },
   { id: 'hadith', label: 'Hadith', icon: ScrollText, href: '/hadith' },
-  { id: 'speakers', label: 'Speakers', icon: Mic2, href: '/speakers' },
+  { id: 'videos', label: 'Videos', icon: Play, href: '/videos' },
+  { id: 'more', label: 'More', icon: Menu, href: '/more' },
 ];
 
 export function Navbar() {
