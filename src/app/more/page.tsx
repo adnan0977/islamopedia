@@ -37,7 +37,7 @@ const features = [
   { id: 'live', label: 'Live Streams', description: 'Direct video feeds from Makkah and Madinah.', icon: Tv, category: 'Community', href: '/live' },
   { id: 'quiz', label: 'Knowledge Quizzes', description: 'Gamified modules to test Islamic history and Fiqh.', icon: BrainCircuit, category: 'Learning' },
   { id: 'qa', label: 'Community Q&A', description: 'Ask questions or access a database of reputable fatwas.', icon: Users, category: 'Community' },
-  { id: 'settings', label: 'Accessibility & Display', description: 'Dark mode and adjustable font sizes for better reading.', icon: Settings, category: 'System' },
+  { id: 'settings', label: 'Accessibility & Display', description: 'Dark mode and adjustable font sizes for better reading.', icon: Settings, category: 'System', href: '/display-settings' },
 ];
 
 export default function MorePage() {
