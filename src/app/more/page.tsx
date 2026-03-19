@@ -1,3 +1,4 @@
+
 "use client";
 
 import { 
@@ -25,7 +26,7 @@ import { cn } from '@/lib/utils';
 
 const features = [
   { id: 'prayer', label: 'Precise Prayer Times', description: 'Location-based timings including Imsak and Shuruq.', icon: Clock, category: 'Essentials' },
-  { id: 'qibla', label: 'Qibla Finder', description: 'Digital compass to locate the direction of the Kaaba.', icon: Compass, category: 'Essentials' },
+  { id: 'qibla', label: 'Qibla Finder', description: 'Digital compass to locate the direction of the Kaaba.', icon: Compass, category: 'Essentials', href: '/qibla' },
   { id: 'quran', label: 'The Holy Quran', description: 'Arabic script with multi-language translations and audio.', icon: BookOpen, category: 'Scripture', href: '/quran' },
   { id: 'azan', label: 'Azan Notifications', description: 'Customizable alerts with various Muezzin voices.', icon: Bell, category: 'Essentials' },
   { id: 'hijri', label: 'Hijri Calendar', description: 'Lunar calendar highlighting important Islamic dates.', icon: CalendarDays, category: 'Tools' },
