@@ -1,3 +1,4 @@
+
 "use client";
 
 import { 
@@ -28,7 +29,7 @@ const features = [
   { id: 'qibla', label: 'Qibla Finder', description: 'Digital compass to locate the direction of the Kaaba.', icon: Compass, category: 'Essentials', href: '/qibla' },
   { id: 'quran', label: 'The Holy Quran', description: 'Arabic script with multi-language translations and audio.', icon: BookOpen, category: 'Scripture', href: '/quran' },
   { id: 'azan', label: 'Azan Notifications', description: 'Customizable alerts with various Muezzin voices.', icon: Bell, category: 'Essentials', href: '/prayer-times' },
-  { id: 'hijri', label: 'Hijri Calendar', description: 'Lunar calendar highlighting important Islamic dates.', icon: CalendarDays, category: 'Tools' },
+  { id: 'hijri', label: 'Hijri Calendar', description: 'Lunar calendar highlighting important Islamic dates.', icon: CalendarDays, category: 'Tools', href: '/hijri-calendar' },
   { id: 'duas', label: 'Duas & Adhkar', description: 'Categorized library of supplications for daily activities.', icon: MessageCircle, category: 'Spiritual', href: '/duas' },
   { id: 'zakat', label: 'Zakat Calculator', description: 'Calculate annual charity based on assets and savings.', icon: Calculator, category: 'Tools', href: '/zakat' },
   { id: 'tasbih', label: 'Tasbih Counter', description: 'Digital counter for dhikr with haptic feedback.', icon: Activity, category: 'Spiritual', href: '/tasbih' },

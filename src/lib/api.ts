@@ -31,6 +31,15 @@ export async function getPrayerTimesByCoords(lat: number, lon: number, adjustmen
 }
 
 /**
+ * Fetches a monthly calendar with Gregorian and Hijri dates.
+ */
+export async function getHijriCalendar(year: number, month: number, lat: number, lon: number, adjustment: number = 0) {
+  const res = await fetch(`https://api.aladhan.com/v1/gCalendar/${year}/${month}?latitude=${lat}&longitude=${lon}&adjustment=${adjustment}`);
+  if (!res.ok) throw new Error('Failed to fetch calendar');
+  return res.json();
+}
+
+/**
  * Resolves a city name from GPS coordinates.
  */
 export async function getCityFromCoords(lat: number, lon: number) {
