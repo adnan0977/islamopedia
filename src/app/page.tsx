@@ -119,21 +119,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
-              Sacred <br />
-              <span className="text-zinc-500">Chronicles.</span>
-            </h1>
-            <p className="text-xl text-zinc-400 max-w-[500px] leading-relaxed mx-auto md:mx-0">
-              A professional-grade library of spiritual reflections and verified prophetic traditions.
-            </p>
-            <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
-              <Button size="lg" className="rounded-full h-14 px-10 gap-3 text-base font-bold shadow-xl shadow-primary/20" asChild>
-                <Link href="/videos"><Play className="h-5 w-5 fill-current" /> Studio Feed</Link>
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full h-14 px-10 bg-transparent text-white border-white/20 hover:bg-white/10 text-base font-bold" asChild>
-                <Link href="/hadith">Browse Library</Link>
-              </Button>
-            </div>
           </div>
           
           <div className="space-y-6">
