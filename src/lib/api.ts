@@ -15,8 +15,8 @@ export async function getFullQuran(edition: string) {
   return res.json();
 }
 
-export async function getPrayerTimes(city: string, country: string) {
-  const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${city}&country=${country}&method=2`);
+export async function getPrayerTimes(city: string, country: string, adjustment: number = 0) {
+  const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${city}&country=${country}&method=2&adjustment=${adjustment}`);
   if (!res.ok) throw new Error('Failed to fetch prayer times');
   return res.json();
 }
@@ -24,8 +24,8 @@ export async function getPrayerTimes(city: string, country: string) {
 /**
  * Fetches prayer times based on GPS coordinates.
  */
-export async function getPrayerTimesByCoords(lat: number, lon: number) {
-  const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=2`);
+export async function getPrayerTimesByCoords(lat: number, lon: number, adjustment: number = 0) {
+  const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=2&adjustment=${adjustment}`);
   if (!res.ok) throw new Error('Failed to fetch prayer times');
   return res.json();
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -16,6 +17,7 @@ export default function Home() {
   const db = useFirestore();
   const [prayerTimes, setPrayerTimes] = useState<any>(null);
   const [location] = useState({ city: 'London', country: 'UK' });
+  const [hijriAdjustment, setHijriAdjustment] = useState(0);
 
   // Firestore Queries
   const trendingQuery = useMemoFirebase(() => query(
@@ -28,17 +30,28 @@ export default function Home() {
   const speakersQuery = useMemoFirebase(() => query(collection(db, 'speakers'), limit(8)), [db]);
   const { data: speakers } = useCollection(speakersQuery);
 
+  // Load adjustments from settings
+  useEffect(() => {
+    const saved = localStorage.getItem('vlognest_azan_config');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setHijriAdjustment(parsed.hijriAdjustment ?? 0);
+      } catch (e) {}
+    }
+  }, []);
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const pt = await getPrayerTimes(location.city, location.country);
+        const pt = await getPrayerTimes(location.city, location.country, hijriAdjustment);
         setPrayerTimes(pt.data);
       } catch (error) {
         console.error("Data fetching error:", error);
       }
     }
     fetchData();
-  }, [location]);
+  }, [location, hijriAdjustment]);
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-16 pb-32 lg:pb-8">
