@@ -14,7 +14,8 @@ import {
   Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -121,7 +122,7 @@ export default function DisplaySettingsPage() {
                     { id: 'dark', label: 'Dark', icon: Moon },
                     { id: 'system', label: 'System', icon: Monitor }
                   ].map((t) => (
-                    <div key={t.id}>
+                    <div key={t.id} className="relative">
                       <RadioGroupItem value={t.id} id={t.id} className="peer sr-only" />
                       <Label
                         htmlFor={t.id}
