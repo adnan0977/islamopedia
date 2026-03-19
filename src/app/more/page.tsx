@@ -25,14 +25,14 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 const features = [
-  { id: 'prayer', label: 'Precise Prayer Times', description: 'Location-based timings including Imsak and Shuruq.', icon: Clock, category: 'Essentials' },
+  { id: 'prayer', label: 'Precise Prayer Times', description: 'Location-based timings including Imsak and Shuruq.', icon: Clock, category: 'Essentials', href: '/prayer-times' },
   { id: 'qibla', label: 'Qibla Finder', description: 'Digital compass to locate the direction of the Kaaba.', icon: Compass, category: 'Essentials', href: '/qibla' },
   { id: 'quran', label: 'The Holy Quran', description: 'Arabic script with multi-language translations and audio.', icon: BookOpen, category: 'Scripture', href: '/quran' },
   { id: 'azan', label: 'Azan Notifications', description: 'Customizable alerts with various Muezzin voices.', icon: Bell, category: 'Essentials' },
   { id: 'hijri', label: 'Hijri Calendar', description: 'Lunar calendar highlighting important Islamic dates.', icon: CalendarDays, category: 'Tools' },
   { id: 'duas', label: 'Duas & Adhkar', description: 'Categorized library of supplications for daily activities.', icon: MessageCircle, category: 'Spiritual' },
   { id: 'zakat', label: 'Zakat Calculator', description: 'Calculate annual charity based on assets and savings.', icon: Calculator, category: 'Tools' },
-  { id: 'tasbih', label: 'Tasbih Counter', description: 'Digital counter for dhikr with history tracking.', icon: Activity, category: 'Spiritual', href: '/tasbih' },
+  { id: 'tasbih', label: 'Tasbih Counter', description: 'Digital counter for dhikr with haptic feedback.', icon: Activity, category: 'Spiritual', href: '/tasbih' },
   { id: 'halal', label: 'Halal & Mosque Locator', description: 'Find nearby Halal restaurants and Masjids.', icon: MapPin, category: 'Community' },
   { id: 'ramadan', label: 'Ramadan Planner', description: 'Fasting trackers, Suhoor/Iftar timings, and progress.', icon: Moon, category: 'Tools' },
   { id: 'live', label: 'Live Streams', description: 'Direct video feeds from Makkah and Madinah.', icon: Tv, category: 'Community' },

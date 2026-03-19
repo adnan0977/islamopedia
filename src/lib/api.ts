@@ -22,6 +22,24 @@ export async function getPrayerTimes(city: string, country: string) {
 }
 
 /**
+ * Fetches prayer times based on GPS coordinates.
+ */
+export async function getPrayerTimesByCoords(lat: number, lon: number) {
+  const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=2`);
+  if (!res.ok) throw new Error('Failed to fetch prayer times');
+  return res.json();
+}
+
+/**
+ * Resolves a city name from GPS coordinates.
+ */
+export async function getCityFromCoords(lat: number, lon: number) {
+  const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+  if (!res.ok) throw new Error('Failed to fetch city name');
+  return res.json();
+}
+
+/**
  * Fetches all available editions (translations, recitations, etc.) from AlQuran Cloud API.
  */
 export async function getAllAlQuranEditions() {
