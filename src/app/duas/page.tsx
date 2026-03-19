@@ -15,7 +15,12 @@ import {
   Share2,
   ChevronRight,
   BookOpen,
-  Type
+  Type,
+  X,
+  Settings,
+  Pencil,
+  Check,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +29,29 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Duas', icon: BookOpen },
@@ -81,11 +109,28 @@ const DUAS = [
   }
 ];
 
+const SHARE_BACKGROUNDS = [
+  { id: 'sacred', url: PlaceHolderImages.find(img => img.id === 'quran-bg')?.imageUrl || "https://picsum.photos/seed/sacred/1080/1080", label: 'Sacred' },
+  { id: 'reflection', url: PlaceHolderImages.find(img => img.id === 'reflection-bg')?.imageUrl || "https://picsum.photos/seed/reflect/1080/1080", label: 'Glow' },
+  { id: 'night', url: PlaceHolderImages.find(img => img.id === 'trending-1')?.imageUrl || "https://picsum.photos/seed/night/1080/1080", label: 'Night' }
+];
+
 export default function DuasPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+
+  // Share State
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [duaToShare, setDuaToShare] = useState<any>(null);
+  const [shareConfig, setShareConfig] = useState({
+    mode: 'both' as 'arabic' | 'translation' | 'both',
+    bg: SHARE_BACKGROUNDS[0].url
+  });
+  const [isEditingCard, setIsEditingCard] = useState(false);
+  const [tempArabic, setTempArabic] = useState('');
+  const [tempTranslation, setTempTranslation] = useState('');
 
   const filteredDuas = DUAS.filter(dua => {
     const matchesSearch = dua.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -98,6 +143,43 @@ export default function DuasPage() {
     navigator.clipboard.writeText(text);
     toast({ title: "Copied to Clipboard" });
   };
+
+  const handleOpenShare = (dua: any) => {
+    setDuaToShare(dua);
+    setTempArabic(dua.arabic || '');
+    setTempTranslation(dua.translation || '');
+    setIsEditingCard(false);
+    setShareDialogOpen(true);
+  };
+
+  const handleCopyShareText = () => {
+    if (!duaToShare) return;
+    const arabic = tempArabic || duaToShare.arabic || '';
+    const trans = tempTranslation || duaToShare.translation || '';
+    
+    let text = `Dua Reflection:\n`;
+    if (shareConfig.mode === 'both' || shareConfig.mode === 'arabic') text += `${arabic}\n\n`;
+    if (shareConfig.mode === 'both' || shareConfig.mode === 'translation') text += `${trans}\n\n`;
+    
+    text += `Source: VlogNest Library\n\nShared via VlogNest`;
+    
+    navigator.clipboard.writeText(text.trim());
+    toast({ title: "Copied to Clipboard" });
+  };
+
+  const getShareFontSize = () => {
+    if (!duaToShare) return { arabic: 'text-2xl', translation: 'text-lg' };
+    const arabicLen = tempArabic.length || 0;
+    const transLen = tempTranslation.length || 0;
+    const totalLen = (shareConfig.mode === 'both' ? (arabicLen + transLen) : shareConfig.mode === 'arabic' ? arabicLen : transLen);
+
+    if (totalLen > 600) return { arabic: 'text-lg', translation: 'text-xs' };
+    if (totalLen > 300) return { arabic: 'text-xl', translation: 'text-sm' };
+    if (totalLen > 150) return { arabic: 'text-2xl', translation: 'text-base' };
+    return { arabic: 'text-4xl', translation: 'text-xl' };
+  };
+
+  const fontSizes = getShareFontSize();
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-10 pb-32 animate-in fade-in duration-700">
@@ -158,7 +240,7 @@ export default function DuasPage() {
                 <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-zinc-300 hover:text-zinc-900" onClick={() => handleCopy(`${dua.arabic}\n\n${dua.translation}`)}>
                   <Copy className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-zinc-300 hover:text-zinc-900">
+                <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-zinc-300 hover:text-zinc-900" onClick={() => handleOpenShare(dua)}>
                   <Share2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -207,6 +289,183 @@ export default function DuasPage() {
           </div>
         )}
       </div>
+
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="max-w-4xl bg-zinc-50 border-none rounded-[3rem] p-0 overflow-hidden shadow-2xl flex flex-col md:flex-row h-auto max-h-[95vh]">
+          <div className="flex-1 p-8 sm:p-12 space-y-10 overflow-y-auto">
+            <DialogHeader className="flex flex-row items-center justify-between space-y-0 text-left">
+              <div className="space-y-1">
+                <DialogTitle className="text-xl font-bold tracking-tight">Generate Card</DialogTitle>
+                <DialogDescription className="text-xs text-zinc-400 font-black uppercase tracking-widest">Share Prophetic Dua</DialogDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShareDialogOpen(false)} className="rounded-full h-10 w-10 md:hidden">
+                <X className="w-5 h-5" />
+              </Button>
+            </DialogHeader>
+
+            {/* The Square Visual Card */}
+            <div className="relative aspect-square w-full rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white transition-all duration-1000 mx-auto max-w-[500px]">
+              <Image 
+                src={shareConfig.bg} 
+                alt="Background" 
+                fill 
+                className="object-cover transition-all duration-1000"
+              />
+              <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-[1px]" />
+              
+              <div className="absolute inset-0 p-4 sm:p-6 flex flex-col h-full">
+                <div className="flex-1 flex flex-col justify-center items-center text-center space-y-2">
+                  {(shareConfig.mode === 'both' || shareConfig.mode === 'arabic') && (
+                    <p className={cn("font-arabic text-white leading-[2.5] drop-shadow-2xl", fontSizes.arabic)} dir="rtl">
+                      {tempArabic}
+                    </p>
+                  )}
+                  {(shareConfig.mode === 'both' || shareConfig.mode === 'translation') && (
+                    <p className={cn("text-zinc-200 font-medium leading-relaxed max-w-md line-clamp-[12] italic", fontSizes.translation)}>
+                      "{tempTranslation}"
+                    </p>
+                  )}
+                </div>
+                
+                <div className="pt-3 border-t border-white/10 w-full flex items-center justify-between gap-3 shrink-0">
+                  <Badge variant="secondary" className="bg-white/10 text-white border-none rounded-full px-3 py-0.5 text-[8px] font-black uppercase tracking-widest">
+                    {duaToShare?.title}
+                  </Badge>
+                  <span className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em]">VlogNest</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls Sidebar */}
+          <div className="w-full md:w-96 bg-white border-l border-zinc-100 p-8 sm:p-10 flex flex-col shrink-0 overflow-y-auto">
+            {isEditingCard && (
+              <div className="space-y-6 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="space-y-3">
+                  <Label className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Refine Original</Label>
+                  <Textarea 
+                    value={tempArabic} 
+                    onChange={(e) => setTempArabic(e.target.value)}
+                    className="font-arabic text-right min-h-[120px] bg-zinc-50 border-zinc-100 rounded-xl text-lg p-4 leading-[2.2]"
+                    dir="rtl"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Refine Translation</Label>
+                  <Textarea 
+                    value={tempTranslation} 
+                    onChange={(e) => setTempTranslation(e.target.value)}
+                    className="min-h-[120px] bg-zinc-50 border-zinc-100 rounded-xl text-sm p-4 leading-relaxed"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex-1" />
+            
+            <section className="space-y-6 mt-auto">
+              <div className="flex items-center gap-2 mb-4">
+                <Settings className="w-4 h-4 text-zinc-400" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Workbench Controls</h3>
+              </div>
+              
+              <div className="flex gap-2 items-end">
+                <div className="flex-1 space-y-2">
+                  <Label className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Content</Label>
+                  <Select 
+                    value={shareConfig.mode} 
+                    onValueChange={(val: any) => setShareConfig({ ...shareConfig, mode: val })}
+                  >
+                    <SelectTrigger className="w-full h-11 rounded-xl border-zinc-200 font-bold bg-zinc-50/50 px-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-zinc-100 shadow-xl">
+                      <SelectItem value="both" className="font-bold">Original & Trans</SelectItem>
+                      <SelectItem value="arabic" className="font-bold">Arabic Script</SelectItem>
+                      <SelectItem value="translation" className="font-bold">Translation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1 space-y-2">
+                  <Label className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Theme</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full h-11 rounded-xl border-zinc-200 font-bold justify-start gap-2 overflow-hidden bg-zinc-50/50 px-2">
+                        <div className="w-5 h-5 rounded-md overflow-hidden shrink-0 border border-zinc-100">
+                          <Image src={shareConfig.bg} alt="Current" width={20} height={20} className="object-cover" />
+                        </div>
+                        <span className="flex-1 text-left truncate text-[10px]">
+                          {SHARE_BACKGROUNDS.find(bg => bg.url === shareConfig.bg)?.label || 'Theme'}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-3 rounded-[1.5rem] border-zinc-100 shadow-2xl" align="end" sideOffset={10}>
+                      <div className="grid grid-cols-1 gap-2">
+                        {SHARE_BACKGROUNDS.map((bg) => (
+                          <button 
+                            key={bg.id}
+                            onClick={() => setShareConfig({ ...shareConfig, bg: bg.url })}
+                            className={cn(
+                              "flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-zinc-50 w-full text-left",
+                              shareConfig.bg === bg.url ? "bg-zinc-50 ring-1 ring-zinc-900/5" : ""
+                            )}
+                          >
+                            <div className="relative h-12 w-12 rounded-lg overflow-hidden shrink-0 border border-zinc-100">
+                              <Image src={bg.url} alt={bg.label} fill className="object-cover" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-[11px] font-bold text-zinc-900">{bg.label}</p>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Background</p>
+                            </div>
+                            {shareConfig.bg === bg.url && <Check className="w-4 h-4 text-zinc-900" />}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Button 
+                    variant={isEditingCard ? "default" : "outline"}
+                    size="icon"
+                    className={cn("h-11 w-11 rounded-xl border-zinc-200 transition-all shadow-sm", isEditingCard && "bg-zinc-900 text-white")}
+                    onClick={() => setIsEditingCard(!isEditingCard)}
+                    title="Refine Text"
+                  >
+                    <Pencil className="w-5 h-5" />
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Button 
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11 rounded-xl border-zinc-200 bg-white shadow-sm hover:bg-zinc-50 active:scale-95 transition-all"
+                    onClick={handleCopyShareText}
+                    title="Copy Text"
+                  >
+                    <Copy className="w-5 h-5 text-zinc-600" />
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Button 
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11 rounded-xl border-zinc-200 bg-white shadow-sm hover:bg-zinc-50 active:scale-95 transition-all"
+                    title="Download Card"
+                  >
+                    <Download className="w-5 h-5 text-zinc-600" />
+                  </Button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer Info */}
       <footer className="pt-10">
