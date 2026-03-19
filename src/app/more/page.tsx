@@ -1,4 +1,3 @@
-
 "use client";
 
 import { 
@@ -31,7 +30,7 @@ const features = [
   { id: 'azan', label: 'Azan Notifications', description: 'Customizable alerts with various Muezzin voices.', icon: Bell, category: 'Essentials', href: '/prayer-times' },
   { id: 'hijri', label: 'Hijri Calendar', description: 'Lunar calendar highlighting important Islamic dates.', icon: CalendarDays, category: 'Tools' },
   { id: 'duas', label: 'Duas & Adhkar', description: 'Categorized library of supplications for daily activities.', icon: MessageCircle, category: 'Spiritual', href: '/duas' },
-  { id: 'zakat', label: 'Zakat Calculator', description: 'Calculate annual charity based on assets and savings.', icon: Calculator, category: 'Tools' },
+  { id: 'zakat', label: 'Zakat Calculator', description: 'Calculate annual charity based on assets and savings.', icon: Calculator, category: 'Tools', href: '/zakat' },
   { id: 'tasbih', label: 'Tasbih Counter', description: 'Digital counter for dhikr with haptic feedback.', icon: Activity, category: 'Spiritual', href: '/tasbih' },
   { id: 'halal', label: 'Halal & Mosque Locator', description: 'Find nearby Halal restaurants and Masjids.', icon: MapPin, category: 'Community' },
   { id: 'ramadan', label: 'Ramadan Planner', description: 'Fasting trackers, Suhoor/Iftar timings, and progress.', icon: Moon, category: 'Tools' },
