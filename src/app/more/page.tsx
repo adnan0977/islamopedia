@@ -1,4 +1,3 @@
-
 "use client";
 
 import { 
@@ -35,7 +34,7 @@ const features = [
   { id: 'tasbih', label: 'Tasbih Counter', description: 'Digital counter for dhikr with haptic feedback.', icon: Activity, category: 'Spiritual', href: '/tasbih' },
   { id: 'halal', label: 'Halal & Mosque Locator', description: 'Find nearby Halal restaurants and Masjids.', icon: MapPin, category: 'Community' },
   { id: 'ramadan', label: 'Ramadan Planner', description: 'Fasting trackers, Suhoor/Iftar timings, and progress.', icon: Moon, category: 'Tools' },
-  { id: 'live', label: 'Live Streams', description: 'Direct video feeds from Makkah and Madinah.', icon: Tv, category: 'Community' },
+  { id: 'live', label: 'Live Streams', description: 'Direct video feeds from Makkah and Madinah.', icon: Tv, category: 'Community', href: '/live' },
   { id: 'quiz', label: 'Knowledge Quizzes', description: 'Gamified modules to test Islamic history and Fiqh.', icon: BrainCircuit, category: 'Learning' },
   { id: 'qa', label: 'Community Q&A', description: 'Ask questions or access a database of reputable fatwas.', icon: Users, category: 'Community' },
   { id: 'settings', label: 'Accessibility & Display', description: 'Dark mode and adjustable font sizes for better reading.', icon: Settings, category: 'System' },
