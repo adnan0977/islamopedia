@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Play, Loader2, ChevronRight, TrendingUp, Clock, CalendarDays, Volume2, Timer } from 'lucide-react';
+import { Play, Loader2, ChevronRight, TrendingUp, CalendarDays, Volume2, Timer } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
@@ -162,32 +162,6 @@ export default function Home() {
                   </div>
                 </CardContent>
               </Card>
-            )}
-
-            {prayerTimes && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {PRAYER_KEYS.map((name) => {
-                  const time = prayerTimes.timings[name];
-                  const isActive = prayerStatus?.current.key === name;
-                  return (
-                    <Card key={name} className={cn(
-                      "border-white/10 backdrop-blur-sm shadow-inner rounded-2xl overflow-hidden transition-all duration-700 group",
-                      isActive ? "bg-white/10 ring-1 ring-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.1)]" : "bg-white/5 hover:bg-white/10"
-                    )}>
-                      <CardHeader className="p-5 flex flex-row items-center justify-between space-y-0">
-                        <span className={cn(
-                          "text-[10px] font-black uppercase tracking-[0.2em] transition-colors",
-                          isActive ? "text-emerald-400" : "text-zinc-500 group-hover:text-zinc-300"
-                        )}>{name}</span>
-                        <Clock className={cn("h-3.5 w-3.5", isActive ? "text-emerald-400" : "text-zinc-600")} />
-                      </CardHeader>
-                      <CardContent className="p-5 pt-0 text-white">
-                        <span className={cn("text-2xl font-bold tracking-tighter", isActive && "text-white")}>{time as string}</span>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
             )}
           </div>
         </div>
