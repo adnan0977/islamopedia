@@ -34,6 +34,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { getPrayerTimesByCoords, getCityFromCoords } from '@/lib/api';

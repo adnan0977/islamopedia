@@ -8,14 +8,14 @@ import {
   Sun, 
   Moon, 
   ShieldCheck, 
-  HandsPray, 
   Heart, 
   Zap,
   Info,
   Copy,
   Share2,
   ChevronRight,
-  BookOpen
+  BookOpen,
+  Type
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,7 +74,7 @@ const DUAS = [
     id: 'l-2',
     category: 'life',
     title: 'Entering the Masjid',
-    arabic: 'بِسْمِ اللَّهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللَّهِ، اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
+    arabic: 'بِسْمِ اللَّهِ، وَالصَّلَاةُ وَالصَّلَامُ عَلَى رَسُولِ اللَّهِ، اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
     transliteration: 'Bismillahi, wassalatu wassalamu \'ala Rasulillahi, Allahummaf-tah li abwaba rahmatik',
     translation: 'In the name of Allah, and prayers and peace be upon the Messenger of Allah. O Allah, open the gates of Your mercy for me.',
     reference: 'Muslim 1/494'
