@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Play, Loader2, ChevronRight, TrendingUp, Clock, CalendarDays } from 'lucide-react';
+import { Play, Loader2, ChevronRight, TrendingUp, Clock, CalendarDays, Volume2, Timer } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
@@ -13,11 +13,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+const PRAYER_KEYS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
 export default function Home() {
   const db = useFirestore();
   const [prayerTimes, setPrayerTimes] = useState<any>(null);
   const [location] = useState({ city: 'London', country: 'UK' }); // Default fallback
   const [hijriAdjustment, setHijriAdjustment] = useState(0);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Firestore Queries
   const trendingQuery = useMemoFirebase(() => query(
@@ -41,18 +44,62 @@ export default function Home() {
     }
   }, []);
 
+  // Update clock every second
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     async function fetchData() {
-      // In a production app, we'd use geolocation here too, but for Home we'll respect saved config
       try {
-        const pt = await getPrayerTimes(location.city, location.country, hijriAdjustment);
-        setPrayerTimes(pt.data);
+        // Use geolocation if available for home page too
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(async (pos) => {
+            const pt = await getPrayerTimes(location.city, location.country, hijriAdjustment);
+            setPrayerTimes(pt.data);
+          }, async () => {
+            const pt = await getPrayerTimes(location.city, location.country, hijriAdjustment);
+            setPrayerTimes(pt.data);
+          });
+        } else {
+          const pt = await getPrayerTimes(location.city, location.country, hijriAdjustment);
+          setPrayerTimes(pt.data);
+        }
       } catch (error) {
         console.error("Data fetching error:", error);
       }
     }
     fetchData();
   }, [location, hijriAdjustment]);
+
+  // Calculate Current and Next Prayer
+  const prayerStatus = useMemo(() => {
+    if (!prayerTimes || !prayerTimes.timings) return null;
+
+    const timings = prayerTimes.timings;
+    const now = currentTime.getHours() * 60 + currentTime.getMinutes();
+
+    const sortedPrayers = PRAYER_KEYS.map(key => {
+      const [h, m] = timings[key].split(':').map(Number);
+      return { key, label: key, minutes: h * 60 + m, timeStr: timings[key] };
+    });
+
+    // Find the current prayer (the last one that has already started)
+    let current = sortedPrayers.filter(p => p.minutes <= now).pop();
+    // Find the next prayer (the first one that hasn't started yet)
+    let next = sortedPrayers.find(p => p.minutes > now);
+
+    // Handle overnight (after Isha, before Fajr)
+    if (!current) {
+      current = sortedPrayers[sortedPrayers.length - 1]; // Yesterday's Isha
+    }
+    if (!next) {
+      next = sortedPrayers[0]; // Tomorrow's Fajr
+    }
+
+    return { current, next };
+  }, [prayerTimes, currentTime]);
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-16 pb-32 lg:pb-8">
@@ -62,67 +109,104 @@ export default function Home() {
           <div className="space-y-8 text-center md:text-left">
             <div className="flex flex-col md:flex-row items-center gap-4 justify-center md:justify-start">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10">
-                <Badge variant="secondary" className="bg-primary text-primary-foreground">LIVE</Badge>
-                <span>Ramadan Reflection Node</span>
+                <Badge variant="secondary" className="bg-primary text-primary-foreground animate-pulse">LIVE</Badge>
+                <span>Spiritual Node</span>
               </div>
               {prayerTimes && (
-                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-black uppercase tracking-widest border border-emerald-500/20 text-emerald-400">
+                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-black uppercase tracking-widest border border-emerald-500/20 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
                   <CalendarDays className="w-3 h-3" />
                   {prayerTimes.date.hijri.day} {prayerTimes.date.hijri.month.en} {prayerTimes.date.hijri.year} AH
                 </div>
               )}
             </div>
             <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
-              Spiritual <br />
-              <span className="text-zinc-500">Reflections.</span>
+              Sacred <br />
+              <span className="text-zinc-500">Chronicles.</span>
             </h1>
             <p className="text-xl text-zinc-400 max-w-[500px] leading-relaxed mx-auto md:mx-0">
-              A high-performance library of prophetic traditions and deep spiritual insights from leading scholars.
+              A professional-grade library of spiritual reflections and verified prophetic traditions.
             </p>
             <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
               <Button size="lg" className="rounded-full h-14 px-10 gap-3 text-base font-bold shadow-xl shadow-primary/20" asChild>
-                <Link href="/videos"><Play className="h-5 w-5 fill-current" /> Start Watching</Link>
+                <Link href="/videos"><Play className="h-5 w-5 fill-current" /> Studio Feed</Link>
               </Button>
               <Button size="lg" variant="outline" className="rounded-full h-14 px-10 bg-transparent text-white border-white/20 hover:bg-white/10 text-base font-bold" asChild>
-                <Link href="/hadith">Browse Hadith</Link>
+                <Link href="/hadith">Browse Library</Link>
               </Button>
             </div>
           </div>
           
-          {prayerTimes && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {Object.entries(prayerTimes.timings)
-                .filter(([k]) => ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(k))
-                .map(([name, time]) => (
-                  <Card key={name} className="bg-white/5 border-white/10 backdrop-blur-sm shadow-inner rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
-                    <CardHeader className="p-5 flex flex-row items-center justify-between space-y-0">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-zinc-300 transition-colors">{name}</span>
-                      <Clock className="h-3.5 w-3.5 text-zinc-600" />
-                    </CardHeader>
-                    <CardContent className="p-5 pt-0 text-white">
-                      <span className="text-2xl font-bold tracking-tighter">{time as string}</span>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          )}
+          <div className="space-y-6">
+            {/* Live Prayer Status Card */}
+            {prayerStatus && (
+              <Card className="bg-white/5 border-white/10 backdrop-blur-xl rounded-[2rem] overflow-hidden shadow-2xl border border-white/5 animate-in fade-in zoom-in duration-1000">
+                <CardContent className="p-8 flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-400">
+                      <Volume2 className="w-4 h-4 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em]">Current Namaz</span>
+                    </div>
+                    <h3 className="text-4xl font-black tracking-tighter text-white uppercase">{prayerStatus.current.label}</h3>
+                    <p className="text-xs font-medium text-zinc-500">Aligning your heart with the divine pulse.</p>
+                  </div>
+                  <div className="text-right space-y-2">
+                    <div className="flex items-center justify-end gap-2 text-zinc-500">
+                      <Timer className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em]">Next: {prayerStatus.next.label}</span>
+                    </div>
+                    <span className="text-4xl font-black text-zinc-200 tabular-nums">{prayerStatus.next.timeStr}</span>
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500">Active Node</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {prayerTimes && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {PRAYER_KEYS.map((name) => {
+                  const time = prayerTimes.timings[name];
+                  const isActive = prayerStatus?.current.key === name;
+                  return (
+                    <Card key={name} className={cn(
+                      "border-white/10 backdrop-blur-sm shadow-inner rounded-2xl overflow-hidden transition-all duration-700 group",
+                      isActive ? "bg-white/10 ring-1 ring-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.1)]" : "bg-white/5 hover:bg-white/10"
+                    )}>
+                      <CardHeader className="p-5 flex flex-row items-center justify-between space-y-0">
+                        <span className={cn(
+                          "text-[10px] font-black uppercase tracking-[0.2em] transition-colors",
+                          isActive ? "text-emerald-400" : "text-zinc-500 group-hover:text-zinc-300"
+                        )}>{name}</span>
+                        <Clock className={cn("h-3.5 w-3.5", isActive ? "text-emerald-400" : "text-zinc-600")} />
+                      </CardHeader>
+                      <CardContent className="p-5 pt-0 text-white">
+                        <span className={cn("text-2xl font-bold tracking-tighter", isActive && "text-white")}>{time as string}</span>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-primary opacity-30 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-zinc-500 opacity-10 blur-[120px]" />
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-primary opacity-20 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-zinc-500 opacity-5 blur-[120px]" />
       </section>
 
       {/* Trending Section */}
       <section className="space-y-8">
-        <div className="flex items-end justify-between">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="space-y-2 text-center sm:text-left">
+            <h2 className="text-3xl font-bold tracking-tight flex items-center justify-center sm:justify-start gap-3">
               <TrendingUp className="h-8 w-8 text-primary" />
-              Trending Now
+              Trending Reflection
             </h2>
-            <p className="text-sm text-muted-foreground font-medium">Most watched spiritual insights this week.</p>
+            <p className="text-sm text-muted-foreground font-medium">Most watched spiritual insights across the global node.</p>
           </div>
           <Button variant="ghost" className="gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400 hover:text-primary transition-all" asChild>
-            <Link href="/videos">View Catalog <ChevronRight className="h-4 w-4" /></Link>
+            <Link href="/videos">Open Full Catalog <ChevronRight className="h-4 w-4" /></Link>
           </Button>
         </div>
 
@@ -208,7 +292,7 @@ function VideoCard({ video }: { video: any }) {
             className="object-cover transition-transform duration-1000 group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 flex items-center justify-center">
-            <div className="bg-white/20 backdrop-blur-md rounded-full p-5 scale-75 group-hover:scale-100 transition-all duration-500">
+            <div className="bg-white/20 backdrop-blur-md rounded-full p-5 scale-75 group-hover:scale-100 transition-all duration-500 shadow-2xl">
               <Play className="h-8 w-8 text-white fill-current" />
             </div>
           </div>
