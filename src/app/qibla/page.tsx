@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -15,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -57,7 +57,9 @@ export default function QiblaPage() {
     try {
       await Haptics.impact({ style: ImpactStyle.Light });
     } catch {
-      if ('vibrate' in navigator) navigator.vibrate(20);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(20);
+      }
     }
   }, [isHapticEnabled]);
 
@@ -142,7 +144,6 @@ export default function QiblaPage() {
     };
   }, [calculateQibla, handleOrientation]);
 
-  const rotation = qiblaDir !== null ? (qiblaDir - heading) : 0;
   const isAligned = qiblaDir !== null && (Math.abs(heading - qiblaDir) < 5 || Math.abs(heading - qiblaDir) > 355);
 
   return (
