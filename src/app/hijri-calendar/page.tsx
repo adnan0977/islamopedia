@@ -112,6 +112,8 @@ export default function HijriCalendarPage() {
     setViewDate(next);
   };
 
+  const isRegionalCommon = location?.country?.toLowerCase() === 'india' || location?.country?.toLowerCase() === 'pakistan';
+
   const currentHijriMonth = calendarData[0]?.hijri?.month?.en;
   const currentHijriYear = calendarData[0]?.hijri?.year;
 
@@ -153,7 +155,24 @@ export default function HijriCalendarPage() {
         </div>
       ) : (
         <>
-          {/* Controls & Adjustment */}
+          {/* Helpful guidance for users in India/Pakistan where sightings often differ */}
+          {isRegionalCommon && hijriAdjustment === 0 && (
+            <div className="bg-zinc-900 text-white p-6 rounded-[2rem] flex items-center justify-between gap-6 shadow-xl animate-in slide-in-from-top duration-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white/10 rounded-2xl">
+                  <Info className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold">Regional Sighting Detected</p>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed">In {location?.country}, the Hijri date often follows local moon sightings. If today's date feels ahead, you can adjust it below.</p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="h-9 rounded-xl border-white/20 text-[9px] font-black uppercase tracking-widest hover:bg-white hover:text-black" onClick={() => handleAdjust(-1)}>
+                Shift -1 Day
+              </Button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
             <div className="md:col-span-8 space-y-6">
               <Card className="border-none bg-white shadow-xl rounded-[2.5rem] overflow-hidden">
@@ -168,14 +187,12 @@ export default function HijriCalendarPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-8">
-                  {/* Calendar Grid */}
                   <div className="grid grid-cols-7 border-b border-zinc-50">
                     {WEEKDAYS.map(day => (
                       <div key={day} className="py-4 text-center text-[10px] font-black uppercase tracking-widest text-zinc-300">{day}</div>
                     ))}
                   </div>
                   <div className="grid grid-cols-7 mt-2">
-                    {/* Empty cells for padding */}
                     {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay() }).map((_, i) => (
                       <div key={`empty-${i}`} className="aspect-square" />
                     ))}

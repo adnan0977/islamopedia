@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Play, Loader2, ChevronRight, TrendingUp, Clock } from 'lucide-react';
+import { Play, Loader2, ChevronRight, TrendingUp, Clock, CalendarDays } from 'lucide-react';
 import { getPrayerTimes } from '@/lib/api';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 export default function Home() {
   const db = useFirestore();
   const [prayerTimes, setPrayerTimes] = useState<any>(null);
-  const [location] = useState({ city: 'London', country: 'UK' });
+  const [location] = useState({ city: 'London', country: 'UK' }); // Default fallback
   const [hijriAdjustment, setHijriAdjustment] = useState(0);
 
   // Firestore Queries
@@ -43,6 +43,7 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
+      // In a production app, we'd use geolocation here too, but for Home we'll respect saved config
       try {
         const pt = await getPrayerTimes(location.city, location.country, hijriAdjustment);
         setPrayerTimes(pt.data);
@@ -59,9 +60,17 @@ export default function Home() {
       <section className="relative overflow-hidden rounded-[2.5rem] bg-zinc-950 px-6 py-12 md:px-16 md:py-24 text-white shadow-2xl">
         <div className="relative z-10 grid gap-12 md:grid-cols-2 items-center">
           <div className="space-y-8 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10">
-              <Badge variant="secondary" className="bg-primary text-primary-foreground">NEW</Badge>
-              <span>Explore Chapter 4: The Path of Wisdom</span>
+            <div className="flex flex-col md:flex-row items-center gap-4 justify-center md:justify-start">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10">
+                <Badge variant="secondary" className="bg-primary text-primary-foreground">LIVE</Badge>
+                <span>Ramadan Reflection Node</span>
+              </div>
+              {prayerTimes && (
+                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-black uppercase tracking-widest border border-emerald-500/20 text-emerald-400">
+                  <CalendarDays className="w-3 h-3" />
+                  {prayerTimes.date.hijri.day} {prayerTimes.date.hijri.month.en} {prayerTimes.date.hijri.year} AH
+                </div>
+              )}
             </div>
             <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
               Spiritual <br />
