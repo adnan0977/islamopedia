@@ -21,7 +21,7 @@ export default function VideosPage() {
   const channelId = searchParams.get('channelId');
   
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 32; // Increased for higher density grid
 
   // Fetch contextual info if filtering
   const speakerRef = useMemoFirebase(() => speakerId ? doc(db, 'speakers', speakerId) : null, [db, speakerId]);
@@ -71,11 +71,11 @@ export default function VideosPage() {
               <VideoIcon className="w-8 h-8 text-zinc-500" />
             </div>
             <div>
-              <h1 className="text-3xl font-headline font-bold text-zinc-100">
-                {speaker ? `Videos by ${speaker.name}` : channel ? `Videos from ${channel.title}` : 'Library'}
+              <h1 className="text-3xl font-headline font-bold text-zinc-100 uppercase tracking-tight">
+                {speaker ? `Reflections: ${speaker.name}` : channel ? `From: ${channel.title}` : 'Video Catalog'}
               </h1>
               <p className="text-zinc-500 text-sm">
-                Explore our curated collection of spiritual and insightful content.
+                Curated high-performance spiritual content library.
               </p>
             </div>
           </div>
@@ -96,11 +96,11 @@ export default function VideosPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
           <Loader2 className="w-12 h-12 animate-spin text-zinc-800" />
-          <p className="text-zinc-600 font-medium">Loading content library...</p>
+          <p className="text-zinc-600 font-medium uppercase tracking-widest text-[10px]">Opening Catalog...</p>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-4 lg:gap-6">
             {paginatedVideos.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
@@ -156,7 +156,7 @@ function VideoCard({ video }: { video: any }) {
   }, []);
 
   return (
-    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-2xl hover:shadow-zinc-500/5 rounded-2xl md:rounded-3xl h-full flex flex-col">
+    <Card className="overflow-hidden group cursor-pointer bg-zinc-950 border-zinc-900 hover:border-zinc-700 transition-all duration-500 shadow-xl rounded-xl md:rounded-2xl h-full flex flex-col">
       <Link href={`/watch?v=${video.id}`} className="flex flex-col h-full">
         <div className="relative aspect-video overflow-hidden">
           <Image 
@@ -166,21 +166,21 @@ function VideoCard({ video }: { video: any }) {
             className="object-cover group-hover:scale-105 transition-transform duration-1000"
           />
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-xl md:rounded-2xl w-10 h-10 md:w-14 md:h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
-              <Play className="text-zinc-300 fill-zinc-300 ml-0.5 w-4 h-4 md:w-6 md:h-6" />
+            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-lg w-8 h-8 md:w-10 md:h-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500 shadow-2xl">
+              <Play className="text-zinc-300 fill-zinc-300 ml-0.5 w-3 h-3 md:w-4 md:h-4" />
             </div>
           </div>
         </div>
-        <CardHeader className="p-5 flex-1 flex flex-col justify-between">
-          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2.5rem] text-zinc-300 group-hover:text-white transition-colors text-xs md:text-sm tracking-tight mb-4">
+        <CardHeader className="p-3 md:p-4 flex-1 flex flex-col justify-between">
+          <CardTitle className="font-bold leading-tight line-clamp-2 min-h-[2rem] text-zinc-300 group-hover:text-white transition-colors text-[9px] md:text-[11px] lg:text-xs tracking-tight mb-2">
             {video.title}
           </CardTitle>
-          <div className="flex items-center justify-between text-[8px] md:text-[9px] text-zinc-600 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] pt-4 border-t border-zinc-900">
-            <div className="flex items-center gap-2">
-               <Smartphone className="w-3.5 h-3.5" />
-               <span>{video.appViewCount?.toLocaleString() || 0} app views</span>
+          <div className="flex items-center justify-between text-[7px] md:text-[8px] text-zinc-600 font-black uppercase tracking-widest pt-2 border-t border-zinc-900">
+            <div className="flex items-center gap-1">
+               <Smartphone className="w-2.5 h-2.5" />
+               <span>{video.appViewCount > 1000 ? (video.appViewCount / 1000).toFixed(1) + 'K' : video.appViewCount || 0}</span>
             </div>
-            <span>{mounted ? new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</span>
+            <span className="hidden md:inline">{mounted ? new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) : ''}</span>
           </div>
         </CardHeader>
       </Link>
